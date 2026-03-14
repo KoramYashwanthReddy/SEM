@@ -36,7 +36,7 @@ public class ExamAttemptService {
         attempt.setExamCode(examCode);
         attempt.setStartTime(LocalDateTime.now());
 
-        int duration = 60; // minutes
+        int duration = 60;
         attempt.setDurationMinutes(duration);
 
         attempt.setExpiryTime(LocalDateTime.now().plusMinutes(duration));
@@ -63,10 +63,14 @@ public class ExamAttemptService {
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new RuntimeException("Question not found"));
 
-        StudentAnswer studentAnswer =
+        Optional<StudentAnswer> optionalAnswer =
                 answerRepository.findByAttemptIdAndQuestionId(attemptId, questionId);
 
-        if (studentAnswer == null) {
+        StudentAnswer studentAnswer;
+
+        if (optionalAnswer.isPresent()) {
+            studentAnswer = optionalAnswer.get();
+        } else {
             studentAnswer = new StudentAnswer();
             studentAnswer.setAttemptId(attemptId);
             studentAnswer.setQuestionId(questionId);
@@ -74,7 +78,7 @@ public class ExamAttemptService {
 
         studentAnswer.setAnswer(answer);
 
-        if (markForReview != null && markForReview) {
+        if (Boolean.TRUE.equals(markForReview)) {
             studentAnswer.setStatus("MARKED_FOR_REVIEW");
             studentAnswer.setReviewMarked(true);
         } else {
@@ -85,7 +89,10 @@ public class ExamAttemptService {
         int marks = 0;
 
         if (question.getQuestionType() == QuestionType.MCQ) {
-            if (answer != null && answer.equalsIgnoreCase(question.getCorrectAnswer())) {
+
+            if (answer != null &&
+                    answer.equalsIgnoreCase(question.getCorrectAnswer())) {
+
                 marks = question.getMarks();
             }
         }
@@ -108,13 +115,15 @@ public class ExamAttemptService {
                 .mapToInt(a -> a.getMarksObtained() == null ? 0 : a.getMarksObtained())
                 .sum();
 
-        List<Question> questions = questionRepository.findByExamCode(attempt.getExamCode());
+        List<Question> questions =
+                questionRepository.findByExamCode(attempt.getExamCode());
 
         int totalMarks = questions.stream()
                 .mapToInt(q -> q.getMarks() == null ? 0 : q.getMarks())
                 .sum();
 
-        double percentage = totalMarks == 0 ? 0 : (obtainedMarks * 100.0) / totalMarks;
+        double percentage =
+                totalMarks == 0 ? 0 : (obtainedMarks * 100.0) / totalMarks;
 
         ExamResultResponse response = new ExamResultResponse();
 
@@ -160,7 +169,9 @@ public class ExamAttemptService {
                     "NOT_VISITED"
             );
 
-            palette.add(new QuestionPaletteResponse(q.getId(), status));
+            palette.add(
+                    new QuestionPaletteResponse(q.getId(), status)
+            );
         }
 
         return palette;
@@ -173,7 +184,8 @@ public class ExamAttemptService {
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
 
         long remainingSeconds =
-                Duration.between(LocalDateTime.now(), attempt.getExpiryTime()).getSeconds();
+                Duration.between(LocalDateTime.now(), attempt.getExpiryTime())
+                        .getSeconds();
 
         if (remainingSeconds < 0) remainingSeconds = 0;
 

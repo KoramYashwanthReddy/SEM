@@ -23,16 +23,38 @@ public class ExamAttempt {
 
     private Integer obtainedMarks;
 
-    private String status;
-    // STARTED, SUBMITTED, EVALUATED
+    // percentage score
+    private Double score;
 
-    // NEW: exam duration in minutes
+    // STARTED | SUBMITTED | EVALUATED
+    private String status;
+
+    // exam duration in minutes
     private Integer durationMinutes;
 
-    // NEW: calculated exam expiry time
+    // calculated exam expiry time
     private LocalDateTime expiryTime;
 
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
+
     public ExamAttempt() {}
+
+    @PrePersist
+    public void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+
+        if (startTime != null && durationMinutes != null) {
+            expiryTime = startTime.plusMinutes(durationMinutes);
+        }
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
     public Long getId() { return id; }
 
@@ -48,11 +70,17 @@ public class ExamAttempt {
 
     public Integer getObtainedMarks() { return obtainedMarks; }
 
+    public Double getScore() { return score; }
+
     public String getStatus() { return status; }
 
     public Integer getDurationMinutes() { return durationMinutes; }
 
     public LocalDateTime getExpiryTime() { return expiryTime; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
 
     public void setId(Long id) { this.id = id; }
 
@@ -68,9 +96,15 @@ public class ExamAttempt {
 
     public void setObtainedMarks(Integer obtainedMarks) { this.obtainedMarks = obtainedMarks; }
 
+    public void setScore(Double score) { this.score = score; }
+
     public void setStatus(String status) { this.status = status; }
 
     public void setDurationMinutes(Integer durationMinutes) { this.durationMinutes = durationMinutes; }
 
     public void setExpiryTime(LocalDateTime expiryTime) { this.expiryTime = expiryTime; }
+
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

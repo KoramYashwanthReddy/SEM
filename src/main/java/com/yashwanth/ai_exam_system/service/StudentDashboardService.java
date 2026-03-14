@@ -2,14 +2,12 @@ package com.yashwanth.ai_exam_system.service;
 
 import com.yashwanth.ai_exam_system.dto.*;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
-import com.yashwanth.ai_exam_system.entity.Question;
 import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.QuestionRepository;
 
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class StudentDashboardService {
@@ -28,15 +26,17 @@ public class StudentDashboardService {
         List<ExamAttempt> attempts = attemptRepository.findByStudentId(studentId);
 
         List<StudentExamSummary> attempted = new ArrayList<>();
-
         List<Double> scores = new ArrayList<>();
 
         for (ExamAttempt attempt : attempts) {
 
+            int obtained = attempt.getObtainedMarks() == null ? 0 : attempt.getObtainedMarks();
+            int total = attempt.getTotalMarks() == null ? 0 : attempt.getTotalMarks();
+
             double percentage = 0;
 
-            if (attempt.getTotalMarks() != null && attempt.getTotalMarks() > 0) {
-                percentage = (attempt.getObtainedMarks() * 100.0) / attempt.getTotalMarks();
+            if (total > 0) {
+                percentage = (obtained * 100.0) / total;
             }
 
             scores.add(percentage);
@@ -44,8 +44,8 @@ public class StudentDashboardService {
             attempted.add(
                     new StudentExamSummary(
                             attempt.getExamCode(),
-                            attempt.getObtainedMarks(),
-                            attempt.getTotalMarks(),
+                            obtained,
+                            total,
                             percentage,
                             calculateBadge(percentage)
                     )
@@ -57,15 +57,31 @@ public class StudentDashboardService {
         analytics.setAttemptedExams(attempted.size());
 
         if (!scores.isEmpty()) {
-            analytics.setAverageScore(scores.stream().mapToDouble(Double::doubleValue).average().orElse(0));
+
+            double avg = scores.stream()
+                    .mapToDouble(Double::doubleValue)
+                    .average()
+                    .orElse(0);
+
+            analytics.setAverageScore(avg);
+
             analytics.setHighestScore(Collections.max(scores));
             analytics.setLowestScore(Collections.min(scores));
 
-            long passCount = scores.stream().filter(s -> s >= 40).count();
+            long passCount =
+                    scores.stream().filter(s -> s >= 40).count();
+
             analytics.setPassRate((passCount * 100.0) / scores.size());
+        } else {
+
+            analytics.setAverageScore(0.0);
+            analytics.setHighestScore(0.0);
+            analytics.setLowestScore(0.0);
+            analytics.setPassRate(0.0);
         }
 
-        List<ExamSuggestionResponse> suggestions = generateSuggestions(analytics);
+        List<ExamSuggestionResponse> suggestions =
+                generateSuggestions(analytics);
 
         StudentDashboardResponse response = new StudentDashboardResponse();
 
@@ -87,23 +103,37 @@ public class StudentDashboardService {
         return "PARTICIPANT";
     }
 
-    private List<ExamSuggestionResponse> generateSuggestions(StudentExamAnalyticsResponse analytics) {
+    private List<ExamSuggestionResponse> generateSuggestions(
+            StudentExamAnalyticsResponse analytics) {
 
         List<ExamSuggestionResponse> suggestions = new ArrayList<>();
 
-        if (analytics.getAverageScore() != null) {
+        Double avg = analytics.getAverageScore();
 
-            if (analytics.getAverageScore() < 60) {
-                suggestions.add(new ExamSuggestionResponse("Revise fundamentals and attempt beginner exams"));
-            }
+        if (avg == null) return suggestions;
 
-            if (analytics.getAverageScore() < 75) {
-                suggestions.add(new ExamSuggestionResponse("Practice more medium difficulty exams"));
-            }
+        if (avg < 60) {
+            suggestions.add(
+                    new ExamSuggestionResponse(
+                            "Revise fundamentals and attempt beginner exams"
+                    )
+            );
+        }
 
-            if (analytics.getAverageScore() >= 80) {
-                suggestions.add(new ExamSuggestionResponse("Try advanced coding exams"));
-            }
+        if (avg >= 60 && avg < 75) {
+            suggestions.add(
+                    new ExamSuggestionResponse(
+                            "Practice more medium difficulty exams"
+                    )
+            );
+        }
+
+        if (avg >= 80) {
+            suggestions.add(
+                    new ExamSuggestionResponse(
+                            "Try advanced coding exams"
+                    )
+            );
         }
 
         return suggestions;
