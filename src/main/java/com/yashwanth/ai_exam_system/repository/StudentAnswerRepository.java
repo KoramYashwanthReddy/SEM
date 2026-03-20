@@ -8,9 +8,13 @@ import java.util.Optional;
 
 public interface StudentAnswerRepository extends JpaRepository<StudentAnswer, Long> {
 
+    // ================= CORE =================
+
     List<StudentAnswer> findByAttemptId(Long attemptId);
 
     Optional<StudentAnswer> findByAttemptIdAndQuestionId(Long attemptId, Long questionId);
+
+    // ================= NAVIGATION =================
 
     long countByAttemptId(Long attemptId);
 
@@ -18,4 +22,15 @@ public interface StudentAnswerRepository extends JpaRepository<StudentAnswer, Lo
 
     long countByAttemptIdAndReviewMarkedTrue(Long attemptId);
 
+    // ================= AI ANALYSIS =================
+
+    // 🔥 REQUIRED for AI topic analysis
+    List<StudentAnswer> findByStudentId(Long studentId);
+
+    // 🔥 Optional (advanced filtering)
+    List<StudentAnswer> findByStudentIdAndIsCorrect(Long studentId, Boolean isCorrect);
+
+    // ================= ADMIN =================
+
+    List<StudentAnswer> findByQuestionId(Long questionId);
 }

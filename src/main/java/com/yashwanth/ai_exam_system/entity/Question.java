@@ -10,11 +10,11 @@ public class Question {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Exam reference
+    // ================= BASIC =================
+
     @Column(nullable = false)
     private String examCode;
 
-    // MCQ / CODING / DESCRIPTIVE
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private QuestionType questionType;
@@ -22,41 +22,52 @@ public class Question {
     // EASY / MEDIUM / HARD
     private String difficulty;
 
+    // 🔥 NEW (VERY IMPORTANT FOR AI)
+    @Column(nullable = false)
+    private String topic;
+
     @Column(length = 2000, nullable = false)
     private String questionText;
 
-    // MCQ Options
+    // ================= MCQ OPTIONS =================
+
     private String optionA;
     private String optionB;
     private String optionC;
     private String optionD;
 
-    // Correct Answer (for MCQ auto grading)
     private String correctAnswer;
 
-    // Coding question inputs
+    // ================= CODING =================
+
     @Column(length = 2000)
     private String sampleInput;
 
     @Column(length = 2000)
     private String sampleOutput;
 
-    // Marks for question
+    // ================= MARKS =================
+
     @Column(nullable = false)
     private Integer marks;
+
+    // ================= CONSTRUCTORS =================
 
     public Question() {
     }
 
-    public Question(Long id, String examCode, QuestionType questionType, String difficulty,
-                    String questionText, String optionA, String optionB, String optionC,
-                    String optionD, String correctAnswer, String sampleInput,
-                    String sampleOutput, Integer marks) {
+    public Question(Long id, String examCode, QuestionType questionType,
+                    String difficulty, String topic, String questionText,
+                    String optionA, String optionB, String optionC,
+                    String optionD, String correctAnswer,
+                    String sampleInput, String sampleOutput,
+                    Integer marks) {
 
         this.id = id;
         this.examCode = examCode;
         this.questionType = questionType;
         this.difficulty = difficulty;
+        this.topic = topic;
         this.questionText = questionText;
         this.optionA = optionA;
         this.optionB = optionB;
@@ -67,6 +78,8 @@ public class Question {
         this.sampleOutput = sampleOutput;
         this.marks = marks;
     }
+
+    // ================= GETTERS =================
 
     public Long getId() {
         return id;
@@ -82,6 +95,10 @@ public class Question {
 
     public String getDifficulty() {
         return difficulty;
+    }
+
+    public String getTopic() {
+        return topic;
     }
 
     public String getQuestionText() {
@@ -120,6 +137,8 @@ public class Question {
         return marks;
     }
 
+    // ================= SETTERS =================
+
     public void setId(Long id) {
         this.id = id;
     }
@@ -134,6 +153,10 @@ public class Question {
 
     public void setDifficulty(String difficulty) {
         this.difficulty = difficulty;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 
     public void setQuestionText(String questionText) {
