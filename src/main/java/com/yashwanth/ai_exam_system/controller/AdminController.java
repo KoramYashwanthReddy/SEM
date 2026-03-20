@@ -2,7 +2,7 @@ package com.yashwanth.ai_exam_system.controller;
 
 import com.yashwanth.ai_exam_system.entity.Exam;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
-import com.yashwanth.ai_exam_system.entity.ProctoringLog;
+import com.yashwanth.ai_exam_system.entity.ProctoringEvent;
 import com.yashwanth.ai_exam_system.service.AdminService;
 
 import org.springframework.http.ResponseEntity;
@@ -22,40 +22,49 @@ public class AdminController {
         this.adminService = adminService;
     }
 
-    // ✅ GET ALL EXAMS
+    // ✅ EXAMS
     @GetMapping("/exams")
     public ResponseEntity<List<Exam>> getAllExams() {
         return ResponseEntity.ok(adminService.getAllExams());
     }
 
-    // ✅ DELETE EXAM (SOFT DELETE)
     @DeleteMapping("/exams/{examCode}")
     public ResponseEntity<String> deleteExam(@PathVariable String examCode) {
         adminService.deleteExam(examCode);
         return ResponseEntity.ok("Exam deleted successfully");
     }
 
-    // ✅ GET ALL ATTEMPTS
+    // ✅ ATTEMPTS
     @GetMapping("/attempts")
     public ResponseEntity<List<ExamAttempt>> getAllAttempts() {
         return ResponseEntity.ok(adminService.getAllAttempts());
     }
 
-    // ✅ FILTER ATTEMPTS BY EXAM
     @GetMapping("/attempts/exam/{examCode}")
     public ResponseEntity<List<ExamAttempt>> getAttemptsByExam(@PathVariable String examCode) {
         return ResponseEntity.ok(adminService.getAttemptsByExam(examCode));
     }
 
-    // ✅ FILTER ATTEMPTS BY STUDENT
     @GetMapping("/attempts/student/{studentId}")
     public ResponseEntity<List<ExamAttempt>> getAttemptsByStudent(@PathVariable Long studentId) {
         return ResponseEntity.ok(adminService.getAttemptsByStudent(studentId));
     }
 
-    // ✅ GET CHEATING REPORTS
+    // ✅ ALL CHEATING EVENTS
     @GetMapping("/cheating-reports")
-    public ResponseEntity<List<ProctoringLog>> getCheatingReports() {
+    public ResponseEntity<List<ProctoringEvent>> getCheatingReports() {
         return ResponseEntity.ok(adminService.getAllCheatingLogs());
+    }
+
+    // 🔥 NEW: EVENTS BY ATTEMPT
+    @GetMapping("/cheating/{attemptId}")
+    public ResponseEntity<List<ProctoringEvent>> getEventsByAttempt(@PathVariable Long attemptId) {
+        return ResponseEntity.ok(adminService.getEventsByAttempt(attemptId));
+    }
+
+    // 🔥 NEW: CHEATING SCORE
+    @GetMapping("/cheating-score/{attemptId}")
+    public ResponseEntity<Integer> getCheatingScore(@PathVariable Long attemptId) {
+        return ResponseEntity.ok(adminService.getCheatingScore(attemptId));
     }
 }

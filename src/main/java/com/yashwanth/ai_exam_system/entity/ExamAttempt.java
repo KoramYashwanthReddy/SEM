@@ -23,21 +23,23 @@ public class ExamAttempt {
 
     private Integer obtainedMarks;
 
-    // percentage score
     private Double score;
 
-    // STARTED | SUBMITTED | EVALUATED
+    // STARTED | SUBMITTED | EVALUATED | FLAGGED | INVALIDATED
     private String status;
 
-    // exam duration in minutes
     private Integer durationMinutes;
 
-    // calculated exam expiry time
     private LocalDateTime expiryTime;
 
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    // 🔥 NEW AI FIELDS
+    private Integer cheatingScore = 0;
+
+    private Boolean cheatingFlag = false;
 
     public ExamAttempt() {}
 
@@ -55,6 +57,8 @@ public class ExamAttempt {
     public void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    // Getters & Setters
 
     public Long getId() { return id; }
 
@@ -82,6 +86,10 @@ public class ExamAttempt {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
+    public Integer getCheatingScore() { return cheatingScore; }
+
+    public Boolean getCheatingFlag() { return cheatingFlag; }
+
     public void setId(Long id) { this.id = id; }
 
     public void setStudentId(Long studentId) { this.studentId = studentId; }
@@ -107,4 +115,8 @@ public class ExamAttempt {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public void setCheatingScore(Integer cheatingScore) { this.cheatingScore = cheatingScore; }
+
+    public void setCheatingFlag(Boolean cheatingFlag) { this.cheatingFlag = cheatingFlag; }
 }

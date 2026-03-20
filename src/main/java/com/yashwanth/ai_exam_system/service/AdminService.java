@@ -12,16 +12,16 @@ public class AdminService {
 
     private final ExamRepository examRepository;
     private final ExamAttemptRepository attemptRepository;
-    private final ProctoringLogRepository proctoringLogRepository;
+    private final ProctoringEventRepository proctoringEventRepository;
 
     public AdminService(
             ExamRepository examRepository,
             ExamAttemptRepository attemptRepository,
-            ProctoringLogRepository proctoringLogRepository) {
+            ProctoringEventRepository proctoringEventRepository) {
 
         this.examRepository = examRepository;
         this.attemptRepository = attemptRepository;
-        this.proctoringLogRepository = proctoringLogRepository;
+        this.proctoringEventRepository = proctoringEventRepository;
     }
 
     // ✅ GET ALL EXAMS
@@ -29,13 +29,12 @@ public class AdminService {
         return examRepository.findAll();
     }
 
-    // ✅ DELETE EXAM (SOFT DELETE - BEST PRACTICE)
+    // ✅ DELETE EXAM (SOFT DELETE)
     public void deleteExam(String examCode) {
-
         Exam exam = examRepository.findByExamCode(examCode)
                 .orElseThrow(() -> new RuntimeException("Exam not found"));
 
-        exam.setActive(false); // IMPORTANT
+        exam.setActive(false);
         examRepository.save(exam);
     }
 
@@ -54,8 +53,18 @@ public class AdminService {
         return attemptRepository.findByStudentId(studentId);
     }
 
-    // ✅ CHEATING LOGS
-    public List<ProctoringLog> getAllCheatingLogs() {
-        return proctoringLogRepository.findAll();
+    // 🔥 UPDATED: GET ALL CHEATING EVENTS
+    public List<ProctoringEvent> getAllCheatingLogs() {
+        return proctoringEventRepository.findAll();
+    }
+
+    // 🔥 NEW: Get events by attempt (VERY USEFUL)
+    public List<ProctoringEvent> getEventsByAttempt(Long attemptId) {
+        return proctoringEventRepository.findByAttemptId(attemptId);
+    }
+
+    // 🔥 NEW: Get cheating score for attempt
+    public Integer getCheatingScore(Long attemptId) {
+        return proctoringEventRepository.getTotalSeverityScore(attemptId);
     }
 }
