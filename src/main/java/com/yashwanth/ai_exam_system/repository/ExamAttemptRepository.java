@@ -9,25 +9,35 @@ import java.util.Optional;
 
 public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> {
 
-    // Find all exam attempts with a specific status (STARTED, EVALUATED, etc.)
+    // ✅ Find all attempts by status (STARTED, SUBMITTED, INVALIDATED, etc.)
     List<ExamAttempt> findByStatus(String status);
 
-    // Optional: find attempts of a specific student
+    // ✅ Find attempts of a student
     List<ExamAttempt> findByStudentId(Long studentId);
 
-    // Optional: find attempts for an exam
+    // ✅ Find attempts by examCode (existing)
     List<ExamAttempt> findByExamCode(String examCode);
 
-    // Find attempts of a student for a specific exam
+    // ✅ Find attempts by examId (🔥 IMPORTANT)
+    List<ExamAttempt> findByExamId(Long examId);
+
+    // ✅ Find attempt by student + examCode
     Optional<ExamAttempt> findByStudentIdAndExamCode(Long studentId, String examCode);
 
-    // Used by auto-submit scheduler
+    // ✅ 🔥 REQUIRED for cancelExam()
+    Optional<ExamAttempt> findByExamIdAndStudentId(Long examId, Long studentId);
+
+    // ✅ Auto-submit scheduler
     List<ExamAttempt> findByStatusAndExpiryTimeBefore(String status, LocalDateTime time);
 
-    // Used for analytics / dashboards
+    // ✅ Dashboard / analytics
     long countByStudentId(Long studentId);
 
-    // Count completed exams
     long countByStudentIdAndStatus(Long studentId, String status);
 
+    // ✅ 🔥 Admin: get all suspicious/invalid attempts
+    List<ExamAttempt> findByStatusIn(List<String> statuses);
+
+    // ✅ 🔥 Get attempts within time range (analytics)
+    List<ExamAttempt> findByStartTimeBetween(LocalDateTime start, LocalDateTime end);
 }

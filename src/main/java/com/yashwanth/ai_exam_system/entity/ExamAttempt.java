@@ -11,9 +11,12 @@ public class ExamAttempt {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long studentId;
+    // 🔥 IMPORTANT (needed for cancelExam)
+    private Long examId;
 
     private String examCode;
+
+    private Long studentId;
 
     private LocalDateTime startTime;
 
@@ -25,7 +28,9 @@ public class ExamAttempt {
 
     private Double score;
 
-    // STARTED | SUBMITTED | EVALUATED | FLAGGED | INVALIDATED
+    /**
+     * STARTED | SUBMITTED | EVALUATED | FLAGGED | INVALIDATED
+     */
     private String status;
 
     private Integer durationMinutes;
@@ -36,35 +41,56 @@ public class ExamAttempt {
 
     private LocalDateTime updatedAt;
 
-    // 🔥 NEW AI FIELDS
+    // 🔥 AI CHEATING SYSTEM
     private Integer cheatingScore = 0;
 
     private Boolean cheatingFlag = false;
 
+    // 🔥 NEW: store reason for invalidation / cheating
+    @Column(length = 1000)
+    private String remarks;
+
+    // 🔥 OPTIONAL: track last AI update time
+    private LocalDateTime lastAiCheckTime;
+
     public ExamAttempt() {}
 
+    // ✅ AUTO SET VALUES ON CREATE
     @PrePersist
     public void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
 
+        // Default status
+        if (status == null) {
+            status = "STARTED";
+        }
+
+        // Calculate expiry
         if (startTime != null && durationMinutes != null) {
             expiryTime = startTime.plusMinutes(durationMinutes);
         }
+
+        // Default values
+        if (cheatingScore == null) cheatingScore = 0;
+        if (cheatingFlag == null) cheatingFlag = false;
     }
 
+    // ✅ AUTO UPDATE TIMESTAMP
     @PreUpdate
     public void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
 
-    // Getters & Setters
+    // ================= GETTERS =================
 
     public Long getId() { return id; }
 
-    public Long getStudentId() { return studentId; }
+    public Long getExamId() { return examId; }
 
     public String getExamCode() { return examCode; }
+
+    public Long getStudentId() { return studentId; }
 
     public LocalDateTime getStartTime() { return startTime; }
 
@@ -90,11 +116,19 @@ public class ExamAttempt {
 
     public Boolean getCheatingFlag() { return cheatingFlag; }
 
+    public String getRemarks() { return remarks; }
+
+    public LocalDateTime getLastAiCheckTime() { return lastAiCheckTime; }
+
+    // ================= SETTERS =================
+
     public void setId(Long id) { this.id = id; }
 
-    public void setStudentId(Long studentId) { this.studentId = studentId; }
+    public void setExamId(Long examId) { this.examId = examId; }
 
     public void setExamCode(String examCode) { this.examCode = examCode; }
+
+    public void setStudentId(Long studentId) { this.studentId = studentId; }
 
     public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }
 
@@ -119,4 +153,8 @@ public class ExamAttempt {
     public void setCheatingScore(Integer cheatingScore) { this.cheatingScore = cheatingScore; }
 
     public void setCheatingFlag(Boolean cheatingFlag) { this.cheatingFlag = cheatingFlag; }
+
+    public void setRemarks(String remarks) { this.remarks = remarks; }
+
+    public void setLastAiCheckTime(LocalDateTime lastAiCheckTime) { this.lastAiCheckTime = lastAiCheckTime; }
 }

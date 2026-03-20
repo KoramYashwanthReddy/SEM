@@ -1,5 +1,6 @@
 package com.yashwanth.ai_exam_system.controller;
 
+import com.yashwanth.ai_exam_system.entity.CheatingEvidence;
 import com.yashwanth.ai_exam_system.entity.Exam;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
 import com.yashwanth.ai_exam_system.entity.ProctoringEvent;
@@ -10,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -22,7 +24,8 @@ public class AdminController {
         this.adminService = adminService;
     }
 
-    // ✅ EXAMS
+    // ================= EXAMS =================
+
     @GetMapping("/exams")
     public ResponseEntity<List<Exam>> getAllExams() {
         return ResponseEntity.ok(adminService.getAllExams());
@@ -34,7 +37,8 @@ public class AdminController {
         return ResponseEntity.ok("Exam deleted successfully");
     }
 
-    // ✅ ATTEMPTS
+    // ================= ATTEMPTS =================
+
     @GetMapping("/attempts")
     public ResponseEntity<List<ExamAttempt>> getAllAttempts() {
         return ResponseEntity.ok(adminService.getAllAttempts());
@@ -50,21 +54,66 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getAttemptsByStudent(studentId));
     }
 
-    // ✅ ALL CHEATING EVENTS
+    // 🔥 NEW: Suspicious / Invalid Attempts
+    @GetMapping("/attempts/suspicious")
+    public ResponseEntity<List<ExamAttempt>> getSuspiciousAttempts() {
+        return ResponseEntity.ok(adminService.getSuspiciousAttempts());
+    }
+
+    // ================= CHEATING EVENTS =================
+
     @GetMapping("/cheating-reports")
     public ResponseEntity<List<ProctoringEvent>> getCheatingReports() {
         return ResponseEntity.ok(adminService.getAllCheatingLogs());
     }
 
-    // 🔥 NEW: EVENTS BY ATTEMPT
     @GetMapping("/cheating/{attemptId}")
     public ResponseEntity<List<ProctoringEvent>> getEventsByAttempt(@PathVariable Long attemptId) {
         return ResponseEntity.ok(adminService.getEventsByAttempt(attemptId));
     }
 
-    // 🔥 NEW: CHEATING SCORE
     @GetMapping("/cheating-score/{attemptId}")
     public ResponseEntity<Integer> getCheatingScore(@PathVariable Long attemptId) {
         return ResponseEntity.ok(adminService.getCheatingScore(attemptId));
+    }
+
+    // ================= 🔥 EVIDENCE SYSTEM =================
+
+    @GetMapping("/evidence")
+    public ResponseEntity<List<CheatingEvidence>> getAllEvidence() {
+        return ResponseEntity.ok(adminService.getAllEvidence());
+    }
+
+    @GetMapping("/evidence/exam/{examId}")
+    public ResponseEntity<List<CheatingEvidence>> getEvidenceByExam(@PathVariable Long examId) {
+        return ResponseEntity.ok(adminService.getEvidenceByExam(examId));
+    }
+
+    @GetMapping("/evidence/student/{studentId}")
+    public ResponseEntity<List<CheatingEvidence>> getEvidenceByStudent(@PathVariable Long studentId) {
+        return ResponseEntity.ok(adminService.getEvidenceByStudent(studentId));
+    }
+
+    // ================= 🔥 ADMIN CONTROL =================
+
+    // 🚨 Force cancel attempt
+    @PostMapping("/attempts/{attemptId}/cancel")
+    public ResponseEntity<String> cancelAttempt(@PathVariable Long attemptId) {
+        adminService.cancelAttempt(attemptId);
+        return ResponseEntity.ok("Exam attempt cancelled by admin");
+    }
+
+    // 🔄 Restore attempt (if wrongly flagged)
+    @PostMapping("/attempts/{attemptId}/restore")
+    public ResponseEntity<String> restoreAttempt(@PathVariable Long attemptId) {
+        adminService.restoreAttempt(attemptId);
+        return ResponseEntity.ok("Exam attempt restored");
+    }
+
+    // ================= 📊 DASHBOARD =================
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<Map<String, Object>> getDashboardStats() {
+        return ResponseEntity.ok(adminService.getDashboardStats());
     }
 }

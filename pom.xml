@@ -143,6 +143,26 @@
     <artifactId>javase</artifactId>
     <version>3.5.3</version>
 </dependency>
+
+<dependency>
+    <groupId>org.openpnp</groupId>
+    <artifactId>opencv</artifactId>
+    <version>4.7.0-0</version>
+</dependency>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 		
 		
 		

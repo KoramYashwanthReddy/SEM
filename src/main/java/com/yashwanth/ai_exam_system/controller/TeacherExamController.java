@@ -2,6 +2,7 @@ package com.yashwanth.ai_exam_system.controller;
 
 import com.yashwanth.ai_exam_system.dto.ExamRequest;
 import com.yashwanth.ai_exam_system.entity.Exam;
+import com.yashwanth.ai_exam_system.entity.ExamAttempt;
 import com.yashwanth.ai_exam_system.service.ExamService;
 
 import jakarta.validation.Valid;
@@ -11,10 +12,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/teacher/exams")
+@PreAuthorize("hasRole('TEACHER')")
 public class TeacherExamController {
 
     private final ExamService examService;
@@ -23,43 +27,88 @@ public class TeacherExamController {
         this.examService = examService;
     }
 
-    // ✅ CREATE EXAM
+    // ================= CREATE =================
+
     @PostMapping
-    @PreAuthorize("hasRole('TEACHER')")
-    public ResponseEntity<Exam> createExam(
+    public ResponseEntity<?> createExam(
             @Valid @RequestBody ExamRequest request,
             Authentication auth) {
 
         Exam exam = examService.createExam(request, auth);
-        return ResponseEntity.ok(exam);
+
+        return ResponseEntity.ok(buildResponse("Exam created successfully", exam));
     }
 
-    // ✅ GET ALL EXAMS CREATED BY TEACHER
+    // ================= GET ALL =================
+
     @GetMapping
-    @PreAuthorize("hasRole('TEACHER')")
     public ResponseEntity<List<Exam>> getMyExams(Authentication auth) {
-
-        List<Exam> exams = examService.getTeacherExams(auth);
-        return ResponseEntity.ok(exams);
+        return ResponseEntity.ok(examService.getTeacherExams(auth));
     }
 
-    // ✅ PUBLISH EXAM
-    @PutMapping("/{examCode}/publish")
-    @PreAuthorize("hasRole('TEACHER')")
-    public ResponseEntity<Exam> publishExam(@PathVariable String examCode) {
+    // ================= GET SINGLE =================
 
-        Exam exam = examService.publishExam(examCode);
-        return ResponseEntity.ok(exam);
+    @GetMapping("/{examCode}")
+    public ResponseEntity<Exam> getExamByCode(@PathVariable String examCode) {
+        return ResponseEntity.ok(examService.getExamByCode(examCode));
     }
 
-    // ✅ UPDATE EXAM (IMPORTANT FEATURE)
+    // ================= UPDATE =================
+
     @PutMapping("/{examCode}")
-    @PreAuthorize("hasRole('TEACHER')")
-    public ResponseEntity<Exam> updateExam(
+    public ResponseEntity<?> updateExam(
             @PathVariable String examCode,
             @Valid @RequestBody ExamRequest request) {
 
         Exam updatedExam = examService.updateExam(examCode, request);
-        return ResponseEntity.ok(updatedExam);
+
+        return ResponseEntity.ok(buildResponse("Exam updated successfully", updatedExam));
+    }
+
+    // ================= PUBLISH =================
+
+    @PutMapping("/{examCode}/publish")
+    public ResponseEntity<?> publishExam(@PathVariable String examCode) {
+
+        Exam exam = examService.publishExam(examCode);
+
+        return ResponseEntity.ok(buildResponse("Exam published successfully", exam));
+    }
+
+    // ================= DELETE (SOFT) =================
+
+    @DeleteMapping("/{examCode}")
+    public ResponseEntity<?> deleteExam(@PathVariable String examCode) {
+
+        examService.deleteExamByTeacher(examCode);
+
+        return ResponseEntity.ok(buildMessage("Exam deleted successfully"));
+    }
+
+    // ================= ANALYTICS =================
+
+    @GetMapping("/{examCode}/attempts")
+    public ResponseEntity<List<ExamAttempt>> getExamAttempts(@PathVariable String examCode) {
+        return ResponseEntity.ok(examService.getAttemptsByExamCode(examCode));
+    }
+
+    @GetMapping("/{examCode}/analytics")
+    public ResponseEntity<Map<String, Object>> getExamAnalytics(@PathVariable String examCode) {
+        return ResponseEntity.ok(examService.getExamAnalytics(examCode));
+    }
+
+    // ================= HELPERS =================
+
+    private Map<String, Object> buildResponse(String message, Object data) {
+        Map<String, Object> res = new HashMap<>();
+        res.put("message", message);
+        res.put("data", data);
+        return res;
+    }
+
+    private Map<String, Object> buildMessage(String message) {
+        Map<String, Object> res = new HashMap<>();
+        res.put("message", message);
+        return res;
     }
 }

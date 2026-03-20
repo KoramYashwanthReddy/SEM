@@ -4,15 +4,14 @@ import com.yashwanth.ai_exam_system.dto.ExamRequest;
 import com.yashwanth.ai_exam_system.entity.Exam;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
 import com.yashwanth.ai_exam_system.entity.ExamStatus;
-import com.yashwanth.ai_exam_system.repository.ExamRepository;
 import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
+import com.yashwanth.ai_exam_system.repository.ExamRepository;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class ExamService {
@@ -31,12 +30,13 @@ public class ExamService {
         this.cheatingDetectionService = cheatingDetectionService;
     }
 
-    // ✅ CREATE EXAM
+    // ================= CREATE =================
+
     public Exam createExam(ExamRequest request, Authentication auth) {
 
         Exam exam = new Exam();
 
-        exam.setExamCode("EXAM-" + UUID.randomUUID().toString().substring(0,8));
+        exam.setExamCode("EXAM-" + UUID.randomUUID().toString().substring(0, 8));
 
         exam.setTitle(request.getTitle());
         exam.setDescription(request.getDescription());
@@ -71,11 +71,22 @@ public class ExamService {
         return examRepository.save(exam);
     }
 
-    // ✅ UPDATE EXAM
+    // ================= GET =================
+
+    public Exam getExamByCode(String examCode) {
+        return examRepository.findByExamCode(examCode)
+                .orElseThrow(() -> new RuntimeException("Exam not found"));
+    }
+
+    public List<Exam> getTeacherExams(Authentication auth) {
+        return examRepository.findByCreatedBy(auth.getName());
+    }
+
+    // ================= UPDATE =================
+
     public Exam updateExam(String examCode, ExamRequest request) {
 
-        Exam exam = examRepository.findByExamCode(examCode)
-                .orElseThrow(() -> new RuntimeException("Exam not found"));
+        Exam exam = getExamByCode(examCode);
 
         exam.setTitle(request.getTitle());
         exam.setDescription(request.getDescription());
@@ -98,47 +109,113 @@ public class ExamService {
         return examRepository.save(exam);
     }
 
-    // ✅ GET TEACHER EXAMS
-    public List<Exam> getTeacherExams(Authentication auth) {
-        return examRepository.findByCreatedBy(auth.getName());
+    // ================= DELETE =================
+
+    public void deleteExamByTeacher(String examCode) {
+
+        Exam exam = getExamByCode(examCode);
+
+        exam.setActive(false);
+        examRepository.save(exam);
     }
 
-    // ✅ PUBLISH EXAM
+    // ================= PUBLISH =================
+
     public Exam publishExam(String examCode) {
 
-        Exam exam = examRepository.findByExamCode(examCode)
-                .orElseThrow(() -> new RuntimeException("Exam not found"));
+        Exam exam = getExamByCode(examCode);
 
         if (!exam.getQuestionsUploaded()) {
             throw new RuntimeException("Upload questions before publishing exam");
         }
 
         exam.setStatus(ExamStatus.PUBLISHED);
+        exam.setUpdatedAt(LocalDateTime.now());
 
         return examRepository.save(exam);
     }
 
-    // 🚀🔥 NEW: SUBMIT EXAM + AI DETECTION
+    // ================= ATTEMPTS =================
+
+    public List<ExamAttempt> getAttemptsByExamCode(String examCode) {
+        return attemptRepository.findByExamCode(examCode);
+    }
+
+    // ================= ANALYTICS =================
+
+    public Map<String, Object> getExamAnalytics(String examCode) {
+
+        List<ExamAttempt> attempts = attemptRepository.findByExamCode(examCode);
+
+        long total = attempts.size();
+
+        long completed = attempts.stream()
+                .filter(a -> "SUBMITTED".equals(a.getStatus()))
+                .count();
+
+        long cancelled = attempts.stream()
+                .filter(a -> "INVALIDATED".equals(a.getStatus()))
+                .count();
+
+        long flagged = attempts.stream()
+                .filter(a -> "FLAGGED".equals(a.getStatus()))
+                .count();
+
+        double avgScore = attempts.stream()
+                .filter(a -> a.getScore() != null)
+                .mapToDouble(ExamAttempt::getScore)
+                .average()
+                .orElse(0.0);
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("totalAttempts", total);
+        map.put("completed", completed);
+        map.put("cancelled", cancelled);
+        map.put("flagged", flagged);
+        map.put("averageScore", avgScore);
+
+        return map;
+    }
+
+    // ================= SUBMIT =================
+
     public String submitExam(Long attemptId) {
 
         ExamAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
 
-        // Prevent duplicate submission
         if ("SUBMITTED".equals(attempt.getStatus()) ||
             "INVALIDATED".equals(attempt.getStatus())) {
-            return "Exam already submitted";
+            return "Exam already completed";
         }
 
-        // Mark as submitted
         attempt.setStatus("SUBMITTED");
         attempt.setEndTime(LocalDateTime.now());
 
         attemptRepository.save(attempt);
 
-        // 🔥 AI CHEATING DETECTION TRIGGER
+        // 🔥 AI detection
         cheatingDetectionService.analyzeAttempt(attemptId);
 
         return "Exam submitted successfully";
+    }
+
+    // ================= CANCEL =================
+
+    public void cancelExam(Long examId, Long studentId, String reason) {
+
+        ExamAttempt attempt = attemptRepository
+                .findByExamIdAndStudentId(examId, studentId)
+                .orElseThrow(() -> new RuntimeException("Attempt not found"));
+
+        if ("INVALIDATED".equals(attempt.getStatus())) {
+            return;
+        }
+
+        attempt.setStatus("INVALIDATED");
+        attempt.setEndTime(LocalDateTime.now());
+        attempt.setRemarks("Cancelled due to cheating: " + reason);
+
+        attemptRepository.save(attempt);
     }
 }
