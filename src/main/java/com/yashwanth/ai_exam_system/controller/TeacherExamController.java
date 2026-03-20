@@ -4,6 +4,9 @@ import com.yashwanth.ai_exam_system.dto.ExamRequest;
 import com.yashwanth.ai_exam_system.entity.Exam;
 import com.yashwanth.ai_exam_system.service.ExamService;
 
+import jakarta.validation.Valid;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -20,25 +23,43 @@ public class TeacherExamController {
         this.examService = examService;
     }
 
-    @PostMapping("/create")
+    // ✅ CREATE EXAM
+    @PostMapping
     @PreAuthorize("hasRole('TEACHER')")
-    public Exam createExam(@RequestBody ExamRequest request,
-                           Authentication auth) {
+    public ResponseEntity<Exam> createExam(
+            @Valid @RequestBody ExamRequest request,
+            Authentication auth) {
 
-        return examService.createExam(request, auth);
+        Exam exam = examService.createExam(request, auth);
+        return ResponseEntity.ok(exam);
     }
 
-    @GetMapping("/my")
+    // ✅ GET ALL EXAMS CREATED BY TEACHER
+    @GetMapping
     @PreAuthorize("hasRole('TEACHER')")
-    public List<Exam> myExams(Authentication auth) {
+    public ResponseEntity<List<Exam>> getMyExams(Authentication auth) {
 
-        return examService.getTeacherExams(auth);
+        List<Exam> exams = examService.getTeacherExams(auth);
+        return ResponseEntity.ok(exams);
     }
 
+    // ✅ PUBLISH EXAM
     @PutMapping("/{examCode}/publish")
     @PreAuthorize("hasRole('TEACHER')")
-    public Exam publishExam(@PathVariable String examCode) {
+    public ResponseEntity<Exam> publishExam(@PathVariable String examCode) {
 
-        return examService.publishExam(examCode);
+        Exam exam = examService.publishExam(examCode);
+        return ResponseEntity.ok(exam);
+    }
+
+    // ✅ UPDATE EXAM (IMPORTANT FEATURE)
+    @PutMapping("/{examCode}")
+    @PreAuthorize("hasRole('TEACHER')")
+    public ResponseEntity<Exam> updateExam(
+            @PathVariable String examCode,
+            @Valid @RequestBody ExamRequest request) {
+
+        Exam updatedExam = examService.updateExam(examCode, request);
+        return ResponseEntity.ok(updatedExam);
     }
 }

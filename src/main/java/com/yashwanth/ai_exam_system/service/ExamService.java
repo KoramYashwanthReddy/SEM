@@ -59,6 +59,33 @@ public class ExamService {
 
         return examRepository.save(exam);
     }
+    
+    public Exam updateExam(String examCode, ExamRequest request) {
+
+        Exam exam = examRepository.findByExamCode(examCode)
+                .orElseThrow(() -> new RuntimeException("Exam not found"));
+
+        // Update fields
+        exam.setTitle(request.getTitle());
+        exam.setDescription(request.getDescription());
+        exam.setSubject(request.getSubject());
+        exam.setDurationMinutes(request.getDurationMinutes());
+        exam.setTotalMarks(request.getTotalMarks());
+        exam.setPassingMarks(request.getPassingMarks());
+
+        exam.setMarksPerQuestion(request.getMarksPerQuestion());
+        exam.setNegativeMarks(request.getNegativeMarks());
+
+        exam.setShuffleQuestions(request.getShuffleQuestions());
+        exam.setShuffleOptions(request.getShuffleOptions());
+
+        exam.setStartTime(request.getStartTime());
+        exam.setEndTime(request.getEndTime());
+
+        exam.setUpdatedAt(LocalDateTime.now());
+
+        return examRepository.save(exam);
+    }
 
     public List<Exam> getTeacherExams(Authentication auth) {
         return examRepository.findByCreatedBy(auth.getName());
