@@ -1,8 +1,10 @@
 package com.yashwanth.ai_exam_system.service;
 
 import com.yashwanth.ai_exam_system.dto.*;
-import com.yashwanth.ai_exam_system.entity.*;
-import com.yashwanth.ai_exam_system.repository.*;
+import com.yashwanth.ai_exam_system.entity.Question;
+import com.yashwanth.ai_exam_system.entity.StudentAnswer;
+import com.yashwanth.ai_exam_system.repository.QuestionRepository;
+import com.yashwanth.ai_exam_system.repository.StudentAnswerRepository;
 
 import org.springframework.stereotype.Service;
 
@@ -22,8 +24,9 @@ public class AIAnalysisService {
 
     public AIAnalysisResponse analyzeStudent(Long studentId) {
 
+        // 🔥 FIXED: correct repository method
         List<StudentAnswer> answers =
-                answerRepository.findByStudentId(studentId);
+                answerRepository.findByAttempt_StudentId(studentId);
 
         Map<String, TopicPerformanceDTO> topicMap = new HashMap<>();
 
@@ -31,7 +34,9 @@ public class AIAnalysisService {
 
             Question question = questionRepository
                     .findById(answer.getQuestionId())
-                    .orElseThrow(() -> new RuntimeException("Question not found"));
+                    .orElse(null);
+
+            if (question == null) continue;
 
             String topic = question.getTopic();
 
@@ -64,7 +69,6 @@ public class AIAnalysisService {
                 WeakTopicDTO weak = new WeakTopicDTO();
                 weak.setTopic(dto.getTopic());
                 weak.setAccuracy(accuracy);
-
                 weak.setRecommendation(generateRecommendation(dto.getTopic()));
 
                 weakTopics.add(weak);
@@ -86,6 +90,8 @@ public class AIAnalysisService {
             case "arrays" -> "Practice array traversal and sorting problems";
             case "dbms" -> "Revise normalization and SQL queries";
             case "os" -> "Focus on process scheduling and deadlocks";
+            case "java" -> "Practice OOPs, collections and multithreading";
+            case "spring" -> "Revise dependency injection and REST APIs";
             default -> "Revise fundamentals and practice more questions on " + topic;
         };
     }

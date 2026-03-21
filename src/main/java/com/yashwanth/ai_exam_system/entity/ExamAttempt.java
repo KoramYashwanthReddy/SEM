@@ -1,16 +1,17 @@
 package com.yashwanth.ai_exam_system.entity;
 
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "exam_attempts",
-       indexes = {
-           @Index(name = "idx_student_id", columnList = "studentId"),
-           @Index(name = "idx_exam_id", columnList = "examId"),
-           @Index(name = "idx_status", columnList = "status")
-       })
+@Table(
+        name = "exam_attempts",
+        indexes = {
+                @Index(name = "idx_student_id", columnList = "student_id"),
+                @Index(name = "idx_exam_id", columnList = "exam_id"),
+                @Index(name = "idx_status", columnList = "status")
+        }
+)
 public class ExamAttempt {
 
     @Id
@@ -21,18 +22,18 @@ public class ExamAttempt {
     // 🔥 CORE FIELDS
     // =========================================================
 
+    @Column(name = "exam_id")
     private Long examId;
 
     private String examCode;
 
+    @Column(name = "student_id")
     private Long studentId;
 
     private LocalDateTime startTime;
-
     private LocalDateTime endTime;
 
     private Integer durationMinutes;
-
     private LocalDateTime expiryTime;
 
     // =========================================================
@@ -40,9 +41,7 @@ public class ExamAttempt {
     // =========================================================
 
     private Integer totalMarks;
-
     private Integer obtainedMarks;
-
     private Double score;
 
     /**
@@ -52,12 +51,14 @@ public class ExamAttempt {
     private String status;
 
     // =========================================================
-    // 🚨 AI CHEATING SYSTEM
+    // 🚨 AI CHEATING SYSTEM (UPGRADED)
     // =========================================================
 
     private Integer cheatingScore = 0;
-
     private Boolean cheatingFlag = false;
+    private Boolean isCancelled = false;
+
+    private LocalDateTime cancelledAt;
 
     @Column(length = 1000)
     private String remarks;
@@ -69,11 +70,10 @@ public class ExamAttempt {
     // =========================================================
 
     private LocalDateTime createdAt;
-
     private LocalDateTime updatedAt;
 
     // =========================================================
-    // 🔄 ENTITY RELATIONSHIPS (OPTIONAL BUT RECOMMENDED)
+    // 🔄 RELATIONSHIPS
     // =========================================================
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -85,7 +85,7 @@ public class ExamAttempt {
     private Exam exam;
 
     // =========================================================
-    // 🔄 LIFECYCLE METHODS
+    // 🔄 LIFECYCLE
     // =========================================================
 
     @PrePersist
@@ -95,9 +95,7 @@ public class ExamAttempt {
         createdAt = now;
         updatedAt = now;
 
-        if (status == null) {
-            status = "STARTED";
-        }
+        if (status == null) status = "STARTED";
 
         if (startTime != null && durationMinutes != null && expiryTime == null) {
             expiryTime = startTime.plusMinutes(durationMinutes);
@@ -105,6 +103,7 @@ public class ExamAttempt {
 
         if (cheatingScore == null) cheatingScore = 0;
         if (cheatingFlag == null) cheatingFlag = false;
+        if (isCancelled == null) isCancelled = false;
     }
 
     @PreUpdate
@@ -113,102 +112,84 @@ public class ExamAttempt {
     }
 
     // =========================================================
-    // 🧠 HELPER METHODS (VERY USEFUL)
+    // 🧠 HELPER METHODS
     // =========================================================
 
     public boolean isActive() {
-        return "STARTED".equals(this.status) &&
-               expiryTime != null &&
-               expiryTime.isAfter(LocalDateTime.now());
+        return "STARTED".equals(this.status)
+                && !Boolean.TRUE.equals(this.isCancelled)
+                && expiryTime != null
+                && expiryTime.isAfter(LocalDateTime.now());
     }
 
     public boolean isHighRisk() {
         return cheatingScore != null && cheatingScore >= 50;
     }
 
-    public boolean isFlagged() {
-        return Boolean.TRUE.equals(cheatingFlag);
+    public boolean isDangerous() {
+        return cheatingScore != null && cheatingScore >= 80;
+    }
+
+    public boolean shouldCancel(int threshold) {
+        return cheatingScore != null && cheatingScore >= threshold;
+    }
+
+    public void markCancelled() {
+        this.isCancelled = true;
+        this.status = "INVALIDATED";
+        this.cancelledAt = LocalDateTime.now();
     }
 
     // =========================================================
-    // ✅ GETTERS & SETTERS
+    // GETTERS & SETTERS
     // =========================================================
 
     public Long getId() { return id; }
-
     public Long getExamId() { return examId; }
-
     public String getExamCode() { return examCode; }
-
     public Long getStudentId() { return studentId; }
-
     public LocalDateTime getStartTime() { return startTime; }
-
     public LocalDateTime getEndTime() { return endTime; }
-
     public Integer getTotalMarks() { return totalMarks; }
-
     public Integer getObtainedMarks() { return obtainedMarks; }
-
     public Double getScore() { return score; }
-
     public String getStatus() { return status; }
-
     public Integer getDurationMinutes() { return durationMinutes; }
-
     public LocalDateTime getExpiryTime() { return expiryTime; }
-
     public LocalDateTime getCreatedAt() { return createdAt; }
-
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
     public Integer getCheatingScore() { return cheatingScore; }
-
     public Boolean getCheatingFlag() { return cheatingFlag; }
+    public Boolean getIsCancelled() { return isCancelled; }
+    public LocalDateTime getCancelledAt() { return cancelledAt; }
 
     public String getRemarks() { return remarks; }
-
     public LocalDateTime getLastAiCheckTime() { return lastAiCheckTime; }
 
     public User getStudent() { return student; }
-
     public Exam getExam() { return exam; }
 
-    // SETTERS
-
     public void setId(Long id) { this.id = id; }
-
     public void setExamId(Long examId) { this.examId = examId; }
-
     public void setExamCode(String examCode) { this.examCode = examCode; }
-
     public void setStudentId(Long studentId) { this.studentId = studentId; }
-
     public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }
-
     public void setEndTime(LocalDateTime endTime) { this.endTime = endTime; }
-
     public void setTotalMarks(Integer totalMarks) { this.totalMarks = totalMarks; }
-
     public void setObtainedMarks(Integer obtainedMarks) { this.obtainedMarks = obtainedMarks; }
-
     public void setScore(Double score) { this.score = score; }
-
     public void setStatus(String status) { this.status = status; }
-
     public void setDurationMinutes(Integer durationMinutes) { this.durationMinutes = durationMinutes; }
-
     public void setExpiryTime(LocalDateTime expiryTime) { this.expiryTime = expiryTime; }
-
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
     public void setCheatingScore(Integer cheatingScore) { this.cheatingScore = cheatingScore; }
-
     public void setCheatingFlag(Boolean cheatingFlag) { this.cheatingFlag = cheatingFlag; }
+    public void setIsCancelled(Boolean cancelled) { isCancelled = cancelled; }
+    public void setCancelledAt(LocalDateTime cancelledAt) { this.cancelledAt = cancelledAt; }
 
     public void setRemarks(String remarks) { this.remarks = remarks; }
-
     public void setLastAiCheckTime(LocalDateTime lastAiCheckTime) { this.lastAiCheckTime = lastAiCheckTime; }
 }

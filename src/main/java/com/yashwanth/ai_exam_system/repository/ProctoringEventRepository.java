@@ -8,24 +8,43 @@ import java.util.List;
 
 public interface ProctoringEventRepository extends JpaRepository<ProctoringEvent, Long> {
 
-    // ✅ All events for attempt
+    // =========================================================
+    // ✅ BASIC
+    // =========================================================
+
     List<ProctoringEvent> findByAttemptId(Long attemptId);
 
-    // ✅ Count by type
-    long countByAttemptIdAndEventType(Long attemptId, String eventType);
-
-    // 🔥 Total events
     long countByAttemptId(Long attemptId);
 
-    // 🔥 AI Score
+    long countByAttemptIdAndEventType(Long attemptId, String eventType);
+
+    // =========================================================
+    // 🔥 SCORING
+    // =========================================================
+
+    @Query("SELECT COALESCE(SUM(p.score), 0) FROM ProctoringEvent p WHERE p.attemptId = :attemptId")
+    Integer getTotalScore(Long attemptId);
+
     @Query("SELECT COALESCE(SUM(p.severity), 0) FROM ProctoringEvent p WHERE p.attemptId = :attemptId")
-    Integer getTotalSeverityScore(Long attemptId);
+    Integer getTotalSeverity(Long attemptId);
 
-    // 🔥 High-risk events
+    // =========================================================
+    // 🚨 RISK ANALYSIS
+    // =========================================================
+
+    @Query("SELECT p FROM ProctoringEvent p WHERE p.attemptId = :attemptId AND p.score >= 30")
+    List<ProctoringEvent> findHighScoreEvents(Long attemptId);
+
     @Query("SELECT p FROM ProctoringEvent p WHERE p.attemptId = :attemptId AND p.severity >= 7")
-    List<ProctoringEvent> findHighRiskEvents(Long attemptId);
+    List<ProctoringEvent> findHighSeverityEvents(Long attemptId);
 
-    // 🔥 Latest events (for pattern detection later)
+    // =========================================================
+    // 📊 RECENT / PATTERN DETECTION
+    // =========================================================
+
     @Query("SELECT p FROM ProctoringEvent p WHERE p.attemptId = :attemptId ORDER BY p.timestamp DESC")
     List<ProctoringEvent> findRecentEvents(Long attemptId);
+
+    @Query("SELECT p FROM ProctoringEvent p ORDER BY p.severity DESC")
+    List<ProctoringEvent> findTopRiskEvents();
 }

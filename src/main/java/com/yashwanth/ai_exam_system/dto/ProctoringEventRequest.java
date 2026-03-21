@@ -6,27 +6,27 @@ public class ProctoringEventRequest {
     private String eventType;
     private String details;
 
-    public Long getAttemptId() {
-        return attemptId;
-    }
+    // 🔥 NEW
+    private String evidenceUrl;
+    private String metadata;
 
-    public void setAttemptId(Long attemptId) {
-        this.attemptId = attemptId;
-    }
+    public Long getAttemptId() { return attemptId; }
 
-    public String getEventType() {
-        return eventType;
-    }
+    public void setAttemptId(Long attemptId) { this.attemptId = attemptId; }
 
-    public void setEventType(String eventType) {
-        this.eventType = eventType;
-    }
+    public String getEventType() { return eventType; }
 
-    public String getDetails() {
-        return details;
-    }
+    public void setEventType(String eventType) { this.eventType = eventType; }
 
-    public void setDetails(String details) {
-        this.details = details;
-    }
+    public String getDetails() { return details; }
+
+    public void setDetails(String details) { this.details = details; }
+
+    public String getEvidenceUrl() { return evidenceUrl; }
+
+    public void setEvidenceUrl(String evidenceUrl) { this.evidenceUrl = evidenceUrl; }
+
+    public String getMetadata() { return metadata; }
+
+    public void setMetadata(String metadata) { this.metadata = metadata; }
 }

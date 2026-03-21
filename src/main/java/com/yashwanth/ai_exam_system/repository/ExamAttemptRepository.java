@@ -16,6 +16,8 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
 
     List<ExamAttempt> findByStatus(String status);
 
+    List<ExamAttempt> findByStatusIn(List<String> statuses); // 🔥 FIXED (IMPORTANT)
+
     List<ExamAttempt> findByStudentId(Long studentId);
 
     List<ExamAttempt> findByExamCode(String examCode);
@@ -27,18 +29,21 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
     Optional<ExamAttempt> findByExamIdAndStudentId(Long examId, Long studentId);
 
     // =========================================================
-    // ⏱ AUTO-SUBMIT / TIME BASED
+    // ⏱ AUTO-SUBMIT / LIVE
     // =========================================================
 
     List<ExamAttempt> findByStatusAndExpiryTimeBefore(String status, LocalDateTime time);
 
-    List<ExamAttempt> findByStartTimeBetween(LocalDateTime start, LocalDateTime end);
-
-    @Query("SELECT e FROM ExamAttempt e WHERE e.status = 'STARTED' AND e.expiryTime > CURRENT_TIMESTAMP")
+    @Query("""
+        SELECT e FROM ExamAttempt e 
+        WHERE e.status = 'STARTED' 
+        AND e.expiryTime > CURRENT_TIMESTAMP 
+        AND e.isCancelled = false
+    """)
     List<ExamAttempt> findLiveAttempts();
 
     // =========================================================
-    // 📊 DASHBOARD / ANALYTICS
+    // 📊 COUNTS (OPTIMIZED)
     // =========================================================
 
     long countByStudentId(Long studentId);
@@ -49,16 +54,30 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
 
     long countByStatusIn(List<String> statuses);
 
+    long countByIsCancelledTrue();
+
+    long countByIsCancelledFalse();
+
+    long countByCheatingScoreGreaterThan(int score);
+
+    // =========================================================
+    // 📊 ANALYTICS
+    // =========================================================
+
     @Query("SELECT AVG(e.cheatingScore) FROM ExamAttempt e")
     Double getAverageCheatingScore();
+
+    @Query("SELECT MAX(e.cheatingScore) FROM ExamAttempt e")
+    Integer getMaxCheatingScore();
+
+    @Query("SELECT MIN(e.cheatingScore) FROM ExamAttempt e")
+    Integer getMinCheatingScore();
 
     List<ExamAttempt> findTop20ByOrderByStartTimeDesc();
 
     // =========================================================
-    // 🚨 CHEATING / PROCTORING
+    // 🚨 PROCTORING / RISK
     // =========================================================
-
-    List<ExamAttempt> findByStatusIn(List<String> statuses); // FLAGGED, INVALIDATED
 
     List<ExamAttempt> findByCheatingScoreGreaterThan(int score);
 
@@ -66,11 +85,53 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
 
     List<ExamAttempt> findByCheatingFlagTrue();
 
+    List<ExamAttempt> findByIsCancelledTrue();
+
+    List<ExamAttempt> findByIsCancelledFalse();
+
+    // 🔥 Risk Segmentation
+    @Query("SELECT e FROM ExamAttempt e WHERE e.cheatingScore >= 80")
+    List<ExamAttempt> findHighRiskAttempts();
+
+    @Query("SELECT e FROM ExamAttempt e WHERE e.cheatingScore BETWEEN 50 AND 79")
+    List<ExamAttempt> findWarningAttempts();
+
+    @Query("SELECT e FROM ExamAttempt e WHERE e.cheatingScore < 50")
+    List<ExamAttempt> findSafeAttempts();
+
     // =========================================================
-    // 🏆 EXAM-SPECIFIC ANALYTICS
+    // 🏆 EXAM ANALYTICS
     // =========================================================
 
     List<ExamAttempt> findByExamIdAndStatus(Long examId, String status);
 
     List<ExamAttempt> findByExamIdOrderByCheatingScoreDesc(Long examId);
+
+    @Query("""
+        SELECT e FROM ExamAttempt e 
+        WHERE e.examId = :examId 
+        ORDER BY e.score DESC
+    """)
+    List<ExamAttempt> findTopPerformersByExam(Long examId);
+
+    // =========================================================
+    // 🔥 LIVE MONITORING
+    // =========================================================
+
+    @Query("""
+        SELECT e FROM ExamAttempt e 
+        WHERE e.status = 'STARTED' 
+        AND e.isCancelled = false 
+        AND e.cheatingScore >= 50
+        ORDER BY e.cheatingScore DESC
+    """)
+    List<ExamAttempt> findLiveHighRiskAttempts();
+
+    @Query("""
+        SELECT e FROM ExamAttempt e 
+        WHERE e.status = 'STARTED' 
+        AND e.isCancelled = false 
+        ORDER BY e.startTime DESC
+    """)
+    List<ExamAttempt> findRecentLiveAttempts();
 }

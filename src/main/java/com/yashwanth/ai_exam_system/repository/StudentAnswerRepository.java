@@ -24,11 +24,10 @@ public interface StudentAnswerRepository extends JpaRepository<StudentAnswer, Lo
 
     // ================= AI ANALYSIS =================
 
-    // 🔥 REQUIRED for AI topic analysis
-    List<StudentAnswer> findByStudentId(Long studentId);
+    // 🔥 get answers using studentId from attempt
+    List<StudentAnswer> findByAttempt_StudentId(Long studentId);
 
-    // 🔥 Optional (advanced filtering)
-    List<StudentAnswer> findByStudentIdAndIsCorrect(Long studentId, Boolean isCorrect);
+    List<StudentAnswer> findByAttempt_StudentIdAndIsCorrect(Long studentId, Boolean isCorrect);
 
     // ================= ADMIN =================
 

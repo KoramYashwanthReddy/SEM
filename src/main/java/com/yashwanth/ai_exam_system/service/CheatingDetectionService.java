@@ -18,14 +18,18 @@ public class CheatingDetectionService {
     private final NotificationService notificationService;
     private final WebSocketAlertService webSocketAlertService;
 
-    // 🔥 THRESHOLDS
-    private static final int FLAG_THRESHOLD = 30;
-    private static final int INVALIDATE_THRESHOLD = 50;
+    // =========================================================
+    // 🔥 NEW THRESHOLDS (ALIGNED WITH PROCTORING SYSTEM)
+    // =========================================================
+    private static final int WARNING_THRESHOLD = 50;
+    private static final int ALERT_THRESHOLD = 80;
+    private static final int CANCEL_THRESHOLD = 100;
 
+    // =========================================================
     // 🔥 STATUS CONSTANTS
+    // =========================================================
     private static final String STATUS_FLAGGED = "FLAGGED";
     private static final String STATUS_INVALIDATED = "INVALIDATED";
-    private static final String STATUS_COMPLETED = "COMPLETED";
 
     public CheatingDetectionService(
             ProctoringEventRepository eventRepository,
@@ -39,83 +43,101 @@ public class CheatingDetectionService {
         this.webSocketAlertService = webSocketAlertService;
     }
 
+    // =========================================================
+    // 🔥 MAIN AI ANALYSIS
+    // =========================================================
     @Transactional
     public void analyzeAttempt(Long attemptId) {
 
-        // ✅ Step 1: Fetch score
-        Integer score = eventRepository.getTotalSeverityScore(attemptId);
+        // ✅ Step 1: Get TOTAL SCORE (not severity ❗)
+        Integer score = eventRepository.getTotalScore(attemptId);
         if (score == null) score = 0;
 
         ExamAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
 
-        // 🔒 Null safety
-        if (attempt.getStudent() == null || attempt.getExam() == null) {
-            throw new RuntimeException("Invalid attempt: missing student or exam");
-        }
-
         attempt.setCheatingScore(score);
         attempt.setLastAiCheckTime(LocalDateTime.now());
 
-        String message = "✅ Normal Behavior";
+        String message = "Normal behavior";
         String severity = "LOW";
         String eventType = "SAFE";
 
-        boolean shouldSendAlert = false;
+        boolean sendAlert = false;
 
-        // ✅ Step 2: AI Decision Logic
-        if (score >= INVALIDATE_THRESHOLD) {
+        // =====================================================
+        // 🚨 DECISION ENGINE
+        // =====================================================
 
-            attempt.setStatus(STATUS_INVALIDATED);
-            attempt.setCheatingFlag(true);
-            attempt.setRemarks("Auto invalidated due to high cheating score: " + score);
+        // ❌ CANCEL EXAM
+        if (score >= CANCEL_THRESHOLD) {
 
-            message = "🚨 HIGH CHEATING DETECTED";
+            attempt.markCancelled();
+
+            message = "🚨 Exam Cancelled - Cheating Detected";
             severity = "CRITICAL";
             eventType = "INVALIDATED";
 
-            shouldSendAlert = true;
+            sendAlert = true;
 
-            notificationService.notifyAdmin(
-                    "🚨 HIGH CHEATING DETECTED → Attempt ID: " + attemptId +
-                            " | Score: " + score
+            notificationService.notifyExamCancelled(
+                    attempt.getStudentId(),
+                    "Exam cancelled due to cheating. Score: " + score
             );
 
-        } else if (score >= FLAG_THRESHOLD) {
+        }
+        // 🚨 HIGH RISK
+        else if (score >= ALERT_THRESHOLD) {
 
             attempt.setStatus(STATUS_FLAGGED);
             attempt.setCheatingFlag(true);
-            attempt.setRemarks("Flagged due to suspicious behavior. Score: " + score);
+            attempt.setRemarks("High cheating risk. Score: " + score);
 
-            message = "⚠️ Suspicious Exam";
+            message = "🚨 High Risk Student";
             severity = "HIGH";
-            eventType = "FLAGGED";
+            eventType = "HIGH_RISK";
 
-            shouldSendAlert = true;
+            sendAlert = true;
 
             notificationService.notifyAdmin(
-                    "⚠️ Suspicious Exam → Attempt ID: " + attemptId +
+                    "High risk detected → Attempt ID: " + attemptId +
                             " | Score: " + score
             );
+        }
+        // ⚠️ WARNING
+        else if (score >= WARNING_THRESHOLD) {
 
-        } else {
+            attempt.setCheatingFlag(true);
+            attempt.setRemarks("Warning level suspicious activity. Score: " + score);
 
-            if (!STATUS_INVALIDATED.equals(attempt.getStatus())) {
-                attempt.setStatus(STATUS_COMPLETED);
-                attempt.setCheatingFlag(false);
-            }
+            message = "⚠️ Suspicious Behavior";
+            severity = "MEDIUM";
+            eventType = "WARNING";
+
+            sendAlert = true;
+
+            notificationService.notifyStudent(
+                    attempt.getStudentId(),
+                    "Warning: Suspicious activity detected!"
+            );
         }
 
-        // ✅ Step 3: Save
+        // =====================================================
+        // ✅ SAVE
+        // =====================================================
         attemptRepository.save(attempt);
 
-        // 🔥 Step 4: Real-time alert
-        if (shouldSendAlert) {
+        // =====================================================
+        // 🔥 REAL-TIME ALERT
+        // =====================================================
+        if (sendAlert) {
             sendRealTimeAlert(attempt, score, message, eventType, severity);
         }
     }
 
-    // 🔥 HELPER METHOD (UPDATED - NO LOMBOK)
+    // =========================================================
+    // 🔥 WEBSOCKET ALERT
+    // =========================================================
     private void sendRealTimeAlert(ExamAttempt attempt,
                                   int score,
                                   String message,
@@ -123,16 +145,16 @@ public class CheatingDetectionService {
                                   String severity) {
 
         CheatingAlertDTO alert = new CheatingAlertDTO(
-                attempt.getStudent().getId(),
-                attempt.getExam().getId(),
+                attempt.getStudentId(),
+                attempt.getExamId(),
                 attempt.getId(),
                 message + " | Score: " + score,
                 score,
                 eventType,
                 severity,
                 LocalDateTime.now(),
-                attempt.getStudent().getName(),
-                attempt.getExam().getTitle()
+                attempt.getStudent() != null ? attempt.getStudent().getName() : "Unknown",
+                attempt.getExam() != null ? attempt.getExam().getTitle() : "Unknown Exam"
         );
 
         webSocketAlertService.sendCheatingAlert(alert);
