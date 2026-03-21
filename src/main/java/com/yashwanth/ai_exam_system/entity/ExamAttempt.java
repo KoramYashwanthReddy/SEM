@@ -1,17 +1,26 @@
 package com.yashwanth.ai_exam_system.entity;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "exam_attempts")
+@Table(name = "exam_attempts",
+       indexes = {
+           @Index(name = "idx_student_id", columnList = "studentId"),
+           @Index(name = "idx_exam_id", columnList = "examId"),
+           @Index(name = "idx_status", columnList = "status")
+       })
 public class ExamAttempt {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 🔥 IMPORTANT (needed for cancelExam)
+    // =========================================================
+    // 🔥 CORE FIELDS
+    // =========================================================
+
     private Long examId;
 
     private String examCode;
@@ -22,6 +31,14 @@ public class ExamAttempt {
 
     private LocalDateTime endTime;
 
+    private Integer durationMinutes;
+
+    private LocalDateTime expiryTime;
+
+    // =========================================================
+    // 📊 RESULT DATA
+    // =========================================================
+
     private Integer totalMarks;
 
     private Integer obtainedMarks;
@@ -31,58 +48,91 @@ public class ExamAttempt {
     /**
      * STARTED | SUBMITTED | EVALUATED | FLAGGED | INVALIDATED
      */
+    @Column(length = 20)
     private String status;
 
-    private Integer durationMinutes;
+    // =========================================================
+    // 🚨 AI CHEATING SYSTEM
+    // =========================================================
 
-    private LocalDateTime expiryTime;
+    private Integer cheatingScore = 0;
+
+    private Boolean cheatingFlag = false;
+
+    @Column(length = 1000)
+    private String remarks;
+
+    private LocalDateTime lastAiCheckTime;
+
+    // =========================================================
+    // 🕒 AUDIT FIELDS
+    // =========================================================
 
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
 
-    // 🔥 AI CHEATING SYSTEM
-    private Integer cheatingScore = 0;
+    // =========================================================
+    // 🔄 ENTITY RELATIONSHIPS (OPTIONAL BUT RECOMMENDED)
+    // =========================================================
 
-    private Boolean cheatingFlag = false;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_id", insertable = false, updatable = false)
+    private User student;
 
-    // 🔥 NEW: store reason for invalidation / cheating
-    @Column(length = 1000)
-    private String remarks;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "exam_id", insertable = false, updatable = false)
+    private Exam exam;
 
-    // 🔥 OPTIONAL: track last AI update time
-    private LocalDateTime lastAiCheckTime;
+    // =========================================================
+    // 🔄 LIFECYCLE METHODS
+    // =========================================================
 
-    public ExamAttempt() {}
-
-    // ✅ AUTO SET VALUES ON CREATE
     @PrePersist
     public void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
 
-        // Default status
+        createdAt = now;
+        updatedAt = now;
+
         if (status == null) {
             status = "STARTED";
         }
 
-        // Calculate expiry
-        if (startTime != null && durationMinutes != null) {
+        if (startTime != null && durationMinutes != null && expiryTime == null) {
             expiryTime = startTime.plusMinutes(durationMinutes);
         }
 
-        // Default values
         if (cheatingScore == null) cheatingScore = 0;
         if (cheatingFlag == null) cheatingFlag = false;
     }
 
-    // ✅ AUTO UPDATE TIMESTAMP
     @PreUpdate
     public void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
 
-    // ================= GETTERS =================
+    // =========================================================
+    // 🧠 HELPER METHODS (VERY USEFUL)
+    // =========================================================
+
+    public boolean isActive() {
+        return "STARTED".equals(this.status) &&
+               expiryTime != null &&
+               expiryTime.isAfter(LocalDateTime.now());
+    }
+
+    public boolean isHighRisk() {
+        return cheatingScore != null && cheatingScore >= 50;
+    }
+
+    public boolean isFlagged() {
+        return Boolean.TRUE.equals(cheatingFlag);
+    }
+
+    // =========================================================
+    // ✅ GETTERS & SETTERS
+    // =========================================================
 
     public Long getId() { return id; }
 
@@ -120,7 +170,11 @@ public class ExamAttempt {
 
     public LocalDateTime getLastAiCheckTime() { return lastAiCheckTime; }
 
-    // ================= SETTERS =================
+    public User getStudent() { return student; }
+
+    public Exam getExam() { return exam; }
+
+    // SETTERS
 
     public void setId(Long id) { this.id = id; }
 
