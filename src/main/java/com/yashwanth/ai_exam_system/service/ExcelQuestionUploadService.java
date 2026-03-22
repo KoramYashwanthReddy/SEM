@@ -47,7 +47,6 @@ public class ExcelQuestionUploadService {
 
                 Row row = rows.next();
 
-                // Skip completely empty rows
                 if (row == null || row.getCell(0) == null) {
                     continue;
                 }
@@ -62,22 +61,17 @@ public class ExcelQuestionUploadService {
                     examCode = code;
                 }
 
-                // prevent multiple exam codes in same file
                 if (!examCode.equals(code)) {
-                    throw new RuntimeException("Multiple exam codes found in file. Use one exam per upload.");
+                    throw new RuntimeException("Multiple exam codes found in file.");
                 }
 
                 String typeStr = getCellValue(row, 1);
-
                 if (typeStr == null) continue;
 
                 QuestionType type = QuestionType.valueOf(typeStr.toUpperCase());
 
                 String questionText = getCellValue(row, 3);
-
-                if (questionText == null || questionText.isBlank()) {
-                    continue;
-                }
+                if (questionText == null || questionText.isBlank()) continue;
 
                 Question q = new Question();
 
@@ -105,11 +99,17 @@ public class ExcelQuestionUploadService {
                     coding++;
 
                 } else {
-
                     descriptive++;
                 }
 
                 q.setMarks((int) getNumericValue(row, 9));
+
+                // 🔥 FIX: SET TOPIC
+                String topic = getCellValue(row, 10);
+                if (topic == null || topic.isBlank()) {
+                    topic = "general";
+                }
+                q.setTopic(topic);
 
                 questions.add(q);
             }
@@ -118,7 +118,6 @@ public class ExcelQuestionUploadService {
                 throw new RuntimeException("Exam code not found in file");
             }
 
-            // Check exam exists BEFORE saving questions
             Exam exam = examRepository.findByExamCode(examCode)
                     .orElseThrow(() -> new RuntimeException("Exam not found"));
 

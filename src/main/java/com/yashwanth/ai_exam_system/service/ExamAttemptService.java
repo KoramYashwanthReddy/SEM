@@ -16,15 +16,18 @@ public class ExamAttemptService {
     private final ExamAttemptRepository attemptRepository;
     private final StudentAnswerRepository answerRepository;
     private final QuestionRepository questionRepository;
+    private final ExamEvaluationService evaluationService;
 
     public ExamAttemptService(
             ExamAttemptRepository attemptRepository,
             StudentAnswerRepository answerRepository,
-            QuestionRepository questionRepository) {
+            QuestionRepository questionRepository,
+            ExamEvaluationService evaluationService) {
 
         this.attemptRepository = attemptRepository;
         this.answerRepository = answerRepository;
         this.questionRepository = questionRepository;
+        this.evaluationService = evaluationService;
     }
 
     // START EXAM
@@ -38,9 +41,7 @@ public class ExamAttemptService {
 
         int duration = 60;
         attempt.setDurationMinutes(duration);
-
         attempt.setExpiryTime(LocalDateTime.now().plusMinutes(duration));
-
         attempt.setStatus("STARTED");
 
         return attemptRepository.save(attempt);
@@ -60,21 +61,18 @@ public class ExamAttemptService {
             throw new RuntimeException("Exam time is over");
         }
 
-        Question question = questionRepository.findById(questionId)
+        questionRepository.findById(questionId)
                 .orElseThrow(() -> new RuntimeException("Question not found"));
 
         Optional<StudentAnswer> optionalAnswer =
                 answerRepository.findByAttemptIdAndQuestionId(attemptId, questionId);
 
-        StudentAnswer studentAnswer;
-
-        if (optionalAnswer.isPresent()) {
-            studentAnswer = optionalAnswer.get();
-        } else {
-            studentAnswer = new StudentAnswer();
-            studentAnswer.setAttemptId(attemptId);
-            studentAnswer.setQuestionId(questionId);
-        }
+        StudentAnswer studentAnswer = optionalAnswer.orElseGet(() -> {
+            StudentAnswer sa = new StudentAnswer();
+            sa.setAttemptId(attemptId);
+            sa.setQuestionId(questionId);
+            return sa;
+        });
 
         studentAnswer.setAnswer(answer);
 
@@ -86,18 +84,6 @@ public class ExamAttemptService {
             studentAnswer.setReviewMarked(false);
         }
 
-        int marks = 0;
-
-        if (question.getQuestionType() == QuestionType.MCQ) {
-
-            if (answer != null &&
-                    answer.equalsIgnoreCase(question.getCorrectAnswer())) {
-
-                marks = question.getMarks();
-            }
-        }
-
-        studentAnswer.setMarksObtained(marks);
         studentAnswer.setLastUpdated(LocalDateTime.now());
 
         answerRepository.save(studentAnswer);
@@ -109,12 +95,14 @@ public class ExamAttemptService {
         ExamAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
 
-        List<StudentAnswer> answers = answerRepository.findByAttemptId(attemptId);
+        // evaluate answers
+        ExamResult result = evaluationService.evaluateExam(
+                attemptId,
+                attempt.getStudentId(),
+                attempt.getExamCode()
+        );
 
-        int obtainedMarks = answers.stream()
-                .mapToInt(a -> a.getMarksObtained() == null ? 0 : a.getMarksObtained())
-                .sum();
-
+        // calculate total marks from questions
         List<Question> questions =
                 questionRepository.findByExamCode(attempt.getExamCode());
 
@@ -122,15 +110,13 @@ public class ExamAttemptService {
                 .mapToInt(q -> q.getMarks() == null ? 0 : q.getMarks())
                 .sum();
 
-        double percentage =
-                totalMarks == 0 ? 0 : (obtainedMarks * 100.0) / totalMarks;
+        int obtainedMarks = (int) result.getScore();
 
         ExamResultResponse response = new ExamResultResponse();
-
         response.setTotalMarks(totalMarks);
         response.setObtainedMarks(obtainedMarks);
-        response.setPercentage(percentage);
-        response.setResult(percentage >= 40 ? "PASS" : "FAIL");
+        response.setPercentage(result.getPercentage());
+        response.setResult(result.getResultStatus());
 
         attempt.setObtainedMarks(obtainedMarks);
         attempt.setTotalMarks(totalMarks);

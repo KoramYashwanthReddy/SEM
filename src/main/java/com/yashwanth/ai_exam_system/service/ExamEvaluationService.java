@@ -8,11 +8,13 @@ import com.yashwanth.ai_exam_system.repository.QuestionRepository;
 import com.yashwanth.ai_exam_system.repository.StudentAnswerRepository;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@Transactional
 public class ExamEvaluationService {
 
     private final StudentAnswerRepository answerRepository;
@@ -35,6 +37,8 @@ public class ExamEvaluationService {
 
         int correct = 0;
         int wrong = 0;
+        int obtainedMarks = 0;
+        int totalMarks = 0;
 
         for (StudentAnswer studentAnswer : answers) {
 
@@ -45,36 +49,40 @@ public class ExamEvaluationService {
             String correctAnswer = question.getCorrectAnswer();
             String studentAnswerValue = studentAnswer.getAnswer();
 
-            if (studentAnswerValue != null &&
+            int questionMarks = question.getMarks() == null ? 0 : question.getMarks();
+            totalMarks += questionMarks;
+
+            boolean isCorrect = studentAnswerValue != null &&
                     correctAnswer != null &&
-                    studentAnswerValue.equalsIgnoreCase(correctAnswer)) {
+                    studentAnswerValue.trim().equalsIgnoreCase(correctAnswer.trim());
 
+            if (isCorrect) {
                 studentAnswer.setIsCorrect(true);
-                studentAnswer.setMarksObtained(1);
+                studentAnswer.setMarksObtained(questionMarks);
+
+                obtainedMarks += questionMarks;
                 correct++;
-
             } else {
-
                 studentAnswer.setIsCorrect(false);
                 studentAnswer.setMarksObtained(0);
                 wrong++;
             }
-
-            answerRepository.save(studentAnswer);
         }
 
-        int total = answers.size();
+        // save all answers at once (better performance)
+        answerRepository.saveAll(answers);
 
-        double percentage = total == 0 ? 0 : (correct * 100.0) / total;
+        double percentage = totalMarks == 0 ? 0 :
+                (obtainedMarks * 100.0) / totalMarks;
 
         ExamResult result = new ExamResult();
         result.setAttemptId(attemptId);
         result.setStudentId(studentId);
         result.setExamCode(examCode);
-        result.setTotalQuestions(total);
+        result.setTotalQuestions(answers.size());
         result.setCorrectAnswers(correct);
         result.setWrongAnswers(wrong);
-        result.setScore(correct);
+        result.setScore(obtainedMarks);
         result.setPercentage(percentage);
         result.setResultStatus(percentage >= 40 ? "PASS" : "FAIL");
         result.setSubmittedAt(LocalDateTime.now());
