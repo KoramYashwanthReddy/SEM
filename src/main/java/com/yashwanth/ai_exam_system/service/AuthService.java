@@ -31,7 +31,6 @@ public class AuthService {
     // =========================
     public AuthResponse register(RegisterRequest request) {
 
-        // check duplicate email
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email already registered");
         }
@@ -40,22 +39,11 @@ public class AuthService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-
-        // 🔐 Force STUDENT role (security)
         user.setRole(Role.STUDENT);
 
         userRepository.save(user);
 
-        // generate tokens
-        String accessToken =
-                jwtService.generateAccessToken(
-                        user.getEmail(),
-                        user.getRole().name());
-
-        String refreshToken =
-                jwtService.generateRefreshToken(user.getEmail());
-
-        return new AuthResponse(accessToken, refreshToken);
+        return buildAuthResponse(user);
     }
 
     // =========================
@@ -67,7 +55,6 @@ public class AuthService {
                 .orElseThrow(() ->
                         new RuntimeException("User not found"));
 
-        // account checks
         if (!user.isEnabled()) {
             throw new RuntimeException("Account disabled");
         }
@@ -76,7 +63,6 @@ public class AuthService {
             throw new RuntimeException("Account locked");
         }
 
-        // password check
         if (!passwordEncoder.matches(
                 request.getPassword(),
                 user.getPassword())) {
@@ -84,15 +70,7 @@ public class AuthService {
             throw new RuntimeException("Invalid credentials");
         }
 
-        String accessToken =
-                jwtService.generateAccessToken(
-                        user.getEmail(),
-                        user.getRole().name());
-
-        String refreshToken =
-                jwtService.generateRefreshToken(user.getEmail());
-
-        return new AuthResponse(accessToken, refreshToken);
+        return buildAuthResponse(user);
     }
 
     // =========================
@@ -110,11 +88,41 @@ public class AuthService {
                 .orElseThrow(() ->
                         new RuntimeException("User not found"));
 
-        String accessToken =
-                jwtService.generateAccessToken(
-                        user.getEmail(),
-                        user.getRole().name());
+        if (!user.isEnabled()) {
+            throw new RuntimeException("Account disabled");
+        }
 
-        return new AuthResponse(accessToken, refreshToken);
+        if (!user.isAccountNonLocked()) {
+            throw new RuntimeException("Account locked");
+        }
+
+        String accessToken = jwtService.generateAccessToken(
+                user.getEmail(),
+                user.getRole().name());
+
+        return new AuthResponse(
+                accessToken,
+                refreshToken,
+                user.getRole().name()
+        );
+    }
+
+    // =========================
+    // COMMON TOKEN BUILDER
+    // =========================
+    private AuthResponse buildAuthResponse(User user) {
+
+        String accessToken = jwtService.generateAccessToken(
+                user.getEmail(),
+                user.getRole().name());
+
+        String refreshToken = jwtService.generateRefreshToken(
+                user.getEmail());
+
+        return new AuthResponse(
+                accessToken,
+                refreshToken,
+                user.getRole().name()
+        );
     }
 }

@@ -15,21 +15,39 @@ public class ExamNavigationService {
 
     public ExamNavigationStatusDTO getNavigationStatus(Long attemptId) {
 
+        // total questions
         long total = answerRepository.countByAttemptId(attemptId);
 
-        long answered = answerRepository.countByAttemptIdAndStatus(attemptId, "ANSWERED");
+        // answered
+        long answered = answerRepository
+                .countByAttemptIdAndStatus(attemptId, "ANSWERED");
 
-        long review = answerRepository.countByAttemptIdAndReviewMarkedTrue(attemptId);
+        // marked for review
+        long markedForReview = answerRepository
+                .countByAttemptIdAndReviewMarkedTrue(attemptId);
 
-        long notAnswered = total - answered;
+        // answered + review
+        long answeredAndReview = answerRepository
+                .countByAttemptIdAndStatusAndReviewMarkedTrue(attemptId, "ANSWERED");
+
+        // not answered (visited but not answered)
+        long notAnswered = answerRepository
+                .countByAttemptIdAndStatus(attemptId, "NOT_ANSWERED");
+
+        // not visited
+        long notVisited = total - (answered + notAnswered);
 
         ExamNavigationStatusDTO dto = new ExamNavigationStatusDTO();
 
         dto.setAttemptId(attemptId);
         dto.setTotalQuestions(total);
+
         dto.setAnswered(answered);
-        dto.setMarkedForReview(review);
+        dto.setMarkedForReview(markedForReview);
+        dto.setAnsweredAndMarkedForReview(answeredAndReview);
+
         dto.setNotAnswered(notAnswered);
+        dto.setNotVisited(notVisited);
 
         return dto;
     }

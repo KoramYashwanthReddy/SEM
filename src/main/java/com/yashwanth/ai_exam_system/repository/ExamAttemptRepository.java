@@ -16,7 +16,7 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
 
     List<ExamAttempt> findByStatus(String status);
 
-    List<ExamAttempt> findByStatusIn(List<String> statuses); // 🔥 FIXED (IMPORTANT)
+    List<ExamAttempt> findByStatusIn(List<String> statuses);
 
     List<ExamAttempt> findByStudentId(Long studentId);
 
@@ -42,6 +42,9 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
     """)
     List<ExamAttempt> findLiveAttempts();
 
+    // 🔥 expired attempts
+    List<ExamAttempt> findByExpiryTimeBeforeAndStatus(LocalDateTime time, String status);
+
     // =========================================================
     // 📊 COUNTS (OPTIMIZED)
     // =========================================================
@@ -60,6 +63,8 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
 
     long countByCheatingScoreGreaterThan(int score);
 
+    long countByExamId(Long examId);
+
     // =========================================================
     // 📊 ANALYTICS
     // =========================================================
@@ -72,6 +77,12 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
 
     @Query("SELECT MIN(e.cheatingScore) FROM ExamAttempt e")
     Integer getMinCheatingScore();
+
+    @Query("SELECT AVG(e.score) FROM ExamAttempt e WHERE e.examId = :examId")
+    Double getAverageScoreByExam(Long examId);
+
+    @Query("SELECT AVG(e.timeTakenSeconds) FROM ExamAttempt e WHERE e.examId = :examId")
+    Double getAverageTimeByExam(Long examId);
 
     List<ExamAttempt> findTop20ByOrderByStartTimeDesc();
 
@@ -89,7 +100,6 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
 
     List<ExamAttempt> findByIsCancelledFalse();
 
-    // 🔥 Risk Segmentation
     @Query("SELECT e FROM ExamAttempt e WHERE e.cheatingScore >= 80")
     List<ExamAttempt> findHighRiskAttempts();
 
@@ -114,6 +124,13 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
     """)
     List<ExamAttempt> findTopPerformersByExam(Long examId);
 
+    @Query("""
+        SELECT e FROM ExamAttempt e 
+        WHERE e.examId = :examId 
+        ORDER BY e.timeTakenSeconds ASC
+    """)
+    List<ExamAttempt> findFastestAttemptsByExam(Long examId);
+
     // =========================================================
     // 🔥 LIVE MONITORING
     // =========================================================
@@ -134,4 +151,29 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
         ORDER BY e.startTime DESC
     """)
     List<ExamAttempt> findRecentLiveAttempts();
+
+    // =========================================================
+    // 🔄 RESUME SUPPORT
+    // =========================================================
+
+    @Query("""
+        SELECT e FROM ExamAttempt e 
+        WHERE e.studentId = :studentId
+        AND e.status = 'STARTED'
+        AND e.isCancelled = false
+    """)
+    Optional<ExamAttempt> findActiveAttempt(Long studentId);
+
+    // =========================================================
+    // ⌛ ABANDONED ATTEMPTS
+    // =========================================================
+
+    @Query("""
+        SELECT e FROM ExamAttempt e 
+        WHERE e.status = 'STARTED'
+        AND e.lastHeartbeat < :time
+        AND e.isCancelled = false
+    """)
+    List<ExamAttempt> findAbandonedAttempts(LocalDateTime time);
+
 }

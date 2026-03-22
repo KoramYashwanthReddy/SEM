@@ -6,6 +6,7 @@ import com.yashwanth.ai_exam_system.entity.ExamAttempt;
 import com.yashwanth.ai_exam_system.entity.ProctoringEvent;
 import com.yashwanth.ai_exam_system.service.AdminService;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -32,9 +33,9 @@ public class AdminController {
     }
 
     @DeleteMapping("/exams/{examCode}")
-    public ResponseEntity<String> deleteExam(@PathVariable String examCode) {
+    public ResponseEntity<Void> deleteExam(@PathVariable String examCode) {
         adminService.deleteExam(examCode);
-        return ResponseEntity.ok("Exam deleted successfully");
+        return ResponseEntity.noContent().build();
     }
 
     // ================= ATTEMPTS =================
@@ -45,75 +46,101 @@ public class AdminController {
     }
 
     @GetMapping("/attempts/exam/{examCode}")
-    public ResponseEntity<List<ExamAttempt>> getAttemptsByExam(@PathVariable String examCode) {
-        return ResponseEntity.ok(adminService.getAttemptsByExam(examCode));
+    public ResponseEntity<List<ExamAttempt>> getAttemptsByExam(
+            @PathVariable String examCode) {
+
+        return ResponseEntity.ok(
+                adminService.getAttemptsByExam(examCode));
     }
 
     @GetMapping("/attempts/student/{studentId}")
-    public ResponseEntity<List<ExamAttempt>> getAttemptsByStudent(@PathVariable Long studentId) {
-        return ResponseEntity.ok(adminService.getAttemptsByStudent(studentId));
+    public ResponseEntity<List<ExamAttempt>> getAttemptsByStudent(
+            @PathVariable Long studentId) {
+
+        return ResponseEntity.ok(
+                adminService.getAttemptsByStudent(studentId));
     }
 
-    // 🔥 NEW: Suspicious / Invalid Attempts
+    // Suspicious attempts
     @GetMapping("/attempts/suspicious")
     public ResponseEntity<List<ExamAttempt>> getSuspiciousAttempts() {
-        return ResponseEntity.ok(adminService.getSuspiciousAttempts());
+        return ResponseEntity.ok(
+                adminService.getSuspiciousAttempts());
     }
 
     // ================= CHEATING EVENTS =================
 
-    @GetMapping("/cheating-reports")
+    @GetMapping("/cheating")
     public ResponseEntity<List<ProctoringEvent>> getCheatingReports() {
-        return ResponseEntity.ok(adminService.getAllCheatingLogs());
+        return ResponseEntity.ok(
+                adminService.getAllCheatingLogs());
     }
 
     @GetMapping("/cheating/{attemptId}")
-    public ResponseEntity<List<ProctoringEvent>> getEventsByAttempt(@PathVariable Long attemptId) {
-        return ResponseEntity.ok(adminService.getEventsByAttempt(attemptId));
+    public ResponseEntity<List<ProctoringEvent>> getEventsByAttempt(
+            @PathVariable Long attemptId) {
+
+        return ResponseEntity.ok(
+                adminService.getEventsByAttempt(attemptId));
     }
 
-    @GetMapping("/cheating-score/{attemptId}")
-    public ResponseEntity<Integer> getCheatingScore(@PathVariable Long attemptId) {
-        return ResponseEntity.ok(adminService.getCheatingScore(attemptId));
+    @GetMapping("/cheating/{attemptId}/score")
+    public ResponseEntity<Integer> getCheatingScore(
+            @PathVariable Long attemptId) {
+
+        return ResponseEntity.ok(
+                adminService.getCheatingScore(attemptId));
     }
 
-    // ================= 🔥 EVIDENCE SYSTEM =================
+    // ================= EVIDENCE =================
 
     @GetMapping("/evidence")
     public ResponseEntity<List<CheatingEvidence>> getAllEvidence() {
-        return ResponseEntity.ok(adminService.getAllEvidence());
+        return ResponseEntity.ok(
+                adminService.getAllEvidence());
     }
 
     @GetMapping("/evidence/exam/{examId}")
-    public ResponseEntity<List<CheatingEvidence>> getEvidenceByExam(@PathVariable Long examId) {
-        return ResponseEntity.ok(adminService.getEvidenceByExam(examId));
+    public ResponseEntity<List<CheatingEvidence>> getEvidenceByExam(
+            @PathVariable Long examId) {
+
+        return ResponseEntity.ok(
+                adminService.getEvidenceByExam(examId));
     }
 
     @GetMapping("/evidence/student/{studentId}")
-    public ResponseEntity<List<CheatingEvidence>> getEvidenceByStudent(@PathVariable Long studentId) {
-        return ResponseEntity.ok(adminService.getEvidenceByStudent(studentId));
+    public ResponseEntity<List<CheatingEvidence>> getEvidenceByStudent(
+            @PathVariable Long studentId) {
+
+        return ResponseEntity.ok(
+                adminService.getEvidenceByStudent(studentId));
     }
 
-    // ================= 🔥 ADMIN CONTROL =================
+    // ================= ADMIN CONTROL =================
 
-    // 🚨 Force cancel attempt
+    // cancel attempt
     @PostMapping("/attempts/{attemptId}/cancel")
-    public ResponseEntity<String> cancelAttempt(@PathVariable Long attemptId) {
+    public ResponseEntity<String> cancelAttempt(
+            @PathVariable Long attemptId) {
+
         adminService.cancelAttempt(attemptId);
-        return ResponseEntity.ok("Exam attempt cancelled by admin");
+        return ResponseEntity.ok("Attempt cancelled");
     }
 
-    // 🔄 Restore attempt (if wrongly flagged)
+    // restore attempt
     @PostMapping("/attempts/{attemptId}/restore")
-    public ResponseEntity<String> restoreAttempt(@PathVariable Long attemptId) {
+    public ResponseEntity<String> restoreAttempt(
+            @PathVariable Long attemptId) {
+
         adminService.restoreAttempt(attemptId);
-        return ResponseEntity.ok("Exam attempt restored");
+        return ResponseEntity.ok("Attempt restored");
     }
 
-    // ================= 📊 DASHBOARD =================
+    // ================= DASHBOARD =================
 
     @GetMapping("/dashboard")
     public ResponseEntity<Map<String, Object>> getDashboardStats() {
-        return ResponseEntity.ok(adminService.getDashboardStats());
+        return ResponseEntity.ok(
+                adminService.getDashboardStats());
     }
 }

@@ -4,13 +4,17 @@ public class ExamNavigationStatusDTO {
 
     private Long attemptId;
 
-    private Long totalQuestions;
+    private Long totalQuestions = 0L;
 
-    private Long answered;
+    private Long answered = 0L;
 
-    private Long notAnswered;
+    private Long notAnswered = 0L;
 
-    private Long markedForReview;
+    private Long notVisited = 0L;
+
+    private Long markedForReview = 0L;
+
+    private Long answeredAndMarkedForReview = 0L;
 
     public ExamNavigationStatusDTO() {}
 
@@ -46,11 +50,27 @@ public class ExamNavigationStatusDTO {
         this.notAnswered = notAnswered;
     }
 
+    public Long getNotVisited() {
+        return notVisited;
+    }
+
+    public void setNotVisited(Long notVisited) {
+        this.notVisited = notVisited;
+    }
+
     public Long getMarkedForReview() {
         return markedForReview;
     }
 
     public void setMarkedForReview(Long markedForReview) {
         this.markedForReview = markedForReview;
+    }
+
+    public Long getAnsweredAndMarkedForReview() {
+        return answeredAndMarkedForReview;
+    }
+
+    public void setAnsweredAndMarkedForReview(Long answeredAndMarkedForReview) {
+        this.answeredAndMarkedForReview = answeredAndMarkedForReview;
     }
 }

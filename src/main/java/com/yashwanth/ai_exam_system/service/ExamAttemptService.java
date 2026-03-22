@@ -37,32 +37,28 @@ public class ExamAttemptService {
 
         attempt.setStudentId(studentId);
         attempt.setExamCode(examCode);
-        attempt.setStartTime(LocalDateTime.now());
+
+        LocalDateTime now = LocalDateTime.now();
+
+        attempt.setStartTime(now);
+        attempt.setStatus("STARTED");
 
         int duration = 60;
         attempt.setDurationMinutes(duration);
-        attempt.setExpiryTime(LocalDateTime.now().plusMinutes(duration));
-        attempt.setStatus("STARTED");
+        attempt.setExpiryTime(now.plusMinutes(duration));
 
         return attemptRepository.save(attempt);
     }
 
-    // SAVE / UPDATE ANSWER
+    // SAVE ANSWER
     public void submitAnswer(Long attemptId, Long questionId, String answer, Boolean markForReview) {
 
         ExamAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
 
-        if (!"STARTED".equals(attempt.getStatus())) {
-            throw new RuntimeException("Exam already finished");
+        if (!attempt.isActive()) {
+            throw new RuntimeException("Exam not active");
         }
-
-        if (LocalDateTime.now().isAfter(attempt.getExpiryTime())) {
-            throw new RuntimeException("Exam time is over");
-        }
-
-        questionRepository.findById(questionId)
-                .orElseThrow(() -> new RuntimeException("Question not found"));
 
         Optional<StudentAnswer> optionalAnswer =
                 answerRepository.findByAttemptIdAndQuestionId(attemptId, questionId);
@@ -79,9 +75,10 @@ public class ExamAttemptService {
         if (Boolean.TRUE.equals(markForReview)) {
             studentAnswer.setStatus("MARKED_FOR_REVIEW");
             studentAnswer.setReviewMarked(true);
+        } else if (answer == null || answer.isEmpty()) {
+            studentAnswer.setStatus("NOT_ANSWERED");
         } else {
             studentAnswer.setStatus("ANSWERED");
-            studentAnswer.setReviewMarked(false);
         }
 
         studentAnswer.setLastUpdated(LocalDateTime.now());
@@ -95,14 +92,12 @@ public class ExamAttemptService {
         ExamAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
 
-        // evaluate answers
         ExamResult result = evaluationService.evaluateExam(
                 attemptId,
                 attempt.getStudentId(),
                 attempt.getExamCode()
         );
 
-        // calculate total marks from questions
         List<Question> questions =
                 questionRepository.findByExamCode(attempt.getExamCode());
 
@@ -112,18 +107,26 @@ public class ExamAttemptService {
 
         int obtainedMarks = (int) result.getScore();
 
-        ExamResultResponse response = new ExamResultResponse();
-        response.setTotalMarks(totalMarks);
-        response.setObtainedMarks(obtainedMarks);
-        response.setPercentage(result.getPercentage());
-        response.setResult(result.getResultStatus());
+        long timeTaken = Duration.between(
+                attempt.getStartTime(),
+                LocalDateTime.now()
+        ).getSeconds();
 
+        attempt.setTimeTakenSeconds(timeTaken);
         attempt.setObtainedMarks(obtainedMarks);
         attempt.setTotalMarks(totalMarks);
         attempt.setEndTime(LocalDateTime.now());
         attempt.setStatus("EVALUATED");
 
         attemptRepository.save(attempt);
+
+        ExamResultResponse response = new ExamResultResponse();
+        response.setTotalMarks(totalMarks);
+        response.setObtainedMarks(obtainedMarks);
+        response.setPercentage(result.getPercentage());
+        response.setResult(result.getResultStatus());
+        response.setTimeTakenSeconds(timeTaken);
+        response.setPassed(result.getPassed());
 
         return response;
     }
@@ -169,12 +172,65 @@ public class ExamAttemptService {
         ExamAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
 
+        long totalSeconds = attempt.getDurationMinutes() * 60;
+
         long remainingSeconds =
                 Duration.between(LocalDateTime.now(), attempt.getExpiryTime())
                         .getSeconds();
 
         if (remainingSeconds < 0) remainingSeconds = 0;
 
-        return new ExamTimerResponse(remainingSeconds);
+        long elapsed = totalSeconds - remainingSeconds;
+
+        ExamTimerResponse response = new ExamTimerResponse();
+        response.setRemainingSeconds(remainingSeconds);
+        response.setTotalSeconds(totalSeconds);
+        response.setElapsedSeconds(elapsed);
+        response.setStatus(remainingSeconds == 0 ? "EXPIRED" : "RUNNING");
+        response.setAutoSubmit(remainingSeconds == 0);
+
+        return response;
+    }
+
+    // ================= NEW METHODS (ADDED) =================
+
+    public ExamAttempt getAttempt(Long attemptId) {
+        return attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new RuntimeException("Attempt not found"));
+    }
+
+    public void cancelAttempt(Long attemptId, String reason) {
+
+        ExamAttempt attempt = getAttempt(attemptId);
+
+        attempt.setStatus("INVALIDATED");
+        attempt.setRemarks(reason);
+        attempt.setEndTime(LocalDateTime.now());
+
+        attemptRepository.save(attempt);
+    }
+
+    public void updateHeartbeat(Long attemptId) {
+
+        ExamAttempt attempt = getAttempt(attemptId);
+
+        attempt.setLastAiCheckTime(LocalDateTime.now());
+
+        attemptRepository.save(attempt);
+    }
+
+    public void markForReview(Long attemptId, Long questionId) {
+
+        Optional<StudentAnswer> optionalAnswer =
+                answerRepository.findByAttemptIdAndQuestionId(attemptId, questionId);
+
+        if (optionalAnswer.isPresent()) {
+
+            StudentAnswer answer = optionalAnswer.get();
+            answer.setReviewMarked(true);
+            answer.setStatus("MARKED_FOR_REVIEW");
+
+            answerRepository.save(answer);
+        }
     }
 }

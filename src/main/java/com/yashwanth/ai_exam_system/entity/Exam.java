@@ -11,10 +11,12 @@ public class Exam {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String examCode;
 
+    @Column(nullable = false)
     private String title;
+
     private String description;
     private String subject;
 
@@ -26,17 +28,28 @@ public class Exam {
     private Double marksPerQuestion;
     private Double negativeMarks;
 
-    private Boolean shuffleQuestions;
-    private Boolean shuffleOptions;
+    private Boolean shuffleQuestions = true;
+    private Boolean shuffleOptions = true;
 
     @Enumerated(EnumType.STRING)
     private ExamStatus status;
 
+    // Question type distribution
     private Integer mcqCount;
     private Integer codingCount;
     private Integer descriptiveCount;
 
-    private Boolean questionsUploaded;
+    // ✅ NEW — Difficulty distribution
+    @Column(name = "easy_question_count")
+    private Integer easyQuestionCount = 0;
+
+    @Column(name = "medium_question_count")
+    private Integer mediumQuestionCount = 0;
+
+    @Column(name = "difficult_question_count")
+    private Integer difficultQuestionCount = 0;
+
+    private Boolean questionsUploaded = false;
 
     private LocalDateTime startTime;
     private LocalDateTime endTime;
@@ -46,201 +59,92 @@ public class Exam {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    private Boolean active;
+    private Boolean active = true;
 
     public Exam() {}
 
-    // getters setters
+    // getters and setters
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public String getExamCode() { return examCode; }
+    public void setExamCode(String examCode) { this.examCode = examCode; }
 
-    public String getExamCode() {
-        return examCode;
-    }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 
-    public void setExamCode(String examCode) {
-        this.examCode = examCode;
-    }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
-    public String getTitle() {
-        return title;
-    }
+    public String getSubject() { return subject; }
+    public void setSubject(String subject) { this.subject = subject; }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
+    public Integer getDurationMinutes() { return durationMinutes; }
+    public void setDurationMinutes(Integer durationMinutes) { this.durationMinutes = durationMinutes; }
 
-    public String getDescription() {
-        return description;
-    }
+    public Integer getTotalMarks() { return totalMarks; }
+    public void setTotalMarks(Integer totalMarks) { this.totalMarks = totalMarks; }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+    public Integer getPassingMarks() { return passingMarks; }
+    public void setPassingMarks(Integer passingMarks) { this.passingMarks = passingMarks; }
 
-    public String getSubject() {
-        return subject;
-    }
+    public Integer getMaxAttempts() { return maxAttempts; }
+    public void setMaxAttempts(Integer maxAttempts) { this.maxAttempts = maxAttempts; }
 
-    public void setSubject(String subject) {
-        this.subject = subject;
-    }
+    public Double getMarksPerQuestion() { return marksPerQuestion; }
+    public void setMarksPerQuestion(Double marksPerQuestion) { this.marksPerQuestion = marksPerQuestion; }
 
-    public Integer getDurationMinutes() {
-        return durationMinutes;
-    }
+    public Double getNegativeMarks() { return negativeMarks; }
+    public void setNegativeMarks(Double negativeMarks) { this.negativeMarks = negativeMarks; }
 
-    public void setDurationMinutes(Integer durationMinutes) {
-        this.durationMinutes = durationMinutes;
-    }
+    public Boolean getShuffleQuestions() { return shuffleQuestions; }
+    public void setShuffleQuestions(Boolean shuffleQuestions) { this.shuffleQuestions = shuffleQuestions; }
 
-    public Integer getTotalMarks() {
-        return totalMarks;
-    }
+    public Boolean getShuffleOptions() { return shuffleOptions; }
+    public void setShuffleOptions(Boolean shuffleOptions) { this.shuffleOptions = shuffleOptions; }
 
-    public void setTotalMarks(Integer totalMarks) {
-        this.totalMarks = totalMarks;
-    }
+    public ExamStatus getStatus() { return status; }
+    public void setStatus(ExamStatus status) { this.status = status; }
 
-    public Integer getPassingMarks() {
-        return passingMarks;
-    }
+    public Integer getMcqCount() { return mcqCount; }
+    public void setMcqCount(Integer mcqCount) { this.mcqCount = mcqCount; }
 
-    public void setPassingMarks(Integer passingMarks) {
-        this.passingMarks = passingMarks;
-    }
+    public Integer getCodingCount() { return codingCount; }
+    public void setCodingCount(Integer codingCount) { this.codingCount = codingCount; }
 
-    public Integer getMaxAttempts() {
-        return maxAttempts;
-    }
+    public Integer getDescriptiveCount() { return descriptiveCount; }
+    public void setDescriptiveCount(Integer descriptiveCount) { this.descriptiveCount = descriptiveCount; }
 
-    public void setMaxAttempts(Integer maxAttempts) {
-        this.maxAttempts = maxAttempts;
-    }
+    // ✅ Difficulty getters/setters
 
-    public Double getMarksPerQuestion() {
-        return marksPerQuestion;
-    }
+    public Integer getEasyQuestionCount() { return easyQuestionCount; }
+    public void setEasyQuestionCount(Integer easyQuestionCount) { this.easyQuestionCount = easyQuestionCount; }
 
-    public void setMarksPerQuestion(Double marksPerQuestion) {
-        this.marksPerQuestion = marksPerQuestion;
-    }
+    public Integer getMediumQuestionCount() { return mediumQuestionCount; }
+    public void setMediumQuestionCount(Integer mediumQuestionCount) { this.mediumQuestionCount = mediumQuestionCount; }
 
-    public Double getNegativeMarks() {
-        return negativeMarks;
-    }
+    public Integer getDifficultQuestionCount() { return difficultQuestionCount; }
+    public void setDifficultQuestionCount(Integer difficultQuestionCount) { this.difficultQuestionCount = difficultQuestionCount; }
 
-    public void setNegativeMarks(Double negativeMarks) {
-        this.negativeMarks = negativeMarks;
-    }
+    public Boolean getQuestionsUploaded() { return questionsUploaded; }
+    public void setQuestionsUploaded(Boolean questionsUploaded) { this.questionsUploaded = questionsUploaded; }
 
-    public Boolean getShuffleQuestions() {
-        return shuffleQuestions;
-    }
+    public LocalDateTime getStartTime() { return startTime; }
+    public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }
 
-    public void setShuffleQuestions(Boolean shuffleQuestions) {
-        this.shuffleQuestions = shuffleQuestions;
-    }
+    public LocalDateTime getEndTime() { return endTime; }
+    public void setEndTime(LocalDateTime endTime) { this.endTime = endTime; }
 
-    public Boolean getShuffleOptions() {
-        return shuffleOptions;
-    }
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
 
-    public void setShuffleOptions(Boolean shuffleOptions) {
-        this.shuffleOptions = shuffleOptions;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public ExamStatus getStatus() {
-        return status;
-    }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-    public void setStatus(ExamStatus status) {
-        this.status = status;
-    }
-
-    public Integer getMcqCount() {
-        return mcqCount;
-    }
-
-    public void setMcqCount(Integer mcqCount) {
-        this.mcqCount = mcqCount;
-    }
-
-    public Integer getCodingCount() {
-        return codingCount;
-    }
-
-    public void setCodingCount(Integer codingCount) {
-        this.codingCount = codingCount;
-    }
-
-    public Integer getDescriptiveCount() {
-        return descriptiveCount;
-    }
-
-    public void setDescriptiveCount(Integer descriptiveCount) {
-        this.descriptiveCount = descriptiveCount;
-    }
-
-    public Boolean getQuestionsUploaded() {
-        return questionsUploaded;
-    }
-
-    public void setQuestionsUploaded(Boolean questionsUploaded) {
-        this.questionsUploaded = questionsUploaded;
-    }
-
-    public LocalDateTime getStartTime() {
-        return startTime;
-    }
-
-    public void setStartTime(LocalDateTime startTime) {
-        this.startTime = startTime;
-    }
-
-    public LocalDateTime getEndTime() {
-        return endTime;
-    }
-
-    public void setEndTime(LocalDateTime endTime) {
-        this.endTime = endTime;
-    }
-
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public Boolean getActive() {
-        return active;
-    }
-
-    public void setActive(Boolean active) {
-        this.active = active;
-    }
+    public Boolean getActive() { return active; }
+    public void setActive(Boolean active) { this.active = active; }
 }

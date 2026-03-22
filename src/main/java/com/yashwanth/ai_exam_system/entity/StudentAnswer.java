@@ -37,6 +37,33 @@ public class StudentAnswer {
 
     private LocalDateTime lastUpdated;
 
+    // ================= NEW PRODUCTION FIELDS =================
+
+    private Boolean visited;
+
+    private Long timeSpentSeconds;
+
+    private Boolean autoSaved;
+
+    private Boolean answerChanged;
+
+    private Integer tabSwitchCount;
+
+    private Integer fullscreenExitCount;
+
+    private String codingLanguage;
+
+    @Column(length = 5000)
+    private String codeAnswer;
+
+    private String difficulty;
+
+    private String topic;
+
+    private Boolean flaggedForCheating;
+
+    private Integer orderIndex;
+
     // ================= RELATIONSHIPS =================
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -70,6 +97,19 @@ public class StudentAnswer {
     public LocalDateTime getLastUpdated() { return lastUpdated; }
     public ExamAttempt getAttempt() { return attempt; }
 
+    public Boolean getVisited() { return visited; }
+    public Long getTimeSpentSeconds() { return timeSpentSeconds; }
+    public Boolean getAutoSaved() { return autoSaved; }
+    public Boolean getAnswerChanged() { return answerChanged; }
+    public Integer getTabSwitchCount() { return tabSwitchCount; }
+    public Integer getFullscreenExitCount() { return fullscreenExitCount; }
+    public String getCodingLanguage() { return codingLanguage; }
+    public String getCodeAnswer() { return codeAnswer; }
+    public String getDifficulty() { return difficulty; }
+    public String getTopic() { return topic; }
+    public Boolean getFlaggedForCheating() { return flaggedForCheating; }
+    public Integer getOrderIndex() { return orderIndex; }
+
     // ================= SETTERS =================
 
     public void setId(Long id) { this.id = id; }
@@ -82,4 +122,17 @@ public class StudentAnswer {
     public void setReviewMarked(Boolean reviewMarked) { this.reviewMarked = reviewMarked; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public void setLastUpdated(LocalDateTime lastUpdated) { this.lastUpdated = lastUpdated; }
+
+    public void setVisited(Boolean visited) { this.visited = visited; }
+    public void setTimeSpentSeconds(Long timeSpentSeconds) { this.timeSpentSeconds = timeSpentSeconds; }
+    public void setAutoSaved(Boolean autoSaved) { this.autoSaved = autoSaved; }
+    public void setAnswerChanged(Boolean answerChanged) { this.answerChanged = answerChanged; }
+    public void setTabSwitchCount(Integer tabSwitchCount) { this.tabSwitchCount = tabSwitchCount; }
+    public void setFullscreenExitCount(Integer fullscreenExitCount) { this.fullscreenExitCount = fullscreenExitCount; }
+    public void setCodingLanguage(String codingLanguage) { this.codingLanguage = codingLanguage; }
+    public void setCodeAnswer(String codeAnswer) { this.codeAnswer = codeAnswer; }
+    public void setDifficulty(String difficulty) { this.difficulty = difficulty; }
+    public void setTopic(String topic) { this.topic = topic; }
+    public void setFlaggedForCheating(Boolean flaggedForCheating) { this.flaggedForCheating = flaggedForCheating; }
+    public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
 }

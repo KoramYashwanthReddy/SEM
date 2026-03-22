@@ -18,6 +18,11 @@ public class ExamRequest {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 
+    // ✅ NEW — Difficulty Distribution
+    private Integer easyQuestionCount = 0;
+    private Integer mediumQuestionCount = 0;
+    private Integer difficultQuestionCount = 0;
+
     public ExamRequest() {}
 
     public String getTitle() {
@@ -122,5 +127,31 @@ public class ExamRequest {
 
     public void setEndTime(LocalDateTime endTime) {
         this.endTime = endTime;
+    }
+
+    // ✅ Difficulty getters/setters
+
+    public Integer getEasyQuestionCount() {
+        return easyQuestionCount;
+    }
+
+    public void setEasyQuestionCount(Integer easyQuestionCount) {
+        this.easyQuestionCount = easyQuestionCount;
+    }
+
+    public Integer getMediumQuestionCount() {
+        return mediumQuestionCount;
+    }
+
+    public void setMediumQuestionCount(Integer mediumQuestionCount) {
+        this.mediumQuestionCount = mediumQuestionCount;
+    }
+
+    public Integer getDifficultQuestionCount() {
+        return difficultQuestionCount;
+    }
+
+    public void setDifficultQuestionCount(Integer difficultQuestionCount) {
+        this.difficultQuestionCount = difficultQuestionCount;
     }
 }
