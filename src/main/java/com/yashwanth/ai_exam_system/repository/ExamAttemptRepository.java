@@ -23,7 +23,6 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
 
     List<ExamAttempt> findByExamCode(String examCode);
 
-    // ✅ FIX — required for teacher dashboard
     List<ExamAttempt> findByExamCodeIn(List<String> examCodes);
 
     List<ExamAttempt> findByExamId(Long examId);
@@ -179,13 +178,13 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
     Optional<ExamAttempt> findActiveAttempt(@Param("studentId") Long studentId);
 
     // =========================================================
-    // ABANDONED ATTEMPTS
+    // ABANDONED ATTEMPTS (PRODUCTION FIX)
     // =========================================================
 
     @Query("""
         SELECT e FROM ExamAttempt e
         WHERE e.status = 'STARTED'
-        AND e.lastHeartbeat < :time
+        AND e.lastAiCheckTime < :time
         AND e.isCancelled = false
     """)
     List<ExamAttempt> findAbandonedAttempts(@Param("time") LocalDateTime time);
