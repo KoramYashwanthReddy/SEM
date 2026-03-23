@@ -30,22 +30,22 @@ public class AnalyticsController {
                 analyticsService.getStudentAnalytics(studentId));
     }
 
-    @GetMapping("/exam/{examId}")
+    @GetMapping("/exam/{examCode}")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     public ResponseEntity<Map<String, Object>> getExamAnalytics(
-            @PathVariable Long examId) {
+            @PathVariable String examCode) {
 
         return ResponseEntity.ok(
-                analyticsService.getExamAnalytics(examId));
+                analyticsService.getExamAnalytics(examCode));
     }
 
-    @GetMapping("/class/{examId}")
+    @GetMapping("/class/{examCode}")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     public ResponseEntity<Map<String, Object>> getClassAnalytics(
-            @PathVariable Long examId) {
+            @PathVariable String examCode) {
 
         return ResponseEntity.ok(
-                analyticsService.getClassAnalytics(examId));
+                analyticsService.getClassAnalytics(examCode));
     }
 
     // ================= STUDENT SELF =================
@@ -79,13 +79,13 @@ public class AnalyticsController {
 
     // ================= LEADERBOARD =================
 
-    @GetMapping("/leaderboard/{examId}")
+    @GetMapping("/leaderboard/{examCode}")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
     public ResponseEntity<Map<String, Object>> getLeaderboard(
-            @PathVariable Long examId) {
+            @PathVariable String examCode) {
 
         return ResponseEntity.ok(
-                analyticsService.getLeaderboardAnalytics(examId));
+                analyticsService.getLeaderboardAnalytics(examCode));
     }
 
     // ================= ADMIN DASHBOARD =================

@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 public class AnalyticsService {
@@ -91,10 +90,10 @@ public class AnalyticsService {
 
     // ================= EXAM ANALYTICS =================
 
-    public Map<String, Object> getExamAnalytics(Long examId) {
+    public Map<String, Object> getExamAnalytics(String examCode) {
 
         List<ExamResult> results =
-                resultRepository.findByExamId(examId);
+                resultRepository.findByExamCode(examCode);
 
         double avg = results.stream()
                 .mapToDouble(ExamResult::getScore)
@@ -118,10 +117,10 @@ public class AnalyticsService {
 
     // ================= CLASS ANALYTICS =================
 
-    public Map<String, Object> getClassAnalytics(Long examId) {
+    public Map<String, Object> getClassAnalytics(String examCode) {
 
         List<ExamResult> results =
-                resultRepository.findByExamId(examId);
+                resultRepository.findByExamCode(examCode);
 
         double avg = results.stream()
                 .mapToDouble(ExamResult::getScore)
@@ -143,10 +142,10 @@ public class AnalyticsService {
 
     // ================= LEADERBOARD =================
 
-    public Map<String, Object> getLeaderboardAnalytics(Long examId) {
+    public Map<String, Object> getLeaderboardAnalytics(String examCode) {
 
         List<ExamResult> results =
-                resultRepository.findTop10ByExamIdOrderByScoreDesc(examId);
+                resultRepository.findTop10ByExamCodeOrderByScoreDesc(examCode);
 
         return Map.of("leaderboard", results);
     }

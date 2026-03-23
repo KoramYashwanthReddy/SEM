@@ -4,7 +4,14 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "exam_results")
+@Table(
+        name = "exam_results",
+        indexes = {
+                @Index(name = "idx_exam_code", columnList = "examCode"),
+                @Index(name = "idx_student_id", columnList = "studentId"),
+                @Index(name = "idx_attempt_id", columnList = "attemptId")
+        }
+)
 public class ExamResult {
 
     @Id
@@ -17,23 +24,24 @@ public class ExamResult {
     @Column(nullable = false)
     private Long studentId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private String examCode;
 
     private int totalQuestions;
     private int correctAnswers;
     private int wrongAnswers;
-
-    // ✅ NEW
     private int unansweredQuestions;
 
     private double score;
     private double percentage;
 
+    @Column(length = 10)
     private String resultStatus; // PASS / FAIL
-    private Boolean passed;
 
-    // Difficulty analytics
+    private Boolean passed = false;
+
+    // ================= Difficulty analytics =================
+
     private Integer easyQuestions = 0;
     private Integer mediumQuestions = 0;
     private Integer difficultQuestions = 0;
@@ -46,13 +54,31 @@ public class ExamResult {
     private Integer mediumWrong = 0;
     private Integer difficultWrong = 0;
 
-    // Attempt tracking
+    // ================= Cheating =================
+
+    private Boolean flaggedForCheating = false;
+
+    // ================= Attempt tracking =================
+
     private Long timeTakenSeconds;
 
     private LocalDateTime submittedAt;
     private LocalDateTime evaluatedAt;
 
     public ExamResult() {}
+
+    @PrePersist
+    public void prePersist() {
+        if (submittedAt == null) {
+            submittedAt = LocalDateTime.now();
+        }
+        if (passed == null) {
+            passed = false;
+        }
+        if (flaggedForCheating == null) {
+            flaggedForCheating = false;
+        }
+    }
 
     public Long getId() { return id; }
 
@@ -115,6 +141,9 @@ public class ExamResult {
 
     public Integer getDifficultWrong() { return difficultWrong; }
     public void setDifficultWrong(Integer difficultWrong) { this.difficultWrong = difficultWrong; }
+
+    public Boolean getFlaggedForCheating() { return flaggedForCheating; }
+    public void setFlaggedForCheating(Boolean flaggedForCheating) { this.flaggedForCheating = flaggedForCheating; }
 
     public Long getTimeTakenSeconds() { return timeTakenSeconds; }
     public void setTimeTakenSeconds(Long timeTakenSeconds) { this.timeTakenSeconds = timeTakenSeconds; }

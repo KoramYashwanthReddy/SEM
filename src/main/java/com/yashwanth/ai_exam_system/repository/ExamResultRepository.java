@@ -20,8 +20,6 @@ public interface ExamResultRepository
 
     List<ExamResult> findByExamCodeOrderByScoreDesc(String examCode);
 
-    List<ExamResult> findByExamIdOrderByScoreDesc(Long examId);
-
     List<ExamResult> findAllByOrderByScoreDesc();
 
     List<ExamResult> findByExamCodeOrderByPercentageDesc(String examCode);
@@ -36,31 +34,33 @@ public interface ExamResultRepository
 
     List<ExamResult> findByExamCode(String examCode);
 
-    List<ExamResult> findByExamId(Long examId);
-
     List<ExamResult> findTop5ByStudentIdOrderBySubmittedAtDesc(Long studentId);
 
     // ================= COUNT =================
 
     long countByExamCode(String examCode);
 
-    long countByExamId(Long examId);
-
     long countByStudentId(Long studentId);
 
     // ================= PASS / FAIL =================
 
-    long countByExamIdAndScoreGreaterThanEqual(Long examId, double passMarks);
+    long countByExamCodeAndScoreGreaterThanEqual(
+            String examCode,
+            double passMarks
+    );
 
-    long countByExamIdAndScoreLessThan(Long examId, double passMarks);
+    long countByExamCodeAndScoreLessThan(
+            String examCode,
+            double passMarks
+    );
 
-    long countByExamIdAndPassedTrue(Long examId);
+    long countByExamCodeAndPassedTrue(String examCode);
 
-    long countByExamIdAndPassedFalse(Long examId);
+    long countByExamCodeAndPassedFalse(String examCode);
 
     // ================= PERFORMANCE =================
 
-    List<ExamResult> findTop10ByExamIdOrderByScoreDesc(Long examId);
+    List<ExamResult> findTop10ByExamCodeOrderByScoreDesc(String examCode);
 
     List<ExamResult> findTop10ByOrderByScoreDesc();
 
