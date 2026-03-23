@@ -1,12 +1,14 @@
 package com.yashwanth.ai_exam_system.controller;
 
+import com.yashwanth.ai_exam_system.dto.CreateTeacherRequest;
 import com.yashwanth.ai_exam_system.entity.CheatingEvidence;
 import com.yashwanth.ai_exam_system.entity.Exam;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
 import com.yashwanth.ai_exam_system.entity.ProctoringEvent;
 import com.yashwanth.ai_exam_system.service.AdminService;
 
-import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +27,21 @@ public class AdminController {
         this.adminService = adminService;
     }
 
+    // =====================================================
+    // ================= TEACHERS =================
+    // =====================================================
+
+    @PostMapping("/teachers")
+    public ResponseEntity<String> createTeacher(
+            @Valid @RequestBody CreateTeacherRequest request) {
+
+        return ResponseEntity.ok(
+                adminService.createTeacher(request));
+    }
+
+    // =====================================================
     // ================= EXAMS =================
+    // =====================================================
 
     @GetMapping("/exams")
     public ResponseEntity<List<Exam>> getAllExams() {
@@ -38,7 +54,9 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
+    // =====================================================
     // ================= ATTEMPTS =================
+    // =====================================================
 
     @GetMapping("/attempts")
     public ResponseEntity<List<ExamAttempt>> getAllAttempts() {
@@ -61,14 +79,15 @@ public class AdminController {
                 adminService.getAttemptsByStudent(studentId));
     }
 
-    // Suspicious attempts
     @GetMapping("/attempts/suspicious")
     public ResponseEntity<List<ExamAttempt>> getSuspiciousAttempts() {
         return ResponseEntity.ok(
                 adminService.getSuspiciousAttempts());
     }
 
+    // =====================================================
     // ================= CHEATING EVENTS =================
+    // =====================================================
 
     @GetMapping("/cheating")
     public ResponseEntity<List<ProctoringEvent>> getCheatingReports() {
@@ -92,7 +111,9 @@ public class AdminController {
                 adminService.getCheatingScore(attemptId));
     }
 
+    // =====================================================
     // ================= EVIDENCE =================
+    // =====================================================
 
     @GetMapping("/evidence")
     public ResponseEntity<List<CheatingEvidence>> getAllEvidence() {
@@ -116,27 +137,29 @@ public class AdminController {
                 adminService.getEvidenceByStudent(studentId));
     }
 
+    // =====================================================
     // ================= ADMIN CONTROL =================
+    // =====================================================
 
-    // cancel attempt
     @PostMapping("/attempts/{attemptId}/cancel")
     public ResponseEntity<String> cancelAttempt(
             @PathVariable Long attemptId) {
 
         adminService.cancelAttempt(attemptId);
-        return ResponseEntity.ok("Attempt cancelled");
+        return ResponseEntity.ok("Attempt cancelled successfully");
     }
 
-    // restore attempt
     @PostMapping("/attempts/{attemptId}/restore")
     public ResponseEntity<String> restoreAttempt(
             @PathVariable Long attemptId) {
 
         adminService.restoreAttempt(attemptId);
-        return ResponseEntity.ok("Attempt restored");
+        return ResponseEntity.ok("Attempt restored successfully");
     }
 
+    // =====================================================
     // ================= DASHBOARD =================
+    // =====================================================
 
     @GetMapping("/dashboard")
     public ResponseEntity<Map<String, Object>> getDashboardStats() {

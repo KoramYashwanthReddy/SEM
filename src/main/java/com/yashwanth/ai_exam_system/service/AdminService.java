@@ -1,8 +1,10 @@
 package com.yashwanth.ai_exam_system.service;
 
+import com.yashwanth.ai_exam_system.dto.CreateTeacherRequest;
 import com.yashwanth.ai_exam_system.entity.*;
 import com.yashwanth.ai_exam_system.repository.*;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -15,17 +17,57 @@ public class AdminService {
     private final ExamAttemptRepository attemptRepository;
     private final ProctoringEventRepository proctoringEventRepository;
     private final CheatingEvidenceRepository evidenceRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public AdminService(
             ExamRepository examRepository,
             ExamAttemptRepository attemptRepository,
             ProctoringEventRepository proctoringEventRepository,
-            CheatingEvidenceRepository evidenceRepository) {
+            CheatingEvidenceRepository evidenceRepository,
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder) {
 
         this.examRepository = examRepository;
         this.attemptRepository = attemptRepository;
         this.proctoringEventRepository = proctoringEventRepository;
         this.evidenceRepository = evidenceRepository;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    // =========================================================
+    // ================= TEACHER MANAGEMENT =================
+    // =========================================================
+
+    public String createTeacher(CreateTeacherRequest request) {
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email already exists");
+        }
+
+        if (request.getEmployeeId() != null &&
+                userRepository.existsByEmployeeId(request.getEmployeeId())) {
+            throw new RuntimeException("Employee ID already exists");
+        }
+
+        User teacher = new User();
+        teacher.setName(request.getFullName());
+        teacher.setEmail(request.getEmail());
+        teacher.setPassword(passwordEncoder.encode(request.getPassword()));
+        teacher.setRole(Role.TEACHER);
+
+        teacher.setPhone(request.getPhone());
+        teacher.setProfileImage(request.getProfileImage());
+        teacher.setDepartment(request.getDepartment());
+        teacher.setDesignation(request.getDesignation());
+        teacher.setExperienceYears(request.getExperienceYears());
+        teacher.setQualification(request.getQualification());
+        teacher.setEmployeeId(request.getEmployeeId());
+
+        userRepository.save(teacher);
+
+        return "Teacher created successfully";
     }
 
     // =========================================================
@@ -60,7 +102,6 @@ public class AdminService {
         return attemptRepository.findByStudentId(studentId);
     }
 
-    // 🔥 UPDATED: Suspicious attempts (based on score + status)
     public List<ExamAttempt> getSuspiciousAttempts() {
 
         List<ExamAttempt> flagged =
@@ -69,14 +110,12 @@ public class AdminService {
         List<ExamAttempt> highScore =
                 attemptRepository.findByCheatingScoreGreaterThan(50);
 
-        // merge + remove duplicates
         Set<ExamAttempt> result = new HashSet<>(flagged);
         result.addAll(highScore);
 
         return new ArrayList<>(result);
     }
 
-    // 🔥 NEW: Top cheating students
     public List<ExamAttempt> getTopRiskAttempts() {
         return attemptRepository.findTop10ByOrderByCheatingScoreDesc();
     }
@@ -93,21 +132,19 @@ public class AdminService {
         return proctoringEventRepository.findByAttemptId(attemptId);
     }
 
-    // 🔥 UPDATED: Use SCORE (not severity ❗)
     public Integer getCheatingScore(Long attemptId) {
 
         Integer score = proctoringEventRepository.getTotalScore(attemptId);
 
         if (score != null && score > 0) return score;
 
-        // fallback
         return attemptRepository.findById(attemptId)
                 .map(ExamAttempt::getCheatingScore)
                 .orElse(0);
     }
 
     // =========================================================
-    // ================= 🔥 EVIDENCE =================
+    // ================= EVIDENCE =================
     // =========================================================
 
     public List<CheatingEvidence> getAllEvidence() {
@@ -123,10 +160,9 @@ public class AdminService {
     }
 
     // =========================================================
-    // ================= 🔥 ADMIN CONTROL =================
+    // ================= ADMIN CONTROL =================
     // =========================================================
 
-    // 🚨 Force cancel (UPDATED)
     public void cancelAttempt(Long attemptId) {
 
         ExamAttempt attempt = attemptRepository.findById(attemptId)
@@ -140,7 +176,6 @@ public class AdminService {
         attemptRepository.save(attempt);
     }
 
-    // 🔄 Restore attempt (UPDATED)
     public void restoreAttempt(Long attemptId) {
 
         ExamAttempt attempt = attemptRepository.findById(attemptId)
@@ -156,25 +191,20 @@ public class AdminService {
     }
 
     // =========================================================
-    // ================= 📊 DASHBOARD =================
+    // ================= DASHBOARD =================
     // =========================================================
 
     public Map<String, Object> getDashboardStats() {
 
         Map<String, Object> stats = new HashMap<>();
 
-        long totalExams = examRepository.count();
-        long totalAttempts = attemptRepository.count();
-
-        long suspicious = getSuspiciousAttempts().size();
-        long cancelled = attemptRepository.findByIsCancelledTrue().size();
+        stats.put("totalExams", examRepository.count());
+        stats.put("totalAttempts", attemptRepository.count());
+        stats.put("suspiciousAttempts", getSuspiciousAttempts().size());
+        stats.put("cancelledAttempts", attemptRepository.findByIsCancelledTrue().size());
 
         Double avgScore = attemptRepository.getAverageCheatingScore();
 
-        stats.put("totalExams", totalExams);
-        stats.put("totalAttempts", totalAttempts);
-        stats.put("suspiciousAttempts", suspicious);
-        stats.put("cancelledAttempts", cancelled);
         stats.put("averageCheatingScore", avgScore != null ? avgScore : 0);
         stats.put("timestamp", LocalDateTime.now());
 
@@ -182,7 +212,7 @@ public class AdminService {
     }
 
     // =========================================================
-    // ================= 🔥 LIVE MONITORING =================
+    // ================= LIVE MONITORING =================
     // =========================================================
 
     public List<ExamAttempt> getLiveHighRiskAttempts() {
@@ -197,7 +227,6 @@ public class AdminService {
             }
         }
 
-        // sort by highest risk
         risky.sort((a, b) ->
                 b.getCheatingScore().compareTo(a.getCheatingScore())
         );
