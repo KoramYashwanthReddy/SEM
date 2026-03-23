@@ -5,7 +5,6 @@ import com.yashwanth.ai_exam_system.entity.Question;
 import com.yashwanth.ai_exam_system.entity.StudentAnswer;
 import com.yashwanth.ai_exam_system.repository.QuestionRepository;
 import com.yashwanth.ai_exam_system.repository.StudentAnswerRepository;
-
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -13,6 +12,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class AIAnalysisService {
+
+    private static final double WEAK_THRESHOLD = 50.0;
 
     private final StudentAnswerRepository answerRepository;
     private final QuestionRepository questionRepository;
@@ -56,9 +57,7 @@ public class AIAnalysisService {
     public Map<String, Object> analyzeExam(Long examId) {
 
         List<StudentAnswer> answers =
-                answerRepository.findByAttempt_ExamId(examId);
-
-        Map<String, Object> result = new HashMap<>();
+                answerRepository.findByAttempt_Exam_Id(examId);
 
         long total = answers.size();
         long correct = answers.stream()
@@ -68,11 +67,11 @@ public class AIAnalysisService {
         double accuracy = total == 0 ? 0 :
                 (correct * 100.0) / total;
 
-        result.put("totalAnswers", total);
-        result.put("correctAnswers", correct);
-        result.put("accuracy", accuracy);
-
-        return result;
+        return Map.of(
+                "totalAnswers", total,
+                "correctAnswers", correct,
+                "accuracy", accuracy
+        );
     }
 
     // ================= CLASS PERFORMANCE =================
@@ -80,7 +79,7 @@ public class AIAnalysisService {
     public Map<String, Object> analyzeClassPerformance(Long examId) {
 
         List<StudentAnswer> answers =
-                answerRepository.findByAttempt_ExamId(examId);
+                answerRepository.findByAttempt_Exam_Id(examId);
 
         Map<Long, List<StudentAnswer>> grouped =
                 answers.stream()
@@ -88,29 +87,26 @@ public class AIAnalysisService {
                                 a -> a.getAttempt().getStudentId()
                         ));
 
-        Map<String, Object> result = new HashMap<>();
-        List<Double> scores = new ArrayList<>();
+        List<Double> scores = grouped.values().stream()
+                .map(studentAnswers -> {
 
-        for (List<StudentAnswer> studentAnswers : grouped.values()) {
+                    long correct = studentAnswers.stream()
+                            .filter(a -> Boolean.TRUE.equals(a.getIsCorrect()))
+                            .count();
 
-            long correct = studentAnswers.stream()
-                    .filter(a -> Boolean.TRUE.equals(a.getIsCorrect()))
-                    .count();
-
-            double score =
-                    (correct * 100.0) / studentAnswers.size();
-
-            scores.add(score);
-        }
+                    return studentAnswers.isEmpty() ? 0 :
+                            (correct * 100.0) / studentAnswers.size();
+                })
+                .collect(Collectors.toList());
 
         double avg = scores.stream()
                 .mapToDouble(Double::doubleValue)
                 .average().orElse(0);
 
-        result.put("averageScore", avg);
-        result.put("totalStudents", grouped.size());
-
-        return result;
+        return Map.of(
+                "averageScore", avg,
+                "totalStudents", grouped.size()
+        );
     }
 
     // ================= WEAK TOPICS =================
@@ -119,11 +115,10 @@ public class AIAnalysisService {
 
         AIAnalysisResponse response = analyzeStudent(studentId);
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("weakTopics", response.getWeakTopics());
-        result.put("feedback", response.getOverallFeedback());
-
-        return result;
+        return Map.of(
+                "weakTopics", response.getWeakTopics(),
+                "feedback", response.getOverallFeedback()
+        );
     }
 
     // ================= RISK SCORE =================
@@ -140,13 +135,14 @@ public class AIAnalysisService {
         double risk = answers.isEmpty() ? 0 :
                 (incorrect * 100.0) / answers.size();
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("riskScore", risk);
-        result.put("level",
+        String level =
                 risk > 70 ? "HIGH" :
-                risk > 40 ? "MEDIUM" : "LOW");
+                risk > 40 ? "MEDIUM" : "LOW";
 
-        return result;
+        return Map.of(
+                "riskScore", risk,
+                "level", level
+        );
     }
 
     // ================= INTERNAL HELPERS =================
@@ -154,17 +150,23 @@ public class AIAnalysisService {
     private Map<String, TopicPerformanceDTO> buildTopicPerformance(
             List<StudentAnswer> answers) {
 
+        Map<Long, Question> questionCache =
+                questionRepository.findAllById(
+                        answers.stream()
+                                .map(StudentAnswer::getQuestionId)
+                                .collect(Collectors.toSet())
+                ).stream()
+                .collect(Collectors.toMap(Question::getId, q -> q));
+
         Map<String, TopicPerformanceDTO> topicMap = new HashMap<>();
 
         for (StudentAnswer answer : answers) {
 
-            Question question = questionRepository
-                    .findById(answer.getQuestionId())
-                    .orElse(null);
-
+            Question question = questionCache.get(answer.getQuestionId());
             if (question == null) continue;
 
-            String topic = question.getTopic();
+            String topic = Optional.ofNullable(question.getTopic())
+                    .orElse("General");
 
             topicMap.putIfAbsent(topic, new TopicPerformanceDTO());
 
@@ -178,6 +180,7 @@ public class AIAnalysisService {
         }
 
         topicMap.values().forEach(dto -> {
+
             double accuracy = dto.getTotalQuestions() == 0 ? 0 :
                     (dto.getCorrectAnswers() * 100.0)
                             / dto.getTotalQuestions();
@@ -191,24 +194,20 @@ public class AIAnalysisService {
     private List<WeakTopicDTO> buildWeakTopics(
             List<TopicPerformanceDTO> performance) {
 
-        List<WeakTopicDTO> weakTopics = new ArrayList<>();
+        return performance.stream()
+                .filter(dto -> dto.getAccuracy() < WEAK_THRESHOLD)
+                .map(dto -> {
 
-        for (TopicPerformanceDTO dto : performance) {
+                    WeakTopicDTO weak = new WeakTopicDTO();
+                    weak.setTopic(dto.getTopic());
+                    weak.setAccuracy(dto.getAccuracy());
+                    weak.setRecommendation(
+                            generateRecommendation(dto.getTopic())
+                    );
+                    return weak;
 
-            if (dto.getAccuracy() < 50) {
-
-                WeakTopicDTO weak = new WeakTopicDTO();
-                weak.setTopic(dto.getTopic());
-                weak.setAccuracy(dto.getAccuracy());
-                weak.setRecommendation(
-                        generateRecommendation(dto.getTopic())
-                );
-
-                weakTopics.add(weak);
-            }
-        }
-
-        return weakTopics;
+                })
+                .collect(Collectors.toList());
     }
 
     // ================= RECOMMENDATION ENGINE =================

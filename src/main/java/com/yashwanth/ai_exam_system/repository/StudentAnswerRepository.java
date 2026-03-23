@@ -1,7 +1,6 @@
 package com.yashwanth.ai_exam_system.repository;
 
 import com.yashwanth.ai_exam_system.entity.StudentAnswer;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -18,7 +17,8 @@ public interface StudentAnswerRepository
 
     Optional<StudentAnswer> findByAttemptIdAndQuestionId(
             Long attemptId,
-            Long questionId);
+            Long questionId
+    );
 
     // ================= NAVIGATION =================
 
@@ -26,64 +26,55 @@ public interface StudentAnswerRepository
 
     long countByAttemptIdAndStatus(
             Long attemptId,
-            String status);
+            String status
+    );
 
     long countByAttemptIdAndReviewMarkedTrue(Long attemptId);
 
-    // 🔥 REQUIRED (fix your error)
     long countByAttemptIdAndStatusAndReviewMarkedTrue(
             Long attemptId,
-            String status);
+            String status
+    );
 
-    // unanswered
-    long countByAttemptIdAndStatus(
-            Long attemptId,
-            String status,
-            boolean dummy); // overload protection (kept safe)
-
-    // visited
     long countByAttemptIdAndVisitedTrue(Long attemptId);
 
-    // answered
     long countByAttemptIdAndAnswerIsNotNull(Long attemptId);
 
     // ================= AI ANALYSIS =================
 
-    // student analytics
     List<StudentAnswer> findByAttempt_StudentId(Long studentId);
 
     List<StudentAnswer> findByAttempt_StudentIdAndIsCorrect(
             Long studentId,
-            Boolean isCorrect);
+            Boolean isCorrect
+    );
 
-    // exam analytics
-    List<StudentAnswer> findByAttempt_ExamId(Long examId);
+    List<StudentAnswer> findByAttempt_Exam_Id(Long examId);
 
-    // student + exam analytics
-    List<StudentAnswer> findByAttempt_ExamIdAndAttempt_StudentId(
+    List<StudentAnswer> findByAttempt_Exam_IdAndAttempt_StudentId(
             Long examId,
-            Long studentId);
+            Long studentId
+    );
 
-    // correctness analytics
-    long countByAttempt_ExamIdAndIsCorrect(
+    long countByAttempt_Exam_IdAndIsCorrect(
             Long examId,
-            Boolean isCorrect);
+            Boolean isCorrect
+    );
 
-    // difficulty analytics
-    List<StudentAnswer> findByAttempt_ExamIdAndDifficulty(
+    List<StudentAnswer> findByAttempt_Exam_IdAndDifficulty(
             Long examId,
-            String difficulty);
+            String difficulty
+    );
 
-    // topic analytics
-    List<StudentAnswer> findByAttempt_ExamIdAndTopic(
+    List<StudentAnswer> findByAttempt_Exam_IdAndTopic(
             Long examId,
-            String topic);
+            String topic
+    );
 
     // ================= ADMIN =================
 
     List<StudentAnswer> findByQuestionId(Long questionId);
 
-    // suspicious patterns
     List<StudentAnswer> findByIsCorrectFalse();
 
     List<StudentAnswer> findByFlaggedForCheatingTrue();
@@ -94,11 +85,13 @@ public interface StudentAnswerRepository
 
     long countByAttempt_StudentIdAndIsCorrect(
             Long studentId,
-            Boolean isCorrect);
+            Boolean isCorrect
+    );
 
     long countByAttempt_StudentIdAndStatus(
             Long studentId,
-            String status);
+            String status
+    );
 
     long countByAttempt_StudentIdAndReviewMarkedTrue(Long studentId);
 

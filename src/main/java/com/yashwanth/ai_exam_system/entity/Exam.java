@@ -1,6 +1,10 @@
 package com.yashwanth.ai_exam_system.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -9,7 +13,9 @@ import java.time.LocalDateTime;
         indexes = {
                 @Index(name = "idx_exam_code", columnList = "examCode"),
                 @Index(name = "idx_exam_status", columnList = "status"),
-                @Index(name = "idx_exam_created_by", columnList = "createdBy")
+                @Index(name = "idx_exam_created_by", columnList = "createdBy"),
+                @Index(name = "idx_exam_start_time", columnList = "startTime"),
+                @Index(name = "idx_exam_end_time", columnList = "endTime")
         }
 )
 public class Exam {
@@ -18,9 +24,11 @@ public class Exam {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
     @Column(unique = true, nullable = false, length = 50)
     private String examCode;
 
+    @NotBlank
     @Column(nullable = false, length = 200)
     private String title;
 
@@ -30,9 +38,15 @@ public class Exam {
     @Column(length = 100)
     private String subject;
 
+    @PositiveOrZero
     private Integer durationMinutes = 60;
+
+    @PositiveOrZero
     private Integer totalMarks = 0;
+
+    @PositiveOrZero
     private Integer passingMarks = 0;
+
     private Integer maxAttempts = 1;
 
     private Double marksPerQuestion = 1.0;
@@ -66,6 +80,7 @@ public class Exam {
     private LocalDateTime endTime;
 
     // ================= AUDIT =================
+    @NotBlank
     @Column(nullable = false)
     private String createdBy;
 
@@ -79,13 +94,15 @@ public class Exam {
     // ================= JPA LIFECYCLE =================
     @PrePersist
     public void prePersist() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
 
         if (status == null) status = ExamStatus.DRAFT;
         if (active == null) active = true;
         if (shuffleQuestions == null) shuffleQuestions = true;
         if (shuffleOptions == null) shuffleOptions = true;
+        if (questionsUploaded == null) questionsUploaded = false;
     }
 
     @PreUpdate
@@ -94,6 +111,7 @@ public class Exam {
     }
 
     // ================= BUSINESS HELPERS =================
+
     public boolean isPublished() {
         return ExamStatus.PUBLISHED.equals(this.status);
     }
@@ -106,6 +124,14 @@ public class Exam {
         return Boolean.TRUE.equals(this.active);
     }
 
+    public boolean isExpired() {
+        return endTime != null && LocalDateTime.now().isAfter(endTime);
+    }
+
+    public boolean isUpcoming() {
+        return startTime != null && LocalDateTime.now().isBefore(startTime);
+    }
+
     public boolean isRunning() {
         LocalDateTime now = LocalDateTime.now();
         return isPublished()
@@ -113,6 +139,10 @@ public class Exam {
                 && endTime != null
                 && now.isAfter(startTime)
                 && now.isBefore(endTime);
+    }
+
+    public boolean canAttempt() {
+        return isActive() && isRunning();
     }
 
     // ================= GETTERS & SETTERS =================

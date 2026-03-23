@@ -1,7 +1,6 @@
 package com.yashwanth.ai_exam_system.repository;
 
 import com.yashwanth.ai_exam_system.entity.ExamResult;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -25,25 +24,20 @@ public interface ExamResultRepository
 
     List<ExamResult> findAllByOrderByScoreDesc();
 
-    // 🔥 percentage leaderboard
     List<ExamResult> findByExamCodeOrderByPercentageDesc(String examCode);
 
-    // 🔥 fastest time leaderboard
     List<ExamResult> findByExamCodeOrderByTimeTakenSecondsAsc(String examCode);
 
     // ================= ANALYTICS =================
 
     List<ExamResult> findByStudentIdOrderBySubmittedAtAsc(Long studentId);
 
-    List<ExamResult> findByStudentIdAndExamCode(
-            Long studentId,
-            String examCode);
+    List<ExamResult> findByStudentIdAndExamCode(Long studentId, String examCode);
 
     List<ExamResult> findByExamCode(String examCode);
 
     List<ExamResult> findByExamId(Long examId);
 
-    // 🔥 recent exams
     List<ExamResult> findTop5ByStudentIdOrderBySubmittedAtDesc(Long studentId);
 
     // ================= COUNT =================
@@ -56,22 +50,13 @@ public interface ExamResultRepository
 
     // ================= PASS / FAIL =================
 
-    long countByExamIdAndScoreGreaterThanEqual(
-            Long examId,
-            double passMarks);
+    long countByExamIdAndScoreGreaterThanEqual(Long examId, double passMarks);
 
-    long countByExamIdAndScoreLessThan(
-            Long examId,
-            double passMarks);
+    long countByExamIdAndScoreLessThan(Long examId, double passMarks);
 
-    // 🔥 boolean pass flag
     long countByExamIdAndPassedTrue(Long examId);
 
     long countByExamIdAndPassedFalse(Long examId);
-
-    // ================= ADMIN =================
-
-    List<ExamResult> findByStudentId(Long studentId);
 
     // ================= PERFORMANCE =================
 
@@ -79,7 +64,6 @@ public interface ExamResultRepository
 
     List<ExamResult> findTop10ByOrderByScoreDesc();
 
-    // 🔥 top by percentage
     List<ExamResult> findTop10ByExamCodeOrderByPercentageDesc(String examCode);
 
     // ================= CHEATING =================
@@ -90,10 +74,18 @@ public interface ExamResultRepository
 
     // ================= AVERAGE =================
 
-    @Query("SELECT AVG(e.score) FROM ExamResult e WHERE e.examCode = :examCode")
+    @Query("""
+        SELECT COALESCE(AVG(e.score),0)
+        FROM ExamResult e
+        WHERE e.examCode = :examCode
+    """)
     Double findAverageScoreByExamCode(String examCode);
 
-    @Query("SELECT AVG(e.percentage) FROM ExamResult e WHERE e.examCode = :examCode")
+    @Query("""
+        SELECT COALESCE(AVG(e.percentage),0)
+        FROM ExamResult e
+        WHERE e.examCode = :examCode
+    """)
     Double findAveragePercentageByExamCode(String examCode);
 
     // ================= RANK =================
@@ -105,5 +97,4 @@ public interface ExamResultRepository
         AND e.score > :score
     """)
     Long findRankByScore(String examCode, double score);
-
 }
