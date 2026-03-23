@@ -1,60 +1,62 @@
 package com.yashwanth.ai_exam_system.security;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import javax.crypto.SecretKey;
-
-import org.springframework.stereotype.Service;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY =
-            "thisisaverysecuresecretkeythisisaverysecuresecretkeythisisaverysecuresecretkey";
+    // ================= CONFIG =================
+    @Value("${app.jwt.secret}")
+    private String secretKey;
 
-    // 15 minutes
-    private static final long ACCESS_TOKEN_EXPIRATION = 1000 * 60 * 15;
+    @Value("${app.jwt.access-expiration}")
+    private long accessTokenExpiration;
 
-    // 7 days
-    private static final long REFRESH_TOKEN_EXPIRATION = 1000L * 60 * 60 * 24 * 7;
+    @Value("${app.jwt.refresh-expiration}")
+    private long refreshTokenExpiration;
 
+    private static final String TOKEN_TYPE = "type";
+    private static final String ROLE = "role";
+
+    private static final String ACCESS = "ACCESS";
+    private static final String REFRESH = "REFRESH";
+
+    // ================= KEY =================
     private SecretKey getSignKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
-    // =========================
-    // ACCESS TOKEN
-    // =========================
+    // ================= ACCESS TOKEN =================
     public String generateAccessToken(String email, String role) {
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", role);
-        claims.put("type", "ACCESS");
+        claims.put(ROLE, role);
+        claims.put(TOKEN_TYPE, ACCESS);
 
-        return buildToken(claims, email, ACCESS_TOKEN_EXPIRATION);
+        return buildToken(claims, email, accessTokenExpiration);
     }
 
-    // =========================
-    // REFRESH TOKEN
-    // =========================
+    // ================= REFRESH TOKEN =================
     public String generateRefreshToken(String email) {
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("type", "REFRESH");
+        claims.put(TOKEN_TYPE, REFRESH);
 
-        return buildToken(claims, email, REFRESH_TOKEN_EXPIRATION);
+        return buildToken(claims, email, refreshTokenExpiration);
     }
 
-    // =========================
-    // COMMON TOKEN BUILDER
-    // =========================
+    // ================= TOKEN BUILDER =================
     private String buildToken(
             Map<String, Object> claims,
             String subject,
@@ -69,38 +71,31 @@ public class JwtService {
                 .compact();
     }
 
-    // =========================
-    // EXTRACT EMAIL
-    // =========================
+    // ================= EXTRACT EMAIL =================
     public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    // =========================
-    // EXTRACT ROLE
-    // =========================
+    // ================= EXTRACT ROLE =================
     public String extractRole(String token) {
-        return extractAllClaims(token).get("role", String.class);
+        return extractAllClaims(token).get(ROLE, String.class);
     }
 
-    // =========================
-    // EXTRACT TOKEN TYPE
-    // =========================
+    // ================= EXTRACT TOKEN TYPE =================
     public String extractTokenType(String token) {
-        return extractAllClaims(token).get("type", String.class);
+        return extractAllClaims(token).get(TOKEN_TYPE, String.class);
     }
 
-    // =========================
-    // GENERIC CLAIM EXTRACTOR
-    // =========================
-    public <T> T extractClaim(String token, Function<Claims, T> resolver) {
-        Claims claims = extractAllClaims(token);
+    // ================= GENERIC CLAIM =================
+    public <T> T extractClaim(
+            String token,
+            Function<Claims, T> resolver) {
+
+        final Claims claims = extractAllClaims(token);
         return resolver.apply(claims);
     }
 
-    // =========================
-    // PARSE CLAIMS
-    // =========================
+    // ================= PARSE CLAIMS =================
     private Claims extractAllClaims(String token) {
 
         return Jwts.parser()
@@ -110,30 +105,45 @@ public class JwtService {
                 .getPayload();
     }
 
-    // =========================
-    // TOKEN VALIDATION
-    // =========================
+    // ================= TOKEN VALID =================
     public boolean isTokenValid(String token, String email) {
 
-        final String username = extractEmail(token);
+        try {
+            final String username = extractEmail(token);
 
-        return username.equals(email)
-                && !isTokenExpired(token);
+            return username.equals(email)
+                    && !isTokenExpired(token)
+                    && ACCESS.equals(extractTokenType(token));
+
+        } catch (Exception e) {
+            return false;
+        }
     }
 
-    // =========================
-    // REFRESH TOKEN VALIDATION
-    // =========================
+    // ================= REFRESH TOKEN CHECK =================
     public boolean isRefreshToken(String token) {
-        return "REFRESH".equals(extractTokenType(token));
+
+        try {
+            return REFRESH.equals(extractTokenType(token))
+                    && !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
-    // =========================
-    // CHECK EXPIRY
-    // =========================
+    // ================= EXPIRY =================
     private boolean isTokenExpired(String token) {
 
         return extractClaim(token, Claims::getExpiration)
                 .before(new Date());
+    }
+
+    // ================= EXPIRY GETTERS =================
+    public long getAccessTokenExpiry() {
+        return accessTokenExpiration / 1000;
+    }
+
+    public long getRefreshTokenExpiry() {
+        return refreshTokenExpiration / 1000;
     }
 }

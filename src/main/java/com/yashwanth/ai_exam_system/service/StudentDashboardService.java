@@ -7,7 +7,9 @@ import com.yashwanth.ai_exam_system.repository.QuestionRepository;
 
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class StudentDashboardService {
@@ -27,6 +29,12 @@ public class StudentDashboardService {
 
         List<StudentExamSummary> attempted = new ArrayList<>();
         List<Double> scores = new ArrayList<>();
+        List<Double> trend = new ArrayList<>();
+
+        int cheatingAlerts = 0;
+        int certificates = 0;
+
+        LocalDateTime lastAttempt = null;
 
         for (ExamAttempt attempt : attempts) {
 
@@ -40,6 +48,20 @@ public class StudentDashboardService {
             }
 
             scores.add(percentage);
+            trend.add(percentage);
+
+            if (Boolean.TRUE.equals(attempt.getCheatingFlag())) {
+                cheatingAlerts++;
+            }
+
+            if (percentage >= 80) {
+                certificates++;
+            }
+
+            if (lastAttempt == null ||
+                    (attempt.getEndTime() != null && attempt.getEndTime().isAfter(lastAttempt))) {
+                lastAttempt = attempt.getEndTime();
+            }
 
             attempted.add(
                     new StudentExamSummary(
@@ -52,37 +74,26 @@ public class StudentDashboardService {
             );
         }
 
+        // ================= ANALYTICS =================
         StudentExamAnalyticsResponse analytics = new StudentExamAnalyticsResponse();
-
         analytics.setAttemptedExams(attempted.size());
 
-        if (!scores.isEmpty()) {
+        double avg = scores.stream().mapToDouble(Double::doubleValue).average().orElse(0);
 
-            double avg = scores.stream()
-                    .mapToDouble(Double::doubleValue)
-                    .average()
-                    .orElse(0);
+        analytics.setAverageScore(avg);
+        analytics.setHighestScore(scores.stream().mapToDouble(Double::doubleValue).max().orElse(0));
+        analytics.setLowestScore(scores.stream().mapToDouble(Double::doubleValue).min().orElse(0));
 
-            analytics.setAverageScore(avg);
+        long passCount = scores.stream().filter(s -> s >= 40).count();
+        analytics.setPassRate(scores.isEmpty() ? 0 : (passCount * 100.0) / scores.size());
 
-            analytics.setHighestScore(Collections.max(scores));
-            analytics.setLowestScore(Collections.min(scores));
+        // ================= SUGGESTIONS =================
+        List<ExamSuggestionResponse> suggestions = generateSuggestions(analytics);
 
-            long passCount =
-                    scores.stream().filter(s -> s >= 40).count();
+        // ================= WEAK TOPICS =================
+        List<String> weakTopics = detectWeakTopics(studentId);
 
-            analytics.setPassRate((passCount * 100.0) / scores.size());
-        } else {
-
-            analytics.setAverageScore(0.0);
-            analytics.setHighestScore(0.0);
-            analytics.setLowestScore(0.0);
-            analytics.setPassRate(0.0);
-        }
-
-        List<ExamSuggestionResponse> suggestions =
-                generateSuggestions(analytics);
-
+        // ================= RESPONSE =================
         StudentDashboardResponse response = new StudentDashboardResponse();
 
         response.setAttempted(attempted);
@@ -90,9 +101,23 @@ public class StudentDashboardService {
         response.setAnalytics(analytics);
         response.setSuggestions(suggestions);
 
+        response.setTotalExams(attempts.size());
+        response.setAttemptedCount(attempted.size());
+        response.setNotAttemptedCount(0);
+
+        response.setAverageScore(avg);
+        response.setCertificatesEarned(certificates);
+        response.setLeaderboardRank(0); // can plug leaderboard service
+
+        response.setCheatingAlerts(cheatingAlerts);
+        response.setWeakTopics(weakTopics);
+        response.setPerformanceTrend(trend);
+        response.setLastAttemptTime(lastAttempt);
+
         return response;
     }
 
+    // ================= BADGE =================
     private String calculateBadge(double percentage) {
 
         if (percentage >= 90) return "PLATINUM";
@@ -103,6 +128,7 @@ public class StudentDashboardService {
         return "PARTICIPANT";
     }
 
+    // ================= SUGGESTIONS =================
     private List<ExamSuggestionResponse> generateSuggestions(
             StudentExamAnalyticsResponse analytics) {
 
@@ -112,30 +138,45 @@ public class StudentDashboardService {
 
         if (avg == null) return suggestions;
 
-        if (avg < 60) {
+        if (avg < 50) {
             suggestions.add(
                     new ExamSuggestionResponse(
-                            "Revise fundamentals and attempt beginner exams"
+                            "Revise basics and attempt beginner exams"
                     )
             );
         }
 
-        if (avg >= 60 && avg < 75) {
+        if (avg >= 50 && avg < 70) {
             suggestions.add(
                     new ExamSuggestionResponse(
-                            "Practice more medium difficulty exams"
+                            "Practice medium difficulty exams"
                     )
             );
         }
 
-        if (avg >= 80) {
+        if (avg >= 70 && avg < 85) {
             suggestions.add(
                     new ExamSuggestionResponse(
-                            "Try advanced coding exams"
+                            "Attempt advanced level exams"
+                    )
+            );
+        }
+
+        if (avg >= 85) {
+            suggestions.add(
+                    new ExamSuggestionResponse(
+                            "You are doing great! Try competitive exams"
                     )
             );
         }
 
         return suggestions;
+    }
+
+    // ================= WEAK TOPIC DETECTION =================
+    private List<String> detectWeakTopics(Long studentId) {
+
+        // placeholder — can plug AI topic analysis later
+        return new ArrayList<>();
     }
 }

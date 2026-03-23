@@ -4,42 +4,52 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "exams")
+@Table(
+        name = "exams",
+        indexes = {
+                @Index(name = "idx_exam_code", columnList = "examCode"),
+                @Index(name = "idx_exam_status", columnList = "status"),
+                @Index(name = "idx_exam_created_by", columnList = "createdBy")
+        }
+)
 public class Exam {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, length = 50)
     private String examCode;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 200)
     private String title;
 
+    @Column(length = 1000)
     private String description;
+
+    @Column(length = 100)
     private String subject;
 
-    private Integer durationMinutes;
-    private Integer totalMarks;
-    private Integer passingMarks;
-    private Integer maxAttempts;
+    private Integer durationMinutes = 60;
+    private Integer totalMarks = 0;
+    private Integer passingMarks = 0;
+    private Integer maxAttempts = 1;
 
-    private Double marksPerQuestion;
-    private Double negativeMarks;
+    private Double marksPerQuestion = 1.0;
+    private Double negativeMarks = 0.0;
 
     private Boolean shuffleQuestions = true;
     private Boolean shuffleOptions = true;
 
     @Enumerated(EnumType.STRING)
-    private ExamStatus status;
+    private ExamStatus status = ExamStatus.DRAFT;
 
-    // Question type distribution
-    private Integer mcqCount;
-    private Integer codingCount;
-    private Integer descriptiveCount;
+    // ================= QUESTION DISTRIBUTION =================
+    private Integer mcqCount = 0;
+    private Integer codingCount = 0;
+    private Integer descriptiveCount = 0;
 
-    // ✅ NEW — Difficulty distribution
+    // ================= DIFFICULTY DISTRIBUTION =================
     @Column(name = "easy_question_count")
     private Integer easyQuestionCount = 0;
 
@@ -51,9 +61,12 @@ public class Exam {
 
     private Boolean questionsUploaded = false;
 
+    // ================= SCHEDULING =================
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 
+    // ================= AUDIT =================
+    @Column(nullable = false)
     private String createdBy;
 
     private LocalDateTime createdAt;
@@ -63,7 +76,46 @@ public class Exam {
 
     public Exam() {}
 
-    // getters and setters
+    // ================= JPA LIFECYCLE =================
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+
+        if (status == null) status = ExamStatus.DRAFT;
+        if (active == null) active = true;
+        if (shuffleQuestions == null) shuffleQuestions = true;
+        if (shuffleOptions == null) shuffleOptions = true;
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // ================= BUSINESS HELPERS =================
+    public boolean isPublished() {
+        return ExamStatus.PUBLISHED.equals(this.status);
+    }
+
+    public boolean isDraft() {
+        return ExamStatus.DRAFT.equals(this.status);
+    }
+
+    public boolean isActive() {
+        return Boolean.TRUE.equals(this.active);
+    }
+
+    public boolean isRunning() {
+        LocalDateTime now = LocalDateTime.now();
+        return isPublished()
+                && startTime != null
+                && endTime != null
+                && now.isAfter(startTime)
+                && now.isBefore(endTime);
+    }
+
+    // ================= GETTERS & SETTERS =================
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -116,8 +168,6 @@ public class Exam {
     public Integer getDescriptiveCount() { return descriptiveCount; }
     public void setDescriptiveCount(Integer descriptiveCount) { this.descriptiveCount = descriptiveCount; }
 
-    // ✅ Difficulty getters/setters
-
     public Integer getEasyQuestionCount() { return easyQuestionCount; }
     public void setEasyQuestionCount(Integer easyQuestionCount) { this.easyQuestionCount = easyQuestionCount; }
 
@@ -140,10 +190,7 @@ public class Exam {
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
     public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
     public Boolean getActive() { return active; }
     public void setActive(Boolean active) { this.active = active; }

@@ -3,6 +3,7 @@ package com.yashwanth.ai_exam_system.repository;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -11,7 +12,7 @@ import java.util.Optional;
 public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> {
 
     // =========================================================
-    // ✅ BASIC QUERIES
+    // BASIC QUERIES
     // =========================================================
 
     List<ExamAttempt> findByStatus(String status);
@@ -22,6 +23,9 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
 
     List<ExamAttempt> findByExamCode(String examCode);
 
+    // ✅ FIX — required for teacher dashboard
+    List<ExamAttempt> findByExamCodeIn(List<String> examCodes);
+
     List<ExamAttempt> findByExamId(Long examId);
 
     Optional<ExamAttempt> findByStudentIdAndExamCode(Long studentId, String examCode);
@@ -29,24 +33,23 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
     Optional<ExamAttempt> findByExamIdAndStudentId(Long examId, Long studentId);
 
     // =========================================================
-    // ⏱ AUTO-SUBMIT / LIVE
+    // LIVE / AUTO SUBMIT
     // =========================================================
 
     List<ExamAttempt> findByStatusAndExpiryTimeBefore(String status, LocalDateTime time);
 
+    List<ExamAttempt> findByExpiryTimeBeforeAndStatus(LocalDateTime time, String status);
+
     @Query("""
-        SELECT e FROM ExamAttempt e 
-        WHERE e.status = 'STARTED' 
-        AND e.expiryTime > CURRENT_TIMESTAMP 
+        SELECT e FROM ExamAttempt e
+        WHERE e.status = 'STARTED'
+        AND e.expiryTime > CURRENT_TIMESTAMP
         AND e.isCancelled = false
     """)
     List<ExamAttempt> findLiveAttempts();
 
-    // 🔥 expired attempts
-    List<ExamAttempt> findByExpiryTimeBeforeAndStatus(LocalDateTime time, String status);
-
     // =========================================================
-    // 📊 COUNTS (OPTIMIZED)
+    // COUNTS
     // =========================================================
 
     long countByStudentId(Long studentId);
@@ -66,28 +69,39 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
     long countByExamId(Long examId);
 
     // =========================================================
-    // 📊 ANALYTICS
+    // GLOBAL ANALYTICS
     // =========================================================
 
-    @Query("SELECT AVG(e.cheatingScore) FROM ExamAttempt e")
+    @Query("SELECT COALESCE(AVG(e.cheatingScore),0) FROM ExamAttempt e")
     Double getAverageCheatingScore();
 
-    @Query("SELECT MAX(e.cheatingScore) FROM ExamAttempt e")
+    @Query("SELECT COALESCE(MAX(e.cheatingScore),0) FROM ExamAttempt e")
     Integer getMaxCheatingScore();
 
-    @Query("SELECT MIN(e.cheatingScore) FROM ExamAttempt e")
+    @Query("SELECT COALESCE(MIN(e.cheatingScore),0) FROM ExamAttempt e")
     Integer getMinCheatingScore();
 
-    @Query("SELECT AVG(e.score) FROM ExamAttempt e WHERE e.examId = :examId")
-    Double getAverageScoreByExam(Long examId);
+    @Query("SELECT COALESCE(AVG(e.score),0) FROM ExamAttempt e WHERE e.examId = :examId")
+    Double getAverageScoreByExam(@Param("examId") Long examId);
 
-    @Query("SELECT AVG(e.timeTakenSeconds) FROM ExamAttempt e WHERE e.examId = :examId")
-    Double getAverageTimeByExam(Long examId);
+    @Query("SELECT COALESCE(AVG(e.timeTakenSeconds),0) FROM ExamAttempt e WHERE e.examId = :examId")
+    Double getAverageTimeByExam(@Param("examId") Long examId);
 
     List<ExamAttempt> findTop20ByOrderByStartTimeDesc();
 
     // =========================================================
-    // 🚨 PROCTORING / RISK
+    // LEADERBOARD
+    // =========================================================
+
+    @Query("""
+        SELECT e FROM ExamAttempt e
+        WHERE e.examId = :examId
+        ORDER BY e.score DESC
+    """)
+    List<ExamAttempt> findLeaderboard(@Param("examId") Long examId);
+
+    // =========================================================
+    // PROCTORING / RISK
     // =========================================================
 
     List<ExamAttempt> findByCheatingScoreGreaterThan(int score);
@@ -110,7 +124,7 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
     List<ExamAttempt> findSafeAttempts();
 
     // =========================================================
-    // 🏆 EXAM ANALYTICS
+    // EXAM ANALYTICS
     // =========================================================
 
     List<ExamAttempt> findByExamIdAndStatus(Long examId, String status);
@@ -118,62 +132,62 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
     List<ExamAttempt> findByExamIdOrderByCheatingScoreDesc(Long examId);
 
     @Query("""
-        SELECT e FROM ExamAttempt e 
-        WHERE e.examId = :examId 
+        SELECT e FROM ExamAttempt e
+        WHERE e.examId = :examId
         ORDER BY e.score DESC
     """)
-    List<ExamAttempt> findTopPerformersByExam(Long examId);
+    List<ExamAttempt> findTopPerformersByExam(@Param("examId") Long examId);
 
     @Query("""
-        SELECT e FROM ExamAttempt e 
-        WHERE e.examId = :examId 
+        SELECT e FROM ExamAttempt e
+        WHERE e.examId = :examId
         ORDER BY e.timeTakenSeconds ASC
     """)
-    List<ExamAttempt> findFastestAttemptsByExam(Long examId);
+    List<ExamAttempt> findFastestAttemptsByExam(@Param("examId") Long examId);
 
     // =========================================================
-    // 🔥 LIVE MONITORING
+    // LIVE MONITORING
     // =========================================================
 
     @Query("""
-        SELECT e FROM ExamAttempt e 
-        WHERE e.status = 'STARTED' 
-        AND e.isCancelled = false 
+        SELECT e FROM ExamAttempt e
+        WHERE e.status = 'STARTED'
+        AND e.isCancelled = false
         AND e.cheatingScore >= 50
         ORDER BY e.cheatingScore DESC
     """)
     List<ExamAttempt> findLiveHighRiskAttempts();
 
     @Query("""
-        SELECT e FROM ExamAttempt e 
-        WHERE e.status = 'STARTED' 
-        AND e.isCancelled = false 
+        SELECT e FROM ExamAttempt e
+        WHERE e.status = 'STARTED'
+        AND e.isCancelled = false
         ORDER BY e.startTime DESC
     """)
     List<ExamAttempt> findRecentLiveAttempts();
 
     // =========================================================
-    // 🔄 RESUME SUPPORT
+    // RESUME SUPPORT
     // =========================================================
 
     @Query("""
-        SELECT e FROM ExamAttempt e 
+        SELECT e FROM ExamAttempt e
         WHERE e.studentId = :studentId
         AND e.status = 'STARTED'
         AND e.isCancelled = false
     """)
-    Optional<ExamAttempt> findActiveAttempt(Long studentId);
+    Optional<ExamAttempt> findActiveAttempt(@Param("studentId") Long studentId);
 
     // =========================================================
-    // ⌛ ABANDONED ATTEMPTS
+    // ABANDONED ATTEMPTS
     // =========================================================
 
     @Query("""
-        SELECT e FROM ExamAttempt e 
+        SELECT e FROM ExamAttempt e
         WHERE e.status = 'STARTED'
         AND e.lastHeartbeat < :time
         AND e.isCancelled = false
     """)
-    List<ExamAttempt> findAbandonedAttempts(LocalDateTime time);
+    List<ExamAttempt> findAbandonedAttempts(@Param("time") LocalDateTime time);
 
 }

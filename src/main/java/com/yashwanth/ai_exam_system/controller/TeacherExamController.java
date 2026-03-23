@@ -7,6 +7,9 @@ import com.yashwanth.ai_exam_system.service.ExamService;
 
 import jakarta.validation.Valid;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -21,94 +24,132 @@ import java.util.Map;
 @PreAuthorize("hasRole('TEACHER')")
 public class TeacherExamController {
 
+    private static final Logger logger =
+            LoggerFactory.getLogger(TeacherExamController.class);
+
     private final ExamService examService;
 
     public TeacherExamController(ExamService examService) {
         this.examService = examService;
     }
 
-    // ================= CREATE =================
-
+    // =========================================================
+    // CREATE EXAM
+    // =========================================================
     @PostMapping
-    public ResponseEntity<?> createExam(
+    public ResponseEntity<Map<String, Object>> createExam(
             @Valid @RequestBody ExamRequest request,
             Authentication auth) {
 
+        logger.info("Teacher creating exam");
+
         Exam exam = examService.createExam(request, auth);
 
-        return ResponseEntity.ok(buildResponse("Exam created successfully", exam));
+        return success("Exam created successfully", exam);
     }
 
-    // ================= GET ALL =================
-
+    // =========================================================
+    // GET MY EXAMS
+    // =========================================================
     @GetMapping
-    public ResponseEntity<List<Exam>> getMyExams(Authentication auth) {
-        return ResponseEntity.ok(examService.getTeacherExams(auth));
+    public ResponseEntity<Map<String, Object>> getMyExams(
+            Authentication auth) {
+
+        List<Exam> exams = examService.getTeacherExams(auth);
+
+        return success("Exams fetched successfully", exams);
     }
 
-    // ================= GET SINGLE =================
-
+    // =========================================================
+    // GET SINGLE EXAM
+    // =========================================================
     @GetMapping("/{examCode}")
-    public ResponseEntity<Exam> getExamByCode(@PathVariable String examCode) {
-        return ResponseEntity.ok(examService.getExamByCode(examCode));
+    public ResponseEntity<Map<String, Object>> getExamByCode(
+            @PathVariable String examCode) {
+
+        Exam exam = examService.getExamByCode(examCode);
+
+        return success("Exam fetched successfully", exam);
     }
 
-    // ================= UPDATE =================
-
+    // =========================================================
+    // UPDATE EXAM
+    // =========================================================
     @PutMapping("/{examCode}")
-    public ResponseEntity<?> updateExam(
+    public ResponseEntity<Map<String, Object>> updateExam(
             @PathVariable String examCode,
             @Valid @RequestBody ExamRequest request) {
 
-        Exam updatedExam = examService.updateExam(examCode, request);
+        logger.info("Updating exam {}", examCode);
 
-        return ResponseEntity.ok(buildResponse("Exam updated successfully", updatedExam));
+        Exam updatedExam =
+                examService.updateExam(examCode, request);
+
+        return success("Exam updated successfully", updatedExam);
     }
 
-    // ================= PUBLISH =================
-
+    // =========================================================
+    // PUBLISH EXAM
+    // =========================================================
     @PutMapping("/{examCode}/publish")
-    public ResponseEntity<?> publishExam(@PathVariable String examCode) {
+    public ResponseEntity<Map<String, Object>> publishExam(
+            @PathVariable String examCode) {
 
         Exam exam = examService.publishExam(examCode);
 
-        return ResponseEntity.ok(buildResponse("Exam published successfully", exam));
+        return success("Exam published successfully", exam);
     }
 
-    // ================= DELETE (SOFT) =================
-
+    // =========================================================
+    // DELETE (SOFT)
+    // =========================================================
     @DeleteMapping("/{examCode}")
-    public ResponseEntity<?> deleteExam(@PathVariable String examCode) {
+    public ResponseEntity<Map<String, Object>> deleteExam(
+            @PathVariable String examCode) {
 
         examService.deleteExamByTeacher(examCode);
 
-        return ResponseEntity.ok(buildMessage("Exam deleted successfully"));
+        return success("Exam deleted successfully", null);
     }
 
-    // ================= ANALYTICS =================
-
+    // =========================================================
+    // ATTEMPTS
+    // =========================================================
     @GetMapping("/{examCode}/attempts")
-    public ResponseEntity<List<ExamAttempt>> getExamAttempts(@PathVariable String examCode) {
-        return ResponseEntity.ok(examService.getAttemptsByExamCode(examCode));
+    public ResponseEntity<Map<String, Object>> getExamAttempts(
+            @PathVariable String examCode) {
+
+        List<ExamAttempt> attempts =
+                examService.getAttemptsByExamCode(examCode);
+
+        return success("Exam attempts fetched", attempts);
     }
 
+    // =========================================================
+    // ANALYTICS
+    // =========================================================
     @GetMapping("/{examCode}/analytics")
-    public ResponseEntity<Map<String, Object>> getExamAnalytics(@PathVariable String examCode) {
-        return ResponseEntity.ok(examService.getExamAnalytics(examCode));
+    public ResponseEntity<Map<String, Object>> getExamAnalytics(
+            @PathVariable String examCode) {
+
+        Map<String, Object> analytics =
+                examService.getExamAnalytics(examCode);
+
+        return success("Exam analytics fetched", analytics);
     }
 
-    // ================= HELPERS =================
+    // =========================================================
+    // SUCCESS RESPONSE
+    // =========================================================
+    private ResponseEntity<Map<String, Object>> success(
+            String message,
+            Object data) {
 
-    private Map<String, Object> buildResponse(String message, Object data) {
-        Map<String, Object> res = new HashMap<>();
-        res.put("message", message);
-        res.put("data", data);
-        return res;
-    }
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "SUCCESS");
+        response.put("message", message);
+        response.put("data", data);
 
-    private Map<String, Object> buildMessage(String message) {
-        Map<String, Object> res = new HashMap<>();
-        res.put("message", message);
-        return res;
+        return ResponseEntity.ok(response);
     }
 }
