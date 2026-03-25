@@ -1,18 +1,12 @@
 package com.yashwanth.ai_exam_system.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "student_profiles")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class StudentProfile {
 
     @Id
@@ -38,6 +32,9 @@ public class StudentProfile {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    public StudentProfile() {
+    }
+
     @PrePersist
     public void prePersist(){
         this.createdAt = LocalDateTime.now();
@@ -48,115 +45,117 @@ public class StudentProfile {
         this.updatedAt = LocalDateTime.now();
     }
 
-	public Long getId() {
-		return id;
-	}
+    // ===== GETTERS & SETTERS =====
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	public Long getUserId() {
-		return userId;
-	}
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-	public void setUserId(Long userId) {
-		this.userId = userId;
-	}
+    public Long getUserId() {
+        return userId;
+    }
 
-	public String getFullName() {
-		return fullName;
-	}
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
 
-	public void setFullName(String fullName) {
-		this.fullName = fullName;
-	}
+    public String getFullName() {
+        return fullName;
+    }
 
-	public String getPhone() {
-		return phone;
-	}
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
 
-	public void setPhone(String phone) {
-		this.phone = phone;
-	}
+    public String getPhone() {
+        return phone;
+    }
 
-	public String getGender() {
-		return gender;
-	}
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
 
-	public void setGender(String gender) {
-		this.gender = gender;
-	}
+    public String getGender() {
+        return gender;
+    }
 
-	public LocalDate getDateOfBirth() {
-		return dateOfBirth;
-	}
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
 
-	public void setDateOfBirth(LocalDate dateOfBirth) {
-		this.dateOfBirth = dateOfBirth;
-	}
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
+    }
 
-	public String getCollegeName() {
-		return collegeName;
-	}
+    public void setDateOfBirth(LocalDate dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
 
-	public void setCollegeName(String collegeName) {
-		this.collegeName = collegeName;
-	}
+    public String getCollegeName() {
+        return collegeName;
+    }
 
-	public String getDepartment() {
-		return department;
-	}
+    public void setCollegeName(String collegeName) {
+        this.collegeName = collegeName;
+    }
 
-	public void setDepartment(String department) {
-		this.department = department;
-	}
+    public String getDepartment() {
+        return department;
+    }
 
-	public String getYear() {
-		return year;
-	}
+    public void setDepartment(String department) {
+        this.department = department;
+    }
 
-	public void setYear(String year) {
-		this.year = year;
-	}
+    public String getYear() {
+        return year;
+    }
 
-	public String getRollNumber() {
-		return rollNumber;
-	}
+    public void setYear(String year) {
+        this.year = year;
+    }
 
-	public void setRollNumber(String rollNumber) {
-		this.rollNumber = rollNumber;
-	}
+    public String getRollNumber() {
+        return rollNumber;
+    }
 
-	public String getSection() {
-		return section;
-	}
+    public void setRollNumber(String rollNumber) {
+        this.rollNumber = rollNumber;
+    }
 
-	public void setSection(String section) {
-		this.section = section;
-	}
+    public String getSection() {
+        return section;
+    }
 
-	public String getProfilePhoto() {
-		return profilePhoto;
-	}
+    public void setSection(String section) {
+        this.section = section;
+    }
 
-	public void setProfilePhoto(String profilePhoto) {
-		this.profilePhoto = profilePhoto;
-	}
+    public String getProfilePhoto() {
+        return profilePhoto;
+    }
 
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
+    public void setProfilePhoto(String profilePhoto) {
+        this.profilePhoto = profilePhoto;
+    }
 
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
-	}
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
 
-	public LocalDateTime getUpdatedAt() {
-		return updatedAt;
-	}
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
 
-	public void setUpdatedAt(LocalDateTime updatedAt) {
-		this.updatedAt = updatedAt;
-	}
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }
