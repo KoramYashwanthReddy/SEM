@@ -12,7 +12,6 @@ public class StudentProfileService {
 
     private final StudentProfileRepository repository;
 
-    // ✅ Manual constructor (fixes error)
     public StudentProfileService(StudentProfileRepository repository) {
         this.repository = repository;
     }
@@ -23,19 +22,18 @@ public class StudentProfileService {
             throw new RuntimeException("Profile already exists");
         }
 
-        StudentProfile profile = StudentProfile.builder()
-                .userId(userId)
-                .fullName(request.getFullName())
-                .phone(request.getPhone())
-                .gender(request.getGender())
-                .dateOfBirth(request.getDateOfBirth())
-                .collegeName(request.getCollegeName())
-                .department(request.getDepartment())
-                .year(request.getYear())
-                .rollNumber(request.getRollNumber())
-                .section(request.getSection())
-                .profilePhoto(request.getProfilePhoto())
-                .build();
+        StudentProfile profile = new StudentProfile();
+        profile.setUserId(userId);
+        profile.setFullName(request.getFullName());
+        profile.setPhone(request.getPhone());
+        profile.setGender(request.getGender());
+        profile.setDateOfBirth(request.getDateOfBirth());
+        profile.setCollegeName(request.getCollegeName());
+        profile.setDepartment(request.getDepartment());
+        profile.setYear(request.getYear());
+        profile.setRollNumber(request.getRollNumber());
+        profile.setSection(request.getSection());
+        profile.setProfilePhoto(request.getProfilePhoto());
 
         return repository.save(profile);
     }
