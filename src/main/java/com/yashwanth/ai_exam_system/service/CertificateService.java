@@ -25,15 +25,18 @@ public class CertificateService {
     private final CertificateRepository certificateRepository;
     private final QrCodeService qrCodeService;
     private final StudentProfileRepository studentProfileRepository;
+    private final EmailService emailService;
 
     public CertificateService(
             CertificateRepository certificateRepository,
             QrCodeService qrCodeService,
-            StudentProfileRepository studentProfileRepository) {
+            StudentProfileRepository studentProfileRepository,
+            EmailService emailService) {
 
         this.certificateRepository = certificateRepository;
         this.qrCodeService = qrCodeService;
         this.studentProfileRepository = studentProfileRepository;
+        this.emailService = emailService;
     }
 
     public byte[] generateCertificate(
@@ -82,7 +85,18 @@ public class CertificateService {
 
         certificateRepository.save(cert);
 
-        return generatePremiumPdf(cert, qrImage);
+        // Generate PDF
+        byte[] pdf = generatePremiumPdf(cert, qrImage);
+
+        // AUTO EMAIL CERTIFICATE
+        emailService.sendCertificateEmail(
+                profile.getEmail(),
+                profile.getFullName(),
+                certificateId,
+                pdf
+        );
+
+        return pdf;
     }
 
     private String calculateGrade(double score) {
@@ -107,14 +121,12 @@ public class CertificateService {
             float width = document.getPageSize().getWidth();
             float height = document.getPageSize().getHeight();
 
-            // GOLD BORDER
             Rectangle border = new Rectangle(30, 30, width - 30, height - 30);
             border.setBorder(Rectangle.BOX);
             border.setBorderWidth(4);
             border.setBorderColor(new Color(212, 175, 55));
             canvas.rectangle(border);
 
-            // WATERMARK
             try {
                 Image watermark = loadImage("static/watermark.png");
                 watermark.scaleAbsolute(400, 300);
@@ -130,10 +142,8 @@ public class CertificateService {
 
             } catch (Exception ignored) {}
 
-            // LOGO
             addCenteredImage(document, "static/logo.png", 80, 80);
 
-            // TITLE
             addCenteredText(document,
                     "CERTIFICATE OF ACHIEVEMENT",
                     new Font(Font.TIMES_ROMAN, 36, Font.BOLD, new Color(212, 175, 55)));
@@ -146,14 +156,12 @@ public class CertificateService {
 
             document.add(new Paragraph("\n"));
 
-            // NAME
             addCenteredText(document,
                     cert.getStudentName(),
                     new Font(Font.TIMES_ROMAN, 32, Font.BOLD));
 
             document.add(new Paragraph("\n"));
 
-            // CONTENT WITH AUTO-FILL DATA
             addCenteredText(document,
                     "For successfully completing the examination\n\n" +
                             cert.getExamTitle() +
@@ -174,38 +182,10 @@ public class CertificateService {
                             "\nDate: " + formattedDate,
                     new Font(Font.HELVETICA, 14));
 
-            // QR
             Image qr = Image.getInstance(qrImage);
             qr.scaleAbsolute(100, 100);
             qr.setAbsolutePosition(70, 70);
             document.add(qr);
-
-            // SEAL
-            try {
-                Image seal = loadImage("static/seal.png");
-                seal.scaleAbsolute(120, 120);
-                seal.setAbsolutePosition((width / 2) - 60, 70);
-                document.add(seal);
-            } catch (Exception ignored) {}
-
-            // SIGNATURE
-            try {
-                Image sign = loadImage("static/signature.png");
-                sign.scaleAbsolute(140, 60);
-                sign.setAbsolutePosition(width - 220, 80);
-                document.add(sign);
-
-                ColumnText.showTextAligned(
-                        canvas,
-                        Element.ALIGN_RIGHT,
-                        new Phrase("Authorized Signature",
-                                new Font(Font.HELVETICA, 12)),
-                        width - 80,
-                        60,
-                        0
-                );
-
-            } catch (Exception ignored) {}
 
             document.close();
             return out.toByteArray();

@@ -6,38 +6,61 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "student_profiles")
+@Table(
+        name = "student_profiles",
+        indexes = {
+                @Index(name = "idx_user_id", columnList = "userId"),
+                @Index(name = "idx_roll_number", columnList = "rollNumber")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_user_id", columnNames = "userId"),
+                @UniqueConstraint(name = "uk_roll_number", columnNames = "rollNumber")
+        }
+)
 public class StudentProfile {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private Long userId;
 
+    @Column(nullable = false)
     private String fullName;
+
+    private String email; // REQUIRED FOR AUTO EMAIL CERTIFICATE
+
     private String phone;
     private String gender;
+
     private LocalDate dateOfBirth;
 
     private String collegeName;
     private String department;
     private String year;
+
+    @Column(length = 50)
     private String rollNumber;
+
     private String section;
 
+    @Column(length = 2000)
     private String profilePhoto;
+
+    private boolean profileCompleted = false;
+
+    private boolean active = true;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public StudentProfile() {
-    }
+    public StudentProfile() {}
 
     @PrePersist
     public void prePersist(){
         this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
@@ -45,7 +68,7 @@ public class StudentProfile {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // ===== GETTERS & SETTERS =====
+    // GETTERS & SETTERS
 
     public Long getId() {
         return id;
@@ -69,6 +92,14 @@ public class StudentProfile {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPhone() {
@@ -141,6 +172,22 @@ public class StudentProfile {
 
     public void setProfilePhoto(String profilePhoto) {
         this.profilePhoto = profilePhoto;
+    }
+
+    public boolean isProfileCompleted() {
+        return profileCompleted;
+    }
+
+    public void setProfileCompleted(boolean profileCompleted) {
+        this.profileCompleted = profileCompleted;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     public LocalDateTime getCreatedAt() {
