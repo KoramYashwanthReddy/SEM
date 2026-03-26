@@ -6,7 +6,9 @@ import com.lowagie.text.Image;
 import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.*;
 import com.yashwanth.ai_exam_system.entity.Certificate;
+import com.yashwanth.ai_exam_system.entity.StudentProfile;
 import com.yashwanth.ai_exam_system.repository.CertificateRepository;
+import com.yashwanth.ai_exam_system.repository.StudentProfileRepository;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
@@ -22,35 +24,59 @@ public class CertificateService {
 
     private final CertificateRepository certificateRepository;
     private final QrCodeService qrCodeService;
+    private final StudentProfileRepository studentProfileRepository;
 
-    public CertificateService(CertificateRepository certificateRepository,
-                              QrCodeService qrCodeService) {
+    public CertificateService(
+            CertificateRepository certificateRepository,
+            QrCodeService qrCodeService,
+            StudentProfileRepository studentProfileRepository) {
+
         this.certificateRepository = certificateRepository;
         this.qrCodeService = qrCodeService;
+        this.studentProfileRepository = studentProfileRepository;
     }
 
     public byte[] generateCertificate(
             Long studentId,
-            String studentName,
             String examCode,
             String examTitle,
             double score
     ) {
 
-        String grade = calculateGrade(score);
-        String certificateId = UUID.randomUUID().toString();
+        // AUTO FILL PROFILE
+        StudentProfile profile = studentProfileRepository
+                .findByUserId(studentId)
+                .orElseThrow(() -> new RuntimeException("Student profile not found"));
 
-        String verifyUrl = "http://localhost:8080/api/certificate/verify/" + certificateId;
+        String grade = calculateGrade(score);
+
+        String certificateId =
+                "CERT-" + UUID.randomUUID().toString().substring(0,8).toUpperCase();
+
+        String verifyUrl =
+                "http://localhost:8080/api/certificate/verify/" + certificateId;
+
         byte[] qrImage = qrCodeService.generateQRCode(verifyUrl);
 
         Certificate cert = new Certificate();
+
+        // Student snapshot
         cert.setCertificateId(certificateId);
         cert.setStudentId(studentId);
-        cert.setStudentName(studentName);
+        cert.setStudentName(profile.getFullName());
+        cert.setCollegeName(profile.getCollegeName());
+        cert.setDepartment(profile.getDepartment());
+        cert.setRollNumber(profile.getRollNumber());
+        cert.setSection(profile.getSection());
+        cert.setProfilePhoto(profile.getProfilePhoto());
+
+        // Exam info
         cert.setExamCode(examCode);
         cert.setExamTitle(examTitle);
         cert.setScore(score);
         cert.setGrade(grade);
+
+        // Metadata
         cert.setQrCodeData(verifyUrl);
         cert.setIssuedAt(LocalDateTime.now());
 
@@ -81,14 +107,14 @@ public class CertificateService {
             float width = document.getPageSize().getWidth();
             float height = document.getPageSize().getHeight();
 
-            // 🟡 GOLD BORDER
+            // GOLD BORDER
             Rectangle border = new Rectangle(30, 30, width - 30, height - 30);
             border.setBorder(Rectangle.BOX);
             border.setBorderWidth(4);
             border.setBorderColor(new Color(212, 175, 55));
             canvas.rectangle(border);
 
-            // 🌫️ WATERMARK (CENTER)
+            // WATERMARK
             try {
                 Image watermark = loadImage("static/watermark.png");
                 watermark.scaleAbsolute(400, 300);
@@ -104,41 +130,42 @@ public class CertificateService {
 
             } catch (Exception ignored) {}
 
-            // 🎓 LOGO
+            // LOGO
             addCenteredImage(document, "static/logo.png", 80, 80);
 
-            // 🏆 TITLE
+            // TITLE
             addCenteredText(document,
                     "CERTIFICATE OF ACHIEVEMENT",
                     new Font(Font.TIMES_ROMAN, 36, Font.BOLD, new Color(212, 175, 55)));
 
             document.add(new Paragraph("\n"));
 
-            // 📄 SUBTEXT
             addCenteredText(document,
                     "This is proudly presented to",
                     new Font(Font.HELVETICA, 18));
 
             document.add(new Paragraph("\n"));
 
-            // 👤 NAME
+            // NAME
             addCenteredText(document,
                     cert.getStudentName(),
                     new Font(Font.TIMES_ROMAN, 32, Font.BOLD));
 
             document.add(new Paragraph("\n"));
 
-            // 📘 CONTENT
+            // CONTENT WITH AUTO-FILL DATA
             addCenteredText(document,
                     "For successfully completing the examination\n\n" +
                             cert.getExamTitle() +
+                            "\n\nCollege: " + cert.getCollegeName() +
+                            "\nDepartment: " + cert.getDepartment() +
+                            "\nRoll No: " + cert.getRollNumber() +
                             "\n\nScore: " + cert.getScore() +
                             "   |   Grade: " + cert.getGrade(),
                     new Font(Font.HELVETICA, 18));
 
             document.add(new Paragraph("\n\n"));
 
-            // 📅 DATE
             String formattedDate = cert.getIssuedAt()
                     .format(DateTimeFormatter.ofPattern("dd MMMM yyyy"));
 
@@ -147,13 +174,13 @@ public class CertificateService {
                             "\nDate: " + formattedDate,
                     new Font(Font.HELVETICA, 14));
 
-            // 🔐 QR (BOTTOM LEFT)
+            // QR
             Image qr = Image.getInstance(qrImage);
             qr.scaleAbsolute(100, 100);
             qr.setAbsolutePosition(70, 70);
             document.add(qr);
 
-            // 🔴 SEAL (BOTTOM CENTER)
+            // SEAL
             try {
                 Image seal = loadImage("static/seal.png");
                 seal.scaleAbsolute(120, 120);
@@ -161,7 +188,7 @@ public class CertificateService {
                 document.add(seal);
             } catch (Exception ignored) {}
 
-            // ✍️ SIGNATURE (BOTTOM RIGHT)
+            // SIGNATURE
             try {
                 Image sign = loadImage("static/signature.png");
                 sign.scaleAbsolute(140, 60);
@@ -171,7 +198,8 @@ public class CertificateService {
                 ColumnText.showTextAligned(
                         canvas,
                         Element.ALIGN_RIGHT,
-                        new Phrase("Authorized Signature", new Font(Font.HELVETICA, 12)),
+                        new Phrase("Authorized Signature",
+                                new Font(Font.HELVETICA, 12)),
                         width - 80,
                         60,
                         0
@@ -187,9 +215,9 @@ public class CertificateService {
         }
     }
 
-    // ✅ HELPER METHODS
+    private void addCenteredText(Document doc, String text, Font font)
+            throws DocumentException {
 
-    private void addCenteredText(Document doc, String text, Font font) throws DocumentException {
         Paragraph p = new Paragraph(text, font);
         p.setAlignment(Element.ALIGN_CENTER);
         doc.add(p);

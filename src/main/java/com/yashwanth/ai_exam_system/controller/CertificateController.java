@@ -21,33 +21,68 @@ public class CertificateController {
         this.certificateRepository = certificateRepository;
     }
 
+    // AUTO-FILL FROM PROFILE
     @GetMapping("/generate")
     public ResponseEntity<byte[]> generateCertificate(
             @RequestParam Long studentId,
-            @RequestParam String studentName,
             @RequestParam String examCode,
             @RequestParam String examTitle,
             @RequestParam double score
     ) {
 
         byte[] pdf = certificateService.generateCertificate(
-                studentId, studentName, examCode, examTitle, score
+                studentId, examCode, examTitle, score
         );
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=certificate.pdf")
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=certificate-" + studentId + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
     }
 
+    // VERIFY CERTIFICATE (QR)
     @GetMapping("/verify/{certificateId}")
-    public Certificate verify(@PathVariable String certificateId) {
-        return certificateRepository.findByCertificateId(certificateId)
+    public ResponseEntity<?> verify(@PathVariable String certificateId) {
+
+        Certificate cert = certificateRepository
+                .findByCertificateId(certificateId)
                 .orElseThrow(() -> new RuntimeException("Invalid Certificate"));
+
+        return ResponseEntity.ok(cert);
     }
 
+    // GET ALL CERTIFICATES FOR STUDENT
     @GetMapping("/student/{studentId}")
-    public List<Certificate> getStudentCertificates(@PathVariable Long studentId) {
-        return certificateRepository.findByStudentId(studentId);
+    public ResponseEntity<List<Certificate>> getStudentCertificates(
+            @PathVariable Long studentId) {
+
+        List<Certificate> certificates =
+                certificateRepository.findByStudentId(studentId);
+
+        return ResponseEntity.ok(certificates);
+    }
+
+    // DOWNLOAD BY CERTIFICATE ID (PRODUCTION API)
+    @GetMapping("/download/{certificateId}")
+    public ResponseEntity<byte[]> downloadCertificate(
+            @PathVariable String certificateId) {
+
+        Certificate cert = certificateRepository
+                .findByCertificateId(certificateId)
+                .orElseThrow(() -> new RuntimeException("Certificate not found"));
+
+        byte[] pdf = certificateService.generateCertificate(
+                cert.getStudentId(),
+                cert.getExamCode(),
+                cert.getExamTitle(),
+                cert.getScore()
+        );
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=" + certificateId + ".pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 }
