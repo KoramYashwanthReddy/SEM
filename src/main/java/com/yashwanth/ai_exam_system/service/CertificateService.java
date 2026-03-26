@@ -48,33 +48,82 @@ public class CertificateService {
             double score
     ) {
 
-        // 🔒 PROFILE VALIDATION
+        StudentProfile profile = getValidatedProfile(studentId);
+
+        Certificate existing = certificateRepository
+                .findByStudentIdAndExamCode(studentId, examCode)
+                .orElse(null);
+
+        // ✅ REUSE STORED PDF
+        if (existing != null) {
+            if (existing.isRevoked()) {
+                throw new RuntimeException("Certificate is revoked");
+            }
+            if (existing.getPdfData() != null) {
+                return existing.getPdfData();
+            }
+        }
+
+        String certificateId = generateCertificateId();
+        String verifyUrl = buildVerifyUrl(certificateId);
+
+        byte[] qrImage = qrCodeService.generateQRCode(verifyUrl);
+
+        Certificate cert = buildCertificate(
+                profile, examCode, examTitle, score,
+                certificateId, verifyUrl
+        );
+
+        byte[] pdf = generatePremiumPdf(cert, qrImage);
+
+        // STORE PDF IN DB
+        cert.setPdfData(pdf);
+
+        certificateRepository.save(cert);
+
+        sendEmailSafe(profile, certificateId, pdf);
+
+        return pdf;
+    }
+
+    // ================= VALIDATION =================
+
+    private StudentProfile getValidatedProfile(Long studentId) {
+
         StudentProfile profile = studentProfileRepository
                 .findByUserId(studentId)
                 .orElseThrow(() -> new RuntimeException("Student profile not found"));
 
-        if (!profile.isProfileCompleted()) {
-            throw new RuntimeException("Complete profile before generating certificate");
+        if (!profile.isActive()) {
+            throw new RuntimeException("User inactive");
         }
 
-        // 🚫 PREVENT DUPLICATE CERTIFICATE
-        certificateRepository.findByStudentIdAndExamCode(studentId, examCode)
-                .ifPresent(c -> {
-                    throw new RuntimeException("Certificate already generated for this exam");
-                });
+        if (!profile.isProfileCompleted()) {
+            throw new RuntimeException("Complete profile first");
+        }
 
-        String certificateId = generateCertificateId();
+        if (profile.getEmail() == null || profile.getEmail().isBlank()) {
+            throw new RuntimeException("Email required");
+        }
 
-        String verifyUrl =
-                "http://localhost:8080/api/certificate/verify/" + certificateId;
+        return profile;
+    }
 
-        byte[] qrImage = qrCodeService.generateQRCode(verifyUrl);
+    // ================= BUILDERS =================
+
+    private Certificate buildCertificate(
+            StudentProfile profile,
+            String examCode,
+            String examTitle,
+            double score,
+            String certificateId,
+            String verifyUrl
+    ) {
 
         Certificate cert = new Certificate();
 
-        // STUDENT SNAPSHOT
         cert.setCertificateId(certificateId);
-        cert.setStudentId(studentId);
+        cert.setStudentId(profile.getUserId());
         cert.setStudentName(profile.getFullName());
         cert.setCollegeName(profile.getCollegeName());
         cert.setDepartment(profile.getDepartment());
@@ -82,22 +131,20 @@ public class CertificateService {
         cert.setSection(profile.getSection());
         cert.setProfilePhoto(profile.getProfilePhoto());
 
-        // EXAM INFO
         cert.setExamCode(examCode);
         cert.setExamTitle(examTitle);
         cert.setScore(score);
         cert.setGrade(calculateGrade(score));
 
-        // METADATA
         cert.setQrCodeData(verifyUrl);
         cert.setIssuedAt(LocalDateTime.now());
 
-        certificateRepository.save(cert);
+        return cert;
+    }
 
-        // PDF GENERATION
-        byte[] pdf = generatePremiumPdf(cert, qrImage);
+    // ================= EMAIL =================
 
-        // 📧 EMAIL (FAIL-SAFE)
+    private void sendEmailSafe(StudentProfile profile, String certificateId, byte[] pdf) {
         try {
             emailService.sendCertificateEmail(
                     profile.getEmail(),
@@ -106,17 +153,20 @@ public class CertificateService {
                     pdf
             );
         } catch (Exception e) {
-            // log but don't fail main flow
-            System.out.println("Email failed: " + e.getMessage());
+            System.err.println("Email failed: " + e.getMessage());
         }
-
-        return pdf;
     }
+
+    // ================= HELPERS =================
 
     private String generateCertificateId() {
         return "CERT-" + UUID.randomUUID().toString()
                 .substring(0, 8)
                 .toUpperCase();
+    }
+
+    private String buildVerifyUrl(String certificateId) {
+        return "http://localhost:8080/api/certificate/verify/" + certificateId;
     }
 
     private String calculateGrade(double score) {
@@ -126,6 +176,8 @@ public class CertificateService {
         if (score >= 50) return "C";
         return "Fail";
     }
+
+    // ================= PDF =================
 
     private byte[] generatePremiumPdf(Certificate cert, byte[] qrImage) {
 
@@ -147,25 +199,12 @@ public class CertificateService {
             border.setBorderColor(new Color(212, 175, 55));
             canvas.rectangle(border);
 
-            try {
-                Image watermark = loadImage("static/watermark.png");
-                watermark.scaleAbsolute(400, 300);
-                watermark.setAbsolutePosition((width - 400) / 2, (height - 300) / 2);
-
-                PdfGState gs = new PdfGState();
-                gs.setFillOpacity(0.08f);
-
-                canvas.saveState();
-                canvas.setGState(gs);
-                canvas.addImage(watermark);
-                canvas.restoreState();
-            } catch (Exception ignored) {}
-
             addCenteredImage(document, "static/logo.png", 80, 80);
 
             addCenteredText(document,
                     "CERTIFICATE OF ACHIEVEMENT",
-                    new Font(Font.TIMES_ROMAN, 36, Font.BOLD, new Color(212, 175, 55)));
+                    new Font(Font.TIMES_ROMAN, 36, Font.BOLD,
+                            new Color(212, 175, 55)));
 
             document.add(new Paragraph("\n"));
 
@@ -182,23 +221,22 @@ public class CertificateService {
             document.add(new Paragraph("\n"));
 
             addCenteredText(document,
-                    "For successfully completing the examination\n\n" +
-                            cert.getExamTitle() +
+                    cert.getExamTitle() +
                             "\n\nCollege: " + cert.getCollegeName() +
                             "\nDepartment: " + cert.getDepartment() +
                             "\nRoll No: " + cert.getRollNumber() +
                             "\n\nScore: " + cert.getScore() +
-                            "   |   Grade: " + cert.getGrade(),
+                            " | Grade: " + cert.getGrade(),
                     new Font(Font.HELVETICA, 18));
 
             document.add(new Paragraph("\n\n"));
 
-            String formattedDate = cert.getIssuedAt()
+            String date = cert.getIssuedAt()
                     .format(DateTimeFormatter.ofPattern("dd MMMM yyyy"));
 
             addCenteredText(document,
                     "Certificate ID: " + cert.getCertificateId() +
-                            "\nDate: " + formattedDate,
+                            "\nDate: " + date,
                     new Font(Font.HELVETICA, 14));
 
             Image qr = Image.getInstance(qrImage);

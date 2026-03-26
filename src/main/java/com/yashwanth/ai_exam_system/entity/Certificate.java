@@ -4,17 +4,28 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "certificates")
+@Table(
+        name = "certificates",
+        indexes = {
+                @Index(name = "idx_certificate_id", columnList = "certificateId"),
+                @Index(name = "idx_student_exam", columnList = "studentId, examCode")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_certificate_id", columnNames = "certificateId")
+        }
+)
 public class Certificate {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
-    private String certificateId; // UNIQUE CERTIFICATE NUMBER
+    @Column(nullable = false, unique = true, length = 50)
+    private String certificateId;
 
-    // Student Info (Auto-filled snapshot)
+    // ================= STUDENT SNAPSHOT =================
+
+    @Column(nullable = false)
     private Long studentId;
 
     private String studentName;
@@ -27,9 +38,11 @@ public class Certificate {
 
     private String section;
 
-    private String profilePhoto; // URL or base64
+    @Column(length = 2000)
+    private String profilePhoto;
 
-    // Exam Info
+    // ================= EXAM INFO =================
+
     private String examCode;
 
     private String examTitle;
@@ -38,18 +51,46 @@ public class Certificate {
 
     private String grade;
 
-    // Security & Verification
+    // ================= SECURITY =================
+
     @Column(length = 2000)
     private String qrCodeData;
 
-    // Metadata
+    // ================= PDF STORAGE =================
+
+    @Lob
+    @Column(name = "pdf_data", columnDefinition = "LONGBLOB")
+    private byte[] pdfData;
+
+    // ================= METADATA =================
+
     private LocalDateTime issuedAt;
 
-    private String certificateUrl;
+    private String certificateUrl; // optional future use
 
-    private boolean revoked = false; // for invalid certificates
+    private boolean revoked = false;
 
-    // ---------------- GETTERS & SETTERS ----------------
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
+
+    // ================= LIFECYCLE =================
+
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+        if (this.issuedAt == null) {
+            this.issuedAt = LocalDateTime.now();
+        }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // ================= GETTERS & SETTERS =================
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -93,6 +134,9 @@ public class Certificate {
     public String getQrCodeData() { return qrCodeData; }
     public void setQrCodeData(String qrCodeData) { this.qrCodeData = qrCodeData; }
 
+    public byte[] getPdfData() { return pdfData; }
+    public void setPdfData(byte[] pdfData) { this.pdfData = pdfData; }
+
     public LocalDateTime getIssuedAt() { return issuedAt; }
     public void setIssuedAt(LocalDateTime issuedAt) { this.issuedAt = issuedAt; }
 
@@ -101,4 +145,10 @@ public class Certificate {
 
     public boolean isRevoked() { return revoked; }
     public void setRevoked(boolean revoked) { this.revoked = revoked; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

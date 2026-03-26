@@ -21,7 +21,8 @@ public class CertificateController {
         this.certificateRepository = certificateRepository;
     }
 
-    // AUTO-FILL FROM PROFILE
+    // ================= GENERATE =================
+
     @GetMapping("/generate")
     public ResponseEntity<byte[]> generateCertificate(
             @RequestParam Long studentId,
@@ -36,12 +37,13 @@ public class CertificateController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=certificate-" + studentId + ".pdf")
+                        "attachment; filename=certificate-" + examCode + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
     }
 
-    // VERIFY CERTIFICATE (QR)
+    // ================= VERIFY =================
+
     @GetMapping("/verify/{certificateId}")
     public ResponseEntity<?> verify(@PathVariable String certificateId) {
 
@@ -49,21 +51,28 @@ public class CertificateController {
                 .findByCertificateId(certificateId)
                 .orElseThrow(() -> new RuntimeException("Invalid Certificate"));
 
+        if (cert.isRevoked()) {
+            return ResponseEntity.status(HttpStatus.GONE)
+                    .body("Certificate has been revoked");
+        }
+
         return ResponseEntity.ok(cert);
     }
 
-    // GET ALL CERTIFICATES FOR STUDENT
+    // ================= STUDENT CERTIFICATES =================
+
     @GetMapping("/student/{studentId}")
     public ResponseEntity<List<Certificate>> getStudentCertificates(
             @PathVariable Long studentId) {
 
         List<Certificate> certificates =
-                certificateRepository.findByStudentId(studentId);
+                certificateRepository.findByStudentIdAndRevokedFalse(studentId);
 
         return ResponseEntity.ok(certificates);
     }
 
-    // DOWNLOAD BY CERTIFICATE ID (PRODUCTION API)
+    // ================= DOWNLOAD FROM DB =================
+
     @GetMapping("/download/{certificateId}")
     public ResponseEntity<byte[]> downloadCertificate(
             @PathVariable String certificateId) {
@@ -72,17 +81,37 @@ public class CertificateController {
                 .findByCertificateId(certificateId)
                 .orElseThrow(() -> new RuntimeException("Certificate not found"));
 
-        byte[] pdf = certificateService.generateCertificate(
-                cert.getStudentId(),
-                cert.getExamCode(),
-                cert.getExamTitle(),
-                cert.getScore()
-        );
+        if (cert.isRevoked()) {
+            throw new RuntimeException("Certificate revoked");
+        }
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=" + certificateId + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF)
-                .body(pdf);
+                .body(cert.getPdfData());
+    }
+
+    // ================= ADMIN REVOKE =================
+
+    @PostMapping("/revoke/{certificateId}")
+    public ResponseEntity<String> revokeCertificate(
+            @PathVariable String certificateId) {
+
+        Certificate cert = certificateRepository
+                .findByCertificateId(certificateId)
+                .orElseThrow(() -> new RuntimeException("Certificate not found"));
+
+        cert.setRevoked(true);
+        certificateRepository.save(cert);
+
+        return ResponseEntity.ok("Certificate revoked successfully");
+    }
+
+    // ================= ADMIN ALL CERTIFICATES =================
+
+    @GetMapping("/all")
+    public ResponseEntity<List<Certificate>> getAllCertificates() {
+        return ResponseEntity.ok(certificateRepository.findAll());
     }
 }

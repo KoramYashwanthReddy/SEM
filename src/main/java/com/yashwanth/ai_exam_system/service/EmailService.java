@@ -1,22 +1,29 @@
 package com.yashwanth.ai_exam_system.service;
 
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class EmailService {
 
     private final JavaMailSender mailSender;
 
+    @Value("${spring.mail.username}")
+    private String fromEmail;
+
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
-    // PRODUCTION METHOD
+    /**
+     * Async Certificate Email
+     */
+    @Async
     public void sendCertificateEmail(
             String toEmail,
             String studentName,
@@ -25,15 +32,16 @@ public class EmailService {
     ) {
 
         try {
+
             MimeMessage message = mailSender.createMimeMessage();
 
             MimeMessageHelper helper =
                     new MimeMessageHelper(message, true);
 
+            helper.setFrom(fromEmail);
             helper.setTo(toEmail);
             helper.setSubject("🎓 Certificate Issued - " + certificateId);
 
-            // HTML EMAIL TEMPLATE
             String emailContent =
                     "<div style='font-family:Arial,sans-serif;padding:20px'>" +
                     "<h2>Congratulations " + studentName + " 🎉</h2>" +
@@ -54,7 +62,8 @@ public class EmailService {
             mailSender.send(message);
 
         } catch (Exception e) {
-            throw new RuntimeException("Certificate email sending failed", e);
+            // DO NOT throw — avoid breaking certificate generation
+            System.out.println("Email sending failed: " + e.getMessage());
         }
     }
 }
