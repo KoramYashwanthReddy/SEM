@@ -29,7 +29,8 @@ public class StudentProfile {
     @Column(nullable = false)
     private String fullName;
 
-    private String email; // REQUIRED FOR AUTO EMAIL CERTIFICATE
+    @Column(length = 255)
+    private String email; // REQUIRED for auto certificate email
 
     private String phone;
     private String gender;
@@ -57,152 +58,83 @@ public class StudentProfile {
 
     public StudentProfile() {}
 
+    // ================= LIFECYCLE METHODS =================
+
     @PrePersist
     public void prePersist(){
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+        checkProfileCompletion();
     }
 
     @PreUpdate
     public void preUpdate(){
         this.updatedAt = LocalDateTime.now();
+        checkProfileCompletion();
     }
 
-    // GETTERS & SETTERS
+    // ================= AUTO PROFILE COMPLETION =================
 
-    public Long getId() {
-        return id;
+    private void checkProfileCompletion() {
+
+        this.profileCompleted =
+                fullName != null && !fullName.isBlank() &&
+                email != null && !email.isBlank() &&
+                collegeName != null && !collegeName.isBlank() &&
+                department != null && !department.isBlank() &&
+                rollNumber != null && !rollNumber.isBlank();
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    // ================= GETTERS & SETTERS =================
 
-    public Long getUserId() {
-        return userId;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 
-    public String getFullName() {
-        return fullName;
-    }
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
 
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public String getEmail() {
-        return email;
-    }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
 
-    public String getPhone() {
-        return phone;
-    }
+    public LocalDate getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
 
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
+    public String getCollegeName() { return collegeName; }
+    public void setCollegeName(String collegeName) { this.collegeName = collegeName; }
 
-    public String getGender() {
-        return gender;
-    }
+    public String getDepartment() { return department; }
+    public void setDepartment(String department) { this.department = department; }
 
-    public void setGender(String gender) {
-        this.gender = gender;
-    }
+    public String getYear() { return year; }
+    public void setYear(String year) { this.year = year; }
 
-    public LocalDate getDateOfBirth() {
-        return dateOfBirth;
-    }
+    public String getRollNumber() { return rollNumber; }
+    public void setRollNumber(String rollNumber) { this.rollNumber = rollNumber; }
 
-    public void setDateOfBirth(LocalDate dateOfBirth) {
-        this.dateOfBirth = dateOfBirth;
-    }
+    public String getSection() { return section; }
+    public void setSection(String section) { this.section = section; }
 
-    public String getCollegeName() {
-        return collegeName;
-    }
+    public String getProfilePhoto() { return profilePhoto; }
+    public void setProfilePhoto(String profilePhoto) { this.profilePhoto = profilePhoto; }
 
-    public void setCollegeName(String collegeName) {
-        this.collegeName = collegeName;
-    }
+    public boolean isProfileCompleted() { return profileCompleted; }
+    public void setProfileCompleted(boolean profileCompleted) { this.profileCompleted = profileCompleted; }
 
-    public String getDepartment() {
-        return department;
-    }
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
 
-    public void setDepartment(String department) {
-        this.department = department;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public String getYear() {
-        return year;
-    }
-
-    public void setYear(String year) {
-        this.year = year;
-    }
-
-    public String getRollNumber() {
-        return rollNumber;
-    }
-
-    public void setRollNumber(String rollNumber) {
-        this.rollNumber = rollNumber;
-    }
-
-    public String getSection() {
-        return section;
-    }
-
-    public void setSection(String section) {
-        this.section = section;
-    }
-
-    public String getProfilePhoto() {
-        return profilePhoto;
-    }
-
-    public void setProfilePhoto(String profilePhoto) {
-        this.profilePhoto = profilePhoto;
-    }
-
-    public boolean isProfileCompleted() {
-        return profileCompleted;
-    }
-
-    public void setProfileCompleted(boolean profileCompleted) {
-        this.profileCompleted = profileCompleted;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

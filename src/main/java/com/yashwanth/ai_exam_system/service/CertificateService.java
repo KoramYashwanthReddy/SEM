@@ -11,6 +11,7 @@ import com.yashwanth.ai_exam_system.repository.CertificateRepository;
 import com.yashwanth.ai_exam_system.repository.StudentProfileRepository;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.awt.*;
 import java.io.ByteArrayOutputStream;
@@ -39,6 +40,7 @@ public class CertificateService {
         this.emailService = emailService;
     }
 
+    @Transactional
     public byte[] generateCertificate(
             Long studentId,
             String examCode,
@@ -46,15 +48,22 @@ public class CertificateService {
             double score
     ) {
 
-        // AUTO FILL PROFILE
+        // 🔒 PROFILE VALIDATION
         StudentProfile profile = studentProfileRepository
                 .findByUserId(studentId)
                 .orElseThrow(() -> new RuntimeException("Student profile not found"));
 
-        String grade = calculateGrade(score);
+        if (!profile.isProfileCompleted()) {
+            throw new RuntimeException("Complete profile before generating certificate");
+        }
 
-        String certificateId =
-                "CERT-" + UUID.randomUUID().toString().substring(0,8).toUpperCase();
+        // 🚫 PREVENT DUPLICATE CERTIFICATE
+        certificateRepository.findByStudentIdAndExamCode(studentId, examCode)
+                .ifPresent(c -> {
+                    throw new RuntimeException("Certificate already generated for this exam");
+                });
+
+        String certificateId = generateCertificateId();
 
         String verifyUrl =
                 "http://localhost:8080/api/certificate/verify/" + certificateId;
@@ -63,7 +72,7 @@ public class CertificateService {
 
         Certificate cert = new Certificate();
 
-        // Student snapshot
+        // STUDENT SNAPSHOT
         cert.setCertificateId(certificateId);
         cert.setStudentId(studentId);
         cert.setStudentName(profile.getFullName());
@@ -73,30 +82,41 @@ public class CertificateService {
         cert.setSection(profile.getSection());
         cert.setProfilePhoto(profile.getProfilePhoto());
 
-        // Exam info
+        // EXAM INFO
         cert.setExamCode(examCode);
         cert.setExamTitle(examTitle);
         cert.setScore(score);
-        cert.setGrade(grade);
+        cert.setGrade(calculateGrade(score));
 
-        // Metadata
+        // METADATA
         cert.setQrCodeData(verifyUrl);
         cert.setIssuedAt(LocalDateTime.now());
 
         certificateRepository.save(cert);
 
-        // Generate PDF
+        // PDF GENERATION
         byte[] pdf = generatePremiumPdf(cert, qrImage);
 
-        // AUTO EMAIL CERTIFICATE
-        emailService.sendCertificateEmail(
-                profile.getEmail(),
-                profile.getFullName(),
-                certificateId,
-                pdf
-        );
+        // 📧 EMAIL (FAIL-SAFE)
+        try {
+            emailService.sendCertificateEmail(
+                    profile.getEmail(),
+                    profile.getFullName(),
+                    certificateId,
+                    pdf
+            );
+        } catch (Exception e) {
+            // log but don't fail main flow
+            System.out.println("Email failed: " + e.getMessage());
+        }
 
         return pdf;
+    }
+
+    private String generateCertificateId() {
+        return "CERT-" + UUID.randomUUID().toString()
+                .substring(0, 8)
+                .toUpperCase();
     }
 
     private String calculateGrade(double score) {
@@ -139,7 +159,6 @@ public class CertificateService {
                 canvas.setGState(gs);
                 canvas.addImage(watermark);
                 canvas.restoreState();
-
             } catch (Exception ignored) {}
 
             addCenteredImage(document, "static/logo.png", 80, 80);
@@ -191,13 +210,12 @@ public class CertificateService {
             return out.toByteArray();
 
         } catch (Exception e) {
-            throw new RuntimeException("Premium PDF generation failed", e);
+            throw new RuntimeException("PDF generation failed", e);
         }
     }
 
     private void addCenteredText(Document doc, String text, Font font)
             throws DocumentException {
-
         Paragraph p = new Paragraph(text, font);
         p.setAlignment(Element.ALIGN_CENTER);
         doc.add(p);
