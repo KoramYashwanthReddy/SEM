@@ -1,11 +1,14 @@
 package com.yashwanth.ai_exam_system.service;
 
+import com.yashwanth.ai_exam_system.dto.ForgotPasswordRequest;
+import com.yashwanth.ai_exam_system.dto.ResetPasswordRequest;
 import com.yashwanth.ai_exam_system.entity.PasswordResetToken;
 import com.yashwanth.ai_exam_system.entity.User;
 import com.yashwanth.ai_exam_system.repository.PasswordResetTokenRepository;
 import com.yashwanth.ai_exam_system.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +22,9 @@ public class ForgotPasswordService {
             LoggerFactory.getLogger(ForgotPasswordService.class);
 
     private static final int TOKEN_EXPIRY_MINUTES = 15;
+
+    @Value("${app.frontend.reset-url:http://localhost:3000/reset-password}")
+    private String resetBaseUrl;
 
     private final PasswordResetTokenRepository tokenRepository;
     private final UserRepository userRepository;
@@ -37,13 +43,25 @@ public class ForgotPasswordService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public void sendResetLink(String email) {
+    /*
+     * ================================
+     * SEND RESET LINK
+     * ================================
+     */
+    public void sendResetLink(ForgotPasswordRequest request) {
+
+        String email = request.getEmail();
 
         log.info("Password reset requested for {}", email);
+
+        if (email == null || email.isBlank()) {
+            throw new RuntimeException("Email is required");
+        }
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Remove old token
         tokenRepository.findByEmail(email)
                 .ifPresent(tokenRepository::delete);
 
@@ -58,15 +76,26 @@ public class ForgotPasswordService {
 
         tokenRepository.save(resetToken);
 
-        String resetLink =
-                "http://localhost:3000/reset-password?token=" + token;
+        String resetLink = resetBaseUrl + "?token=" + token;
 
         emailService.sendPasswordResetEmail(email, resetLink);
 
         log.info("Reset link sent to {}", email);
     }
 
-    public void resetPassword(String token, String newPassword) {
+    /*
+     * ================================
+     * RESET PASSWORD
+     * ================================
+     */
+    public void resetPassword(ResetPasswordRequest request) {
+
+        String token = request.getToken();
+        String newPassword = request.getNewPassword();
+
+        if (token == null || token.isBlank()) {
+            throw new RuntimeException("Token is required");
+        }
 
         if (newPassword == null || newPassword.length() < 6) {
             throw new RuntimeException("Password must be at least 6 characters");

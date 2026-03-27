@@ -1,11 +1,15 @@
 package com.yashwanth.ai_exam_system.controller;
 
+import com.yashwanth.ai_exam_system.dto.ForgotPasswordRequest;
+import com.yashwanth.ai_exam_system.dto.ResetPasswordRequest;
 import com.yashwanth.ai_exam_system.service.ForgotPasswordService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -29,18 +33,19 @@ public class ForgotPasswordController {
      * ================================
      */
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestParam String email) {
+    public ResponseEntity<Map<String, Object>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request
+    ) {
 
-        log.info("Forgot password request for {}", email);
+        log.info("Forgot password request for {}", request.getEmail());
 
-        forgotPasswordService.sendResetLink(email);
+        forgotPasswordService.sendResetLink(request);
 
-        return ResponseEntity.ok(
-                Map.of(
-                        "success", true,
-                        "message", "Reset link sent to email"
-                )
-        );
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Reset link sent to email");
+
+        return ResponseEntity.ok(response);
     }
 
     /*
@@ -49,18 +54,18 @@ public class ForgotPasswordController {
      * ================================
      */
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(
-            @RequestParam String token,
-            @RequestParam String newPassword
+    public ResponseEntity<Map<String, Object>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request
     ) {
 
-        forgotPasswordService.resetPassword(token, newPassword);
+        log.info("Reset password attempt with token");
 
-        return ResponseEntity.ok(
-                Map.of(
-                        "success", true,
-                        "message", "Password updated successfully"
-                )
-        );
+        forgotPasswordService.resetPassword(request);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Password updated successfully");
+
+        return ResponseEntity.ok(response);
     }
 }
