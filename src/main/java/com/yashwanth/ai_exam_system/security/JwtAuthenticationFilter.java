@@ -36,6 +36,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
+        String path = request.getServletPath();
+
+        // ✅ Skip frontend static resources
+        if (path.startsWith("/assets") ||
+            path.startsWith("/pages") ||
+            path.equals("/") ||
+            path.endsWith(".html") ||
+            path.endsWith(".css") ||
+            path.endsWith(".js") ||
+            path.endsWith(".png") ||
+            path.endsWith(".jpg") ||
+            path.endsWith(".jpeg") ||
+            path.endsWith(".svg") ||
+            path.endsWith(".ico")) {
+
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         final String authHeader = request.getHeader("Authorization");
 
         // No Authorization header
@@ -50,11 +69,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             String email = jwtService.extractEmail(token);
 
-            // Skip if already authenticated
             if (email != null &&
                 SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                // ❗ Ignore refresh tokens in authentication filter
+                // Ignore refresh tokens
                 if ("REFRESH".equals(jwtService.extractTokenType(token))) {
                     filterChain.doFilter(request, response);
                     return;
@@ -63,7 +81,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UserDetails userDetails =
                         userDetailsService.loadUserByUsername(email);
 
-                // Validate token
                 if (jwtService.isTokenValid(token, userDetails.getUsername())) {
 
                     UsernamePasswordAuthenticationToken authToken =
@@ -82,7 +99,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
         } catch (Exception ex) {
-            // Invalid token — clear context (security best practice)
             SecurityContextHolder.clearContext();
         }
 
