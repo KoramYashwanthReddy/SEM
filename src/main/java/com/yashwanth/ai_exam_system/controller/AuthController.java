@@ -52,10 +52,10 @@ public class AuthController {
     }
 
     // =========================================================
-    // 🔐 LOGIN
+    // 🔐 LOGIN (UPDATED FOR FRONTEND)
     // =========================================================
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(
+    public ResponseEntity<?> login(
             @Valid @RequestBody LoginRequest request) {
 
         try {
@@ -64,13 +64,20 @@ public class AuthController {
 
             AuthResponse response = authService.login(request);
 
-            return success("Login successful", response);
+            // Return direct response for frontend compatibility
+            return ResponseEntity.ok(response);
 
         } catch (Exception ex) {
 
             logger.error("Login failed for {}", request.getEmail(), ex);
 
-            return error("Login failed: " + ex.getMessage());
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", "ERROR");
+            error.put("message", "Login failed: " + ex.getMessage());
+
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(error);
         }
     }
 
