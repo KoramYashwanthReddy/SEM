@@ -1,0 +1,151 @@
+/* ============================================================
+   TEACHER LOGIN — Professional Terminal Styles
+   ============================================================ */
+
+:root {
+  --role-accent: var(--accent-purple);
+  --role-glow: var(--glow-purple);
+  --role-gradient: linear-gradient(135deg, var(--accent-purple), #d946ef);
+}
+
+[data-theme="light"] {
+  --role-accent: #7c3aed;
+  --role-glow: rgba(124, 58, 237, 0.2);
+}
+
+.pulse-dot { background: var(--role-accent); }
+.brand-icon { background: var(--role-accent) !important; }
+.form-grid { grid-template-columns: 1fr; }
+
+/* Rectangle Aspect Ratio Fix */
+.card {
+  max-width: 1100px;
+  width: 92vw;
+  border-radius: 32px;
+  overflow: hidden;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+  animation: none !important;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s ease;
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 50px 140px rgba(0,0,0,0.6), 0 0 30px rgba(139, 92, 246, 0.1);
+}
+
+.card-columns {
+  display: flex;
+  width: 100%;
+}
+
+.card-left {
+  background: linear-gradient(160deg, rgba(139, 92, 246, 0.08) 0%, rgba(0,0,0,0) 80%);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-left::after {
+  content: '';
+  position: absolute;
+  top: -10%; right: -10%;
+  width: 200px; height: 200px;
+  background: var(--role-accent);
+  filter: blur(80px);
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.role-indicator {
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--role-accent);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  margin-bottom: 32px;
+}
+
+/* Step Indicator */
+.step-chip-terminal {
+  display: inline-block;
+  padding: 6px 16px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  color: var(--role-accent);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+}
+
+.branding h1 {
+  background: linear-gradient(135deg, var(--text-primary) 20%, var(--role-accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-family: var(--font-display);
+  font-size: 3.2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.benefit-icon-terminal {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  color: var(--role-accent);
+  transition: transform 0.3s ease;
+}
+
+.benefits li:hover .benefit-icon-terminal {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.field input:focus {
+  border-color: var(--role-accent) !important;
+  box-shadow: 0 0 20px var(--role-glow) !important;
+}
+
+.card-right {
+  padding: 60px 48px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: background 0.4s ease;
+}
+
+.card:hover .card-right {
+  background: rgba(139, 92, 246, 0.02);
+}
+
+.btn-primary {
+  background: var(--role-gradient);
+  box-shadow: 0 8px 30px var(--role-glow);
+  width: 100%;
+  height: 60px;
+  font-size: 1.1rem;
+  border-radius: 16px;
+  margin-top: 10px;
+}
+
+.login-link a {
+  color: var(--role-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+[data-theme="light"] .card-left {
+  background: linear-gradient(225deg, rgba(139, 92, 246, 0.04), transparent);
+}
+
+.bg-orb-terminal {
+  background: radial-gradient(circle, var(--role-accent), transparent);
+  opacity: 0.12;
+}

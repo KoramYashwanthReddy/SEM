@@ -1,0 +1,93 @@
+/**
+ * Responsive Styles for Login Page
+ */
+
+@media (max-width: 640px) {
+  .page {
+    grid-template-rows: auto 1fr;
+  }
+  
+  .topbar {
+    padding: 16px 20px;
+  }
+  
+  .center {
+    padding: 20px 15px;
+  }
+  
+  .card {
+    padding: 32px 24px;
+    border-radius: var(--radius-lg);
+  }
+  
+  .card-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .badges {
+    grid-template-columns: 1fr;
+    margin-top: 40px;
+    width: 100%;
+    padding: 0 10px;
+  }
+  
+  .badge-item {
+    justify-content: center;
+  }
+  
+  .bg-text-track {
+    font-size: 15vw;
+    animation-duration: 40s;
+  }
+
+  /* Hide Orbs on mobile to save performance */
+  .bg-orb {
+    width: 80vw;
+    height: 80vw;
+    filter: blur(80px);
+  }
+}
+
+@media (max-width: 480px) {
+  .theme-select-container {
+    padding: 2px;
+  }
+  
+  .theme-btn {
+    padding: 4px 10px;
+    font-size: 0.7rem;
+  }
+  
+  .card-header p {
+    font-size: 0.85rem;
+  }
+  
+  .btn {
+    font-size: 0.9rem;
+    padding: 14px;
+  }
+  
+  .logo span {
+    display: none;
+  }
+  
+  .logo svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* Landscape Mobile Fix */
+@media (max-height: 600px) and (orientation: landscape) {
+  .center {
+    padding: 10vh 20px;
+  }
+  
+  .badges {
+    display: none;
+  }
+  
+  .card {
+    padding: 24px 40px;
+  }
+}

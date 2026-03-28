@@ -1,0 +1,242 @@
+/* ============================================================
+   ADMIN GATEWAY — Master Security Terminal Styles
+   ============================================================ */
+
+:root {
+  --role-accent: #00f2ff;
+  --role-glow: rgba(0, 242, 255, 0.35);
+  --role-gradient: linear-gradient(135deg, #00f2ff 0%, #006ae5 100%);
+  --admin-panel-bg: rgba(0, 242, 255, 0.04);
+  --grid-line: rgba(0, 242, 255, 0.08);
+}
+
+[data-theme="light"] {
+  --role-accent: #0284c7;
+  --role-glow: rgba(2, 132, 199, 0.2);
+  --admin-panel-bg: rgba(2, 132, 199, 0.03);
+  --grid-line: rgba(2, 132, 199, 0.06);
+}
+
+/* Base Card Symmetry */
+.card {
+  max-width: 1100px;
+  width: 92vw;
+  border-radius: 32px;
+  overflow: hidden;
+  box-shadow: 0 40px 120px rgba(0,0,0,0.6);
+  border: 1px solid rgba(0, 242, 255, 0.15);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s ease;
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 50px 140px rgba(0,0,0,0.7), 0 0 30px rgba(0, 242, 255, 0.1);
+}
+
+@keyframes adminEntrance {
+  from { opacity: 0; transform: scale(0.95) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.card-columns {
+  display: flex;
+  width: 100%;
+}
+
+/* Security Panel Branding */
+.card-left {
+  background: linear-gradient(160deg, rgba(0, 242, 255, 0.08) 0%, rgba(0,0,0,0) 80%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Scanning Grid Animation */
+.card-left::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(circle at 20% 30%, black, transparent 80%);
+  -webkit-mask-image: radial-gradient(circle at 20% 30%, black, transparent 80%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Moving Scanning Line */
+.card-left::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--role-accent), transparent);
+  box-shadow: 0 0 20px var(--role-accent);
+  opacity: 0.4;
+  animation: scanLine 4s infinite linear;
+  pointer-events: none;
+}
+
+@keyframes scanLine {
+  0% { transform: translateY(-100px); opacity: 0; }
+  20% { opacity: 0.4; }
+  80% { opacity: 0.4; }
+  100% { transform: translateY(800px); opacity: 0; }
+}
+
+.role-indicator {
+  background: var(--admin-panel-bg);
+  color: var(--role-accent);
+  border: 1px solid rgba(0, 242, 255, 0.2);
+  margin-bottom: 32px;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+}
+
+.step-chip-admin {
+  display: inline-block;
+  padding: 6px 16px;
+  background: var(--admin-panel-bg);
+  border: 1px solid rgba(0, 242, 255, 0.2);
+  color: var(--role-accent);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+}
+
+.branding h1 {
+  background: linear-gradient(135deg, var(--text-primary) 30%, var(--role-accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-family: var(--font-display);
+  font-size: 3.2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.benefit-icon-admin {
+  background: var(--admin-panel-bg);
+  border: 1px solid rgba(0, 242, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  color: var(--role-accent);
+  transition: all 0.3s ease;
+}
+
+.benefits li:hover .benefit-icon-admin {
+  transform: translateY(-5px) scale(1.1);
+  box-shadow: 0 5px 15px var(--role-glow);
+}
+
+.field input:focus {
+  border-color: var(--role-accent) !important;
+  box-shadow: 0 0 20px var(--role-glow) !important;
+}
+
+.card-right {
+  padding: 60px 48px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: rgba(0,0,0,0.05);
+  transition: background 0.4s ease;
+}
+
+.card:hover .card-right {
+  background: rgba(0, 242, 255, 0.02);
+}
+
+.btn-primary {
+  background: var(--role-gradient);
+  box-shadow: 0 8px 30px var(--role-glow);
+  width: 100%;
+  height: 60px;
+  font-size: 1.1rem;
+  border-radius: 16px;
+  margin-top: 10px;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px var(--role-glow);
+}
+
+.status-pulse-admin {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--role-accent);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--role-accent);
+  animation: adminPulse 1.5s infinite;
+}
+
+@keyframes adminPulse { 
+  0%, 100% { opacity: 0.4; transform: scale(0.8); } 
+  50% { opacity: 1; transform: scale(1.2); } 
+}
+
+.card-header-slim h2 {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.bg-orb-status { 
+  background: radial-gradient(circle, var(--role-accent), transparent); 
+  opacity: 0.12; 
+}
+
+.stardust-admin {
+  background-image: radial-gradient(white, transparent 5%);
+  opacity: 0.05;
+}
+
+.login-link a {
+  color: var(--role-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* ─── THEME OVERRIDES ─── */
+.theme-toggle {
+  display: flex !important;
+  gap: 8px !important;
+  background: var(--bg-secondary) !important;
+  padding: 6px !important;
+  border-radius: 16px !important;
+  border: 1px solid var(--border-subtle) !important;
+  width: fit-content !important;
+}
+
+.theme-btn {
+  width: auto !important;
+  height: 34px !important;
+  padding: 0 16px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  white-space: nowrap !important;
+  transition: 0.3s !important;
+}
+
+.theme-btn.active {
+  background: var(--bg-card) !important;
+  color: var(--accent-blue) !important;
+  box-shadow: var(--shadow-card) !important;
+  opacity: 1 !important;
+}

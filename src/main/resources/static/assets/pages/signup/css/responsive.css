@@ -1,0 +1,25 @@
+@media (max-width: 720px) {
+  .topbar {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .otp-inputs {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .otp-input {
+    height: 48px;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 28px 20px;
+  }
+
+  .otp-inputs {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

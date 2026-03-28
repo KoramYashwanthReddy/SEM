@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEM — Student Registration</title>
+  <meta name="description" content="SEM AI Exam System — secure, proctored, certified." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../assets/core/css/themes.css">
+  <link rel="stylesheet" href="../assets/pages/signup/css/base.css">
+  <link rel="stylesheet" href="../assets/pages/signup/css/layout.css">
+  <link rel="stylesheet" href="../assets/pages/signup/css/components.css">
+  <link rel="stylesheet" href="../assets/pages/signup/css/animations.css">
+  <link rel="stylesheet" href="../assets/pages/signup/css/responsive.css">
+</head>
+<body>
+  <div class="noise-overlay"></div>
+  <div class="page">
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="stardust"></div>
+    <div class="bg-scroll-overlay">
+      <div class="scrolling-track track-1">
+        ENTERPRISE &bull; SECURE &bull; SCALABLE &bull; RELIABLE &bull; FAST &bull; ENTERPRISE &bull; SECURE &bull; SCALABLE &bull; RELIABLE &bull; FAST &bull; ENTERPRISE &bull; SECURE &bull; SCALABLE &bull; RELIABLE &bull; FAST &bull; ENTERPRISE &bull; SECURE &bull; SCALABLE &bull; RELIABLE &bull; FAST &bull; ENTERPRISE &bull; SECURE &bull; SCALABLE &bull; RELIABLE &bull; FAST &bull;
+      </div>
+      <div class="scrolling-track track-2">
+        INNOVATION &bull; WORKFLOW &bull; INTEGRATION &bull; ANALYTICS &bull; CLOUD &bull; INNOVATION &bull; WORKFLOW &bull; INTEGRATION &bull; ANALYTICS &bull; CLOUD &bull; INNOVATION &bull; WORKFLOW &bull; INTEGRATION &bull; ANALYTICS &bull; CLOUD &bull; INNOVATION &bull; WORKFLOW &bull; INTEGRATION &bull; ANALYTICS &bull; CLOUD &bull; INNOVATION &bull; WORKFLOW &bull; INTEGRATION &bull; ANALYTICS &bull; CLOUD &bull;
+      </div>
+    </div>
+
+    <header class="topbar">
+      <a href="../index.html" class="brand" style="text-decoration:none;">
+        <span class="brand-icon">SEM</span>
+        <span class="brand-text">AI Exam System</span>
+      </a>
+      <div class="theme-toggle" role="group" aria-label="Theme selector">
+        <button class="theme-btn" data-theme="dark" aria-label="Dark mode">Dark</button>
+        <button class="theme-btn" data-theme="system" aria-label="System mode">System</button>
+        <button class="theme-btn" data-theme="light" aria-label="Light mode">Light</button>
+      </div>
+    </header>
+
+    <main class="center">
+      <div class="card-float-wrapper">
+        <section class="card glass-card" aria-label="Create account">
+          <div class="card-spotlight"></div>
+          
+          <div class="card-columns">
+            <!-- Left Panel: Benefits & Branding -->
+            <div class="card-left">
+              <div class="card-badge" style="background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2);">
+                <span class="pulse-dot" style="background: #3b82f6;"></span>
+                Student Registration Only
+              </div>
+              <div class="branding">
+                <h1>Join the Future of Examination</h1>
+                <p>Launch secure, AI-proctored exams in minutes with SEM. Your ultimate partner in academic integrity.</p>
+              </div>
+              <ul class="benefits">
+                <li>
+                  <span class="benefit-icon">🛡️</span>
+                  <div>
+                    <strong>AI Proctored</strong>
+                    <p>Real-time head/eye tracking & cheat detection.</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="benefit-icon">📊</span>
+                  <div>
+                    <strong>Analytics</strong>
+                    <p>Deep performance insights & behavioral metrics.</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="benefit-icon">🏆</span>
+                  <div>
+                    <strong>Global Leaderboard</strong>
+                    <p>Compete with the world's best performers.</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Right Panel: Form -->
+            <div class="card-right">
+              <div class="card-header-slim">
+                <h2>Student Sign Up</h2>
+                <p>Register as a student to begin your journey. <br>
+                <small style="opacity: 0.6; font-size: 0.75rem;">(Teacher/Admin accounts are pre-provisioned.)</small></p>
+              </div>
+
+              <form id="signup-form" novalidate>
+                <div class="form-grid">
+                  <div class="field">
+                    <input id="fullName" name="fullName" type="text" required placeholder=" " autocomplete="name" />
+                    <label for="fullName">Full Name</label>
+                    <div class="field-msg" data-for="fullName"></div>
+                  </div>
+
+                  <div class="field">
+                    <input id="email" name="email" type="email" required placeholder=" " autocomplete="email" />
+                    <label for="email">Email</label>
+                    <div class="field-msg" data-for="email"></div>
+                  </div>
+
+                  <div class="field field-password">
+                    <input id="password" name="password" type="password" required placeholder=" " autocomplete="new-password" />
+                    <label for="password">Password</label>
+                    <button type="button" class="toggle-visibility" data-target="password" aria-label="Toggle password visibility">Show</button>
+                    <div class="strength">
+                      <div class="strength-bar" id="strength-bar"></div>
+                    </div>
+                    <div class="field-msg" data-for="password"></div>
+                  </div>
+
+                  <div class="field field-password">
+                    <input id="confirmPassword" name="confirmPassword" type="password" required placeholder=" " autocomplete="new-password" />
+                    <label for="confirmPassword">Confirm Password</label>
+                    <button type="button" class="toggle-visibility" data-target="confirmPassword" aria-label="Toggle confirm password visibility">Show</button>
+                    <div class="field-msg" data-for="confirmPassword"></div>
+                  </div>
+                </div>
+
+                <div class="terms">
+                  <label class="checkbox">
+                    <input type="checkbox" id="terms" />
+                    <span class="checkmark"></span>
+                    <span>I agree to the <a href="#">Terms</a>.</span>
+                  </label>
+                  <div class="field-msg" data-for="terms"></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg" id="submit-btn" data-state="default">
+                  <span class="btn-text">Create Account</span>
+                  <span class="btn-loader" aria-hidden="true"></span>
+                  <span class="btn-success" aria-hidden="true">✓</span>
+                </button>
+
+                <div class="form-footer">
+                  <div class="login-link">Already have an account? <a href="role-selection.html">Login</a></div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="confirm-overlay" id="confirm-overlay" aria-hidden="true">
+    <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <button class="otp-close" id="confirm-close" aria-label="Close">×</button>
+      <div class="confirm-icon">🔒</div>
+      <h3 id="confirm-title">Confirm your details</h3>
+      <p class="confirm-sub">Please double-check your details and remember your passcode.</p>
+      <div class="confirm-list">
+        <div class="confirm-row"><span>Full Name</span><strong id="confirm-name">—</strong></div>
+        <div class="confirm-row"><span>Email</span><strong id="confirm-email">—</strong></div>
+        <div class="confirm-row confirm-pass">
+          <span>Password</span>
+          <strong id="confirm-password">••••••••</strong>
+          <button type="button" class="toggle-visibility" data-target="confirm-password" data-mode="text">Show</button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary btn-lg" id="confirm-btn">Continue to OTP</button>
+    </div>
+  </div>
+
+  <div class="otp-overlay" id="otp-overlay" aria-hidden="true">
+    <div class="otp-modal" role="dialog" aria-modal="true" aria-labelledby="otp-title">
+      <button class="otp-close" id="otp-close" aria-label="Close">×</button>
+      <div class="otp-icon">✉️</div>
+      <h3 id="otp-title">Check your email</h3>
+      <p class="otp-sub">Verification code sent to <strong id="otp-email">your inbox</strong></p>
+      <a href="#" class="otp-link" id="otp-change">Wrong email?</a>
+
+      <div class="otp-inputs" id="otp-inputs">
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-input" />
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-input" />
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-input" />
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-input" />
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-input" />
+        <input type="text" inputmode="numeric" maxlength="1" class="otp-input" />
+      </div>
+
+      <div class="field-msg" data-for="otp"></div>
+
+      <div class="otp-actions">
+        <button type="button" class="btn btn-primary btn-lg" id="verify-btn">Verify Code</button>
+        <div class="otp-timer">Code expires in <span id="resend-timer">04:58</span></div>
+        <button type="button" class="btn btn-ghost btn-lg" id="resend-btn" disabled>Resend Code</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/core/js/theme.js"></script>
+  <script src="../assets/pages/signup/js/animations.js"></script>
+  <script src="../assets/pages/signup/js/validation.js"></script>
+  <script src="../assets/pages/signup/js/otp.js"></script>
+  <script src="../assets/pages/signup/js/signup.js"></script>
+</body>
+</html>
+

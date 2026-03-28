@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup Profile | AI Exam System</title>
+  
+  <!-- Global Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS Global -->
+  <link rel="stylesheet" href="../assets/core/css/themes.css">
+  <link rel="stylesheet" href="../assets/pages/home/css/main.css">
+  <link rel="stylesheet" href="../assets/pages/home/css/animations.css">
+  <link rel="stylesheet" href="../assets/pages/home/css/components.css">
+  
+  <!-- CSS Page Specific -->
+  <link rel="stylesheet" href="../assets/pages/profile/css/profile.css">
+</head>
+<body class="profile-page">
+
+  <!-- ─── ATMOSPHERE ─── -->
+  <div class="noise-overlay"></div>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="stardust"></div>
+  <div class="hud-glimmer"></div>
+  
+  <div class="bg-glyph glyph-1">PROTO_V3.0_AUTH</div>
+  <div class="bg-glyph glyph-2">SECURE_INIT_84X</div>
+  <div class="bg-glyph glyph-3">AI_MONITOR_ACTIVE</div>
+
+  <!-- ─── NAVIGATION ─── -->
+  <nav class="onboard-nav">
+    <div class="logo-group">
+      <span class="logo-badge">SEM</span>
+      <span class="logo-text">Academic Identity</span>
+    </div>
+    <div class="theme-controls">
+      <button class="theme-btn" data-theme="light">Light</button>
+      <button class="theme-btn" data-theme="system">System</button>
+      <button class="theme-btn" data-theme="dark">Dark</button>
+    </div>
+  </nav>
+
+  <!-- ─── CONSOLE ─── -->
+  <main class="profile-container">
+    
+    <!-- LEFT: SYSTEM BRIEFING -->
+    <aside class="profile-briefing">
+      <div class="briefing-header">
+        <span class="briefing-badge">System Protocol v3.0</span>
+        <h1 class="briefing-title">Identity <span class="text-gradient">Briefing.</span></h1>
+        <p class="briefing-desc">
+          Your credentials will be used for AI proctoring, certificate generation, and performance ranking.
+        </p>
+      </div>
+
+      <div class="step-list">
+        <div class="step-item active" id="badge-1">
+          <div class="step-number">01</div>
+          <div class="step-text">Personal Details</div>
+        </div>
+        <div class="step-item" id="badge-2">
+          <div class="step-number">02</div>
+          <div class="step-text">Institution</div>
+        </div>
+        <div class="step-item" id="badge-3">
+          <div class="step-number">03</div>
+          <div class="step-text">Verification</div>
+        </div>
+      </div>
+
+      <div class="briefing-footer">
+        <div class="status-item"><span class="status-check"></span> AI Monitoring Active</div>
+      </div>
+    </aside>
+
+    <!-- RIGHT: MAIN CONSOLE AREA -->
+    <div class="profile-main">
+      <form id="profile-multi-step-form" novalidate>
+        
+        <input type="hidden" name="userId" id="userId" value="STUDENT_67890">
+
+        <div class="form-step-container">
+          
+          <!-- STAGE 1: PERSONAL -->
+          <section class="step-content active" id="step-1">
+            <h2 class="step-title">Personal Details</h2>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label for="fullName">Full Name <span class="required">*</span></label>
+                <input type="text" id="fullName" name="fullName" placeholder="John Doe" required>
+              </div>
+              <div class="form-group">
+                <label for="email">Email <span class="required">*</span></label>
+                <input type="email" id="email" name="email" placeholder="john@example.com" required>
+              </div>
+              <div class="form-group">
+                <label for="phone">Phone</label>
+                <input type="tel" id="phone" name="phone" placeholder="+1 (234) 567-890">
+              </div>
+              <div class="form-group">
+                <label for="gender">Gender</label>
+                <select id="gender" name="gender">
+                  <option value="" disabled selected>Select</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="dateOfBirth">Date of Birth</label>
+                <input type="date" id="dateOfBirth" name="dateOfBirth">
+              </div>
+            </div>
+          </section>
+
+          <!-- STAGE 2: INSTITUTION -->
+          <section class="step-content" id="step-2">
+            <h2 class="step-title">Institution Profile</h2>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label for="collegeName">College / University <span class="required">*</span></label>
+                <input type="text" id="collegeName" name="collegeName" placeholder="Tech Institute of Science" required>
+              </div>
+              <div class="form-group">
+                <label for="department">Department <span class="required">*</span></label>
+                <input type="text" id="department" name="department" placeholder="Computer Science" required>
+              </div>
+              <div class="form-group">
+                <label for="year">Year of Study</label>
+                <select id="year" name="year">
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="rollNumber">Roll Number <span class="required">*</span></label>
+                <input type="text" id="rollNumber" name="rollNumber" placeholder="ID-2024-001" required>
+              </div>
+              <div class="form-group">
+                <label for="section">Section</label>
+                <input type="text" id="section" name="section" placeholder="e.g. A2">
+              </div>
+            </div>
+          </section>
+
+          <!-- STAGE 3: PHOTO -->
+          <section class="step-content" id="step-3">
+            <h2 class="step-title">Verification Photo</h2>
+            <div class="photo-zone">
+              <div class="photo-preview-circle">
+                <img id="photo-preview" src="../assets/core/images/default-avatar.png" alt="Profile">
+              </div>
+              <div class="photo-info">
+                <input type="file" id="photoInput" name="photoInput" accept="image/*" hidden>
+                <button type="button" class="btn btn-primary" id="trigger-upload">Upload Portrait</button>
+                <p class="briefing-desc" style="margin-top: 16px; font-size: 13px;">Upload a clear facial portrait for AI proctoring identity checks.</p>
+              </div>
+            </div>
+          </section>
+
+        </div>
+
+        <!-- FOOTER: STAGE-SPECIFIC ACTIONS -->
+        <footer class="profile-footer">
+          <div class="action-left">
+            <button type="button" class="btn btn-ghost" id="prev-step" style="visibility: hidden;">Previous</button>
+          </div>
+          
+          <div class="action-group">
+            <button type="button" class="btn btn-ghost" id="clear-step">Clear Stage</button>
+          </div>
+
+          <div class="action-right">
+            <button type="button" class="btn btn-primary" id="next-step">
+              <span>Next Stage</span>
+            </button>
+            <button type="submit" class="btn btn-primary" id="submit-step" style="display: none;">
+              <span>Submit Briefing</span>
+            </button>
+          </div>
+        </footer>
+
+        <!-- CONFIRMATION OVERLAY -->
+        <div class="confirm-overlay" id="confirm-overlay">
+          <div class="confirm-card">
+            <h2 class="step-title">Confirm Credentials</h2>
+            <p class="briefing-desc">Please verify your academic data before finalizing your session initialization.</p>
+            
+            <div class="review-grid" id="review-summary">
+              <!-- Dynamically Populated -->
+            </div>
+
+            <div class="form-actions" id="confirm-actions">
+              <button type="button" class="btn btn-ghost" id="cancel-confirm">Edit Details</button>
+              <button type="button" class="btn btn-primary" id="final-confirm">
+                <span>Finalize & Enter Dashboard</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </form>
+    </div>
+
+  </main>
+
+  <!-- Interaction Logic -->
+  <script src="../assets/core/js/theme.js"></script>
+  <script src="../assets/pages/profile/js/profile.js"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      ThemeController.init();
+    });
+  </script>
+</body>
+</html>

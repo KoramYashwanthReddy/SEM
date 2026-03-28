@@ -1,0 +1,97 @@
+/* ============================================================
+   THEMES.CSS — Full Theme Engine: Dark / Light / System
+   ============================================================ */
+
+:root {
+  --transition-theme: color 0.4s ease, background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #030712;
+  --bg-secondary: #0a0f1e;
+  --bg-tertiary: #0d1424;
+  --bg-card: rgba(10, 15, 30, 0.85);
+  --bg-glass: rgba(15, 23, 42, 0.6);
+  --bg-overlay: rgba(3, 7, 18, 0.8);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #475569;
+  --text-accent: #e2e8f0;
+  --accent-blue: #3b82f6;
+  --accent-cyan: #06b6d4;
+  --accent-purple: #8b5cf6;
+  --accent-violet: #7c3aed;
+  --accent-pink: #ec4899;
+  --accent-green: #10b981;
+  --accent-amber: #f59e0b;
+  --glow-blue: rgba(59, 130, 246, 0.4);
+  --glow-cyan: rgba(6, 182, 212, 0.4);
+  --glow-purple: rgba(139, 92, 246, 0.4);
+  --glow-pink: rgba(236, 72, 153, 0.3);
+  --gradient-hero: linear-gradient(135deg, #030712 0%, #0a0f1e 50%, #0d1424 100%);
+  --bg-gradient: radial-gradient(circle at top, #0b1020 0%, #070b16 40%, #05070f 100%);
+  --gradient-accent: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4);
+  --gradient-card: linear-gradient(135deg, rgba(59,130,246,0.05), rgba(139,92,246,0.05));
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-card: rgba(255, 255, 255, 0.1);
+  --card-bg: rgba(12, 18, 32, 0.82);
+  --card-border: rgba(148, 163, 184, 0.18);
+  --panel-bg: rgba(15, 23, 42, 0.65);
+  --panel-border: rgba(148, 163, 184, 0.22);
+  --input-bg: rgba(10, 16, 28, 0.75);
+  --border-glow: rgba(59, 130, 246, 0.3);
+  --nav-bg: rgba(3, 7, 18, 0.88);
+  --nav-border: rgba(255, 255, 255, 0.06);
+  --shadow-card: 0 25px 50px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.2);
+  --shadow-hover: 0 30px 60px rgba(0, 0, 0, 0.8);
+  --chart-grid: rgba(255,255,255,0.05);
+  --scrollbar-track: #0a0f1e;
+  --scrollbar-thumb: #1e293b;
+  --noise-opacity: 0.03;
+}
+
+[data-theme="light"] {
+  --bg-primary: #fafcff;
+  --bg-secondary: #f0f6ff;
+  --bg-tertiary: #e8f0fe;
+  --bg-card: rgba(255, 255, 255, 0.92);
+  --bg-glass: rgba(240, 246, 255, 0.75);
+  --bg-overlay: rgba(250, 252, 255, 0.88);
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-tertiary: #64748b;
+  --text-accent: #1e293b;
+  --accent-blue: #2563eb;
+  --accent-cyan: #0891b2;
+  --accent-purple: #7c3aed;
+  --accent-violet: #6d28d9;
+  --accent-pink: #db2777;
+  --accent-green: #059669;
+  --accent-amber: #d97706;
+  --glow-blue: rgba(37, 99, 235, 0.2);
+  --glow-cyan: rgba(8, 145, 178, 0.2);
+  --glow-purple: rgba(124, 58, 237, 0.2);
+  --glow-pink: rgba(219, 39, 119, 0.15);
+  --gradient-hero: linear-gradient(135deg, #fafcff 0%, #f0f6ff 50%, #e8f0fe 100%);
+  --bg-gradient: radial-gradient(circle at top, #f8fafc 0%, #eef2ff 40%, #e2e8f0 100%);
+  --gradient-accent: linear-gradient(135deg, #2563eb, #7c3aed, #0891b2);
+  --gradient-card: linear-gradient(135deg, rgba(37,99,235,0.04), rgba(124,58,237,0.04));
+  --border-subtle: rgba(0, 0, 0, 0.1);
+  --border-card: rgba(0, 0, 0, 0.1);
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --card-border: rgba(148, 163, 184, 0.45);
+  --panel-bg: rgba(255, 255, 255, 0.85);
+  --panel-border: rgba(148, 163, 184, 0.45);
+  --input-bg: rgba(248, 250, 252, 0.9);
+  --border-glow: rgba(37, 99, 235, 0.3);
+  --nav-bg: rgba(250, 252, 255, 0.88);
+  --nav-border: rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 25px 50px rgba(0, 0, 0, 0.08);
+  --shadow-glow: 0 0 40px rgba(37, 99, 235, 0.12);
+  --shadow-hover: 0 30px 60px rgba(0, 0, 0, 0.12);
+  --chart-grid: rgba(0,0,0,0.05);
+  --scrollbar-track: #f0f6ff;
+  --scrollbar-thumb: #cbd5e1;
+  --noise-opacity: 0.015;
+}

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEM — Teacher Terminal</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../assets/core/css/themes.css">
+  <link rel="stylesheet" href="../assets/pages/signup/css/base.css">
+  <link rel="stylesheet" href="../assets/pages/signup/css/layout.css">
+  <link rel="stylesheet" href="../assets/pages/signup/css/components.css">
+  <link rel="stylesheet" href="../assets/pages/signup/css/animations.css">
+  <link rel="stylesheet" href="../assets/pages/signup/css/responsive.css">
+  <link rel="stylesheet" href="../assets/pages/teacher/css/login.css">
+</head>
+<body>
+  <div class="noise-overlay"></div>
+  <div class="page">
+    <div class="bg-orb orb-1 bg-orb-terminal"></div>
+    <div class="stardust"></div>
+    
+    <div class="bg-scroll-overlay" style="opacity: 0.08;">
+      <div class="scrolling-track track-1">
+        ANALYTICS • CURRICULUM • EVALUATION • PROCTORING • FEEDBACK • ANALYTICS • CURRICULUM • EVALUATION • PROCTORING • FEEDBACK •
+      </div>
+      <div class="scrolling-track track-2">
+        EXAM BUILDER • QUESTION BANK • INSIGHTS • MONITORING • EXAM BUILDER • QUESTION BANK • INSIGHTS • MONITORING •
+      </div>
+    </div>
+
+    <header class="topbar">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon">SEM</span>
+        <span class="brand-text">Teacher Console</span>
+      </a>
+      <div class="theme-toggle">
+        <button class="theme-btn" data-theme="dark">Dark</button>
+        <button class="theme-btn" data-theme="system">System</button>
+        <button class="theme-btn" data-theme="light">Light</button>
+      </div>
+    </header>
+
+    <main class="center">
+      <div class="card-float-wrapper">
+        <section class="card glass-card" aria-label="Teacher Login">
+          <div class="card-spotlight" style="background: radial-gradient(circle at var(--x) var(--y), var(--role-glow), transparent 70%);"></div>
+          <div class="shimmer-layer"></div>
+          
+          <div class="card-columns">
+            <div class="card-left">
+              <div class="step-chip-terminal">Step 2 of 2</div>
+              <div class="card-badge role-indicator">
+                <span class="pulse-dot"></span>
+                Teacher Console Terminal
+              </div>
+              <div class="branding">
+                <h1>Management Hub</h1>
+                <p>Login to your master educator terminal to build secure, AI-assisted assessments and monitor student performance metrics.</p>
+              </div>
+              <ul class="benefits">
+                <li>
+                  <div class="benefit-icon-terminal">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 20H21M3 20H6M6 20V4C6 3.44772 6.44772 3 7 3H17C17.5523 3 18 3.44772 18 4V20M6 20H18M9 7H15M9 11H15M9 15H12" />
+                    </svg>
+                  </div>
+                  <div><strong>Exam Builder</strong><p>Create dynamic AI-assisted questions.</p></div>
+                </li>
+                <li>
+                  <div class="benefit-icon-terminal">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 3V21H21M18 17L13 12L9 16L6 13" />
+                    </svg>
+                  </div>
+                  <div><strong>Analytics</strong><p>Track class average and performance trends.</p></div>
+                </li>
+              </ul>
+            </div>
+
+            <div class="card-right">
+              <div class="card-header-slim">
+                <h2>Teacher Sign In</h2>
+                <p>Enter your professional credentials to continue.</p>
+              </div>
+
+              <form id="teacher-login-form" novalidate>
+                <div class="form-grid">
+                  <div class="field">
+                    <input id="teacher-id" name="teacher-id" type="text" required placeholder=" " autocomplete="username" />
+                    <label for="teacher-id">Employee ID / Email</label>
+                  </div>
+
+                  <div class="field field-password">
+                    <input id="password" name="password" type="password" required placeholder=" " autocomplete="current-password" />
+                    <label for="password">Console Password</label>
+                    <button type="button" class="toggle-visibility" data-target="password">Show</button>
+                  </div>
+                </div>
+
+                <div class="form-options">
+                  <label class="checkbox">
+                    <input type="checkbox" id="remember-teacher" />
+                    <span>Persistent Session</span>
+                  </label>
+                  <a href="#" class="forgot-link">Forgot key?</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
+                  <span class="btn-text">Initialize Terminal</span>
+                </button>
+
+                <div class="form-footer">
+                  <div class="login-link">Not a teacher? <a href="role-selection.html">Change Role</a></div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="../assets/core/js/theme.js"></script>
+  <script src="../assets/pages/teacher/js/login.js"></script>
+</body>
+</html>

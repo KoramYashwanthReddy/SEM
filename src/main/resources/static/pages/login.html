@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEM — Student Login</title>
+  <meta name="description" content="SEM AI Exam System — securely access your terminal." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../assets/core/css/themes.css">
+  <link rel="stylesheet" href="../assets/pages/signup/css/base.css">
+  <link rel="stylesheet" href="../assets/pages/signup/css/layout.css">
+  <link rel="stylesheet" href="../assets/pages/signup/css/components.css">
+  <link rel="stylesheet" href="../assets/pages/signup/css/animations.css">
+  <link rel="stylesheet" href="../assets/pages/signup/css/responsive.css">
+</head>
+<body>
+  <div class="noise-overlay"></div>
+  <div class="page">
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="stardust"></div>
+    <div class="bg-scroll-overlay">
+      <div class="scrolling-track track-1">
+        ENTERPRISE &bull; SECURE &bull; SCALABLE &bull; RELIABLE &bull; FAST &bull; ENTERPRISE &bull; SECURE &bull; SCALABLE &bull; RELIABLE &bull; FAST &bull; ENTERPRISE &bull; SECURE &bull; SCALABLE &bull; RELIABLE &bull; FAST &bull; ENTERPRISE &bull; SECURE &bull; SCALABLE &bull; RELIABLE &bull; FAST &bull; ENTERPRISE &bull; SECURE &bull; SCALABLE &bull; RELIABLE &bull; FAST &bull;
+      </div>
+      <div class="scrolling-track track-2">
+        INNOVATION &bull; WORKFLOW &bull; INTEGRATION &bull; ANALYTICS &bull; CLOUD &bull; INNOVATION &bull; WORKFLOW &bull; INTEGRATION &bull; ANALYTICS &bull; CLOUD &bull; INNOVATION &bull; WORKFLOW &bull; INTEGRATION &bull; ANALYTICS &bull; CLOUD &bull; INNOVATION &bull; WORKFLOW &bull; INTEGRATION &bull; ANALYTICS &bull; CLOUD &bull; INNOVATION &bull; WORKFLOW &bull; INTEGRATION &bull; ANALYTICS &bull; CLOUD &bull;
+      </div>
+    </div>
+
+    <header class="topbar">
+      <a href="../index.html" class="brand" style="text-decoration:none;">
+        <span class="brand-icon">SEM</span>
+        <span class="brand-text">AI Exam System</span>
+      </a>
+      <div class="theme-toggle" role="group" aria-label="Theme selector">
+        <button class="theme-btn" data-theme="dark" aria-label="Dark mode">Dark</button>
+        <button class="theme-btn" data-theme="system" aria-label="System mode">System</button>
+        <button class="theme-btn" data-theme="light" aria-label="Light mode">Light</button>
+      </div>
+    </header>
+
+    <main class="center">
+      <div class="card-float-wrapper">
+        <section class="card glass-card" aria-label="Login">
+          <div class="card-spotlight"></div>
+          
+          <div class="card-columns">
+            <!-- Left Panel: Benefits (Mirrored from Signup) -->
+            <div class="card-left">
+              <div class="card-badge">
+                <span class="pulse-dot"></span>
+                Student Terminal
+              </div>
+              <div class="branding">
+                <h1>Welcome Back</h1>
+                <p>Access your dashboard and manage your AI-powered examinations with precision.</p>
+              </div>
+              <ul class="benefits">
+                <li>
+                  <span class="benefit-icon">🛡️</span>
+                  <div>
+                    <strong>Encrypted Login</strong>
+                    <p>Secured with JWT & rotating session tokens.</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="benefit-icon">📡</span>
+                  <div>
+                    <strong>Real-time Sync</strong>
+                    <p>Instant analytics and proctoring feedback.</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="benefit-icon">🧠</span>
+                  <div>
+                    <strong>AI Assistant</strong>
+                    <p>24/7 automated support and monitoring.</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Right Panel: Login Form -->
+            <div class="card-right">
+              <div class="card-header-slim">
+                <h2>Student Login</h2>
+                <p>Welcome back! Access your assigned examinations.</p>
+              </div>
+
+              <form id="login-form" novalidate>
+                <div class="form-grid" style="grid-template-columns: 1fr;">
+                  <div class="field">
+                    <input id="email" name="email" type="email" required placeholder=" " autocomplete="email" />
+                    <label for="email">Email Address</label>
+                    <div class="field-msg" data-for="email"></div>
+                  </div>
+
+                  <div class="field field-password">
+                    <input id="password" name="password" type="password" required placeholder=" " autocomplete="current-password" />
+                    <label for="password">Password</label>
+                    <button type="button" class="toggle-visibility" data-target="password">Show</button>
+                    <div class="field-msg" data-for="password"></div>
+                  </div>
+                </div>
+
+                <div class="form-options" style="margin: 10px 0 20px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+                  <label class="checkbox" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary);">
+                    <input type="checkbox" id="remember-me" style="width: 14px; height: 14px;" />
+                    <span>Remember me</span>
+                  </label>
+                  <a href="#" style="color: var(--accent-blue); text-decoration: none; font-weight: 500;">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
+                  <span class="btn-text">Sign In</span>
+                  <span class="btn-loader" aria-hidden="true"></span>
+                </button>
+
+                <div class="form-footer">
+                  <div class="login-link">Don't have an account? <a href="signup.html">Create Account</a></div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="../assets/core/js/theme.js"></script>
+  <script src="../assets/pages/login/js/login.js"></script>
+</body>
+</html>

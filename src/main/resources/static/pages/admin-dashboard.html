@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard | SEM AI Exam System</title>
+  
+  <!-- Global Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS Global -->
+  <link rel="stylesheet" href="../assets/core/css/themes.css">
+  <link rel="stylesheet" href="../assets/pages/home/css/animations.css">
+  
+  <!-- CSS Page Specific -->
+  <link rel="stylesheet" href="../assets/pages/admin/css/dashboard.css">
+</head>
+<body class="admin-page">
+
+  <!-- ─── ATMOSPHERE ─── -->
+  <div class="noise-overlay"></div>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
+  <!-- ─── DASHBOARD LAYOUT ─── -->
+  <div class="dashboard-wrapper">
+    
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-group">
+          <span class="logo-badge">SEM</span>
+          <span class="logo-text">Console</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#dashboard" class="nav-item active" data-target="dashboard-section">
+          <span class="nav-icon">📊</span> Dashboard
+        </a>
+        <a href="#exams" class="nav-item" data-target="exams-section">
+          <span class="nav-icon">📝</span> Exams
+        </a>
+        <a href="#questions" class="nav-item" data-target="questions-section">
+          <span class="nav-icon">🧩</span> Questions
+        </a>
+        <a href="#users" class="nav-item" data-target="users-section">
+          <span class="nav-icon">👥</span> Users
+        </a>
+        <a href="#analytics" class="nav-item" data-target="analytics-section">
+          <span class="nav-icon">📈</span> Analytics
+        </a>
+        <a href="#proctoring" class="nav-item" data-target="proctoring-section">
+          <span class="nav-icon">🛡️</span> Proctoring
+        </a>
+        <a href="#certificates" class="nav-item" data-target="certificates-section">
+          <span class="nav-icon">🎓</span> Certificates
+        </a>
+        <a href="#leaderboard" class="nav-item" data-target="leaderboard-section">
+          <span class="nav-icon">🏆</span> Leaderboard
+        </a>
+        <div class="sidebar-divider"></div>
+        <a href="#settings" class="nav-item" data-target="settings-section">
+          <span class="nav-icon">⚙️</span> Settings
+        </a>
+        <a href="admin-login.html" class="nav-item logout">
+          <span class="nav-icon">🚪</span> Logout
+        </a>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="admin-profile-hint">
+          <img src="https://ui-avatars.com/api/?name=Admin+User&background=3b82f6&color=fff" alt="Admin">
+          <div class="profile-info">
+            <span class="p-name">System Admin</span>
+            <span class="p-role">Superuser</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      
+      <!-- TOP NAVIGATION -->
+      <header class="top-nav">
+        <div class="nav-left">
+          <button id="toggle-sidebar" class="icon-btn">☰</button>
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" placeholder="Search exams, users, or results...">
+          </div>
+        </div>
+        
+        <div class="nav-right">
+          <div class="theme-controls">
+            <button class="theme-btn active" data-theme="dark">Dark</button>
+            <button class="theme-btn" data-theme="light">Light</button>
+            <button class="theme-btn" data-theme="system">System</button>
+          </div>
+          
+          <div class="notification-trigger">
+            <span class="icon-btn">🔔</span>
+            <span class="n-count">3</span>
+          </div>
+          
+          <div class="profile-trigger">
+            <img src="https://ui-avatars.com/api/?name=Admin+User&background=3b82f6&color=fff" alt="Profile">
+          </div>
+        </div>
+      </header>
+
+      <!-- SECTIONS CONTAINER -->
+      <div class="content-body">
+        
+        <!-- SECTION: DASHBOARD -->
+        <section id="dashboard-section" class="tab-content active">
+          <div class="section-header">
+            <h1 class="page-title">Dashboard <span class="text-gradient">Overview.</span></h1>
+            <p class="page-desc">Real-time system health and core metrics at a glance.</p>
+          </div>
+
+          <!-- SUMMARY CARDS -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="s-icon">👥</div>
+              <div class="s-info">
+                <span class="s-label">Total Users</span>
+                <span class="s-value">12,482</span>
+              </div>
+              <span class="s-delta up">+12%</span>
+            </div>
+            <div class="stat-card">
+              <div class="s-icon">📝</div>
+              <div class="s-info">
+                <span class="s-label">Total Exams</span>
+                <span class="s-value">148</span>
+              </div>
+              <span class="s-delta">Today</span>
+            </div>
+            <div class="stat-card">
+              <div class="s-icon">🎯</div>
+              <div class="s-info">
+                <span class="s-label">Total Attempts</span>
+                <span class="s-value">42,891</span>
+              </div>
+              <span class="s-delta up">+8%</span>
+            </div>
+            <div class="stat-card">
+              <div class="s-icon">🎓</div>
+              <div class="s-info">
+                <span class="s-label">Certs Issued</span>
+                <span class="s-value">8,124</span>
+              </div>
+              <span class="s-delta up">+15%</span>
+            </div>
+          </div>
+
+          <div class="dashboard-layout">
+            <div class="dashboard-left">
+              <!-- SYSTEM LOGS HUB (Replaces Graph to reduce chart usage) -->
+              <div class="glass-card activity-preview">
+                <div class="card-header">
+                  <h3 class="card-title">Recent System Logs</h3>
+                  <span class="card-hint">Real-time</span>
+                </div>
+                <div class="activity-feed">
+                  <div class="activity-item">
+                    <span class="act-dot green"></span>
+                    <div class="act-info">
+                      <span class="act-text"><strong>Teacher_X</strong> published <strong>Advanced JS</strong></span>
+                      <span class="act-time">2m ago</span>
+                    </div>
+                  </div>
+                  <div class="activity-item">
+                    <span class="act-dot blue"></span>
+                    <div class="act-info">
+                      <span class="act-text"><strong>Student_48</strong> completed <strong>CSS Flexbox</strong></span>
+                      <span class="act-time">5m ago</span>
+                    </div>
+                  </div>
+                  <div class="activity-item">
+                    <span class="act-dot orange"></span>
+                    <div class="act-info">
+                      <span class="act-text"><strong>System</strong> flagged 1 suspicious event</span>
+                      <span class="act-time">12m ago</span>
+                    </div>
+                  </div>
+                  <div class="activity-item">
+                    <button class="btn btn-ghost btn-sm" style="width:100%">Download Event Logs</button>
+                  </div>
+                </div>
+              </div>
+
+               <!-- RECENT EXAMS -->
+               <div class="glass-card table-preview">
+                 <div class="card-header">
+                   <h3 class="card-title">Live Exams</h3>
+                   <button class="btn btn-ghost btn-sm">View All</button>
+                 </div>
+                 <div class="table-wrap">
+                   <table>
+                     <thead>
+                       <tr>
+                         <th>Exam Name</th>
+                         <th>Type</th>
+                         <th>Active</th>
+                         <th>Status</th>
+                       </tr>
+                     </thead>
+                     <tbody>
+                       <tr>
+                         <td>Advanced JavaScript</td>
+                         <td>MCQ</td>
+                         <td>42</td>
+                         <td><span class="status-badge active">Live</span></td>
+                       </tr>
+                       <tr>
+                         <td>Node.js Core Concepts</td>
+                         <td>Coding</td>
+                         <td>18</td>
+                         <td><span class="status-badge active">Live</span></td>
+                       </tr>
+                       <tr>
+                         <td>System Design v2</td>
+                         <td>Descriptive</td>
+                         <td>0</td>
+                         <td><span class="status-badge draft">Draft</span></td>
+                       </tr>
+                     </tbody>
+                   </table>
+                 </div>
+               </div>
+            </div>
+
+            <div class="dashboard-right">
+              <!-- AI MONITORING PANEL -->
+               <div class="glass-card proctor-preview">
+                 <div class="card-header">
+                   <h3 class="card-title">Security Alerts</h3>
+                   <span class="alarm-badge">6 Active</span>
+                 </div>
+                 <div class="alert-list">
+                    <div class="alert-item high">
+                      <div class="a-icon">🚨</div>
+                      <div class="a-info">
+                        <span class="a-title">Gaze Anomaly detected</span>
+                        <span class="a-user">User: STU_9031</span>
+                      </div>
+                    </div>
+                    <div class="alert-item med">
+                      <div class="a-icon">👁️</div>
+                      <div class="a-info">
+                        <span class="a-title">Multiple faces detected</span>
+                        <span class="a-user">User: STU_1422</span>
+                      </div>
+                    </div>
+                    <div class="alert-item alert-cta">
+                       <button class="btn btn-primary" style="width:100%" onclick="switchSection('proctoring-section')">Enter Monitoring Suite</button>
+                    </div>
+                 </div>
+               </div>
+
+               <!-- SYSTEM STATUS -->
+               <div class="glass-card status-mini">
+                  <div class="status-row">
+                    <span>API Server</span>
+                    <span class="dot g">Online</span>
+                  </div>
+                  <div class="status-row">
+                    <span>WebSocket</span>
+                    <span class="dot g">Connected</span>
+                  </div>
+                  <div class="status-row">
+                    <span>Storage</span>
+                    <span class="dot o">84% Used</span>
+                  </div>
+               </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: EXAMS -->
+        <section id="exams-section" class="tab-content">
+          <div class="section-top">
+            <div class="section-header">
+              <h1 class="page-title">Exam <span class="text-gradient">Management.</span></h1>
+            </div>
+            <button class="btn btn-primary">Create New Exam</button>
+          </div>
+          
+          <div class="glass-card">
+            <div class="table-tools">
+              <div class="filter-group">
+                <button class="btn btn-ghost btn-sm active">All</button>
+                <button class="btn btn-ghost btn-sm">Published</button>
+                <button class="btn btn-ghost btn-sm">Drafts</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table id="exams-table">
+                <thead>
+                  <tr>
+                    <th>Exam Title</th>
+                    <th>Created By</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="exams-list"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: QUESTIONS -->
+        <section id="questions-section" class="tab-content">
+           <div class="section-top">
+            <div class="section-header">
+              <h1 class="page-title">Question <span class="text-gradient">Library.</span></h1>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-ghost">Bulk Upload (Excel)</button>
+              <button class="btn btn-primary">Add Question</button>
+            </div>
+          </div>
+          <div class="glass-card">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Question ID</th>
+                    <th>Question Content</th>
+                    <th>Type</th>
+                    <th>Difficulty</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="questions-list"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: USERS -->
+        <section id="users-section" class="tab-content">
+           <div class="section-top">
+            <div class="section-header">
+              <h1 class="page-title">User <span class="text-gradient">Directory.</span></h1>
+            </div>
+            <button class="btn btn-primary">Add New Teacher</button>
+          </div>
+          
+          <div class="tabs-header">
+            <button class="tab-trigger active" data-tab="students-tab">Students</button>
+            <button class="tab-trigger" data-tab="teachers-tab">Teachers</button>
+          </div>
+
+          <div class="glass-card">
+            <div id="students-tab" class="sub-tab-content active">
+               <div class="table-wrap">
+                  <table id="students-table">
+                    <thead>
+                      <tr>
+                        <th>Student Name</th>
+                        <th>Email</th>
+                        <th>Institution</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="students-list"></tbody>
+                  </table>
+               </div>
+            </div>
+            <div id="teachers-tab" class="sub-tab-content">
+               <div class="table-wrap">
+                  <table id="teachers-table">
+                    <thead>
+                      <tr>
+                        <th>Teacher Name</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="teachers-list"></tbody>
+                  </table>
+               </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: ANALYTICS -->
+        <section id="analytics-section" class="tab-content">
+          <div class="section-header">
+            <h1 class="page-title">System <span class="text-gradient">Intelligence.</span></h1>
+          </div>
+          
+          <div class="analytics-grid">
+            <div class="glass-card">
+              <h3 class="card-title">Score Distribution</h3>
+              <div class="chart-container big">
+                <canvas id="scoreDistChart"></canvas>
+              </div>
+            </div>
+            <div class="glass-card">
+              <h3 class="card-title">Performance Overview</h3>
+              <div class="chart-container big">
+                <canvas id="perfPieChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: PROCTORING -->
+        <section id="proctoring-section" class="tab-content">
+          <div class="section-header">
+            <h1 class="page-title">Proctoring <span class="text-gradient">Monitor.</span></h1>
+          </div>
+          
+          <div class="proctoring-layout">
+             <div class="glass-card violations-log">
+               <h3 class="card-title">Recent Suspicious Sessions</h3>
+               <div class="table-wrap">
+                 <table>
+                   <thead>
+                     <tr>
+                       <th>Time</th>
+                       <th>User</th>
+                       <th>Violation Type</th>
+                       <th>Risk Score</th>
+                       <th>Action</th>
+                     </tr>
+                   </thead>
+                   <tbody id="violations-list"></tbody>
+                 </table>
+               </div>
+             </div>
+          </div>
+        </section>
+
+        <!-- SECTION: CERTIFICATES -->
+        <section id="certificates-section" class="tab-content">
+           <div class="section-header">
+            <h1 class="page-title">Issued <span class="text-gradient">Credentials.</span></h1>
+          </div>
+          <div class="glass-card">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Recipient</th>
+                    <th>Exam Name</th>
+                    <th>Issue Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="certs-list"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION: LEADERBOARD -->
+        <section id="leaderboard-section" class="tab-content">
+           <div class="section-header">
+            <h1 class="page-title">Global <span class="text-gradient">Rankings.</span></h1>
+          </div>
+          <div class="leaderboard-container">
+             <div class="podium-area">
+                <div class="podium second-place">
+                  <img src="https://ui-avatars.com/api/?name=Sarah+Lee&background=cbd5e1" alt="2nd">
+                  <span class="p-name">Sarah Lee</span>
+                  <span class="p-score">98.2</span>
+                </div>
+                <div class="podium first-place">
+                  <img src="https://ui-avatars.com/api/?name=John+Doe&background=3b82f6" alt="1st">
+                  <span class="p-name">John Doe</span>
+                  <span class="p-score">99.5</span>
+                </div>
+                <div class="podium third-place">
+                  <img src="https://ui-avatars.com/api/?name=Mike+Ross&background=94a3b8" alt="3rd">
+                  <span class="p-name">Mike Ross</span>
+                  <span class="p-score">97.8</span>
+                </div>
+             </div>
+             <div class="glass-card rank-table-wrap">
+            <table class="rank-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Student</th>
+                  <th>Points</th>
+                  <th>Avg Accuracy</th>
+                </tr>
+              </thead>
+              <tbody id="ranks-list"></tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <script src="../assets/pages/admin/js/dashboard.js"></script>
+</body>
+</html>

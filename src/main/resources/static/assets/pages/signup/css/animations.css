@@ -1,0 +1,27 @@
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 rgba(59,130,246,0.0); }
+  50% { box-shadow: 0 0 30px rgba(59,130,246,0.35); }
+}
+
+.card {
+  animation: fadeUp 0.8s var(--transition-slow) both;
+}
+
+.field input:focus,
+.otp-input:focus {
+  animation: pulseGlow 1.4s ease infinite;
+}

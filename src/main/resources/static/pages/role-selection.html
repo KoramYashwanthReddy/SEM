@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In Selection | SEM - AI Exam System</title>
+  
+  <meta name="description" content="Select your role to access the SEM AI Examination Platform. Secure login for Students, Teachers, and Admins.">
+  <link rel="icon" type="image/png" href="../assets/core/img/logo.png">
+
+  <!-- Core Styles -->
+  <link rel="stylesheet" href="../assets/core/css/themes.css">
+  <link rel="stylesheet" href="../assets/core/css/base.css">
+  
+  <!-- Page Specific Styles -->
+  <link rel="stylesheet" href="../assets/pages/selection/css/layout.css">
+  <link rel="stylesheet" href="../assets/pages/selection/css/responsive.css">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="noise-overlay"></div>
+  
+  <div class="page">
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="stardust"></div>
+    
+    <!-- Background Moving Text -->
+    <div class="bg-text-marquee">
+      <div class="marquee-track">
+        <span>SECURE • AI PROCTORING • ANALYTICS • LEADERBOARD • CERTIFICATES • JWT AUTH • WEBSOCKET • SECURE • AI PROCTORING • ANALYTICS • LEADERBOARD • CERTIFICATES • JWT AUTH • WEBSOCKET •</span>
+        <span>SECURE • AI PROCTORING • ANALYTICS • LEADERBOARD • CERTIFICATES • JWT AUTH • WEBSOCKET • SECURE • AI PROCTORING • ANALYTICS • LEADERBOARD • CERTIFICATES • JWT AUTH • WEBSOCKET •</span>
+      </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <header class="topbar">
+      <a href="../index.html" class="brand">
+        <span class="brand-icon brand-icon-selection">SEM</span>
+        <span class="brand-text">AI Exam System</span>
+      </a>
+      <div class="theme-toggle" role="group" aria-label="Theme selector">
+        <button class="theme-btn" data-theme="dark">Dark</button>
+        <button class="theme-btn" data-theme="system">System</button>
+        <button class="theme-btn" data-theme="light">Light</button>
+      </div>
+    </header>
+
+    <!-- Role Selection Content -->
+    <main class="center">
+      <div class="selection-header">
+        <div class="step-chip">Step 1 of 2</div>
+        <h1>Sign In to Continue</h1>
+        <div class="typing-wrapper">
+          <span class="typing-prefix">Accessing as</span>
+          <span id="typing-text">Student Candidate</span>
+          <span class="typing-cursor"></span>
+        </div>
+      </div>
+
+      <div class="role-grid">
+        <!-- Student Card -->
+        <div class="role-card glass-card" id="card-student">
+          <div class="role-status">
+            <div class="status-dot"></div>
+            <span>Service Live</span>
+          </div>
+          <div class="shimmer-layer"></div>
+          <div class="role-icon-box student-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M22 10L12 5L2 10L12 15L22 10Z" />
+              <path d="M6 12.5V16C6 16 8.5 18 12 18C15.5 18 18 16 18 16V12.5" />
+            </svg>
+          </div>
+          <h3>Student</h3>
+          <div class="typing-sub-box"><span class="typing-sub"></span><span class="typing-cursor-mini"></span></div>
+          <div class="scan-line"></div>
+          <ul class="role-features">
+            <li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17L4 12"/></svg> <span>AI-Proctored Terminal</span></li>
+            <li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17L4 12"/></svg> <span>Instant Result Analytics</span></li>
+            <li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17L4 12"/></svg> <span>Blockchain Certificates</span></li>
+          </ul>
+          <div class="role-stats-mini">
+            <div class="stat-item"><span class="stat-val">2.4M+</span><span class="stat-lbl">Active</span></div>
+            <div class="stat-item"><span class="stat-val">99%</span><span class="stat-lbl">Pass</span></div>
+          </div>
+          <div class="sig-container">
+            <span class="sig-label">Encrypted Session</span>
+            <span class="sig-feed">SIG_LOADING...</span>
+          </div>
+          <button class="btn btn-primary">
+            <span>Enter Terminal</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12H19M19 12L12 5M19 12L12 19" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Teacher Card -->
+        <div class="role-card glass-card" id="card-teacher">
+          <div class="role-status">
+            <div class="status-dot"></div>
+            <span>Console Live</span>
+          </div>
+          <div class="shimmer-layer"></div>
+          <div class="role-icon-box teacher-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M4 19V5C4 3.89543 4.89543 3 6 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H6C4.89543 21 4 20.1046 4 19Z" />
+              <path d="M12 7V13M12 13L9 10M12 13L15 10" />
+            </svg>
+          </div>
+          <h3>Educator</h3>
+          <div class="typing-sub-box"><span class="typing-sub"></span><span class="typing-cursor-mini"></span></div>
+          <div class="scan-line"></div>
+          <ul class="role-features">
+            <li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17L4 12"/></svg> <span>Secure Assessment Builder</span></li>
+            <li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17L4 12"/></svg> <span>Real-time Class Monitoring</span></li>
+            <li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17L4 12"/></svg> <span>AI Plagiarism Detection</span></li>
+          </ul>
+          <div class="role-stats-mini">
+            <div class="stat-item"><span class="stat-val">500+</span><span class="stat-lbl">Institutions</span></div>
+            <div class="stat-item"><span class="stat-val">Zero</span><span class="stat-lbl">Bias</span></div>
+          </div>
+          <div class="sig-container">
+            <span class="sig-label">Auth Gateway</span>
+            <span class="sig-feed">SIG_LOADING...</span>
+          </div>
+          <button class="btn btn-primary btn-teacher">
+            <span>Launch Console</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12H19M19 12L12 5M19 12L12 19" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Admin Card -->
+        <div class="role-card glass-card" id="card-admin">
+          <div class="role-status">
+            <div class="status-dot" style="background:var(--accent-purple)"></div>
+            <span>Secure Tunnel</span>
+          </div>
+          <div class="shimmer-layer"></div>
+          <div class="role-icon-box admin-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" />
+              <path d="M12 8V12M12 16H12.01" />
+            </svg>
+          </div>
+          <h3>Master Admin</h3>
+          <div class="typing-sub-box"><span class="typing-sub"></span><span class="typing-cursor-mini"></span></div>
+          <div class="scan-line"></div>
+          <ul class="role-features">
+            <li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17L4 12"/></svg> <span>Global Platform Control</span></li>
+            <li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17L4 12"/></svg> <span>Institution-wide Analytics</span></li>
+            <li><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17L4 12"/></svg> <span>Advanced Security Audit</span></li>
+          </ul>
+          <div class="role-stats-mini">
+            <div class="stat-item"><span class="stat-val">SSL</span><span class="stat-lbl">AES-256</span></div>
+            <div class="stat-item"><span class="stat-val">Root</span><span class="stat-lbl">Access</span></div>
+          </div>
+          <div class="sig-container">
+            <span class="sig-label">Master Hash</span>
+            <span class="sig-feed">SIG_LOADING...</span>
+          </div>
+          <button class="btn btn-primary btn-admin">
+            <span>Access Gateway</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12H19M19 12L12 5M19 12L12 19" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <section class="performance-hub">
+        <div class="hub-header">
+          <span class="hub-tag">Network Insights</span>
+          <h2>Platform Infrastructure Standards</h2>
+        </div>
+        <div class="hub-grid">
+          <div class="hub-card">
+            <div class="hub-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div class="hub-data">
+              <span class="hub-val">100%</span>
+              <span class="hub-lbl">Integrity Guard</span>
+            </div>
+          </div>
+          <div class="hub-card">
+            <div class="hub-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <div class="hub-data">
+              <span class="hub-val">24ms</span>
+              <span class="hub-lbl">Global Latency</span>
+            </div>
+          </div>
+          <div class="hub-card">
+            <div class="hub-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="hub-data">
+              <span class="hub-val">50K+</span>
+              <span class="hub-lbl">Simultaneous Logs</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="selection-footer">
+        <a href="../index.html" class="back-link">← Back to Home</a>
+        <p class="copyright">&copy; 2026 SEM AI Exam System. All integrity secured.</p>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../assets/core/js/theme.js"></script>
+  <script src="../assets/pages/selection/js/selection.js"></script>
+</body>
+</html>

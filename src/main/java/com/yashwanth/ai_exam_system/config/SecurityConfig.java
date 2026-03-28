@@ -28,7 +28,6 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtFilter;
     private final CustomUserDetailsService userDetailsService;
 
-    // ✅ Manual constructor (production safe)
     public SecurityConfig(
             JwtAuthenticationFilter jwtFilter,
             CustomUserDetailsService userDetailsService) {
@@ -47,7 +46,17 @@ public class SecurityConfig {
 
             .authorizeHttpRequests(auth -> auth
 
-                    // Public endpoints
+                    // ✅ Allow frontend static files
+                    .requestMatchers(
+                            "/",
+                            "/index.html",
+                            "/pages/**",
+                            "/assets/**",
+                            "/*.html",
+                            "/favicon.ico"
+                    ).permitAll()
+
+                    // ✅ Public APIs
                     .requestMatchers("/api/auth/**").permitAll()
 
                     // Admin APIs
@@ -60,7 +69,7 @@ public class SecurityConfig {
                     // Student APIs
                     .requestMatchers("/api/student/**").hasRole("STUDENT")
 
-                    // Everything else secured
+                    // everything else secured
                     .anyRequest().authenticated()
             )
 

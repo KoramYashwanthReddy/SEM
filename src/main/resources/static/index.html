@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEM — Next-Gen AI Examination Platform</title>
+  <meta name="description" content="AI-powered online examination system with real-time proctoring, smart analytics, and instant certification.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="assets/core/css/themes.css">
+  <link rel="stylesheet" href="assets/pages/home/css/main.css">
+  <link rel="stylesheet" href="assets/pages/home/css/animations.css">
+  <link rel="stylesheet" href="assets/pages/home/css/components.css">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ─── SCROLL PROGRESS ─── -->
+<div id="scroll-progress"></div>
+
+<!-- ─── TOAST CONTAINER ─── -->
+<div id="toast-container"></div>
+
+<!-- ════════════════════════════════════════════════════════════
+     NAVBAR
+     ════════════════════════════════════════════════════════════ -->
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <div class="logo-icon">🧠</div>
+      SEM
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#proctoring">Proctoring</a></li>
+      <li><a href="#analytics">Analytics</a></li>
+      <li><a href="#certificate">Certificates</a></li>
+      <li><a href="#admin">Admin</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <div class="theme-toggle" role="group" aria-label="Theme selector">
+        <button class="theme-btn" data-theme="dark" title="Dark mode">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+          </svg>
+        </button>
+        <button class="theme-btn" data-theme="system" title="System mode">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+            <line x1="8" y1="21" x2="16" y2="21" />
+            <line x1="12" y1="17" x2="12" y2="21" />
+          </svg>
+        </button>
+        <button class="theme-btn" data-theme="light" title="Light mode">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+        </button>
+      </div>
+      <a href="pages/role-selection.html" class="btn btn-ghost nav-btn">Sign In</a>
+      <a href="pages/signup.html" class="btn btn-primary nav-btn">Get Started</a>
+    </div>
+
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════════════════════════
+     HERO
+     ════════════════════════════════════════════════════════════ -->
+<section id="hero">
+  <div class="hero-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <canvas id="particle-canvas"></canvas>
+
+  <div class="container">
+    <div class="hero-content">
+
+      <!-- Left -->
+      <div class="hero-left">
+        <div class="hero-badge">
+          <div class="pulse-dot"></div>
+          AI-Powered · v3.0 Now Live
+        </div>
+
+        <h1 class="hero-title">
+          <span style="font-weight:400;opacity:0.8;">Next-Gen</span><br>
+          Examinations,
+          <span class="text-gradient">Reimagined</span>
+        </h1>
+
+        <div class="hero-typing-wrapper">
+          <span style="color:var(--text-secondary)">Built for</span>
+          <span id="typing-text">AI-Powered Proctoring</span>
+          <span class="typing-cursor"></span>
+        </div>
+
+        <p class="hero-desc">
+          The world's most advanced AI examination platform. Real-time cheating detection, 
+          intelligent analytics, instant certification — trusted by 500+ institutions.
+        </p>
+
+        <div class="hero-actions">
+          <a href="pages/signup.html" class="btn btn-primary btn-lg" data-loading-text="Starting trial..." data-open-delay="1200">
+            🚀 Start Free Trial
+          </a>
+          <a href="#features" class="btn btn-ghost btn-lg" data-loading-text="Loading features..." data-open-delay="1200">
+            Explore Features →
+          </a>
+        </div>
+
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <span class="hero-stat-num" data-count="2.4" data-suffix="M+" data-prefix="">2.4M+</span>
+            <span class="hero-stat-label">Exams Conducted</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-num">99.7%</span>
+            <span class="hero-stat-label">Detection Accuracy</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-num">500+</span>
+            <span class="hero-stat-label">Institutions</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ─── MARQUEE DIVIDER ─── -->
+<div id="marquee-divider">
+  <div class="marquee-track track-left">
+    <div class="marquee-content">
+      <span>AI-POWERED PROCTORING</span><span>•</span>
+      <span>SMART ANALYTICS</span><span>•</span>
+      <span>AUTO-GRADING</span><span>•</span>
+      <span>MASTER CERTIFICATION</span><span>•</span>
+      <span>REAL-TIME MONITORING</span><span>•</span>
+      <span>INSTANT RESULTS</span><span>•</span>
+      <span>SECURE ACCESS</span><span>•</span>
+      <span>CLOUD-DRIVEN</span><span>•</span>
+      <!-- Duplicate for seamless loop -->
+      <span>AI-POWERED PROCTORING</span><span>•</span>
+      <span>SMART ANALYTICS</span><span>•</span>
+      <span>AUTO-GRADING</span><span>•</span>
+      <span>MASTER CERTIFICATION</span><span>•</span>
+      <span>REAL-TIME MONITORING</span><span>•</span>
+      <span>INSTANT RESULTS</span><span>•</span>
+      <span>SECURE ACCESS</span><span>•</span>
+      <span>CLOUD-DRIVEN</span><span>•</span>
+    </div>
+  </div>
+  <div class="marquee-track track-right">
+    <div class="marquee-content">
+      <span>INSTITUTIONAL GRADE</span><span>•</span>
+      <span>NEURAL FRAUD DETECTION</span><span>•</span>
+      <span>DYNAMIC EXAM BUILDER</span><span>•</span>
+      <span>INSTANT PDF EXPORT</span><span>•</span>
+      <span>WHITELABEL SOLUTION</span><span>•</span>
+      <span>API INTEGRATION</span><span>•</span>
+      <span>24/7 SUPPORT</span><span>•</span>
+      <span>99.9% UPTIME</span><span>•</span>
+      <!-- Duplicate for seamless loop -->
+      <span>INSTITUTIONAL GRADE</span><span>•</span>
+      <span>NEURAL FRAUD DETECTION</span><span>•</span>
+      <span>DYNAMIC EXAM BUILDER</span><span>•</span>
+      <span>INSTANT PDF EXPORT</span><span>•</span>
+      <span>WHITELABEL SOLUTION</span><span>•</span>
+      <span>API INTEGRATION</span><span>•</span>
+      <span>24/7 SUPPORT</span><span>•</span>
+      <span>99.9% UPTIME</span><span>•</span>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     FEATURES
+     ════════════════════════════════════════════════════════════ -->
+<section id="features">
+  <div class="container">
+    <div class="features-header reveal">
+      <div class="section-label">Capabilities</div>
+      <h2 class="section-title">Everything You Need,<br><span class="text-gradient">Nothing You Don't</span></h2>
+      <p class="section-subtitle">A complete examination ecosystem engineered for scale, security, and intelligence.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal stagger-1">
+        <div class="feature-icon-wrap fi-blue">🤖</div>
+        <div class="feature-title">AI Proctoring</div>
+        <p class="feature-desc">Real-time face detection, gaze tracking, noise analysis, and tab-switch prevention powered by computer vision models.</p>
+        <div class="feature-tag">✦ 99.7% Accuracy</div>
+      </div>
+
+      <div class="feature-card reveal stagger-2">
+        <div class="feature-icon-wrap fi-purple">📡</div>
+        <div class="feature-title">WebSocket Alerts</div>
+        <p class="feature-desc">Instant violation notifications pushed via WebSocket to admins in under 100ms. Zero delay, zero missed incidents.</p>
+        <div class="feature-tag">✦ &lt;100ms Latency</div>
+      </div>
+
+      <div class="feature-card reveal stagger-3">
+        <div class="feature-icon-wrap fi-cyan">📊</div>
+        <div class="feature-title">Smart Analytics</div>
+        <p class="feature-desc">Deep insights into student performance, score distributions, completion rates, and behavioral patterns with predictive AI.</p>
+        <div class="feature-tag">✦ ML-Powered</div>
+      </div>
+
+      <div class="feature-card reveal stagger-4">
+        <div class="feature-icon-wrap fi-green">🧩</div>
+        <div class="feature-title">Multi-Type Exams</div>
+        <p class="feature-desc">MCQ, coding challenges with live execution, descriptive essays with NLP scoring. All in one unified engine.</p>
+        <div class="feature-tag">✦ 3 Question Types</div>
+      </div>
+
+      <div class="feature-card reveal stagger-5">
+        <div class="feature-icon-wrap fi-pink">🎓</div>
+        <div class="feature-title">Instant Certificates</div>
+        <p class="feature-desc">Auto-generated digital certificates with QR verification, blockchain integrity, and one-click sharing to LinkedIn.</p>
+        <div class="feature-tag">✦ QR Verified</div>
+      </div>
+
+      <div class="feature-card reveal stagger-1">
+        <div class="feature-icon-wrap fi-amber">⚙️</div>
+        <div class="feature-title">Admin Command Center</div>
+        <p class="feature-desc">Full administrative control — exam scheduling, bulk user import via Excel, role management, and audit logs.</p>
+        <div class="feature-tag">✦ Role-Based Access</div>
+      </div>
+
+      <div class="feature-card reveal stagger-2">
+        <div class="feature-icon-wrap fi-blue">🔐</div>
+        <div class="feature-title">JWT Authentication</div>
+        <p class="feature-desc">Enterprise-grade JWT tokens with refresh rotation, device fingerprinting, and automatic session management.</p>
+        <div class="feature-tag">✦ Zero Trust</div>
+      </div>
+
+      <div class="feature-card reveal stagger-3">
+        <div class="feature-icon-wrap fi-purple">⏱️</div>
+        <div class="feature-title">Smart Timer Engine</div>
+        <p class="feature-desc">Per-question and per-exam timers with auto-submit, grace period handling, and time zone normalization.</p>
+        <div class="feature-tag">✦ Auto Submit</div>
+      </div>
+
+      <div class="feature-card reveal stagger-4">
+        <div class="feature-icon-wrap fi-cyan">📤</div>
+        <div class="feature-title">Bulk Operations</div>
+        <p class="feature-desc">Import thousands of students, questions, and exams via Excel with smart validation and error reporting.</p>
+        <div class="feature-tag">✦ Excel Upload</div>
+      </div>
+    </div>
+
+    <div class="features-extended">
+      <div class="section-label" style="margin-bottom:20px;">New Additions</div>
+      <div class="features-extended-grid">
+        <div class="feature-card compact reveal stagger-1">
+          <div class="feature-metric">99.99% Uptime</div>
+          <div class="feature-title">Reliability SLA</div>
+          <p class="feature-desc">Multi-region failover with real-time health checks and automated rollback.</p>
+          <div class="feature-chip">SLA-Backed</div>
+        </div>
+        <div class="feature-card compact reveal stagger-2">
+          <div class="feature-metric">AI-Calibrated</div>
+          <div class="feature-title">Adaptive Difficulty</div>
+          <p class="feature-desc">Dynamic question routing that matches candidate ability without bias.</p>
+          <div class="feature-chip">Smart Routing</div>
+        </div>
+        <div class="feature-card compact reveal stagger-3">
+          <div class="feature-metric">Offline Ready</div>
+          <div class="feature-title">Edge Exam Mode</div>
+          <p class="feature-desc">Sync-safe testing for low-connectivity campuses and remote cohorts.</p>
+          <div class="feature-chip">Sync Later</div>
+        </div>
+        <div class="feature-card compact reveal stagger-4">
+          <div class="feature-metric">WCAG 2.2</div>
+          <div class="feature-title">Accessibility Suite</div>
+          <p class="feature-desc">Built-in reader modes, contrast presets, and keyboard-only workflows.</p>
+          <div class="feature-chip">Inclusive</div>
+        </div>
+        <div class="feature-card compact reveal stagger-5">
+          <div class="feature-metric">Live Panels</div>
+          <div class="feature-title">Viva Rooms</div>
+          <p class="feature-desc">Secure oral exams with queueing, recording, and rubric scoring.</p>
+          <div class="feature-chip">Recorded</div>
+        </div>
+        <div class="feature-card compact reveal stagger-1">
+          <div class="feature-metric">30s Build</div>
+          <div class="feature-title">Question Generator</div>
+          <p class="feature-desc">Auto-generate variants with difficulty tags and concept coverage checks.</p>
+          <div class="feature-chip">AI-Assisted</div>
+        </div>
+        <div class="feature-card compact reveal stagger-2">
+          <div class="feature-metric">Integrity Vault</div>
+          <div class="feature-title">Incident Replay</div>
+          <p class="feature-desc">Timeline playback with device, video, and network signals in one view.</p>
+          <div class="feature-chip">Forensics</div>
+        </div>
+        <div class="feature-card compact reveal stagger-3">
+          <div class="feature-metric">Data Residency</div>
+          <div class="feature-title">Regional Storage</div>
+          <p class="feature-desc">Choose where exam data lives to meet local compliance requirements.</p>
+          <div class="feature-chip">Compliant</div>
+        </div>
+        <div class="feature-card compact reveal stagger-4">
+          <div class="feature-metric">Secure Browser</div>
+          <div class="feature-title">Lockdown Mode</div>
+          <p class="feature-desc">Tab isolation, copy protection, and live device posture checks.</p>
+          <div class="feature-chip">Locked</div>
+        </div>
+        <div class="feature-card compact reveal stagger-5">
+          <div class="feature-metric">One-Click</div>
+          <div class="feature-title">Audit Exports</div>
+          <p class="feature-desc">Export evidence packs with hashes, logs, and verification metadata.</p>
+          <div class="feature-chip">Verified</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Horizontal scroll card strip -->
+    <div style="margin-top:52px;">
+      <div class="section-label" style="margin-bottom:24px;">Also Includes</div>
+      <div class="h-scroll-wrapper marquee-mask">
+        <div class="h-scroll-track auto-scroll">
+          <!-- Set 1 -->
+          <div class="h-scroll-card">
+            <div style="font-size:24px;margin-bottom:12px;">🌐</div>
+            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:8px;">Multi-Language Support</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Serve exams in 40+ languages with RTL support and localized UI.</p>
+          </div>
+          <div class="h-scroll-card">
+            <div style="font-size:24px;margin-bottom:12px;">📱</div>
+            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:8px;">Mobile Responsive</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Native-like experience on any device — phone, tablet, or desktop.</p>
+          </div>
+          <div class="h-scroll-card">
+            <div style="font-size:24px;margin-bottom:12px;">🔗</div>
+            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:8px;">LMS Integration</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Native Moodle, Canvas, Blackboard and Google Classroom connectors.</p>
+          </div>
+          <div class="h-scroll-card">
+            <div style="font-size:24px;margin-bottom:12px;">☁️</div>
+            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:8px;">Cloud-Native</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Scales to millions of concurrent users with auto-scaling infrastructure.</p>
+          </div>
+          <div class="h-scroll-card">
+            <div style="font-size:24px;margin-bottom:12px;">📧</div>
+            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:8px;">Email & SMS Alerts</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Automated reminders, results, and certificate delivery to students.</p>
+          </div>
+          <div class="h-scroll-card">
+            <div style="font-size:24px;margin-bottom:12px;">🛡️</div>
+            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:8px;">SOC 2 Compliant</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Enterprise security with GDPR, FERPA, and SOC 2 Type II compliance.</p>
+          </div>
+          <div class="h-scroll-card">
+            <div style="font-size:24px;margin-bottom:12px;">🎯</div>
+            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:8px;">Question Bank</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">AI-tagged question library with difficulty calibration and randomization.</p>
+          </div>
+          <!-- Set 2 (Duplicate for Seamless Loop) -->
+          <div class="h-scroll-card">
+            <div style="font-size:24px;margin-bottom:12px;">🌐</div>
+            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:8px;">Multi-Language Support</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Serve exams in 40+ languages with RTL support and localized UI.</p>
+          </div>
+          <div class="h-scroll-card">
+            <div style="font-size:24px;margin-bottom:12px;">📱</div>
+            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:8px;">Mobile Responsive</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Native-like experience on any device — phone, tablet, or desktop.</p>
+          </div>
+          <div class="h-scroll-card">
+            <div style="font-size:24px;margin-bottom:12px;">🔗</div>
+            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:8px;">LMS Integration</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Native Moodle, Canvas, Blackboard and Google Classroom connectors.</p>
+          </div>
+          <div class="h-scroll-card">
+            <div style="font-size:24px;margin-bottom:12px;">☁️</div>
+            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:8px;">Cloud-Native</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Scales to millions of concurrent users with auto-scaling infrastructure.</p>
+          </div>
+          <div class="h-scroll-card">
+            <div style="font-size:24px;margin-bottom:12px;">📧</div>
+            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:8px;">Email & SMS Alerts</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Automated reminders, results, and certificate delivery to students.</p>
+          </div>
+          <div class="h-scroll-card">
+            <div style="font-size:24px;margin-bottom:12px;">🛡️</div>
+            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:8px;">SOC 2 Compliant</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Enterprise security with GDPR, FERPA, and SOC 2 Type II compliance.</p>
+          </div>
+          <div class="h-scroll-card">
+            <div style="font-size:24px;margin-bottom:12px;">🎯</div>
+            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:8px;">Question Bank</div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">AI-tagged question library with difficulty calibration and randomization.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     AI PROCTORING
+     ════════════════════════════════════════════════════════════ -->
+<section id="proctoring">
+  <div class="container">
+    <div class="proctoring-layout">
+
+      <!-- Webcam mockup -->
+      <div class="reveal-left">
+        <div class="webcam-mockup">
+          <div class="webcam-screen">
+            <div class="webcam-grid"></div>
+            <div class="student-silhouette"></div>
+            <div class="face-detect-box"></div>
+            <div class="detection-rings">
+              <div class="d-ring" style="width:60px;height:60px;"></div>
+              <div class="d-ring" style="width:100px;height:100px;"></div>
+              <div class="d-ring" style="width:140px;height:140px;"></div>
+            </div>
+          </div>
+
+          <div class="webcam-overlays">
+            <div class="webcam-badge">
+              <div class="pulse-dot" style="width:5px;height:5px;"></div>
+              LIVE · PROCTORED
+            </div>
+
+            <div class="alert-overlay">
+              <div class="alert-chip info">👁️ Face Tracked</div>
+              <div class="alert-chip warn" style="animation-delay:0.5s">⚠️ Gaze Drift</div>
+            </div>
+
+            <div class="webcam-scanline"></div>
+          </div>
+
+          <div class="webcam-toolbar">
+            <span class="webcam-status">● RECORDING · 00:23:14</span>
+            <div class="threat-score">
+              THREAT
+              <div class="threat-bar"><div class="threat-fill"></div></div>
+              <span style="font-size:10px;color:var(--accent-green);">LOW</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alert Feed -->
+      <div class="reveal-right">
+        <div class="section-label">AI Proctoring Engine</div>
+        <h2 class="section-title">Zero Tolerance<br><span class="text-gradient">Zero Loopholes</span></h2>
+        <p class="section-subtitle" style="margin-bottom:28px;">
+          Our multi-modal AI monitors 12 behavioral signals simultaneously — from eye movement to ambient noise — with sub-second response time.
+        </p>
+
+        <div class="ws-indicator">
+          <div class="pulse-dot"></div>
+          WebSocket Connected · ws://nexam.ai/proctor · Ping: 12ms
+        </div>
+
+        <div class="alert-feed" id="alert-feed">
+          <!-- Populated by JS -->
+        </div>
+
+        <div style="margin-top:28px;display:flex;gap:12px;flex-wrap:wrap;">
+          <div class="badge">👁️ Eye Tracking</div>
+          <div class="badge purple">🔊 Noise Analysis</div>
+          <div class="badge green">🖥️ Tab Monitor</div>
+          <div class="badge">📱 Device Detect</div>
+          <div class="badge purple">🤳 Multi-Face</div>
+          <div class="badge green">⌨️ Keystroke AI</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     ANALYTICS
+     ════════════════════════════════════════════════════════════ -->
+<section id="analytics">
+  <div class="container">
+    <div class="features-header reveal" style="margin-bottom:48px;">
+      <div class="section-label">Intelligence</div>
+      <h2 class="section-title">Data That<br><span class="text-gradient">Tells the Story</span></h2>
+      <p class="section-subtitle" style="margin:0 auto;">Real-time dashboards that surface insights from every exam, every student, every interaction.</p>
+    </div>
+
+    <div class="analytics-top reveal">
+      <div class="stat-card">
+        <div class="stat-card-icon">📝</div>
+        <div class="stat-card-num" data-count="12847" data-suffix="">12,847</div>
+        <div class="stat-card-label">Exams This Month</div>
+        <span class="stat-card-delta delta-up">↑ 23.4%</span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-icon">👥</div>
+        <div class="stat-card-num" data-count="94720" data-suffix="">94,720</div>
+        <div class="stat-card-label">Active Students</div>
+        <span class="stat-card-delta delta-up">↑ 11.2%</span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-icon">✅</div>
+        <div class="stat-card-num">96.4%</div>
+        <div class="stat-card-label">Avg Completion Rate</div>
+        <span class="stat-card-delta delta-up">↑ 2.1%</span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-icon">⚠️</div>
+        <div class="stat-card-num">0.3%</div>
+        <div class="stat-card-label">Violation Rate</div>
+        <span class="stat-card-delta delta-down">↓ 0.8%</span>
+      </div>
+    </div>
+
+    <div class="analytics-layout reveal stagger-2">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Score Distribution</div>
+            <div class="chart-subtitle">March 2025 · All Exams</div>
+          </div>
+          <div class="chart-filters">
+            <button class="chart-filter active">Week</button>
+            <button class="chart-filter">Month</button>
+            <button class="chart-filter">Year</button>
+          </div>
+        </div>
+        <div style="height:220px;">
+          <canvas id="scoreChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Violation Types</div>
+            <div class="chart-subtitle">Breakdown by category</div>
+          </div>
+        </div>
+        <div style="height:220px;">
+          <canvas id="violationChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card" style="grid-column:1/-1;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Completion & Pass Rate Trends</div>
+            <div class="chart-subtitle">12-month rolling · All departments</div>
+          </div>
+          <div class="chart-filters">
+            <button class="chart-filter active">2025</button>
+            <button class="chart-filter">2024</button>
+          </div>
+        </div>
+        <div style="height:240px;">
+          <canvas id="completionChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     CERTIFICATE
+     ════════════════════════════════════════════════════════════ -->
+<section id="certificate">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label" style="justify-content:center;">Certification</div>
+      <h2 class="section-title">Credentials That<br><span class="text-gradient">Actually Mean Something</span></h2>
+      <p class="section-subtitle" style="margin:0 auto 0;">
+        Tamper-proof digital certificates with QR verification, instant issuance, and lifetime validity.
+      </p>
+    </div>
+
+    <div class="cert-preview reveal stagger-2">
+      <div class="cert-3d-wrapper">
+        <div class="cert-card">
+          <div class="cert-decoration">
+            <div class="cert-corner tl"></div>
+            <div class="cert-corner tr"></div>
+            <div class="cert-corner bl"></div>
+            <div class="cert-corner br"></div>
+          </div>
+
+          <div class="cert-header">
+            <div class="cert-logo-block">
+              <div class="cert-logo-icon">🧠</div>
+              <div class="cert-logo-text">SEM</div>
+            </div>
+            <div class="cert-badge-official">VERIFIED</div>
+          </div>
+
+          <div class="cert-title-section">
+            <div class="cert-presents">THIS IS TO CERTIFY THAT</div>
+            <div class="cert-student-name">Alexandra Rivera</div>
+            <div class="cert-of-completion">Certificate of Excellence</div>
+            <p class="cert-desc">has successfully completed the examination in<br><strong>Advanced JavaScript & Node.js Development</strong><br>with a score of <strong>94/100</strong> on March 15, 2025</p>
+          </div>
+
+          <div class="cert-footer">
+            <div class="cert-qr" id="cert-qr">
+              <div class="qr-scan-line"></div>
+            </div>
+
+            <div class="cert-sign">
+              <div class="cert-sign-line"></div>
+              <div class="cert-sign-name">Dr. Emily Chen · Dean of Examinations</div>
+            </div>
+
+            <div style="text-align:right;">
+              <div style="font-size:10px;color:#64748b;font-family:'JetBrains Mono',monospace;margin-bottom:4px;">CERT ID</div>
+              <div style="font-size:12px;font-weight:700;color:#1e293b;font-family:'JetBrains Mono',monospace;">NX-2025-8472</div>
+              <div style="font-size:9.5px;color:#94a3b8;margin-top:4px;">Issued: 15 Mar 2025</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;" class="reveal stagger-3">
+      <a href="#" class="btn btn-primary">🎓 Issue Certificate</a>
+      <a href="#" class="btn btn-ghost">🔍 Verify Certificate</a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     ADMIN PANEL
+     ════════════════════════════════════════════════════════════ -->
+<section id="admin">
+  <div class="container">
+    <div class="features-header reveal" style="margin-bottom:48px;">
+      <div class="section-label">Control Center</div>
+      <h2 class="section-title">Total Command,<br><span class="text-gradient">Total Clarity</span></h2>
+      <p class="section-subtitle" style="margin:0 auto;">One dashboard to rule them all. Schedule exams, manage users, monitor violations in real-time.</p>
+    </div>
+
+    <div class="admin-preview reveal stagger-2">
+      <div class="admin-topbar">
+        <div class="admin-window-dots">
+          <div class="window-dot red"></div>
+          <div class="window-dot yellow"></div>
+          <div class="window-dot green"></div>
+        </div>
+        <div class="admin-title-bar">SEM Admin · v3.0.1</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="pulse-dot" style="width:6px;height:6px;"></div>
+          <span style="font-size:11px;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;">Live</span>
+        </div>
+      </div>
+
+      <div class="admin-body">
+        <div class="admin-sidebar">
+          <div class="sidebar-item active">
+            <span class="sidebar-icon">📊</span> Dashboard
+          </div>
+          <div class="sidebar-item">
+            <span class="sidebar-icon">📝</span> Exams
+          </div>
+          <div class="sidebar-item">
+            <span class="sidebar-icon">👥</span> Students
+          </div>
+          <div class="sidebar-item">
+            <span class="sidebar-icon">🛡️</span> Proctoring
+          </div>
+          <div class="sidebar-item">
+            <span class="sidebar-icon">📤</span> Bulk Import
+          </div>
+          <div class="sidebar-item">
+            <span class="sidebar-icon">🎓</span> Certificates
+          </div>
+          <div class="sidebar-item">
+            <span class="sidebar-icon">📈</span> Reports
+          </div>
+          <div class="sidebar-item">
+            <span class="sidebar-icon">⚙️</span> Settings
+          </div>
+        </div>
+
+        <div class="admin-main">
+          <div class="admin-stats-row">
+            <div class="mini-stat">
+              <div class="mini-stat-num">2,847</div>
+              <div class="mini-stat-label">Active Exams</div>
+            </div>
+            <div class="mini-stat">
+              <div class="mini-stat-num">94,720</div>
+              <div class="mini-stat-label">Enrolled Students</div>
+            </div>
+            <div class="mini-stat">
+              <div class="mini-stat-num">12</div>
+              <div class="mini-stat-label">Live Sessions</div>
+            </div>
+          </div>
+
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Exam Name</th>
+                  <th>Department</th>
+                  <th>Students</th>
+                  <th>Status</th>
+                  <th>Score Avg</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="font-weight:600;color:var(--text-primary);">Advanced JS</td>
+                  <td>Engineering</td>
+                  <td>342</td>
+                  <td><span class="status-pill sp-active">● Active</span></td>
+                  <td>76.4%</td>
+                </tr>
+                <tr>
+                  <td style="font-weight:600;color:var(--text-primary);">ML Fundamentals</td>
+                  <td>Data Science</td>
+                  <td>218</td>
+                  <td><span class="status-pill sp-pending">● Pending</span></td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td style="font-weight:600;color:var(--text-primary);">System Design</td>
+                  <td>Architecture</td>
+                  <td>189</td>
+                  <td><span class="status-pill sp-done">● Completed</span></td>
+                  <td>82.1%</td>
+                </tr>
+                <tr>
+                  <td style="font-weight:600;color:var(--text-primary);">Cloud Security</td>
+                  <td>Infra</td>
+                  <td>97</td>
+                  <td><span class="status-pill sp-done">● Completed</span></td>
+                  <td>71.8%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     TECH STACK
+     ════════════════════════════════════════════════════════════ -->
+<section id="tech">
+  <div class="container">
+    <div class="features-header reveal" style="margin-bottom:12px;">
+      <div class="section-label">Technology</div>
+      <h2 class="section-title">Built on the<br><span class="text-gradient">Best Stack</span></h2>
+    </div>
+  </div>
+
+  <div class="tech-marquee-wrapper">
+    <div class="tech-marquee-track">
+      <div class="tech-chip"><span class="tech-chip-icon">⚡</span>Node.js</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🔵</span>TypeScript</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🐘</span>PostgreSQL</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🔴</span>Redis</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🧠</span>TensorFlow.js</div>
+      <div class="tech-chip"><span class="tech-chip-icon">📡</span>WebSocket</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🔐</span>JWT / OAuth2</div>
+      <div class="tech-chip"><span class="tech-chip-icon">☁️</span>AWS / GCP</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🐳</span>Docker</div>
+      <div class="tech-chip"><span class="tech-chip-icon">⚙️</span>Kubernetes</div>
+      <div class="tech-chip"><span class="tech-chip-icon">📊</span>Grafana</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🔍</span>Elasticsearch</div>
+      <!-- Duplicate -->
+      <div class="tech-chip"><span class="tech-chip-icon">⚡</span>Node.js</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🔵</span>TypeScript</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🐘</span>PostgreSQL</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🔴</span>Redis</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🧠</span>TensorFlow.js</div>
+      <div class="tech-chip"><span class="tech-chip-icon">📡</span>WebSocket</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🔐</span>JWT / OAuth2</div>
+      <div class="tech-chip"><span class="tech-chip-icon">☁️</span>AWS / GCP</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🐳</span>Docker</div>
+      <div class="tech-chip"><span class="tech-chip-icon">⚙️</span>Kubernetes</div>
+      <div class="tech-chip"><span class="tech-chip-icon">📊</span>Grafana</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🔍</span>Elasticsearch</div>
+    </div>
+  </div>
+
+  <div class="tech-marquee-wrapper" style="margin-top:16px;">
+    <div class="tech-marquee-track reverse">
+      <div class="tech-chip"><span class="tech-chip-icon">🎯</span>OpenCV</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🤖</span>MediaPipe</div>
+      <div class="tech-chip"><span class="tech-chip-icon">📧</span>SendGrid</div>
+      <div class="tech-chip"><span class="tech-chip-icon">💳</span>Stripe</div>
+      <div class="tech-chip"><span class="tech-chip-icon">📱</span>Twilio</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🔗</span>REST / GraphQL</div>
+      <div class="tech-chip"><span class="tech-chip-icon">📄</span>PDF Engine</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🔒</span>Vault</div>
+      <div class="tech-chip"><span class="tech-chip-icon">📦</span>S3 Storage</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🌐</span>Cloudflare</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🎯</span>OpenCV</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🤖</span>MediaPipe</div>
+      <div class="tech-chip"><span class="tech-chip-icon">📧</span>SendGrid</div>
+      <div class="tech-chip"><span class="tech-chip-icon">💳</span>Stripe</div>
+      <div class="tech-chip"><span class="tech-chip-icon">📱</span>Twilio</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🔗</span>REST / GraphQL</div>
+      <div class="tech-chip"><span class="tech-chip-icon">📄</span>PDF Engine</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🔒</span>Vault</div>
+      <div class="tech-chip"><span class="tech-chip-icon">📦</span>S3 Storage</div>
+      <div class="tech-chip"><span class="tech-chip-icon">🌐</span>Cloudflare</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     PRICING
+     ════════════════════════════════════════════════════════════ -->
+<section id="pricing">
+  <div class="container">
+    <div class="features-header reveal" style="margin-bottom:52px;">
+      <div class="section-label">Pricing</div>
+      <h2 class="section-title">Simple Pricing,<br><span class="text-gradient">Serious Value</span></h2>
+      <p class="section-subtitle" style="margin:0 auto;">Start free, scale as you grow. No hidden fees, no lock-in.</p>
+    </div>
+
+    <div class="pricing-grid">
+      <div class="pricing-card reveal stagger-1">
+        <div class="pricing-plan">Starter</div>
+        <div class="pricing-price">$0</div>
+        <div class="pricing-period">/ month · forever free</div>
+        <p class="pricing-desc">Perfect for small institutions getting started with AI examinations.</p>
+        <ul class="pricing-features">
+          <li><div class="pf-check">✓</div>Up to 100 students</li>
+          <li><div class="pf-check">✓</div>10 exams per month</li>
+          <li><div class="pf-check">✓</div>Basic AI proctoring</li>
+          <li><div class="pf-check">✓</div>MCQ exam type</li>
+          <li><div class="pf-check">✓</div>Email support</li>
+        </ul>
+        <a href="#" class="btn btn-ghost" style="width:100%;justify-content:center;" data-loading-text="Starting..." data-open-delay="1200">Start Free</a>
+      </div>
+
+      <div class="pricing-card featured reveal stagger-2">
+        <div class="pricing-plan">Professional</div>
+        <div class="pricing-price">$49</div>
+        <div class="pricing-period">/ month · billed annually</div>
+        <p class="pricing-desc">For growing institutions that need the full power of AI examination.</p>
+        <ul class="pricing-features">
+          <li><div class="pf-check">✓</div>Up to 5,000 students</li>
+          <li><div class="pf-check">✓</div>Unlimited exams</li>
+          <li><div class="pf-check">✓</div>Full AI proctoring suite</li>
+          <li><div class="pf-check">✓</div>All question types</li>
+          <li><div class="pf-check">✓</div>Analytics dashboard</li>
+          <li><div class="pf-check">✓</div>Auto certificates</li>
+          <li><div class="pf-check">✓</div>Priority support</li>
+        </ul>
+        <a href="pages/signup.html" class="btn btn-primary" style="width:100%;justify-content:center;" data-loading-text="Setting up..." data-open-delay="1200">Get Started</a>
+      </div>
+
+      <div class="pricing-card reveal stagger-3">
+        <div class="pricing-plan">Enterprise</div>
+        <div class="pricing-price">Custom</div>
+        <div class="pricing-period">tailored to your needs</div>
+        <p class="pricing-desc">For large universities, corporations and government bodies at scale.</p>
+        <ul class="pricing-features">
+          <li><div class="pf-check">✓</div>Unlimited students</li>
+          <li><div class="pf-check">✓</div>Dedicated infrastructure</li>
+          <li><div class="pf-check">✓</div>Custom AI models</li>
+          <li><div class="pf-check">✓</div>SSO & LDAP</li>
+          <li><div class="pf-check">✓</div>SLA guarantee</li>
+          <li><div class="pf-check">✓</div>White-label option</li>
+          <li><div class="pf-check">✓</div>Dedicated CSM</li>
+        </ul>
+        <a href="#" class="btn btn-ghost" style="width:100%;justify-content:center;" data-loading-text="Contacting..." data-open-delay="1200">Contact Sales</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     CTA
+     ════════════════════════════════════════════════════════════ -->
+<section style="padding:100px 0;background:var(--bg-primary);text-align:center;">
+  <div class="container">
+    <div class="reveal">
+      <div style="max-width:700px;margin:0 auto;">
+        <div class="section-label" style="justify-content:center;">Ready?</div>
+        <h2 class="section-title" style="margin-bottom:20px;">
+          The Future of Examination<br><span class="text-gradient">Starts Today</span>
+        </h2>
+        <p style="font-size:1.1rem;color:var(--text-secondary);line-height:1.75;margin-bottom:36px;">
+          Join 500+ institutions already using SEM. Set up your first exam in under 5 minutes.
+        </p>
+        <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+          <a href="pages/signup.html" class="btn btn-primary btn-lg" data-loading-text="Starting..." data-open-delay="1200">🚀 Start for Free — No CC Required</a>
+          <a href="#" class="btn btn-ghost btn-lg" data-loading-text="Connecting..." data-open-delay="1200">📞 Talk to Sales</a>
+        </div>
+        <p style="margin-top:20px;font-size:12.5px;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;">
+          No credit card · 14-day trial · Cancel anytime
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     FOOTER
+     ════════════════════════════════════════════════════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-brand-logo">
+          <div class="logo-icon" style="width:32px;height:32px;font-size:14px;">🧠</div>
+          SEM
+        </div>
+        <p>The world's most advanced AI examination platform. Built for institutions that take integrity seriously.</p>
+        <div class="social-links">
+          <a href="#" class="social-link" title="Twitter">𝕏</a>
+          <a href="#" class="social-link" title="LinkedIn">in</a>
+          <a href="#" class="social-link" title="GitHub">⌥</a>
+          <a href="#" class="social-link" title="Discord">⬡</a>
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <div class="footer-col-title">Product</div>
+        <ul>
+          <li><a href="#">Features</a></li>
+          <li><a href="#">AI Proctoring</a></li>
+          <li><a href="#">Analytics</a></li>
+          <li><a href="#">Certificates</a></li>
+          <li><a href="#">Pricing</a></li>
+          <li><a href="#">Changelog</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <div class="footer-col-title">Developers</div>
+        <ul>
+          <li><a href="#">API Reference</a></li>
+          <li><a href="#">SDKs</a></li>
+          <li><a href="#">Webhooks</a></li>
+          <li><a href="#">Status Page</a></li>
+          <li><a href="#">Open Source</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <div class="footer-col-title">Company</div>
+        <ul>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Press</a></li>
+          <li><a href="#">Contact</a></li>
+          <li><a href="#">Security</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="footer-copy">© 2025 SEM. All rights reserved.</div>
+      <div class="footer-bottom-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Cookie Policy</a>
+        <a href="#">Accessibility</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ─── SCRIPTS ─── -->
+<script src="assets/core/js/theme.js"></script>
+<script src="assets/pages/home/js/scroll.js"></script>
+<script src="assets/pages/home/js/effects.js"></script>
+<script src="assets/pages/home/js/animations.js"></script>
+<script src="assets/pages/home/js/cursor.js"></script>
+<script src="assets/pages/home/js/app.js"></script>
+
+</body>
+</html>

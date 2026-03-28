@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome | AI Exam System</title>
+  
+  <!-- Global CSS Variables & Fonts -->
+  <link rel="stylesheet" href="../assets/core/css/themes.css">
+  <link rel="stylesheet" href="../assets/pages/home/css/main.css">
+  <link rel="stylesheet" href="../assets/pages/home/css/animations.css">
+  <link rel="stylesheet" href="../assets/pages/home/css/components.css">
+  
+  <!-- Page Specific -->
+  <link rel="stylesheet" href="../assets/pages/onboarding/css/welcome.css">
+</head>
+<body>
+
+  <!-- ─── ATMOSPHERE ─── -->
+  <div class="noise-overlay"></div>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="stardust"></div>
+  
+  <div class="bg-marquee">
+    <div class="marquee-row">AI PROCTORING • SECURE EXAMS • ANALYTICS • CERTIFICATES • LEADERBOARD • AI PROCTORING • SECURE EXAMS • ANALYTICS • CERTIFICATES • LEADERBOARD • </div>
+  </div>
+
+  <!-- ─── TOP NAVIGATION ─── -->
+  <nav class="onboard-nav">
+    <div class="logo-group">
+      <span class="logo-badge">SEM</span>
+      <span class="logo-text">AI Exam System</span>
+    </div>
+    <div class="theme-controls">
+      <button class="theme-btn" data-theme="light">Light</button>
+      <button class="theme-btn" data-theme="system">System</button>
+      <button class="theme-btn" data-theme="dark">Dark</button>
+    </div>
+  </nav>
+
+  <!-- ─── CONSOLE CONTAINER ─── -->
+  <div class="onboard-container">
+    
+    <!-- LEFT: Mission Control -->
+    <div class="onboard-main">
+      <header class="onboard-header">
+        <div class="onboard-badge">
+          <span class="pulse-dot"></span> System Protocol v3.0 [ACTIVE]
+        </div>
+        <h1 class="onboard-title">
+          Next-Gen<br>
+          Examinations, 
+          <span class="text-gradient">Ready.</span>
+        </h1>
+        <p class="onboard-subtitle">
+          Your student terminal is configured and synchronized for high-fidelity 
+          proctoring, real-time analytics, and automated certification.
+        </p>
+      </header>
+
+      <div class="onboard-actions-group">
+        <a href="#" class="btn btn-primary btn-lg onboard-finish">
+          <span>Initialize First Session</span>
+        </a>
+        <a href="student-profile.html" class="btn btn-ghost btn-lg onboard-dashboard">
+          <span>Complete Profile</span>
+        </a>
+      </div>
+
+      <div class="onboard-status">
+        <div class="status-item"><span class="status-check"></span> AI Monitoring</div>
+        <div class="status-item"><span class="status-check"></span> Encrypted Pipeline</div>
+        <div class="status-item"><span class="status-check"></span> Bio-Verification</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Module Stack -->
+    <aside class="onboard-side">
+      <div class="module-header">Core Capability Modules</div>
+      
+      <div class="module-stack">
+        <div class="onboard-card">
+          <div class="card-icon">🛡️</div>
+          <div class="card-content">
+            <h4 class="card-title">Secure Portal</h4>
+            <p class="card-desc">Advanced anti-cheat protocols.</p>
+          </div>
+        </div>
+
+        <div class="onboard-card">
+          <div class="card-icon">📊</div>
+          <div class="card-content">
+            <h4 class="card-title">Live Analytics</h4>
+            <p class="card-desc">Precision metrics tracking.</p>
+          </div>
+        </div>
+
+        <div class="onboard-card">
+          <div class="card-icon">📜</div>
+          <div class="card-content">
+            <h4 class="card-title">Certification</h4>
+            <p class="card-desc">Instant verified credentials.</p>
+          </div>
+        </div>
+
+        <div class="onboard-card">
+          <div class="card-icon">🏆</div>
+          <div class="card-content">
+            <h4 class="card-title">Leaderboard</h4>
+            <p class="card-desc">Global performance ranking.</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Interaction Logic -->
+  <script src="../assets/core/js/theme.js"></script>
+  <script src="../assets/pages/onboarding/js/welcome.js"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      ThemeController.init();
+    });
+  </script>
+</body>
+</html>
