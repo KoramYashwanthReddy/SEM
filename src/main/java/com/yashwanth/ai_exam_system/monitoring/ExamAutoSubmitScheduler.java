@@ -1,17 +1,24 @@
 package com.yashwanth.ai_exam_system.monitoring;
 
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
+import com.yashwanth.ai_exam_system.enums.AttemptStatus;
 import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.service.ExamAttemptService;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
 public class ExamAutoSubmitScheduler {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(ExamAutoSubmitScheduler.class);
 
     private final ExamAttemptRepository attemptRepository;
     private final ExamAttemptService examAttemptService;
@@ -24,21 +31,39 @@ public class ExamAutoSubmitScheduler {
         this.examAttemptService = examAttemptService;
     }
 
-    // runs every 30 seconds
+    // Runs every 30 seconds
     @Scheduled(fixedRate = 30000)
+    @Transactional
     public void autoSubmitExpiredExams() {
 
-        List<ExamAttempt> activeAttempts =
-                attemptRepository.findByStatus("STARTED");
+        LocalDateTime now = LocalDateTime.now();
 
-        for (ExamAttempt attempt : activeAttempts) {
+        // Only expired STARTED attempts
+        List<ExamAttempt> expiredAttempts =
+                attemptRepository.findExpiredAttempts(
+                        AttemptStatus.STARTED,
+                        now
+                );
 
-            if (attempt.getExpiryTime() != null &&
-                LocalDateTime.now().isAfter(attempt.getExpiryTime())) {
+        for (ExamAttempt attempt : expiredAttempts) {
 
-                System.out.println("Auto submitting exam attempt: " + attempt.getId());
+            try {
 
+                log.info("Auto submitting expired exam attempt: {}", attempt.getId());
+
+                // mark auto submitted
+                attempt.setStatus(AttemptStatus.AUTO_SUBMITTED);
+                attempt.setAutoSubmitted(true);
+
+                attemptRepository.save(attempt);
+
+                // generate result
                 examAttemptService.generateResult(attempt.getId());
+
+            } catch (Exception e) {
+
+                log.error("Auto submit failed for attempt {}",
+                        attempt.getId(), e);
             }
         }
     }

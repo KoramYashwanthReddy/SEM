@@ -4,6 +4,7 @@ import com.yashwanth.ai_exam_system.dto.ProctoringEventRequest;
 import com.yashwanth.ai_exam_system.dto.ProctoringSummary;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
 import com.yashwanth.ai_exam_system.entity.ProctoringEvent;
+import com.yashwanth.ai_exam_system.enums.AttemptStatus;
 import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.ProctoringEventRepository;
 
@@ -25,7 +26,6 @@ public class ProctoringService {
     private final ExamAttemptRepository attemptRepository;
     private final NotificationService notificationService;
 
-    // ================= AI THRESHOLDS =================
     private static final int WARNING_THRESHOLD = 50;
     private static final int ALERT_THRESHOLD = 80;
     private static final int CANCEL_THRESHOLD = 100;
@@ -38,21 +38,18 @@ public class ProctoringService {
         this.notificationService = notificationService;
     }
 
-    // =========================================================
-    // 🔥 CORE AI ENGINE
-    // =========================================================
+    // ================= CORE AI ENGINE =================
     @Transactional
     public void recordEvent(ProctoringEventRequest request) {
 
         ExamAttempt attempt = attemptRepository.findById(request.getAttemptId())
                 .orElseThrow(() -> new RuntimeException("Exam attempt not found"));
 
-        // ignore if already cancelled
-        if (Boolean.TRUE.equals(attempt.getIsCancelled())) {
+        // ignore if not active
+        if (!attempt.isActive()) {
             return;
         }
 
-        // create event
         ProctoringEvent event = new ProctoringEvent();
         event.setAttemptId(request.getAttemptId());
         event.setEventType(request.getEventType());
@@ -61,28 +58,31 @@ public class ProctoringService {
         event.setMetadata(request.getMetadata());
         event.setTimestamp(LocalDateTime.now());
 
-        // save event
         eventRepository.save(event);
 
-        int eventScore = event.getScore();
+        int eventScore = event.getScore() != null ? event.getScore() : 0;
 
-        // update score
-        int newScore = attempt.getCheatingScore() + eventScore;
+        int currentScore =
+                attempt.getCheatingScore() != null ? attempt.getCheatingScore() : 0;
+
+        int newScore = currentScore + eventScore;
+
         attempt.setCheatingScore(newScore);
         attempt.setLastAiCheckTime(LocalDateTime.now());
 
-        // apply AI logic
         handleThresholds(attempt, newScore);
 
         attemptRepository.save(attempt);
 
-        logger.info("AI Proctoring Event | Attempt={} | Type={} | Score={}",
-                attempt.getId(), request.getEventType(), newScore);
+        logger.info(
+                "AI Event | attempt={} | type={} | score={}",
+                attempt.getId(),
+                request.getEventType(),
+                newScore
+        );
     }
 
-    // =========================================================
-    // 🚨 AI THRESHOLD ENGINE
-    // =========================================================
+    // ================= THRESHOLD ENGINE =================
     private void handleThresholds(ExamAttempt attempt, int score) {
 
         Long studentId = attempt.getStudentId();
@@ -91,6 +91,7 @@ public class ProctoringService {
         if (score >= WARNING_THRESHOLD && score < ALERT_THRESHOLD) {
 
             if (!Boolean.TRUE.equals(attempt.getCheatingFlag())) {
+
                 attempt.setCheatingFlag(true);
 
                 notificationService.notifyStudent(
@@ -104,42 +105,40 @@ public class ProctoringService {
         if (score >= ALERT_THRESHOLD && score < CANCEL_THRESHOLD) {
 
             notificationService.notifyAdmin(
-                    "High cheating risk detected | Attempt: "
+                    "High cheating risk | attempt="
                             + attempt.getId()
-                            + " | Score: " + score
+                            + " score=" + score
             );
         }
 
-        // CANCEL EXAM
+        // CANCEL
         if (score >= CANCEL_THRESHOLD) {
 
-            if (!Boolean.TRUE.equals(attempt.getIsCancelled())) {
+            if (!Boolean.TRUE.equals(attempt.getCancelled())) {
 
-                attempt.markCancelled();
+                attempt.markCancelled("AI cheating detection");
+
+                attempt.setStatus(AttemptStatus.INVALIDATED);
 
                 notificationService.notifyExamCancelled(
                         studentId,
                         "Exam cancelled due to cheating detection"
                 );
 
-                logger.warn("Exam auto-cancelled | Attempt={}", attempt.getId());
+                logger.warn("Exam auto cancelled | attempt={}", attempt.getId());
             }
         }
     }
 
-    // =========================================================
-    // 📊 GET EVENTS
-    // =========================================================
+    // ================= GET EVENTS =================
     public List<ProctoringEvent> getEvents(Long attemptId) {
         return eventRepository.findByAttemptId(attemptId);
     }
 
-    // =========================================================
-    // 🚨 SUSPICIOUS CHECK
-    // =========================================================
+    // ================= SUSPICIOUS CHECK =================
     public boolean isSuspicious(Long attemptId) {
 
-        long tabSwitches =
+        long tabSwitch =
                 eventRepository.countByAttemptIdAndEventType(attemptId, "TAB_SWITCH");
 
         long multiFace =
@@ -151,38 +150,26 @@ public class ProctoringService {
         long copyPaste =
                 eventRepository.countByAttemptIdAndEventType(attemptId, "COPY_PASTE");
 
-        return tabSwitches > 3 || copyPaste > 5 || multiFace > 2 || noFace > 3;
+        return tabSwitch > 3 || copyPaste > 5 || multiFace > 2 || noFace > 3;
     }
 
-    // =========================================================
-    // 🔥 GET CHEATING SCORE
-    // =========================================================
+    // ================= SCORE =================
     public int getCheatingScore(Long attemptId) {
 
         return attemptRepository.findById(attemptId)
-                .map(ExamAttempt::getCheatingScore)
+                .map(a -> a.getCheatingScore() != null ? a.getCheatingScore() : 0)
                 .orElse(0);
     }
 
-    // =========================================================
-    // 🚩 AUTO FLAG CHECK
-    // =========================================================
     public boolean shouldAutoFlag(Long attemptId) {
-
         return getCheatingScore(attemptId) >= WARNING_THRESHOLD;
     }
 
-    // =========================================================
-    // ❌ AUTO CANCEL CHECK
-    // =========================================================
     public boolean shouldAutoCancel(Long attemptId) {
-
         return getCheatingScore(attemptId) >= CANCEL_THRESHOLD;
     }
 
-    // =========================================================
-    // 📈 FULL SUMMARY
-    // =========================================================
+    // ================= SUMMARY =================
     public ProctoringSummary getSummary(Long attemptId) {
 
         int score = getCheatingScore(attemptId);
@@ -191,8 +178,8 @@ public class ProctoringService {
         summary.setAttemptId(attemptId);
         summary.setCheatingScore(score);
         summary.setSuspicious(isSuspicious(attemptId));
-        summary.setFlagged(shouldAutoFlag(attemptId));
-        summary.setCancelled(shouldAutoCancel(attemptId));
+        summary.setFlagged(score >= WARNING_THRESHOLD);
+        summary.setCancelled(score >= CANCEL_THRESHOLD);
 
         return summary;
     }

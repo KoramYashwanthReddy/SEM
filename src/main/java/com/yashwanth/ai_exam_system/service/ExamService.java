@@ -3,6 +3,7 @@ package com.yashwanth.ai_exam_system.service;
 import com.yashwanth.ai_exam_system.dto.ExamRequest;
 import com.yashwanth.ai_exam_system.entity.Exam;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
+import com.yashwanth.ai_exam_system.enums.AttemptStatus;
 import com.yashwanth.ai_exam_system.entity.ExamStatus;
 import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRepository;
@@ -39,15 +40,12 @@ public class ExamService {
         this.cheatingDetectionService = cheatingDetectionService;
     }
 
-    // =========================================================
-    // CREATE
-    // =========================================================
+    // ================= CREATE =================
     public Exam createExam(ExamRequest request, Authentication auth) {
 
         validateExamRequest(request);
 
         Exam exam = new Exam();
-
         exam.setExamCode(generateExamCode());
         mapRequestToExam(request, exam);
 
@@ -61,9 +59,7 @@ public class ExamService {
         return examRepository.save(exam);
     }
 
-    // =========================================================
-    // GET
-    // =========================================================
+    // ================= GET =================
     public Exam getExamByCode(String examCode) {
         return examRepository.findByExamCode(examCode)
                 .orElseThrow(() -> new RuntimeException("Exam not found"));
@@ -73,9 +69,7 @@ public class ExamService {
         return examRepository.findByCreatedBy(auth.getName());
     }
 
-    // =========================================================
-    // UPDATE
-    // =========================================================
+    // ================= UPDATE =================
     public Exam updateExam(String examCode, ExamRequest request) {
 
         Exam exam = getExamByCode(examCode);
@@ -89,18 +83,14 @@ public class ExamService {
         return examRepository.save(exam);
     }
 
-    // =========================================================
-    // DELETE
-    // =========================================================
+    // ================= DELETE =================
     public void deleteExamByTeacher(String examCode) {
         Exam exam = getExamByCode(examCode);
         exam.setActive(false);
         examRepository.save(exam);
     }
 
-    // =========================================================
-    // PUBLISH
-    // =========================================================
+    // ================= PUBLISH =================
     public Exam publishExam(String examCode) {
 
         Exam exam = getExamByCode(examCode);
@@ -110,20 +100,15 @@ public class ExamService {
         }
 
         exam.setStatus(ExamStatus.PUBLISHED);
-
         return examRepository.save(exam);
     }
 
-    // =========================================================
-    // ATTEMPTS
-    // =========================================================
+    // ================= ATTEMPTS =================
     public List<ExamAttempt> getAttemptsByExamCode(String examCode) {
         return attemptRepository.findByExamCode(examCode);
     }
 
-    // =========================================================
-    // ANALYTICS
-    // =========================================================
+    // ================= ANALYTICS =================
     public Map<String, Object> getExamAnalytics(String examCode) {
 
         List<ExamAttempt> attempts =
@@ -133,14 +118,20 @@ public class ExamService {
 
         map.put("totalAttempts", attempts.size());
 
-        map.put("completed",
-                attempts.stream().filter(a -> "SUBMITTED".equals(a.getStatus())).count());
+        map.put("submitted",
+                attempts.stream()
+                        .filter(a -> a.getStatus() == AttemptStatus.SUBMITTED)
+                        .count());
 
         map.put("cancelled",
-                attempts.stream().filter(a -> "INVALIDATED".equals(a.getStatus())).count());
+                attempts.stream()
+                        .filter(a -> a.getStatus() == AttemptStatus.INVALIDATED)
+                        .count());
 
         map.put("flagged",
-                attempts.stream().filter(a -> Boolean.TRUE.equals(a.getCheatingFlag())).count());
+                attempts.stream()
+                        .filter(a -> Boolean.TRUE.equals(a.getCheatingFlag()))
+                        .count());
 
         map.put("averageScore",
                 attempts.stream()
@@ -163,24 +154,23 @@ public class ExamService {
         return map;
     }
 
-    // =========================================================
-    // SUBMIT
-    // =========================================================
+    // ================= SUBMIT =================
     public String submitExam(Long attemptId) {
 
         ExamAttempt attempt = getAttempt(attemptId);
 
-        if ("SUBMITTED".equals(attempt.getStatus())) {
+        if (attempt.getStatus() != AttemptStatus.STARTED) {
             return "Already submitted";
         }
 
-        attempt.setStatus("SUBMITTED");
+        attempt.setStatus(AttemptStatus.SUBMITTED);
         attempt.setEndTime(LocalDateTime.now());
 
         if (attempt.getStartTime() != null) {
             long timeTaken = Duration.between(
                     attempt.getStartTime(),
-                    attempt.getEndTime()).getSeconds();
+                    attempt.getEndTime()
+            ).getSeconds();
 
             attempt.setTimeTakenSeconds(timeTaken);
         }
@@ -192,25 +182,21 @@ public class ExamService {
         return "Exam submitted successfully";
     }
 
-    // =========================================================
-    // CANCEL
-    // =========================================================
+    // ================= CANCEL =================
     public void cancelExam(Long examId, Long studentId, String reason) {
 
         ExamAttempt attempt = attemptRepository
                 .findByExamIdAndStudentId(examId, studentId)
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
 
-        attempt.setStatus("INVALIDATED");
+        attempt.setStatus(AttemptStatus.INVALIDATED);
         attempt.setRemarks(reason);
         attempt.setEndTime(LocalDateTime.now());
 
         attemptRepository.save(attempt);
     }
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
+    // ================= HELPERS =================
 
     private void validateExamRequest(ExamRequest request) {
 
