@@ -21,9 +21,17 @@ public class ExamAttempt {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // ================= BASIC INFO =================
+
+    @Column(name = "exam_id")
     private Long examId;
+
     private String examCode;
+
+    @Column(name = "student_id")
     private Long studentId;
+
+    // ================= TIME =================
 
     private LocalDateTime startTime;
     private LocalDateTime endTime;
@@ -31,10 +39,18 @@ public class ExamAttempt {
     private Integer durationMinutes;
     private LocalDateTime expiryTime;
 
+    private Long timeTakenSeconds;
+
+    // ================= SCORE =================
+
     private Integer totalMarks;
     private Integer obtainedMarks;
     private Double score;
     private Double percentage;
+
+    private Double negativeMarksApplied = 0.0;
+
+    // ================= STATUS =================
 
     @Enumerated(EnumType.STRING)
     private AttemptStatus status;
@@ -42,25 +58,26 @@ public class ExamAttempt {
     private Integer attemptNumber = 1;
     private Boolean autoSubmitted = false;
     private Boolean active = true;
+    private Boolean cancelled = false;
 
-    private Long timeTakenSeconds;
+    // ================= AI PROCTORING =================
 
     private Integer cheatingScore = 0;
     private Boolean cheatingFlag = false;
-    private Boolean cancelled = false;
 
     private Integer tabSwitchCount = 0;
     private Integer fullscreenViolationCount = 0;
 
+    private LocalDateTime lastAiCheckTime;
+
+    // ================= AUDIT =================
+
     private LocalDateTime cancelledAt;
     private String remarks;
-    private LocalDateTime lastAiCheckTime;
 
     private String ipAddress;
     private String deviceInfo;
     private String browserInfo;
-
-    private Double negativeMarksApplied = 0.0;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -81,8 +98,8 @@ public class ExamAttempt {
     public void onCreate() {
         LocalDateTime now = LocalDateTime.now();
 
-        createdAt = now;
-        updatedAt = now;
+        this.createdAt = now;
+        this.updatedAt = now;
 
         if (status == null) status = AttemptStatus.STARTED;
         if (active == null) active = true;
@@ -94,10 +111,10 @@ public class ExamAttempt {
 
     @PreUpdate
     public void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
-    // ================= BUSINESS =================
+    // ================= BUSINESS METHODS =================
 
     public boolean isActive() {
         return Boolean.TRUE.equals(active)
