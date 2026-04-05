@@ -9,6 +9,22 @@ const AdminLogin = (() => {
   const btnText = submitBtn?.querySelector('.btn-text');
   const card = document.querySelector('.card');
 
+  async function readErrorMessage(response) {
+    const fallback = response?.statusText || `Request failed (${response?.status || "unknown"})`;
+    try {
+      const raw = await response.clone().text();
+      if (!raw) return fallback;
+      const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+      if (contentType.includes("application/json")) {
+        const data = JSON.parse(raw);
+        return String(data?.message || data?.error || data?.cause || data?.detail || fallback).trim() || fallback;
+      }
+      return String(raw).trim() || fallback;
+    } catch (_e) {
+      return fallback;
+    }
+  }
+
   function init() {
     if (typeof ThemeController !== "undefined") {
       ThemeController.init();
@@ -55,7 +71,11 @@ const AdminLogin = (() => {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:54298/api/auth/login", {
+      const apiBase = /^https?:/i.test(window.location.origin)
+        ? window.location.origin
+        : "http://localhost:8080";
+
+      const response = await fetch(`${apiBase}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -66,17 +86,23 @@ const AdminLogin = (() => {
         })
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.message || "Login failed");
+        throw new Error(await readErrorMessage(response));
       }
+
+      const data = await response.json();
 
       if (data.role !== "ADMIN") {
         throw new Error("Access denied. Admin only.");
       }
 
-      localStorage.setItem("token", data.token);
+      const token = data.accessToken || data.token || data.jwt;
+      if (!token) {
+        throw new Error("Invalid authentication response");
+      }
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("accessToken", token);
       localStorage.setItem("role", data.role);
       localStorage.setItem("user", JSON.stringify(data));
 

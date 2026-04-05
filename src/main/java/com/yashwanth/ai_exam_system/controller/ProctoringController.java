@@ -2,6 +2,7 @@ package com.yashwanth.ai_exam_system.controller;
 
 import com.yashwanth.ai_exam_system.dto.ProctoringEventRequest;
 import com.yashwanth.ai_exam_system.dto.ProctoringSummary;
+import com.yashwanth.ai_exam_system.entity.ProctoringEvent;
 import com.yashwanth.ai_exam_system.service.ProctoringService;
 
 import jakarta.validation.Valid;
@@ -11,8 +12,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/proctoring")
@@ -124,6 +128,87 @@ public class ProctoringController {
     }
 
     // =========================================================
+    // TEACHER ACTION ALIASES
+    // =========================================================
+    @PostMapping("/attempt/{attemptId}/warn")
+    public ResponseEntity<Map<String, Object>> warnAttempt(
+            @PathVariable Long attemptId) {
+
+        proctoringService.warnAttempt(attemptId);
+        return success("Attempt warned successfully");
+    }
+
+    @PostMapping("/attempt/{attemptId}/mark-safe")
+    public ResponseEntity<Map<String, Object>> markAttemptSafe(
+            @PathVariable Long attemptId) {
+
+        proctoringService.markAttemptSafe(attemptId);
+        return success("Attempt marked safe successfully");
+    }
+
+    @PostMapping("/attempt/{attemptId}/cancel")
+    public ResponseEntity<Map<String, Object>> cancelAttempt(
+            @PathVariable Long attemptId) {
+
+        proctoringService.cancelAttempt(attemptId);
+        return success("Attempt cancelled successfully");
+    }
+
+    @GetMapping("/evidence/{attemptId}/summary")
+    public ResponseEntity<Map<String, Object>> evidenceSummary(
+            @PathVariable Long attemptId) {
+
+        ProctoringSummary summary = proctoringService.getSummary(attemptId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("attemptId", summary.getAttemptId());
+        data.put("cheatingScore", summary.getCheatingScore());
+        data.put("suspicious", summary.isSuspicious());
+        data.put("flagged", summary.isFlagged());
+        data.put("cancelled", summary.isCancelled());
+        data.put("events", normalizeEvents(proctoringService.getEvents(attemptId)));
+        return success("Evidence summary fetched", data);
+    }
+
+    @GetMapping("/evidence/{attemptId}/{tab}")
+    public ResponseEntity<Map<String, Object>> evidenceTab(
+            @PathVariable Long attemptId,
+            @PathVariable String tab) {
+
+        List<Map<String, Object>> events = normalizeEvents(
+                proctoringService.getEvents(attemptId))
+                .stream()
+                .filter(event -> matchesTab(event, tab))
+                .collect(Collectors.toList());
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("tab", tab);
+        data.put("events", events);
+        return success("Evidence tab fetched", data);
+    }
+
+    @GetMapping("/evidence/{attemptId}/download")
+    public ResponseEntity<byte[]> downloadEvidence(
+            @PathVariable Long attemptId) {
+
+        String report = buildEvidenceReport(attemptId);
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=evidence-" + attemptId + ".txt")
+                .header("Content-Type", "text/plain; charset=utf-8")
+                .body(report.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @GetMapping("/evidence/{attemptId}/report")
+    public ResponseEntity<byte[]> evidenceReport(
+            @PathVariable Long attemptId) {
+
+        String report = buildEvidenceReport(attemptId);
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=report-" + attemptId + ".txt")
+                .header("Content-Type", "text/plain; charset=utf-8")
+                .body(report.getBytes(StandardCharsets.UTF_8));
+    }
+
+    // =========================================================
     // ✅ COMMON SUCCESS RESPONSE
     // =========================================================
     private ResponseEntity<Map<String, Object>> success(String message) {
@@ -145,5 +230,70 @@ public class ProctoringController {
         response.put("data", data);
 
         return ResponseEntity.ok(response);
+    }
+
+    private List<Map<String, Object>> normalizeEvents(List<ProctoringEvent> events) {
+        return events.stream().map(event -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", event.getId());
+            map.put("attemptId", event.getAttemptId());
+            map.put("type", event.getEventType());
+            map.put("eventType", event.getEventType());
+            map.put("description", event.getDetails());
+            map.put("details", event.getDetails());
+            map.put("severity", event.getSeverity());
+            map.put("score", event.getScore());
+            map.put("timestamp", event.getTimestamp());
+            map.put("imageUrl", event.getEvidenceUrl());
+            map.put("url", event.getEvidenceUrl());
+            map.put("metadata", event.getMetadata());
+            return map;
+        }).collect(Collectors.toList());
+    }
+
+    private boolean matchesTab(Map<String, Object> event, String tab) {
+        String normalized = String.valueOf(tab == null ? "" : tab).toLowerCase();
+        String type = String.valueOf(event.getOrDefault("type", "")).toLowerCase();
+        String details = String.valueOf(event.getOrDefault("details", "")).toLowerCase();
+        String imageUrl = String.valueOf(event.getOrDefault("imageUrl", "")).toLowerCase();
+
+        return switch (normalized) {
+            case "screenshots" -> !imageUrl.isBlank() || type.contains("screen");
+            case "webcam" -> type.contains("face") || type.contains("camera") || type.contains("webcam") || type.contains("video");
+            case "audio" -> type.contains("audio") || type.contains("noise") || details.contains("noise");
+            case "analysis" -> type.contains("analysis") || safeScore(event) >= 30;
+            case "logs" -> type.contains("log");
+            default -> true;
+        };
+    }
+
+    private int safeScore(Map<String, Object> event) {
+        try {
+            return Integer.parseInt(String.valueOf(event.getOrDefault("score", 0)));
+        } catch (Exception ex) {
+            return 0;
+        }
+    }
+
+    private String buildEvidenceReport(Long attemptId) {
+        ProctoringSummary summary = proctoringService.getSummary(attemptId);
+        List<Map<String, Object>> events = normalizeEvents(proctoringService.getEvents(attemptId));
+        StringBuilder report = new StringBuilder();
+        report.append("Attempt ID: ").append(summary.getAttemptId()).append("\n");
+        report.append("Cheating Score: ").append(summary.getCheatingScore()).append("\n");
+        report.append("Suspicious: ").append(summary.isSuspicious()).append("\n");
+        report.append("Flagged: ").append(summary.isFlagged()).append("\n");
+        report.append("Cancelled: ").append(summary.isCancelled()).append("\n\n");
+        report.append("Events:\n");
+        for (Map<String, Object> event : events) {
+            report.append("- ")
+                    .append(event.get("timestamp"))
+                    .append(" | ")
+                    .append(event.get("type"))
+                    .append(" | ")
+                    .append(event.get("description"))
+                    .append("\n");
+        }
+        return report.toString();
     }
 }

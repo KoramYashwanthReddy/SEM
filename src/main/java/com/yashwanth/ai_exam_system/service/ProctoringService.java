@@ -135,6 +135,52 @@ public class ProctoringService {
         return eventRepository.findByAttemptId(attemptId);
     }
 
+    // ================= TEACHER ACTIONS =================
+    @Transactional
+    public void warnAttempt(Long attemptId) {
+        recordManualEvent(attemptId, "MANUAL_WARN", "Teacher warning issued", 15);
+    }
+
+    @Transactional
+    public void markAttemptSafe(Long attemptId) {
+        ExamAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new RuntimeException("Exam attempt not found"));
+
+        attempt.setCheatingFlag(false);
+        attempt.setLastAiCheckTime(LocalDateTime.now());
+        attemptRepository.save(attempt);
+
+        recordManualEvent(attemptId, "MANUAL_SAFE", "Teacher marked attempt safe", 0);
+    }
+
+    @Transactional
+    public void cancelAttempt(Long attemptId) {
+        ExamAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new RuntimeException("Exam attempt not found"));
+
+        attempt.markCancelled("Cancelled manually by teacher");
+        attemptRepository.save(attempt);
+
+        recordManualEvent(attemptId, "MANUAL_CANCEL", "Teacher cancelled attempt", 0);
+    }
+
+    private void recordManualEvent(Long attemptId, String type, String details, int score) {
+        ExamAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new RuntimeException("Exam attempt not found"));
+
+        ProctoringEvent event = new ProctoringEvent();
+        event.setAttemptId(attemptId);
+        event.setEventType(type);
+        event.setDetails(details);
+        event.setScore(score);
+        eventRepository.save(event);
+
+        int currentScore = attempt.getCheatingScore() != null ? attempt.getCheatingScore() : 0;
+        attempt.setCheatingScore(Math.max(0, currentScore + score));
+        attempt.setLastAiCheckTime(LocalDateTime.now());
+        attemptRepository.save(attempt);
+    }
+
     // ================= SUSPICIOUS CHECK =================
     public boolean isSuspicious(Long attemptId) {
 

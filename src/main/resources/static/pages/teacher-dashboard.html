@@ -3,428 +3,540 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teacher Console | SEM AI Exam System</title>
-  
-  <!-- Global Fonts -->
+  <title>Teacher Dashboard | AI Exam System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
-  
-  <!-- CSS Global -->
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/core/css/themes.css">
-  <link rel="stylesheet" href="../assets/pages/home/css/animations.css">
-  
-  <!-- CSS Page Specific -->
-  <link rel="stylesheet" href="../assets/pages/teacher/css/dashboard.css">
+  <link rel="stylesheet" href="../assets/pages/teacher/css/teacher-dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 <body class="teacher-page">
+  <div id="loaderOverlay" class="loader-overlay active">
+    <div class="loader-card">
+      <div class="spinner"></div>
+      <p>Loading Teacher Workspace...</p>
+    </div>
+  </div>
 
-  <!-- ─── ATMOSPHERE ─── -->
-  <div class="noise-overlay"></div>
-  <div class="bg-orb orb-1"></div>
-  <div class="bg-orb orb-2"></div>
-
-  <!-- ─── DASHBOARD LAYOUT ─── -->
-  <div class="dashboard-wrapper">
-    
-    <!-- SIDEBAR -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <div class="logo-group">
-          <span class="logo-badge">SEM</span>
-          <span class="logo-text">Teacher</span>
+  <div class="app-shell">
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-head">
+        <div class="brand">
+          <span class="brand-badge">SEM</span>
+          <span class="brand-text">Teacher Console</span>
         </div>
       </div>
-
-      <nav class="sidebar-nav">
-        <a href="#dashboard" class="nav-item active" data-target="dashboard-section">
-          <span class="nav-icon">🏠</span> Dashboard
-        </a>
-        <a href="#exams" class="nav-item" data-target="exams-section">
-          <span class="nav-icon">📝</span> Exams
-        </a>
-        <a href="#questions" class="nav-item" data-target="questions-section">
-          <span class="nav-icon">🧩</span> Questions
-        </a>
-        <a href="#attempts" class="nav-item" data-target="attempts-section">
-          <span class="nav-icon">🎯</span> Attempts
-        </a>
-        <a href="#analytics" class="nav-item" data-target="analytics-section">
-          <span class="nav-icon">📈</span> Analytics
-        </a>
-        <a href="#proctoring" class="nav-item" data-target="proctoring-section">
-          <span class="nav-icon">🛡️</span> Proctoring
-        </a>
-        <a href="#leaderboard" class="nav-item" data-target="leaderboard-section">
-          <span class="nav-icon">🏆</span> Leaderboard
-        </a>
-        <a href="#certificates" class="nav-item" data-target="certificates-section">
-          <span class="nav-icon">🎓</span> Certificates
-        </a>
-        <div class="sidebar-divider"></div>
-        <a href="#profile" class="nav-item" data-target="profile-section">
-          <span class="nav-icon">👤</span> Profile
-        </a>
-        <a href="role-selection.html" class="nav-item logout">
-          <span class="nav-icon">🚪</span> Logout
-        </a>
+      <nav class="side-nav" id="sideNav">
+        <button class="nav-link active" data-section="dashboard"><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></button>
+        <button class="nav-link" data-section="exams"><i class="fa-solid fa-file-lines"></i><span>Exams</span></button>
+        <button class="nav-link" data-section="attempts"><i class="fa-solid fa-list-check"></i><span>Attempts</span></button>
+        <button class="nav-link" data-section="analytics"><i class="fa-solid fa-chart-line"></i><span>Analytics</span></button>
+        <button class="nav-link" data-section="leaderboard"><i class="fa-solid fa-ranking-star"></i><span>Leaderboard</span></button>
+        <button class="nav-link" data-section="proctoring"><i class="fa-solid fa-video"></i><span>Proctoring Monitor</span></button>
+        <button class="nav-link" data-section="ai-insights"><i class="fa-solid fa-brain"></i><span>AI Insights</span></button>
+        <button class="nav-link" data-section="certificates"><i class="fa-solid fa-certificate"></i><span>Certificates</span></button>
+        <button class="nav-link" data-section="profile"><i class="fa-solid fa-id-card"></i><span>Profile</span></button>
+        <button class="nav-link" data-section="settings"><i class="fa-solid fa-gear"></i><span>Settings</span></button>
       </nav>
-      
-      <div class="sidebar-footer">
-        <div class="teacher-profile-hint">
-          <img src="https://ui-avatars.com/api/?name=Prof.+X&background=8b5cf6&color=fff" alt="Teacher">
-          <div class="profile-info">
-            <span class="p-name">Prof. Xavier</span>
-            <span class="p-role">Educator</span>
+      <div class="sidebar-foot">
+        <div class="teacher-mini">
+          <img id="teacherAvatarMini" alt="Teacher">
+          <div>
+            <strong id="teacherNameMini">Teacher</strong>
+            <small id="teacherDeptMini">Department</small>
           </div>
         </div>
+        <button id="logoutBtn" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i>Logout</button>
       </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
-    <main class="main-content">
-      
-      <!-- TOP NAVIGATION -->
-      <header class="top-nav">
-        <div class="nav-left">
-          <button id="toggle-sidebar" class="icon-btn">☰</button>
-          <div class="welcome-text">
-            <span>Welcome back,</span>
-            <strong id="teacher-display-name">Prof. Xavier</strong>
-          </div>
+    <main class="main">
+      <header class="topbar">
+        <div class="top-left">
+          <button id="sidebarToggle" class="icon-btn"><i class="fa-solid fa-bars"></i></button>
+          <label class="search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input id="globalSearch" type="text" placeholder="Search exams, students, attempts..." autocomplete="off">
+          </label>
         </div>
-        
-        <div class="nav-right">
-          <div class="theme-controls">
-            <button class="theme-btn active" data-theme="dark">Dark</button>
-            <button class="theme-btn" data-theme="light">Light</button>
-            <button class="theme-btn" data-theme="system">System</button>
-          </div>
-          
-          <div class="notification-trigger">
-            <span class="icon-btn">🔔</span>
-            <span class="n-count">5</span>
-          </div>
-          
-          <div class="profile-trigger">
-            <img src="https://ui-avatars.com/api/?name=Prof.+X&background=8b5cf6&color=fff" alt="Profile">
+        <div class="top-right">
+          <div class="live-pill"><span class="dot"></span><span id="liveClock">LIVE</span></div>
+          <button id="themeToggle" class="chip-btn"><i class="fa-solid fa-moon"></i>Dark</button>
+          <button id="notifBtn" class="icon-btn"><i class="fa-solid fa-bell"></i><span id="notifCount" class="badge">0</span></button>
+          <div class="profile-dd">
+            <button id="profileMenuBtn" class="profile-btn">
+              <img id="teacherAvatarTop" alt="Teacher">
+              <span id="teacherNameTop">Teacher</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            <div id="profileMenu" class="dropdown-menu">
+              <button data-section-jump="profile">Profile</button>
+              <button data-section-jump="settings">Settings</button>
+              <button id="profileLogout">Logout</button>
+            </div>
           </div>
         </div>
       </header>
 
-      <!-- SECTIONS CONTAINER -->
-      <div class="content-body">
-        
-        <!-- SECTION: DASHBOARD -->
-        <section id="dashboard-section" class="tab-content active">
-          <div class="section-header">
-            <h1 class="page-title">Class <span class="text-gradient">Performance.</span></h1>
-            <p class="page-desc">Summarized view of your exams and student activity.</p>
+      <section id="dashboard" class="section active">
+        <div class="section-head">
+          <h1>Teacher <span>Dashboard</span></h1>
+          <div class="head-actions">
+            <select id="dashDateRange" class="inline-select">
+              <option value="today">Today</option>
+              <option value="7d" selected>Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+              <option value="custom">Custom Range</option>
+            </select>
+            <input id="dashStartDate" class="inline-date hidden" type="date">
+            <input id="dashEndDate" class="inline-date hidden" type="date">
+            <label class="toggle mini-toggle">Auto Refresh<input id="dashAutoRefresh" type="checkbox" checked><span></span></label>
+            <button id="exportDashboardBtn" class="btn ghost"><i class="fa-solid fa-file-arrow-down"></i>Export Dashboard Report</button>
+            <button id="refreshDashboard" class="btn ghost"><i class="fa-solid fa-rotate"></i>Refresh</button>
+            <button class="btn primary" data-section-jump="exams"><i class="fa-solid fa-plus"></i>Create Exam</button>
           </div>
+        </div>
 
-          <!-- SUMMARY CARDS -->
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="s-icon">📝</div>
-              <div class="s-info">
-                <span class="s-label">Exams Created</span>
-                <span class="s-value">24</span>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="s-icon">🧩</div>
-              <div class="s-info">
-                <span class="s-label">Questions</span>
-                <span class="s-value">412</span>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="s-icon">🎯</div>
-              <div class="s-info">
-                <span class="s-label">Attempts</span>
-                <span class="s-value">1,248</span>
-              </div>
-            </div>
-            <div class="stat-card">
-               <div class="s-icon">👥</div>
-               <div class="s-info">
-                 <span class="s-label">Students Appeared</span>
-                 <span class="s-value">842</span>
-               </div>
-             </div>
-            <div class="stat-card">
-              <div class="s-icon">⭐️</div>
-              <div class="s-info">
-                <span class="s-label">Avg. Score</span>
-                <span class="s-value">78.4%</span>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="s-icon red">🚨</div>
-              <div class="s-info">
-                <span class="s-label">Violations</span>
-                <span class="s-value">32</span>
-              </div>
-            </div>
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="chart-grid">
+          <article class="card chart-card collapsible">
+            <div class="card-head"><h3>Performance Trend</h3><button class="btn ghost small collapse-toggle">Collapse</button></div>
+            <canvas id="performanceTrendChart"></canvas><div id="legendPerformance" class="chart-legend"></div>
+          </article>
+          <article class="card chart-card collapsible">
+            <div class="card-head"><h3>Attempts Chart</h3><button class="btn ghost small collapse-toggle">Collapse</button></div>
+            <canvas id="attemptsChart"></canvas><div id="legendAttempts" class="chart-legend"></div>
+          </article>
+          <article class="card chart-card collapsible">
+            <div class="card-head"><h3>Pass / Fail Chart</h3><button class="btn ghost small collapse-toggle">Collapse</button></div>
+            <canvas id="passFailChart"></canvas><div id="legendPassFail" class="chart-legend"></div>
+          </article>
+          <article class="card chart-card collapsible">
+            <div class="card-head"><h3>Difficulty Distribution</h3><button class="btn ghost small collapse-toggle">Collapse</button></div>
+            <canvas id="difficultyChart"></canvas><div id="legendDifficulty" class="chart-legend"></div>
+          </article>
+        </div>
+
+        <div class="split-grid two dashboard-widgets">
+          <article class="card"><div class="card-head"><h3>Upcoming Exams</h3></div><ul id="upcomingExamsList" class="feed-list"></ul></article>
+          <article class="card"><div class="card-head"><h3>Top Performing Students</h3></div><ul id="topStudentsList" class="feed-list"></ul></article>
+          <article class="card"><div class="card-head"><h3>Recent Attempts</h3></div><ul id="recentAttemptsList" class="feed-list"></ul></article>
+          <article class="card"><div class="card-head"><h3>Risk Distribution</h3></div><ul id="riskDistributionList" class="feed-list"></ul></article>
+          <article class="card"><div class="card-head"><h3>Average Time Taken</h3></div><div id="avgTimeTakenBox" class="metric-box">-</div></article>
+          <article class="card"><div class="card-head"><h3>Pass Percentage</h3></div><div id="passPercentageBox" class="metric-box">-</div></article>
+        </div>
+
+        <div class="split-grid">
+          <article class="card">
+            <div class="card-head"><h3>Recent Exams</h3><button id="viewAllRecentExams" class="btn ghost small" data-section-jump="exams">View All</button></div>
+            <div class="table-wrap"><table><thead><tr><th>Exam Code</th><th>Title</th><th>Status</th><th>Attempts</th></tr></thead><tbody id="recentExamsBody"></tbody></table></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><h3>High Risk Students</h3></div>
+            <ul id="highRiskList" class="feed-list"></ul>
+          </article>
+          <article class="card">
+            <div class="card-head"><h3>Live Exam Monitor</h3><button id="viewLiveMonitor" class="btn ghost small">View Live</button></div>
+            <ul id="liveMonitorList" class="feed-list"></ul>
+          </article>
+          <article class="card">
+            <div class="card-head"><h3>Cheating Alerts Panel</h3><button id="investigateAlertsBtn" class="btn ghost small">Investigate</button></div>
+            <ul id="alertsList" class="feed-list"></ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="exams" class="section">
+        <div class="section-head">
+          <h1>Exam <span>Management</span></h1>
+          <div class="head-actions">
+            <button id="exportExamsBtn" class="btn ghost"><i class="fa-solid fa-file-export"></i>Export CSV</button>
+            <button id="openExamModalBtn" class="btn primary"><i class="fa-solid fa-plus"></i>Create New Exam</button>
           </div>
-
-          <div class="dashboard-layout">
-            <div class="dashboard-left">
-               <!-- ANALYTICS PREVIEW -->
-               <div class="glass-card">
-                 <div class="card-header">
-                   <h3 class="card-title">Score Distribution</h3>
-                 </div>
-                 <div class="chart-container">
-                   <canvas id="scoreDistributionChart"></canvas>
-                 </div>
-               </div>
-
-               <!-- RECENT EXAMS -->
-               <div class="glass-card table-preview">
-                 <div class="card-header">
-                   <h3 class="card-title">Recent Assessments</h3>
-                   <button class="btn btn-ghost btn-sm" onclick="switchSection('exams-section')">View All</button>
-                 </div>
-                 <div class="table-wrap">
-                   <table>
-                     <thead>
-                       <tr>
-                         <th>Exam Name</th>
-                         <th>Attempts</th>
-                         <th>Avg Score</th>
-                         <th>Status</th>
-                       </tr>
-                     </thead>
-                     <tbody id="recent-exams-list"></tbody>
-                   </table>
-                 </div>
-               </div>
-            </div>
-
-            <div class="dashboard-right">
-               <!-- LOGS PREVIEW -->
-               <div class="glass-card activity-preview">
-                 <div class="card-header">
-                   <h3 class="card-title">Class Activity</h3>
-                 </div>
-                 <div class="activity-feed" id="dashboard-activity-feed"></div>
-               </div>
-
-               <!-- TOP PERFORMERS MINI -->
-               <div class="glass-card podium-mini">
-                 <div class="card-header">
-                   <h3 class="card-title">Top Students</h3>
-                 </div>
-                 <div class="mini-rank-list" id="mini-leaderboard"></div>
-               </div>
-            </div>
+        </div>
+        <div class="card bulk-toolbar">
+          <label><input id="selectAllExams" type="checkbox"> Select All</label>
+          <button id="bulkPublishBtn" class="btn ghost small" disabled>Bulk Publish</button>
+          <button id="bulkDeleteBtn" class="btn ghost small" disabled>Bulk Delete</button>
+          <button id="bulkExportBtn" class="btn ghost small" disabled>Bulk Export</button>
+          <span id="selectedCountLabel">0 selected</span>
+        </div>
+        <div class="toolbar card">
+          <input id="examSearch" type="text" placeholder="Search by title or exam code...">
+          <select id="examSubjectFilter"><option value="all">All Subjects</option></select>
+          <select id="examDurationFilter"><option value="all">All Duration</option><option value="short">Up to 60 min</option><option value="medium">61-120 min</option><option value="long">121+ min</option></select>
+          <input id="examDateFrom" type="date">
+          <input id="examDateTo" type="date">
+          <select id="examCreatedByFilter"><option value="all">All Creators</option></select>
+          <select id="examActiveFilter"><option value="all">Active / Inactive</option><option value="active">Active</option><option value="inactive">Inactive</option></select>
+          <select id="examStatusFilter"><option value="all">All Status</option><option value="Published">Published</option><option value="Draft">Draft</option></select>
+          <div class="status-tabs">
+            <button id="exTabAll" class="tab-btn active" data-exam-tab="all">All</button>
+            <button id="exTabPublished" class="tab-btn" data-exam-tab="Published">Published</button>
+            <button id="exTabDraft" class="tab-btn" data-exam-tab="Draft">Draft</button>
           </div>
-        </section>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th><input id="headExamCheck" type="checkbox"></th><th>Exam Title</th><th>Exam Code</th><th>Created By</th><th>Duration</th><th>Total Questions</th><th>Passing Marks</th><th>Attempts Count</th><th>Start Time</th><th>End Time</th><th>Created Date</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="examsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card pagination-advanced">
+          <div>
+            Show
+            <select id="examPageSize"><option>5</option><option selected>7</option><option>10</option><option>20</option></select>
+            records
+          </div>
+          <div id="examRecordsCounter">0 records</div>
+          <div>
+            Jump to page
+            <input id="examJumpPage" type="number" min="1" value="1">
+            <button id="examJumpBtn" class="btn ghost small">Go</button>
+          </div>
+        </div>
+      </section>
 
-        <!-- SECTION: EXAMS -->
-        <section id="exams-section" class="tab-content">
-          <div class="section-top">
-            <div class="section-header">
-              <h1 class="page-title">Assessment <span class="text-gradient">Manager.</span></h1>
-            </div>
-            <button class="btn btn-primary">Create New Exam</button>
+      <section id="attempts" class="section">
+        <div class="section-head"><h1>Attempts <span>Tracker</span></h1></div>
+        <div class="toolbar card attempts-toolbar">
+          <select id="attemptExamFilter">
+            <option value="all">All Exams</option>
+          </select>
+          <select id="attemptStatusFilter">
+            <option value="all">All Status</option>
+            <option value="STARTED">STARTED</option>
+            <option value="COMPLETED">COMPLETED</option>
+            <option value="AUTO_SUBMITTED">AUTO_SUBMITTED</option>
+            <option value="INVALIDATED">INVALIDATED</option>
+            <option value="CANCELLED">CANCELLED</option>
+          </select>
+          <select id="attemptRiskFilter">
+            <option value="all">All Risk</option>
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+          </select>
+          <input id="attemptSearchInput" type="text" placeholder="Search student name">
+          <button id="attemptResetFilters" class="btn ghost small" type="button" data-no-buffer="true">Reset Filters</button>
+        </div>
+        <div class="card table-card attempts-table-card">
+          <div id="attemptsLoading" class="attempts-loading hidden">
+            <div class="attempt-skeleton-row"></div>
+            <div class="attempt-skeleton-row"></div>
+            <div class="attempt-skeleton-row"></div>
+            <div class="attempt-skeleton-row"></div>
           </div>
-          
-          <div class="glass-card">
-            <div class="table-wrap">
-              <table id="exams-table">
-                <thead>
-                  <tr>
-                    <th>Exam Title</th>
-                    <th>Duration</th>
-                    <th>Start/End</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="exams-list"></tbody>
-              </table>
-            </div>
+          <div class="table-wrap attempts-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Exam Title</th>
+                  <th>
+                    <button id="attemptSortScore" class="attempt-sort-btn" type="button" data-no-buffer="true">
+                      Score <i class="fa-solid fa-sort"></i>
+                    </button>
+                  </th>
+                  <th>
+                    <button id="attemptSortPercentage" class="attempt-sort-btn" type="button" data-no-buffer="true">
+                      Percentage <i class="fa-solid fa-sort"></i>
+                    </button>
+                  </th>
+                  <th>Time Taken</th>
+                  <th>Status</th>
+                  <th>Risk Level</th>
+                  <th>Attempt Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="attemptsTableBody"></tbody>
+            </table>
           </div>
-        </section>
+          <div id="attemptsEmptyState" class="no-data hidden">No attempts found for selected filters.</div>
+        </div>
+      </section>
 
-        <!-- SECTION: QUESTIONS -->
-        <section id="questions-section" class="tab-content">
-           <div class="section-top">
-            <div class="section-header">
-              <h1 class="page-title">Question <span class="text-gradient">Library.</span></h1>
-            </div>
-            <div class="btn-group">
-              <button class="btn btn-ghost">Bulk Upload (Excel)</button>
-              <button class="btn btn-primary">Add Question</button>
-            </div>
+      <section id="analytics" class="section">
+        <div class="section-head"><h1>Analytics <span>Center</span></h1></div>
+        <div class="card analytics-toolbar">
+          <select id="analyticsExamFilter">
+            <option value="">Select Exam</option>
+          </select>
+          <input id="analyticsDateFrom" type="date" aria-label="Analytics date from">
+          <input id="analyticsDateTo" type="date" aria-label="Analytics date to">
+          <button id="analyticsRefreshBtn" class="btn ghost small" type="button" data-no-buffer="true"><i class="fa-solid fa-rotate"></i>Refresh</button>
+          <button id="analyticsExportCsvBtn" class="btn ghost small" type="button" data-no-buffer="true"><i class="fa-solid fa-file-csv"></i>Export CSV</button>
+          <button id="analyticsExportPdfBtn" class="btn ghost small" type="button" data-no-buffer="true"><i class="fa-solid fa-file-pdf"></i>Export PDF</button>
+        </div>
+        <div id="analyticsLoading" class="analytics-loading hidden">
+          <div class="analytics-skeleton kpi"></div>
+          <div class="analytics-skeleton kpi"></div>
+          <div class="analytics-skeleton kpi"></div>
+          <div class="analytics-skeleton kpi"></div>
+          <div class="analytics-skeleton kpi"></div>
+          <div class="analytics-skeleton chart"></div>
+          <div class="analytics-skeleton chart"></div>
+        </div>
+        <div id="analyticsNoData" class="no-data hidden">No analytics data available.</div>
+        <div id="analyticsError" class="no-data hidden">
+          Failed to load analytics.
+          <button id="analyticsRetryBtn" class="btn ghost small" type="button" data-no-buffer="true">Retry</button>
+        </div>
+        <div class="stats-grid analytics-kpi-grid analytics-cards" id="analyticsCards"></div>
+        <div class="chart-grid analytics-chart-grid">
+          <article class="card chart-card"><h3>Score Distribution</h3><canvas id="scoreDistChart"></canvas><div id="analyticsScoreLegend" class="chart-legend"></div></article>
+          <article class="card chart-card"><h3>Performance Trend</h3><canvas id="perfTrendChart"></canvas></article>
+        </div>
+        <div class="chart-grid analytics-chart-grid">
+          <article class="card chart-card"><h3>Student Accuracy</h3><canvas id="accuracyChart"></canvas></article>
+          <article class="card chart-card"><h3>Pass vs Fail</h3><canvas id="analyticsPassFailChart"></canvas><div id="analyticsPassLegend" class="chart-legend"></div></article>
+        </div>
+        <div class="chart-grid analytics-chart-grid">
+          <article class="card chart-card"><h3>Cheating Detection</h3><canvas id="analyticsCheatingChart"></canvas><div id="analyticsCheatLegend" class="chart-legend"></div></article>
+          <article class="card chart-card"><h3>Difficulty Analysis</h3><canvas id="analyticsDifficultyChart"></canvas><div id="analyticsDifficultyLegend" class="chart-legend"></div></article>
+        </div>
+      </section>
+
+      <section id="leaderboard" class="section">
+        <div class="section-head"><h1>Leaderboard <span>Rankings</span></h1></div>
+        <div class="card leaderboard-toolbar">
+          <div class="leaderboard-modes">
+            <button id="leaderboardModeExam" class="btn ghost small active">Exam Leaderboard</button>
+            <button id="leaderboardModeGlobal" class="btn ghost small">Global Leaderboard</button>
           </div>
-          <div class="glass-card">
-            <div class="table-wrap">
+          <div class="leaderboard-filters">
+            <select id="leaderboardExamFilter">
+              <option value="all">Select Exam</option>
+            </select>
+            <input id="leaderboardStudentSearch" type="text" placeholder="Search student">
+          </div>
+        </div>
+        <div class="card table-card leaderboard-table-card">
+          <div id="leaderboardLoading" class="leaderboard-loading hidden">
+            <div class="lb-skeleton-row"></div>
+            <div class="lb-skeleton-row"></div>
+            <div class="lb-skeleton-row"></div>
+            <div class="lb-skeleton-row"></div>
+          </div>
+          <div class="table-wrap leaderboard-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Student Name</th>
+                  <th>
+                    <button id="leaderboardScoreSort" class="lb-sort-btn" type="button">
+                      Score
+                      <i id="leaderboardSortIcon" class="fa-solid fa-arrow-down-wide-short"></i>
+                    </button>
+                  </th>
+                  <th>Percentage</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboardBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="proctoring" class="section">
+        <div class="section-head"><h1>Proctoring <span>Monitor</span></h1></div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Student</th><th>Exam</th><th>Score</th><th>Severity</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="proctoringBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="ai-insights" class="section">
+        <div class="section-head"><h1>AI <span>Insights</span></h1></div>
+        <div class="card ai-toolbar">
+          <select id="aiStudentFilter"><option value="">Select Student</option></select>
+          <select id="aiExamFilter"><option value="all">All Exams</option></select>
+          <button id="aiRefreshBtn" class="btn ghost small" type="button" data-no-buffer="true"><i class="fa-solid fa-rotate"></i>Refresh</button>
+        </div>
+        <div id="aiLoading" class="ai-loading hidden">
+          <div class="ai-skeleton card"></div>
+          <div class="ai-skeleton card"></div>
+          <div class="ai-skeleton card"></div>
+        </div>
+        <div id="aiError" class="no-data hidden">Failed to load AI insights <button id="aiRetryBtn" class="btn ghost small" type="button" data-no-buffer="true">Retry</button></div>
+        <div id="aiEmpty" class="no-data hidden">No AI insights available</div>
+        <div class="split-grid two ai-grid">
+          <article class="card"><h3>Weak Topics</h3><ul id="weakTopics" class="feed-list ai-weak-list"></ul></article>
+          <article class="card"><h3>Recommendations</h3><ul id="recommendations" class="feed-list ai-rec-list"></ul></article>
+          <article class="card"><h3>Accuracy Chart</h3><canvas id="aiAccuracyChart"></canvas></article>
+          <article class="card">
+            <h3>Risk Score & Feedback</h3>
+            <div id="riskScoreCard" class="insight-box ai-risk-gauge"></div>
+            <div id="aiRiskBadge" class="status-pill status-active">LOW</div>
+            <p id="aiFeedback"></p>
+          </article>
+          <article class="card ai-topic-table-card" style="grid-column:1 / -1;">
+            <h3>Topic Performance</h3>
+            <div class="table-wrap ai-topic-table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Question Content</th>
-                    <th>Type</th>
+                    <th>Topic</th>
+                    <th>Total Questions</th>
+                    <th>Correct Answers</th>
+                    <th>Wrong Answers</th>
+                    <th>Accuracy %</th>
                     <th>Difficulty</th>
-                    <th>Actions</th>
+                    <th>Performance Level</th>
+                    <th>Recommendation</th>
                   </tr>
                 </thead>
-                <tbody id="questions-list"></tbody>
+                <tbody id="aiTopicPerformanceBody"></tbody>
               </table>
             </div>
-          </div>
-        </section>
+          </article>
+          <article class="card" style="grid-column:1 / -1;">
+            <h3>Overall Feedback</h3>
+            <div id="aiOverallFeedback" class="ai-overall-feedback"></div>
+          </article>
+        </div>
+      </section>
 
-        <!-- SECTION: ATTEMPTS -->
-        <section id="attempts-section" class="tab-content">
-          <div class="section-header">
-            <h1 class="page-title">Student <span class="text-gradient">Attempts.</span></h1>
+      <section id="certificates" class="section">
+        <div class="section-head"><h1>Certificates <span>Issued</span></h1></div>
+        <div class="card table-card certificates-table-card">
+          <div class="table-wrap certificates-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Certificate ID</th>
+                  <th>Student Name</th>
+                  <th>Exam Title</th>
+                  <th>Score</th>
+                  <th>Grade</th>
+                  <th>Issued Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="certificatesBody"></tbody>
+            </table>
           </div>
-          <div class="glass-card">
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Student Name</th>
-                    <th>Exam Name</th>
-                    <th>Score</th>
-                    <th>Time Taken</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="attempts-list"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
+        </div>
+      </section>
 
-        <!-- SECTION: ANALYTICS -->
-        <section id="analytics-section" class="tab-content">
-          <div class="section-header">
-            <h1 class="page-title">Academic <span class="text-gradient">Analytics.</span></h1>
-          </div>
-          <div class="analytics-grid">
-            <div class="glass-card">
-              <h3 class="card-title">Performance Trend (Weekly)</h3>
-              <div class="chart-container big">
-                <canvas id="performanceTrendChart"></canvas>
+      <section id="profile" class="section">
+        <div class="section-head"><h1>Teacher <span>Profile</span></h1></div>
+        <div id="profileLoading" class="profile-loading hidden">
+          <div class="profile-skeleton card"></div>
+          <div class="profile-skeleton card"></div>
+        </div>
+        <div class="profile-grid">
+          <div class="profile-side-stack">
+            <article class="card profile-header-card">
+              <div class="profile-avatar-wrap">
+                <img id="pfAvatarPreview" alt="Teacher Profile">
+                <div class="profile-avatar-actions">
+                  <button id="pfUploadImageBtn" type="button" class="btn ghost small" data-no-buffer="true"><i class="fa-solid fa-upload"></i>Upload</button>
+                  <button id="pfRemoveImageBtn" type="button" class="btn ghost small" data-no-buffer="true">Remove</button>
+                </div>
+                <input id="pfImageFile" type="file" accept="image/*" hidden>
               </div>
-            </div>
-            <div class="glass-card">
-              <h3 class="card-title">Topic Weakness Analysis</h3>
-              <div class="chart-container big">
-                <canvas id="topicPerChart"></canvas>
+              <div class="profile-header-meta">
+                <h3 id="pfHeaderName">Teacher Name</h3>
+                <p id="pfHeaderDept">Department</p>
+                <p id="pfHeaderDesignation">Designation</p>
+                <div id="pfAccountStatus" class="status-pill status-active">Active</div>
               </div>
+            </article>
+
+            <article class="card profile-account-card">
+              <h3>Account Information</h3>
+              <ul class="profile-account-list">
+                <li><span>Employee ID</span><strong id="pfAccEmployeeId">-</strong></li>
+                <li><span>Account Status</span><strong id="pfAccEnabled">-</strong></li>
+                <li><span>Lock Status</span><strong id="pfAccLocked">-</strong></li>
+                <li><span>Created At</span><strong id="pfAccCreatedAt">-</strong></li>
+                <li><span>Last Updated</span><strong id="pfAccUpdatedAt">-</strong></li>
+              </ul>
+            </article>
+          </div>
+
+          <form id="profileForm" class="card form-grid profile-form profile-main-card">
+            <div class="profile-form-head">
+              <h3>Profile Details</h3>
+              <p>Update teacher information and keep account details current.</p>
             </div>
-          </div>
-        </section>
+            <label>Name<input id="pfName"></label>
+            <label>Email<input id="pfEmail" type="email" readonly></label>
+            <label>Phone<input id="pfPhone"></label>
+            <label>Department<input id="pfDepartment"></label>
+            <label>Designation<input id="pfDesignation"></label>
+            <label>Experience Years<input id="pfExperience" type="number" min="0"></label>
+            <label>Qualification<input id="pfQualification"></label>
+            <label>Employee ID<input id="pfEmployeeId" readonly></label>
+            <label class="wide hidden">Profile Image URL<input id="pfImage"></label>
+            <div class="form-actions">
+              <button type="button" id="profileEditBtn" class="btn primary" data-no-buffer="true">Update Profile</button>
+              <button type="submit" id="profileSaveBtn" class="btn primary hidden" data-no-buffer="true">Save Profile</button>
+              <button type="button" id="profileCancelBtn" class="btn ghost hidden" data-no-buffer="true">Cancel</button>
+              <button type="button" id="changePasswordBtn" class="btn ghost" data-no-buffer="true">Change Password</button>
+            </div>
+          </form>
+        </div>
+      </section>
 
-        <!-- SECTION: PROCTORING -->
-        <section id="proctoring-section" class="tab-content">
-          <div class="section-header">
-            <h1 class="page-title">Integrity <span class="text-gradient">Review.</span></h1>
-          </div>
-          <div class="glass-card">
-             <div class="card-header">
-                <h3 class="card-title">Suspicious Attempts</h3>
-                <span class="alarm-badge">Manual Review Needed</span>
-             </div>
-             <div class="table-wrap">
-               <table>
-                 <thead>
-                   <tr>
-                     <th>Time</th>
-                     <th>Student</th>
-                     <th>Violation Type</th>
-                     <th>Detection Weight</th>
-                     <th>Action</th>
-                   </tr>
-                 </thead>
-                 <tbody id="violations-list"></tbody>
-               </table>
-             </div>
-          </div>
-        </section>
-
-        <!-- SECTION: LEADERBOARD -->
-        <section id="leaderboard-section" class="tab-content">
-           <div class="section-header">
-            <h1 class="page-title">Class <span class="text-gradient">Rankings.</span></h1>
-          </div>
-          <div class="leaderboard-container">
-             <div class="podium-area">
-                <div class="podium second-place">
-                  <img src="https://ui-avatars.com/api/?name=Sarah+Lee&background=cbd5e1" alt="2nd">
-                  <span class="p-name">Sarah Lee</span>
-                  <span class="p-score">98.2</span>
-                </div>
-                <div class="podium first-place">
-                  <img src="https://ui-avatars.com/api/?name=John+Doe&background=3b82f6" alt="1st">
-                  <span class="p-name">John Doe</span>
-                  <span class="p-score">99.5</span>
-                </div>
-                <div class="podium third-place">
-                  <img src="https://ui-avatars.com/api/?name=Mike+Ross&background=94a3b8" alt="3rd">
-                  <span class="p-name">Mike Ross</span>
-                  <span class="p-score">97.8</span>
-                </div>
-             </div>
-             <div class="glass-card">
-                <table class="rank-table">
-                  <thead>
-                    <tr>
-                      <th>Rank</th>
-                      <th>Student</th>
-                      <th>Avg Accuracy</th>
-                      <th>Points</th>
-                    </tr>
-                  </thead>
-                  <tbody id="ranks-list"></tbody>
-                </table>
-             </div>
-          </div>
-        </section>
-
-        <!-- SECTION: CERTIFICATES -->
-        <section id="certificates-section" class="tab-content">
-           <div class="section-header">
-            <h1 class="page-title">Issued <span class="text-gradient">Credentials.</span></h1>
-          </div>
-          <div class="glass-card">
-             <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Recipient</th>
-                      <th>Exam Name</th>
-                      <th>Credential ID</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="certs-list"></tbody>
-                </table>
-             </div>
-          </div>
-        </section>
-
-      </div>
+      <section id="settings" class="section">
+        <div class="section-head"><h1>System <span>Settings</span></h1></div>
+        <div id="settingsLoading" class="settings-loading hidden">
+          <div class="settings-skeleton card"></div>
+          <div class="settings-skeleton card"></div>
+        </div>
+        <div id="settingsError" class="no-data hidden">
+          Failed to load settings.
+          <button id="settingsRetryBtn" class="btn ghost small" type="button" data-no-buffer="true">Retry</button>
+        </div>
+        <div class="split-grid two">
+          <article class="card settings-card">
+            <h3>Preferences</h3>
+            <label class="toggle setting-toggle">Enable Notifications<input id="stNotif" type="checkbox" checked><span></span></label>
+            <label class="toggle setting-toggle">Live Auto Refresh<input id="stAutoRefresh" type="checkbox" checked><span></span></label>
+            <label class="toggle setting-toggle">Proctoring Alerts<input id="stAlerts" type="checkbox" checked><span></span></label>
+          </article>
+          <article class="card settings-card settings-security-card">
+            <h3>Security</h3>
+            <button id="stSessionReset" class="btn ghost" data-no-buffer="true">Reset Sessions</button>
+            <button id="stApiTest" class="btn ghost" data-no-buffer="true">Test API Connectivity</button>
+            <div id="stApiStatus" class="status-pill status-active hidden">Not tested</div>
+            <button id="stSave" class="btn primary settings-save-btn" data-no-buffer="true" disabled>Save Settings</button>
+          </article>
+        </div>
+      </section>
     </main>
-
   </div>
 
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
-  <script src="../assets/core/js/theme.js"></script>
-  <script src="../assets/pages/teacher/js/dashboard.js"></script>
-  
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      ThemeController.init();
-    });
-  </script>
+  <aside id="notificationPanel" class="notification-panel">
+    <div class="panel-head">
+      <h3>Notifications</h3>
+      <button id="clearNotifications" class="btn ghost small">Clear</button>
+    </div>
+    <ul id="notificationList"></ul>
+  </aside>
+
+  <input id="hiddenFileInput" type="file" hidden>
+
+  <div id="modalContainer" class="modal-wrap hidden"></div>
+  <div id="toastContainer" class="toast-wrap"></div>
+  <div id="chartTooltip" class="chart-tooltip hidden"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="../assets/pages/teacher/js/teacher-dashboard.js"></script>
 </body>
 </html>
+
+

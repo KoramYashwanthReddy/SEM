@@ -189,19 +189,35 @@ const EffectsEngine = (() => {
 
   /* ─── ALERT SIMULATION ─── */
   function initAlertSimulation() {
-    const alerts = [
-      { type: 'warn', icon: '👀', title: 'Eye Contact Lost', sub: '3.2s · Student ID #2847', time: 'now' },
-      { type: 'danger', icon: '🔊', title: 'Noise Detected', sub: 'Background voices · 87dB', time: '0:03' },
-      { type: 'info', icon: '📱', title: 'Tab Switch Prevented', sub: 'Browser focus restored', time: '0:08' },
-      { type: 'warn', icon: '🖥️', title: 'Multiple Screens', sub: 'External monitor signal', time: '0:14' },
-      { type: 'danger', icon: '🚫', title: 'Face Not Detected', sub: 'Student #1042 – Alert sent', time: '0:21' },
-    ];
-
     const feed = document.getElementById('alert-feed');
     if (!feed) return;
 
     let idx = 0;
     function showNext() {
+      const summary = window.HomeSummary || {};
+      const alerts = [
+        {
+          type: 'info',
+          icon: '📈',
+          title: 'Live Exams Sync',
+          sub: `${summary.meta?.totalExams || 0} exams loaded from the system`,
+          time: 'now'
+        },
+        {
+          type: 'warn',
+          icon: '👥',
+          title: 'Student Activity',
+          sub: `${summary.analytics?.activeStudents || 0} active students currently tracked`,
+          time: 'live'
+        },
+        {
+          type: 'danger',
+          icon: '🎓',
+          title: 'Certificates Issued',
+          sub: `${summary.hero?.certificatesIssued || 0} live certificates in circulation`,
+          time: 'live'
+        }
+      ];
       if (idx >= alerts.length) idx = 0;
       const a = alerts[idx++];
       const item = document.createElement('div');
@@ -225,15 +241,15 @@ const EffectsEngine = (() => {
 
   /* ─── TOAST ─── */
   function initToasts() {
-    const toasts = [
-      { icon: '⚡', title: 'New Exam Published', body: 'Advanced JS – 45 mins · 150 questions' },
-      { icon: '🎓', title: 'Certificate Generated', body: 'Sarah K. completed Python Fundamentals' },
-      { icon: '⚠️', title: 'Proctoring Alert', body: 'Unusual activity detected in Room B-12' },
-      { icon: '📊', title: 'Report Ready', body: 'Analytics export for March 2025 complete' },
-    ];
-
     let tIdx = 0;
     function showToast() {
+      const summary = window.HomeSummary || {};
+      const toasts = [
+        { icon: '⚡', title: 'Live Summary Loaded', body: `${summary.meta?.totalExams || 0} exams and ${summary.meta?.totalAttempts || 0} attempts synced` },
+        { icon: '🎓', title: 'Certificates Online', body: `${summary.hero?.certificatesIssued || 0} certificates verified from the platform` },
+        { icon: '⚠️', title: 'Violation Snapshot', body: `${summary.analytics?.violationRate || 0}% risk rate from live attempt logs` },
+        { icon: '📊', title: 'Pass Rate Updated', body: `Current pass rate is ${summary.hero?.passRate || 0}% across the system` },
+      ];
       const t = toasts[tIdx % toasts.length];
       tIdx++;
       const container = document.getElementById('toast-container');

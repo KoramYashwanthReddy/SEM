@@ -5,6 +5,8 @@ import com.yashwanth.ai_exam_system.entity.CheatingEvidence;
 import com.yashwanth.ai_exam_system.entity.Exam;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
 import com.yashwanth.ai_exam_system.entity.ProctoringEvent;
+import com.yashwanth.ai_exam_system.entity.Question;
+import com.yashwanth.ai_exam_system.entity.Role;
 import com.yashwanth.ai_exam_system.service.AdminService;
 
 import jakarta.validation.Valid;
@@ -39,6 +41,54 @@ public class AdminController {
                 adminService.createTeacher(request));
     }
 
+    @PutMapping("/teachers/{userId}")
+    public ResponseEntity<String> updateTeacher(
+            @PathVariable Long userId,
+            @RequestBody CreateTeacherRequest request) {
+
+        return ResponseEntity.ok(
+                adminService.updateTeacher(userId, request));
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<List<Map<String, Object>>> getAllUsers() {
+        return ResponseEntity.ok(adminService.getAllUsers());
+    }
+
+    @GetMapping("/users/students")
+    public ResponseEntity<List<Map<String, Object>>> getStudents() {
+        return ResponseEntity.ok(adminService.getUsersByRole(Role.STUDENT));
+    }
+
+    @GetMapping("/users/teachers")
+    public ResponseEntity<List<Map<String, Object>>> getTeachers() {
+        return ResponseEntity.ok(adminService.getUsersByRole(Role.TEACHER));
+    }
+
+    @GetMapping("/teachers/{userId}/activity")
+    public ResponseEntity<Map<String, Object>> getTeacherActivity(
+            @PathVariable Long userId) {
+        return ResponseEntity.ok(adminService.getTeacherActivity(userId));
+    }
+
+    @PostMapping("/users/{userId}/toggle-enabled")
+    public ResponseEntity<Map<String, Object>> toggleUserEnabled(
+            @PathVariable Long userId) {
+        return ResponseEntity.ok(adminService.toggleUserEnabled(userId));
+    }
+
+    @PostMapping("/users/{userId}/toggle-lock")
+    public ResponseEntity<Map<String, Object>> toggleUserLocked(
+            @PathVariable Long userId) {
+        return ResponseEntity.ok(adminService.toggleUserLocked(userId));
+    }
+
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
+        adminService.deleteUser(userId);
+        return ResponseEntity.noContent().build();
+    }
+
     // =====================================================
     // ================= EXAMS =================
     // =====================================================
@@ -59,12 +109,12 @@ public class AdminController {
     // =====================================================
 
     @GetMapping("/attempts")
-    public ResponseEntity<List<ExamAttempt>> getAllAttempts() {
+    public ResponseEntity<List<Map<String, Object>>> getAllAttempts() {
         return ResponseEntity.ok(adminService.getAllAttempts());
     }
 
     @GetMapping("/attempts/exam/{examCode}")
-    public ResponseEntity<List<ExamAttempt>> getAttemptsByExam(
+    public ResponseEntity<List<Map<String, Object>>> getAttemptsByExam(
             @PathVariable String examCode) {
 
         return ResponseEntity.ok(
@@ -72,7 +122,7 @@ public class AdminController {
     }
 
     @GetMapping("/attempts/student/{studentId}")
-    public ResponseEntity<List<ExamAttempt>> getAttemptsByStudent(
+    public ResponseEntity<List<Map<String, Object>>> getAttemptsByStudent(
             @PathVariable Long studentId) {
 
         return ResponseEntity.ok(
@@ -80,9 +130,21 @@ public class AdminController {
     }
 
     @GetMapping("/attempts/suspicious")
-    public ResponseEntity<List<ExamAttempt>> getSuspiciousAttempts() {
+    public ResponseEntity<List<Map<String, Object>>> getSuspiciousAttempts() {
         return ResponseEntity.ok(
                 adminService.getSuspiciousAttempts());
+    }
+
+    @GetMapping("/attempts/live-high-risk")
+    public ResponseEntity<List<Map<String, Object>>> getLiveHighRiskAttempts() {
+        return ResponseEntity.ok(
+                adminService.getLiveHighRiskAttempts());
+    }
+
+    @GetMapping("/attempts/top-risk")
+    public ResponseEntity<List<Map<String, Object>>> getTopRiskAttempts() {
+        return ResponseEntity.ok(
+                adminService.getTopRiskAttempts());
     }
 
     // =====================================================
@@ -138,6 +200,30 @@ public class AdminController {
     }
 
     // =====================================================
+    // ================= QUESTIONS =================
+    // =====================================================
+
+    @GetMapping("/questions")
+    public ResponseEntity<List<Question>> getAllQuestions() {
+        return ResponseEntity.ok(adminService.getAllQuestions());
+    }
+
+    @GetMapping("/questions/exam/{examCode}")
+    public ResponseEntity<List<Question>> getQuestionsByExam(
+            @PathVariable String examCode) {
+
+        return ResponseEntity.ok(adminService.getQuestionsByExam(examCode));
+    }
+
+    @PostMapping("/questions/exam/{examCode}/bulk")
+    public ResponseEntity<Map<String, Object>> bulkUploadQuestions(
+            @PathVariable String examCode,
+            @RequestBody List<Map<String, Object>> questions) {
+
+        return ResponseEntity.ok(adminService.bulkUploadQuestions(examCode, questions));
+    }
+
+    // =====================================================
     // ================= ADMIN CONTROL =================
     // =====================================================
 
@@ -147,6 +233,14 @@ public class AdminController {
 
         adminService.cancelAttempt(attemptId);
         return ResponseEntity.ok("Attempt cancelled successfully");
+    }
+
+    @PostMapping("/attempts/{attemptId}/force-submit")
+    public ResponseEntity<String> forceSubmitAttempt(
+            @PathVariable Long attemptId) {
+
+        adminService.forceSubmitAttempt(attemptId);
+        return ResponseEntity.ok("Attempt force submitted successfully");
     }
 
     @PostMapping("/attempts/{attemptId}/restore")

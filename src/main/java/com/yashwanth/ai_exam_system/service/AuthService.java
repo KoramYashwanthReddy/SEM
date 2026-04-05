@@ -65,9 +65,15 @@ public class AuthService {
     // =========================================================
     public AuthResponse login(LoginRequest request) {
 
-        logger.info("Login attempt: {}", request.getEmail());
+        String identifier = request.getEmail() == null ? "" : request.getEmail().trim();
+        if (identifier.isBlank()) {
+            throw new RuntimeException("Email or employee ID is required");
+        }
 
-        User user = userRepository.findByEmail(request.getEmail())
+        logger.info("Login attempt: {}", identifier);
+
+        User user = userRepository.findByEmailIgnoreCase(identifier)
+                .or(() -> userRepository.findByEmployeeIdIgnoreCase(identifier))
                 .orElseThrow(() ->
                         new RuntimeException("User not found"));
 
@@ -151,6 +157,13 @@ public class AuthService {
         response.setUserId(user.getId());
         response.setName(user.getName());
         response.setEmail(user.getEmail());
+        response.setEmployeeId(user.getEmployeeId());
+        response.setPhone(user.getPhone());
+        response.setProfileImage(user.getProfileImage());
+        response.setDepartment(user.getDepartment());
+        response.setDesignation(user.getDesignation());
+        response.setExperienceYears(user.getExperienceYears());
+        response.setQualification(user.getQualification());
 
         // optional expiry (if available in jwtService)
         response.setExpiresIn(jwtService.getAccessTokenExpiry());

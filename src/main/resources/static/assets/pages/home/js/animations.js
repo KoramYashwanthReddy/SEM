@@ -3,8 +3,13 @@
  */
 
 const AnimationsController = (() => {
+  const homeCharts = {
+    score: null,
+    violation: null,
+    completion: null
+  };
 
-  function initCharts() {
+  function initCharts(summary = window.HomeSummary || {}) {
     const isDark = () => document.documentElement.getAttribute('data-theme') !== 'light';
 
     function getGridColor() {
@@ -18,16 +23,44 @@ const AnimationsController = (() => {
     Chart.defaults.animation.duration = 1200;
     Chart.defaults.animation.easing = 'easeOutQuart';
 
-    // Score Distribution
+    const scoreData = summary.scoreDistribution || {};
+    const violationData = summary.violationTypes || {};
+    const trendData = summary.trend || {};
+
+    const scoreLabels = scoreData.labels || ['0-20', '21-40', '41-60', '61-80', '81-100'];
+    const scoreValues = scoreData.data || [0, 0, 0, 0, 0];
+    const violationLabels = violationData.labels || ['Tab Switch', 'Fullscreen', 'High Risk', 'Auto Submitted', 'Cancelled'];
+    const violationValues = violationData.data || [0, 0, 0, 0, 0];
+    const trendLabels = trendData.labels || [];
+    const completionValues = trendData.completion || [];
+    const passRateValues = trendData.passRate || [];
+
+    const syncTheme = (chart, keys) => {
+      if (!chart) return;
+      keys.forEach(({ scale, target }) => {
+        if (chart.options.scales?.[scale]?.grid) {
+          chart.options.scales[scale].grid.color = getGridColor();
+        }
+        if (chart.options.scales?.[scale]?.ticks) {
+          chart.options.scales[scale].ticks.color = getTextColor();
+        }
+        if (target === 'legend' && chart.options.plugins?.legend?.labels) {
+          chart.options.plugins.legend.labels.color = getTextColor();
+        }
+      });
+      chart.update();
+    };
+
     const scoreCtx = document.getElementById('scoreChart');
     if (scoreCtx) {
-      const scoreChart = new Chart(scoreCtx, {
+      if (homeCharts.score) homeCharts.score.destroy();
+      homeCharts.score = new Chart(scoreCtx, {
         type: 'bar',
         data: {
-          labels: ['0-20', '21-40', '41-60', '61-80', '81-100'],
+          labels: scoreLabels,
           datasets: [{
-            label: 'Students',
-            data: [45, 120, 380, 520, 235],
+            label: 'Results',
+            data: scoreValues,
             backgroundColor: [
               'rgba(239,68,68,0.7)', 'rgba(245,158,11,0.7)',
               'rgba(59,130,246,0.7)', 'rgba(139,92,246,0.7)', 'rgba(16,185,129,0.7)'
@@ -61,26 +94,18 @@ const AnimationsController = (() => {
           }
         }
       });
-
-      window.addEventListener('themechange', () => {
-        scoreChart.options.scales.x.grid.color = getGridColor();
-        scoreChart.options.scales.y.grid.color = getGridColor();
-        scoreChart.options.scales.x.ticks.color = getTextColor();
-        scoreChart.options.scales.y.ticks.color = getTextColor();
-        scoreChart.update();
-      });
     }
 
-    // Completion Rate Line
     const completionCtx = document.getElementById('completionChart');
     if (completionCtx) {
-      const completionChart = new Chart(completionCtx, {
+      if (homeCharts.completion) homeCharts.completion.destroy();
+      homeCharts.completion = new Chart(completionCtx, {
         type: 'line',
         data: {
-          labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+          labels: trendLabels,
           datasets: [{
             label: 'Completion Rate',
-            data: [72, 75, 80, 76, 83, 87, 85, 91, 89, 93, 94, 96],
+            data: completionValues,
             borderColor: '#3b82f6',
             backgroundColor: 'rgba(59,130,246,0.08)',
             borderWidth: 2.5,
@@ -93,7 +118,7 @@ const AnimationsController = (() => {
             pointHoverRadius: 7
           }, {
             label: 'Pass Rate',
-            data: [58, 62, 65, 63, 70, 74, 72, 78, 77, 81, 83, 86],
+            data: passRateValues,
             borderColor: '#8b5cf6',
             backgroundColor: 'rgba(139,92,246,0.05)',
             borderWidth: 2,
@@ -143,26 +168,17 @@ const AnimationsController = (() => {
           }
         }
       });
-
-      window.addEventListener('themechange', () => {
-        completionChart.options.scales.x.grid.color = getGridColor();
-        completionChart.options.scales.y.grid.color = getGridColor();
-        completionChart.options.scales.x.ticks.color = getTextColor();
-        completionChart.options.scales.y.ticks.color = getTextColor();
-        completionChart.options.plugins.legend.labels.color = getTextColor();
-        completionChart.update();
-      });
     }
 
-    // Doughnut — Violation types
     const violCtx = document.getElementById('violationChart');
     if (violCtx) {
-      new Chart(violCtx, {
+      if (homeCharts.violation) homeCharts.violation.destroy();
+      homeCharts.violation = new Chart(violCtx, {
         type: 'doughnut',
         data: {
-          labels: ['Face Away', 'Tab Switch', 'Noise', 'Device', 'Other'],
+          labels: violationLabels,
           datasets: [{
-            data: [35, 28, 18, 12, 7],
+            data: violationValues,
             backgroundColor: [
               'rgba(59,130,246,0.85)', 'rgba(139,92,246,0.85)',
               'rgba(245,158,11,0.85)', 'rgba(236,72,153,0.85)', 'rgba(16,185,129,0.85)'
@@ -201,6 +217,22 @@ const AnimationsController = (() => {
               callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}%` }
             }
           }
+        }
+      });
+    }
+
+    if (!window.__homeChartsThemeBound) {
+      window.__homeChartsThemeBound = true;
+      window.addEventListener('themechange', () => {
+        syncTheme(homeCharts.score, [{ scale: 'x' }, { scale: 'y' }]);
+        syncTheme(homeCharts.violation, []);
+        if (homeCharts.completion) {
+          homeCharts.completion.options.scales.x.grid.color = getGridColor();
+          homeCharts.completion.options.scales.y.grid.color = getGridColor();
+          homeCharts.completion.options.scales.x.ticks.color = getTextColor();
+          homeCharts.completion.options.scales.y.ticks.color = getTextColor();
+          homeCharts.completion.options.plugins.legend.labels.color = getTextColor();
+          homeCharts.completion.update();
         }
       });
     }
@@ -246,12 +278,19 @@ const AnimationsController = (() => {
   function init() {
     // Wait for Chart.js to load
     if (typeof Chart !== 'undefined') {
-      initCharts();
+      initCharts(window.HomeSummary || {});
     } else {
-      window.addEventListener('load', initCharts);
+      window.addEventListener('load', () => initCharts(window.HomeSummary || {}));
     }
     initQRAnimation();
   }
 
-  return { init };
+  function renderHomeCharts(summary) {
+    window.HomeSummary = summary || {};
+    initCharts(window.HomeSummary);
+  }
+
+  return { init, renderHomeCharts };
 })();
+
+window.AnimationsController = AnimationsController;

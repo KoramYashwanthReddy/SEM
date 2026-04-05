@@ -4,10 +4,30 @@
  */
 const TeacherLogin = (() => {
 
+  const API_BASE = /^https?:/i.test(window.location.origin)
+    ? window.location.origin
+    : "http://localhost:8080";
+
   const form = document.getElementById('teacher-login-form');
   const submitBtn = document.getElementById('submit-btn');
   const btnText = submitBtn?.querySelector('.btn-text');
   let speedTimeout;
+
+  async function readErrorMessage(response) {
+    const fallback = response?.statusText || `Request failed (${response?.status || "unknown"})`;
+    try {
+      const raw = await response.clone().text();
+      if (!raw) return fallback;
+      const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+      if (contentType.includes("application/json")) {
+        const data = JSON.parse(raw);
+        return String(data?.message || data?.error || data?.cause || data?.detail || fallback).trim() || fallback;
+      }
+      return String(raw).trim() || fallback;
+    } catch (_e) {
+      return fallback;
+    }
+  }
 
   function init() {
     if (typeof ThemeController !== "undefined") {
@@ -46,7 +66,6 @@ const TeacherLogin = (() => {
   async function handleLogin(e) {
     e.preventDefault();
 
-    // IMPORTANT: match HTML IDs
     const email = document.getElementById('teacher-id')?.value.trim();
     const password = document.getElementById('password')?.value.trim();
 
@@ -59,7 +78,7 @@ const TeacherLogin = (() => {
 
     try {
 
-      const response = await fetch("http://localhost:54298/api/auth/login", {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -70,27 +89,48 @@ const TeacherLogin = (() => {
         })
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.message || "Login failed");
+        throw new Error(await readErrorMessage(response));
       }
 
-      // Role check
+      const data = await response.json();
+      console.log("LOGIN RESPONSE:", data);
+
+      // Support multiple token names
+      const token = data.token || data.accessToken || data.jwt;
+
+      if (!token) {
+        throw new Error("Invalid authentication response");
+      }
+
       if (data.role !== "TEACHER") {
         throw new Error("Access denied. Teacher only.");
       }
 
-      // Save session
-      localStorage.setItem("token", data.token);
+      // ================= SAVE TOKEN =================
+      localStorage.setItem("token", token);
+      localStorage.setItem("accessToken", token);
       localStorage.setItem("role", data.role);
+
+      // ================= SAVE TEACHER DATA =================
+      localStorage.setItem("teacher", JSON.stringify({
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        department: data.department,
+        designation: data.designation,
+        qualification: data.qualification,
+        employeeId: data.employeeId
+      }));
+
+      // Save full response
       localStorage.setItem("user", JSON.stringify(data));
 
       setSuccess();
 
       setTimeout(() => {
         window.location.href = "teacher-dashboard.html";
-      }, 1000);
+      }, 800);
 
     } catch (error) {
       console.error("Teacher Login Error:", error);

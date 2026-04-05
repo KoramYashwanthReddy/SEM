@@ -16,6 +16,7 @@
   
   <!-- CSS Page Specific -->
   <link rel="stylesheet" href="../assets/pages/admin/css/dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="admin-page">
 
@@ -35,38 +36,49 @@
           <span class="logo-text">Console</span>
         </div>
       </div>
-
       <nav class="sidebar-nav">
         <a href="#dashboard" class="nav-item active" data-target="dashboard-section">
-          <span class="nav-icon">📊</span> Dashboard
+          <span class="nav-icon"><i class="fa-solid fa-house"></i></span> <span>Dashboard</span>
         </a>
         <a href="#exams" class="nav-item" data-target="exams-section">
-          <span class="nav-icon">📝</span> Exams
-        </a>
-        <a href="#questions" class="nav-item" data-target="questions-section">
-          <span class="nav-icon">🧩</span> Questions
+          <span class="nav-icon"><i class="fa-solid fa-file-invoice"></i></span> <span>Exams</span>
         </a>
         <a href="#users" class="nav-item" data-target="users-section">
-          <span class="nav-icon">👥</span> Users
+          <span class="nav-icon"><i class="fa-solid fa-users"></i></span> <span>Users</span>
         </a>
         <a href="#analytics" class="nav-item" data-target="analytics-section">
-          <span class="nav-icon">📈</span> Analytics
+          <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span> <span>Analytics</span>
+        </a>
+        <a href="#attempts" class="nav-item" data-target="attempts-section">
+          <span class="nav-icon"><i class="fa-solid fa-list-check"></i></span> <span>Attempts</span>
         </a>
         <a href="#proctoring" class="nav-item" data-target="proctoring-section">
-          <span class="nav-icon">🛡️</span> Proctoring
+          <span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span> <span>Proctoring</span>
         </a>
         <a href="#certificates" class="nav-item" data-target="certificates-section">
-          <span class="nav-icon">🎓</span> Certificates
+          <span class="nav-icon"><i class="fa-solid fa-graduation-cap"></i></span> <span>Certificates</span>
         </a>
         <a href="#leaderboard" class="nav-item" data-target="leaderboard-section">
-          <span class="nav-icon">🏆</span> Leaderboard
+          <span class="nav-icon"><i class="fa-solid fa-trophy"></i></span> <span>Leaderboard</span>
         </a>
         <div class="sidebar-divider"></div>
         <a href="#settings" class="nav-item" data-target="settings-section">
-          <span class="nav-icon">⚙️</span> Settings
+          <span class="nav-icon"><i class="fa-solid fa-gears"></i></span> <span>Settings</span>
         </a>
-        <a href="admin-login.html" class="nav-item logout">
-          <span class="nav-icon">🚪</span> Logout
+        <a href="#audit" class="nav-item" data-target="audit-section">
+          <span class="nav-icon"><i class="fa-solid fa-file-shield"></i></span> <span>Audit Logs</span>
+        </a>
+        <a href="#reports" class="nav-item" data-target="reports-section">
+          <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span> <span>Reports</span>
+        </a>
+        <a href="#notifications" class="nav-item" data-target="notifications-section">
+          <span class="nav-icon"><i class="fa-solid fa-bell"></i></span> <span>Notifications</span>
+        </a>
+        <a href="#profile" class="nav-item" data-target="profile-section">
+          <span class="nav-icon"><i class="fa-solid fa-user-gear"></i></span> <span>Admin Profile</span>
+        </a>
+        <a href="admin-login.html" class="nav-item logout" onclick="logoutAdmin()">
+          <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span> <span>Logout</span>
         </a>
       </nav>
       
@@ -87,10 +99,10 @@
       <!-- TOP NAVIGATION -->
       <header class="top-nav">
         <div class="nav-left">
-          <button id="toggle-sidebar" class="icon-btn">☰</button>
+          <button id="toggle-sidebar" class="icon-btn"><i class="fa-solid fa-bars-staggered"></i></button>
           <div class="search-wrap">
-            <span class="search-icon">🔍</span>
-            <input type="text" placeholder="Search exams, users, or results...">
+            <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+            <input id="top-nav-search" type="text" placeholder="Search exams, users, or results..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
           </div>
         </div>
         
@@ -101,12 +113,12 @@
             <button class="theme-btn" data-theme="system">System</button>
           </div>
           
-          <div class="notification-trigger">
-            <span class="icon-btn">🔔</span>
+          <div class="notification-trigger" onclick="switchSection('notifications-section')">
+            <i class="fa-solid fa-bell"></i>
             <span class="n-count">3</span>
           </div>
           
-          <div class="profile-trigger">
+          <div class="profile-trigger" onclick="switchSection('profile-section')">
             <img src="https://ui-avatars.com/api/?name=Admin+User&background=3b82f6&color=fff" alt="Profile">
           </div>
         </div>
@@ -117,168 +129,248 @@
         
         <!-- SECTION: DASHBOARD -->
         <section id="dashboard-section" class="tab-content active">
-          <div class="section-header">
-            <h1 class="page-title">Dashboard <span class="text-gradient">Overview.</span></h1>
-            <p class="page-desc">Real-time system health and core metrics at a glance.</p>
+          <!-- ─── DASHBOARD HEADER ─── -->
+          <div class="content-header">
+            <div class="header-titles">
+              <h1 class="page-title">Admin <span class="text-gradient">Overview.</span></h1>
+              <p class="page-desc">System intelligence, forensic proctoring metrics, and operational health.</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn btn-ghost btn-sm" id="dashboard-refresh-btn" onclick="AdminDashboard.refreshOverview()">
+                <i class="fa-solid fa-rotate"></i> <span>Refresh Console</span>
+              </button>
+              <div class="last-updated-tag">Auto-updating in <span id="dash-timer">30</span>s</div>
+            </div>
           </div>
 
-          <!-- SUMMARY CARDS -->
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="s-icon">👥</div>
+          <!-- ─── TOP METRIC CARDS ─── -->
+          <div class="stats-grid dash-metrics-grid" id="dash-metrics-container">
+            <!-- Metric Card: Users -->
+            <div class="stat-card metric-clickable" onclick="switchSection('profile-section')">
+              <div class="s-icon blue-bg"><i class="fa-solid fa-users-viewfinder"></i></div>
               <div class="s-info">
                 <span class="s-label">Total Users</span>
-                <span class="s-value">12,482</span>
+                <span class="s-value counter-anim" data-target="14820">0</span>
               </div>
-              <span class="s-delta up">+12%</span>
+              <div class="s-trend up"><i class="fa-solid fa-arrow-trend-up"></i> 12.5%</div>
+              <div class="skeleton-overlay"></div>
             </div>
-            <div class="stat-card">
-              <div class="s-icon">📝</div>
+
+            <!-- Metric Card: Exams -->
+            <div class="stat-card metric-clickable" onclick="switchSection('exams-section')">
+              <div class="s-icon purple-bg"><i class="fa-solid fa-file-invoice"></i></div>
               <div class="s-info">
                 <span class="s-label">Total Exams</span>
-                <span class="s-value">148</span>
+                <span class="s-value counter-anim" data-target="942">0</span>
               </div>
-              <span class="s-delta">Today</span>
+              <div class="s-trend up"><i class="fa-solid fa-calendar-check"></i> Today</div>
+              <div class="skeleton-overlay"></div>
             </div>
-            <div class="stat-card">
-              <div class="s-icon">🎯</div>
+
+            <!-- Metric Card: Attempts -->
+            <div class="stat-card metric-clickable" onclick="switchSection('attempts-section')">
+              <div class="s-icon amber-bg"><i class="fa-solid fa-bolt-lightning"></i></div>
               <div class="s-info">
                 <span class="s-label">Total Attempts</span>
-                <span class="s-value">42,891</span>
+                <span class="s-value counter-anim" data-target="42891">0</span>
               </div>
-              <span class="s-delta up">+8%</span>
+              <div class="s-trend up"><i class="fa-solid fa-arrow-trend-up"></i> 8.2%</div>
+              <div class="skeleton-overlay"></div>
             </div>
-            <div class="stat-card">
-              <div class="s-icon">🎓</div>
+
+            <!-- Metric Card: Certificates -->
+            <div class="stat-card metric-clickable" onclick="switchSection('certificates-section')">
+              <div class="s-icon green-bg"><i class="fa-solid fa-award"></i></div>
               <div class="s-info">
                 <span class="s-label">Certs Issued</span>
-                <span class="s-value">8,124</span>
+                <span class="s-value counter-anim" data-target="8124">0</span>
               </div>
-              <span class="s-delta up">+15%</span>
+              <div class="s-trend up"><i class="fa-solid fa-arrow-trend-up"></i> 15.4%</div>
+              <div class="skeleton-overlay"></div>
             </div>
           </div>
 
-          <div class="dashboard-layout">
-            <div class="dashboard-left">
-              <!-- SYSTEM LOGS HUB (Replaces Graph to reduce chart usage) -->
-              <div class="glass-card activity-preview">
-                <div class="card-header">
-                  <h3 class="card-title">Recent System Logs</h3>
-                  <span class="card-hint">Real-time</span>
+          <!-- ─── MAIN INTELLIGENCE ROW ─── -->
+          <div class="dashboard-main-row">
+            
+            <!-- MODULE: SYSTEM LOGS -->
+            <div class="dashboard-col col-logs">
+              <div class="glass-card full-height overflow-hidden">
+                <div class="card-header logs-header">
+                  <div class="ch-left">
+                    <h3 class="card-title">System Event Logs</h3>
+                    <div class="log-filter-pills">
+                      <button class="l-pill active" onclick="AdminDashboard.filterLogs('all', this)">All</button>
+                      <button class="l-pill" onclick="AdminDashboard.filterLogs('exams', this)">Exams</button>
+                      <button class="l-pill" onclick="AdminDashboard.filterLogs('users', this)">Users</button>
+                    </div>
+                  </div>
+                  <div class="ch-right">
+                    <button class="icon-btn" title="Download Logs" onclick="AdminDashboard.downloadLogs()"><i class="fa-solid fa-download"></i></button>
+                    <button class="icon-btn del-btn" title="Clear Logs" onclick="AdminDashboard.clearLogs()"><i class="fa-solid fa-trash-can"></i></button>
+                  </div>
                 </div>
-                <div class="activity-feed">
-                  <div class="activity-item">
-                    <span class="act-dot green"></span>
-                    <div class="act-info">
-                      <span class="act-text"><strong>Teacher_X</strong> published <strong>Advanced JS</strong></span>
-                      <span class="act-time">2m ago</span>
+                <div class="log-scroll-area" id="dash-log-feed">
+                   <!-- Logs injected by JS -->
+                </div>
+              </div>
+            </div>
+
+            <!-- MODULE: LIVE EXAMS TERMINAL -->
+            <div class="dashboard-col col-table">
+              <div class="glass-card full-height">
+                <div class="card-header table-header">
+                  <div class="ch-left">
+                    <h3 class="card-title">Live Examination Terminal</h3>
+                    <div class="dash-table-search">
+                      <i class="fa-solid fa-magnifying-glass"></i>
+                      <input type="text" placeholder="Search exams..." id="dash-exam-search" oninput="AdminDashboard.searchExams(this.value)">
                     </div>
                   </div>
-                  <div class="activity-item">
-                    <span class="act-dot blue"></span>
-                    <div class="act-info">
-                      <span class="act-text"><strong>Student_48</strong> completed <strong>CSS Flexbox</strong></span>
-                      <span class="act-time">5m ago</span>
-                    </div>
+                  <div class="ch-right">
+                     <div class="table-pagination">
+                       <button class="p-btn" onclick="AdminDashboard.prevExamPage()"><i class="fa-solid fa-chevron-left"></i></button>
+                       <span class="p-info">Page <span id="dash-exam-page">1</span> of 4</span>
+                       <button class="p-btn" onclick="AdminDashboard.nextExamPage()"><i class="fa-solid fa-chevron-right"></i></button>
+                     </div>
                   </div>
-                  <div class="activity-item">
-                    <span class="act-dot orange"></span>
-                    <div class="act-info">
-                      <span class="act-text"><strong>System</strong> flagged 1 suspicious event</span>
-                      <span class="act-time">12m ago</span>
-                    </div>
+                </div>
+                <div class="table-wrap grid-table-wrap">
+                  <table class="dash-table">
+                    <thead>
+                      <tr>
+                        <th onclick="AdminDashboard.sortExams('name')" class="sortable">Exam Name <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="AdminDashboard.sortExams('type')" class="sortable">Type <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="AdminDashboard.sortExams('active')" class="sortable">Students <i class="fa-solid fa-sort"></i></th>
+                        <th>Status</th>
+                        <th style="text-align:right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dash-exam-body">
+                      <!-- Rows injected by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─── SECURITY & HEALTH ROW ─── -->
+          <div class="dashboard-assets-row">
+            
+            <!-- MODULE: SECURITY ALERTS -->
+            <div class="asset-col col-security">
+              <div class="glass-card forensic-card">
+                <div class="card-header alert-header">
+                  <div class="ch-left">
+                    <h3 class="card-title">Forensic Security Alerts</h3>
+                    <span class="alert-counter" id="security-alert-count">0</span>
                   </div>
-                  <div class="activity-item">
-                    <button class="btn btn-ghost btn-sm" style="width:100%">Download Event Logs</button>
+                  <button class="btn btn-ghost btn-xs" onclick="AdminDashboard.markAlertsRead()">Mark All Read</button>
+                </div>
+                <div class="security-alert-feed" id="security-alert-feed">
+                   <!-- Alerts injected by JS -->
+                </div>
+                <div class="forensic-footer">
+                  <button class="btn btn-primary btn-full" onclick="switchSection('proctoring-section')">
+                    Enter Monitoring Suite <i class="fa-solid fa-arrow-right-long"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- MODULE: SYSTEM HEALTH -->
+            <div class="asset-col col-health">
+              <div class="glass-card health-card">
+                <div class="card-header">
+                  <h3 class="card-title">Core Infrastructure Health</h3>
+                  <button class="icon-btn refresh-health" onclick="AdminDashboard.refreshHealth()"><i class="fa-solid fa-rotate"></i></button>
+                </div>
+                <div class="health-metrics-grid">
+                  <div class="health-item">
+                    <div class="h-top">
+                      <span class="h-label">API Server</span>
+                      <div class="status-indicator online"></div>
+                    </div>
+                    <div class="h-val">ONLINE <span class="h-sub">99.9% Uptime</span></div>
+                  </div>
+                  <div class="health-item">
+                    <div class="h-top">
+                      <span class="h-label">WebSocket Cluster</span>
+                      <div class="status-indicator online pulsing"></div>
+                    </div>
+                    <div class="h-val">CONNECTED <span class="h-sub">8ms latency</span></div>
+                  </div>
+                  <div class="health-item">
+                    <div class="h-top">
+                      <span class="h-label">Storage Usage</span>
+                      <div class="status-indicator warning"></div>
+                    </div>
+                    <div class="h-val">84.2% <span class="h-sub">250GB Remaining</span></div>
+                  </div>
+                  <div class="health-item">
+                    <div class="h-top">
+                      <span class="h-label">Active Connections</span>
+                      <div class="status-indicator online"></div>
+                    </div>
+                    <div class="h-val">4,891 <span class="h-sub">Scale: Distributed</span></div>
                   </div>
                 </div>
               </div>
-
-               <!-- RECENT EXAMS -->
-               <div class="glass-card table-preview">
-                 <div class="card-header">
-                   <h3 class="card-title">Live Exams</h3>
-                   <button class="btn btn-ghost btn-sm">View All</button>
-                 </div>
-                 <div class="table-wrap">
-                   <table>
-                     <thead>
-                       <tr>
-                         <th>Exam Name</th>
-                         <th>Type</th>
-                         <th>Active</th>
-                         <th>Status</th>
-                       </tr>
-                     </thead>
-                     <tbody>
-                       <tr>
-                         <td>Advanced JavaScript</td>
-                         <td>MCQ</td>
-                         <td>42</td>
-                         <td><span class="status-badge active">Live</span></td>
-                       </tr>
-                       <tr>
-                         <td>Node.js Core Concepts</td>
-                         <td>Coding</td>
-                         <td>18</td>
-                         <td><span class="status-badge active">Live</span></td>
-                       </tr>
-                       <tr>
-                         <td>System Design v2</td>
-                         <td>Descriptive</td>
-                         <td>0</td>
-                         <td><span class="status-badge draft">Draft</span></td>
-                       </tr>
-                     </tbody>
-                   </table>
-                 </div>
-               </div>
             </div>
+          </div>
 
-            <div class="dashboard-right">
-              <!-- AI MONITORING PANEL -->
-               <div class="glass-card proctor-preview">
-                 <div class="card-header">
-                   <h3 class="card-title">Security Alerts</h3>
-                   <span class="alarm-badge">6 Active</span>
-                 </div>
-                 <div class="alert-list">
-                    <div class="alert-item high">
-                      <div class="a-icon">🚨</div>
-                      <div class="a-info">
-                        <span class="a-title">Gaze Anomaly detected</span>
-                        <span class="a-user">User: STU_9031</span>
-                      </div>
-                    </div>
-                    <div class="alert-item med">
-                      <div class="a-icon">👁️</div>
-                      <div class="a-info">
-                        <span class="a-title">Multiple faces detected</span>
-                        <span class="a-user">User: STU_1422</span>
-                      </div>
-                    </div>
-                    <div class="alert-item alert-cta">
-                       <button class="btn btn-primary" style="width:100%" onclick="switchSection('proctoring-section')">Enter Monitoring Suite</button>
-                    </div>
-                 </div>
-               </div>
+          <!-- ─── QUICK ACTION BAR ─── -->
+          <div class="quick-action-bar-wrap">
+             <div class="quick-action-bar">
+               <button class="qa-btn" onclick="AdminDashboard.quickAction('createExam')">
+                 <div class="qa-icon"><i class="fa-solid fa-plus"></i></div>
+                 <span>Create Exam</span>
+               </button>
+               <button class="qa-btn" onclick="AdminDashboard.quickAction('addTeacher')">
+                 <div class="qa-icon"><i class="fa-solid fa-user-plus"></i></div>
+                 <span>Add Teacher</span>
+               </button>
+               <button class="qa-btn" onclick="AdminDashboard.quickAction('viewAnalytics')">
+                 <div class="qa-icon"><i class="fa-solid fa-chart-line"></i></div>
+                 <span>View Analytics</span>
+               </button>
+               <button class="qa-btn" onclick="AdminDashboard.quickAction('viewAttempts')">
+                 <div class="qa-icon"><i class="fa-solid fa-bolt"></i></div>
+                 <span>View Attempts</span>
+               </button>
+               <button class="qa-btn" onclick="AdminDashboard.quickAction('generateReport')">
+                 <div class="qa-icon"><i class="fa-solid fa-file-pdf"></i></div>
+                 <span>Generate Report</span>
+               </button>
+             </div>
+          </div>
 
-               <!-- SYSTEM STATUS -->
-               <div class="glass-card status-mini">
-                  <div class="status-row">
-                    <span>API Server</span>
-                    <span class="dot g">Online</span>
-                  </div>
-                  <div class="status-row">
-                    <span>WebSocket</span>
-                    <span class="dot g">Connected</span>
-                  </div>
-                  <div class="status-row">
-                    <span>Storage</span>
-                    <span class="dot o">84% Used</span>
-                  </div>
+          <!-- ─── RECENT ACTIVITY FOOTER ─── -->
+          <div class="activity-footer-grid" id="recent-activity-footer">
+             <div class="footer-stat">
+               <span class="fs-label">Last Exam Created</span>
+               <span class="fs-value" id="last-exam-label">Advanced Machine Learning</span>
+               <span class="fs-time">12m ago</span>
+             </div>
+             <div class="footer-stat">
+               <span class="fs-label">Last Teacher Added</span>
+               <span class="fs-value" id="last-teacher-label">Prot. Jonathan Crane</span>
+               <span class="fs-time">45m ago</span>
+             </div>
+             <div class="footer-stat">
+               <span class="fs-label">Last Cert Generated</span>
+               <span class="fs-value" id="last-cert-label">Bruce Wayne - CS101</span>
+               <span class="fs-time">2h ago</span>
+             </div>
+             <div class="footer-stat susp">
+               <div class="fs-header">
+                 <span class="fs-label">Last Suspicious Attempt</span>
+                 <span class="fs-status">High Risk</span>
                </div>
-            </div>
+               <span class="fs-value" id="last-susp-label">STU_9021 (Tab Switching)</span>
+               <span class="fs-time">5m ago</span>
+             </div>
           </div>
         </section>
 
@@ -288,15 +380,16 @@
             <div class="section-header">
               <h1 class="page-title">Exam <span class="text-gradient">Management.</span></h1>
             </div>
-            <button class="btn btn-primary">Create New Exam</button>
+            <button class="btn btn-primary" onclick="openModal('createExamModal')">Create New Exam</button>
           </div>
           
           <div class="glass-card">
-            <div class="table-tools">
-              <div class="filter-group">
-                <button class="btn btn-ghost btn-sm active">All</button>
-                <button class="btn btn-ghost btn-sm">Published</button>
-                <button class="btn btn-ghost btn-sm">Drafts</button>
+            <div class="table-tools search-filter">
+              <input type="text" id="examSearchInput" class="form-control" placeholder="Search exams...">
+              <div class="filter-group" id="examFilterGroup">
+                <button class="btn btn-ghost btn-sm active" data-filter="all" onclick="setExamFilter('all', this)">All</button>
+                <button class="btn btn-ghost btn-sm" data-filter="published" onclick="setExamFilter('published', this)">Published</button>
+                <button class="btn btn-ghost btn-sm" data-filter="draft" onclick="setExamFilter('draft', this)">Drafts</button>
               </div>
             </div>
             <div class="table-wrap">
@@ -304,6 +397,7 @@
                 <thead>
                   <tr>
                     <th>Exam Title</th>
+                    <th>Exam Code</th>
                     <th>Created By</th>
                     <th>Duration</th>
                     <th>Status</th>
@@ -316,51 +410,28 @@
           </div>
         </section>
 
-        <!-- SECTION: QUESTIONS -->
-        <section id="questions-section" class="tab-content">
-           <div class="section-top">
-            <div class="section-header">
-              <h1 class="page-title">Question <span class="text-gradient">Library.</span></h1>
-            </div>
-            <div class="btn-group">
-              <button class="btn btn-ghost">Bulk Upload (Excel)</button>
-              <button class="btn btn-primary">Add Question</button>
-            </div>
-          </div>
-          <div class="glass-card">
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Question ID</th>
-                    <th>Question Content</th>
-                    <th>Type</th>
-                    <th>Difficulty</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="questions-list"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
 
-        <!-- SECTION: USERS -->
+
+         <!-- SECTION: USERS -->
         <section id="users-section" class="tab-content">
-           <div class="section-top">
-            <div class="section-header">
+          <div class="section-top" style="margin-bottom: 32px">
+            <div>
               <h1 class="page-title">User <span class="text-gradient">Directory.</span></h1>
             </div>
-            <button class="btn btn-primary">Add New Teacher</button>
-          </div>
-          
-          <div class="tabs-header">
-            <button class="tab-trigger active" data-tab="students-tab">Students</button>
-            <button class="tab-trigger" data-tab="teachers-tab">Teachers</button>
+            <div style="display:flex; align-items:center; gap:16px">
+              <div class="tabs-header" style="margin-bottom:0">
+                <button class="tab-trigger active" data-tab="students-tab">Students</button>
+                <button class="tab-trigger" data-tab="teachers-tab">Teachers</button>
+              </div>
+              <button class="btn btn-primary" onclick="openModal('addTeacherModal')">Create Teacher</button>
+            </div>
           </div>
 
           <div class="glass-card">
             <div id="students-tab" class="sub-tab-content active">
+               <div class="search-filter">
+                 <input type="text" id="studentSearchInput" class="form-control" placeholder="Search students...">
+               </div>
                <div class="table-wrap">
                   <table id="students-table">
                     <thead>
@@ -377,6 +448,9 @@
                </div>
             </div>
             <div id="teachers-tab" class="sub-tab-content">
+               <div class="search-filter">
+                 <input type="text" id="teacherSearchInput" class="form-control" placeholder="Search teachers...">
+               </div>
                <div class="table-wrap">
                   <table id="teachers-table">
                     <thead>
@@ -384,6 +458,10 @@
                         <th>Teacher Name</th>
                         <th>Email</th>
                         <th>Department</th>
+                        <th>Designation</th>
+                        <th>Experience</th>
+                        <th>Employee ID</th>
+                        <th>Status</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -394,123 +472,1738 @@
           </div>
         </section>
 
-        <!-- SECTION: ANALYTICS -->
         <section id="analytics-section" class="tab-content">
-          <div class="section-header">
-            <h1 class="page-title">System <span class="text-gradient">Intelligence.</span></h1>
+          <div class="section-top" style="margin-bottom: 24px">
+            <div>
+              <h1 class="page-title">Intelligence <span class="text-gradient">Console.</span></h1>
+            </div>
+            <div style="display:flex; align-items:center; gap:16px">
+               <select id="analyticsExamFilter" class="form-control" style="width:240px" onchange="loadExamSpecificAnalytics(this.value)">
+                  <option value="global">Global Statistics</option>
+                  <!-- Populate from examsData -->
+               </select>
+               <button class="btn btn-primary" onclick="refreshAnalytics()"><i class="fas fa-sync-alt"></i> Refresh</button>
+            </div>
           </div>
           
-          <div class="analytics-grid">
-            <div class="glass-card">
-              <h3 class="card-title">Score Distribution</h3>
-              <div class="chart-container big">
-                <canvas id="scoreDistChart"></canvas>
-              </div>
-            </div>
-            <div class="glass-card">
-              <h3 class="card-title">Performance Overview</h3>
-              <div class="chart-container big">
-                <canvas id="perfPieChart"></canvas>
-              </div>
-            </div>
+          <!-- SECTION 1: OVERVIEW CARDS (Complete Elite Suite) -->
+          <div class="analytics-stats-grid">
+             <div class="ana-stat-card">
+                <span class="s-label">Total Results</span>
+                <span class="s-value s-animate" id="ana-results">0</span>
+             </div>
+             <div class="ana-stat-card">
+                <span class="s-label">Average Score</span>
+                <span class="s-value s-animate" id="ana-avg-score">0%</span>
+             </div>
+             <div class="ana-stat-card">
+                <span class="s-label">Total Students</span>
+                <span class="s-value s-animate" id="ana-total-students">0</span>
+             </div>
+             <div class="ana-stat-card">
+                <span class="s-label">Total Teachers</span>
+                <span class="s-value s-animate" id="ana-total-teachers">0</span>
+             </div>
+             <div class="ana-stat-card">
+                <span class="s-label">Total Exams</span>
+                <span class="s-value s-animate" id="ana-total-exams">0</span>
+             </div>
+             <div class="ana-stat-card">
+                <span class="s-label">Total Attempts</span>
+                <span class="s-value s-animate" id="ana-total-attempts">0</span>
+             </div>
+             <div class="ana-stat-card">
+                <span class="s-label">Active Attempts</span>
+                <span class="s-value s-animate" id="ana-active-attempts" style="color:var(--accent-green)">0</span>
+             </div>
+             <div class="ana-stat-card">
+                <span class="s-label">Pass Percentage</span>
+                <span class="s-value s-animate" id="ana-global-pass">0%</span>
+             </div>
+             <div class="ana-stat-card">
+                <span class="s-label">Avg. Risk Score</span>
+                <span class="s-value s-animate" id="ana-risk-score" style="color:var(--accent-pink)">0%</span>
+             </div>
+          </div>
+
+          <!-- SECTION 2 & 3: PERFORMANCE & AI -->
+          <div class="analytics-layout-primary">
+             <div class="glass-card" style="position:relative">
+                <div class="card-header">
+                   <h3 class="card-title">Score Performance Trend</h3>
+                   <span class="card-hint">Monthly Aggregates</span>
+                </div>
+                <div class="chart-container big" style="position:relative">
+                   <canvas id="scoreTrendCanvas"></canvas>
+                   <div id="chart-tooltip" style="position:absolute; pointer-events:none; background:var(--bg-card); border:1px solid var(--border-subtle); padding:6px 12px; border-radius:8px; display:none; z-index:100; font-size:12px; font-weight:700; box-shadow:var(--shadow-card)"></div>
+                </div>
+                <div style="padding:20px; display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; border-top:1px solid var(--border-subtle)">
+                   <div style="text-align:center">
+                      <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase">Highest Grade</div>
+                      <div id="ana-high" style="font-size:18px; font-weight:800; color:var(--accent-blue)">A+</div>
+                   </div>
+                   <div style="text-align:center">
+                      <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase">Lowest Grade</div>
+                      <div id="ana-low" style="font-size:18px; font-weight:800; color:var(--accent-pink)">D</div>
+                   </div>
+                   <div style="text-align:center">
+                      <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase">Pass Percentage</div>
+                      <div id="ana-pass" style="font-size:18px; font-weight:800; color:var(--accent-green)">84%</div>
+                   </div>
+                </div>
+             </div>
+
+             <div class="glass-card">
+                <div class="card-header">
+                   <h3 class="card-title">AI Intelligence</h3>
+                   <span id="ana-ai-risk-badge" class="status-badge" style="background:rgba(16, 185, 129, 0.1); color:var(--accent-green)">LOW RISK</span>
+                </div>
+                <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle)">
+                   <span style="font-size:12px; color:var(--text-tertiary); font-weight:700">Topic Analysis</span>
+                   <button class="btn btn-ghost btn-sm" onclick="toggleAIInsights()" id="ai-toggle-btn" style="height:24px; padding:0 8px">Expand</button>
+                </div>
+                <div id="ai-insights-container" style="padding:16px; display:flex; flex-direction:column; gap:12px; max-height:200px; overflow:hidden; transition:max-height 0.4s ease">
+                   <!-- Population terminal -->
+                </div>
+                <div style="padding:16px; margin:16px; background:var(--bg-tertiary); border-radius:12px; border:1px solid var(--border-subtle)">
+                   <div style="font-size:12px; font-weight:700; color:var(--accent-blue); margin-bottom:4px">AI Recommendation:</div>
+                   <p id="ai-recommend" style="font-size:12px; color:var(--text-secondary); line-height:1.4">Loading insights...</p>
+                </div>
+             </div>
+          </div>
+
+          <!-- SECTION 4 & 7: PROCTORING & LEADERBOARD -->
+          <div class="analytics-layout-secondary">
+             <div class="glass-card">
+                <div class="card-header">
+                   <h3 class="card-title">Proctoring Metrics</h3>
+                   <span class="card-hint">Real-time Safety Monitor</span>
+                </div>
+                <div style="padding:20px; display:flex; flex-direction:column; gap:16px">
+                   <div class="risk-bar-row">
+                      <div style="display:flex; justify-content:space-between; margin-bottom:8px">
+                         <span style="font-size:13px; font-weight:600">High Risk Attempts</span>
+                         <span id="ana-proctor-high" style="font-weight:700; color:var(--accent-pink)">0</span>
+                      </div>
+                      <div style="height:6px; background:var(--bg-tertiary); border-radius:3px; overflow:hidden">
+                         <div id="ana-proctor-bar-high" style="width:0; height:100%; background:var(--accent-pink); transition:1s"></div>
+                      </div>
+                   </div>
+                   <div class="risk-bar-row">
+                      <div style="display:flex; justify-content:space-between; margin-bottom:8px">
+                         <span style="font-size:13px; font-weight:600">Suspicious Students</span>
+                         <span id="ana-proctor-susp" style="font-weight:700; color:var(--accent-amber)">0</span>
+                      </div>
+                      <div style="height:6px; background:var(--bg-tertiary); border-radius:3px; overflow:hidden">
+                         <div id="ana-proctor-bar-susp" style="width:0; height:100%; background:var(--accent-amber); transition:1s"></div>
+                      </div>
+                   </div>
+                   <div style="display:flex; gap:16px; margin-top:8px; padding-top:16px; border-top:1px solid var(--border-subtle)">
+                      <div style="flex:1">
+                         <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase">Avg Cheating Score</div>
+                         <div id="ana-cheating-avg" style="font-size:18px; font-weight:800; color:var(--accent-pink)">0%</div>
+                      </div>
+                      <div style="flex:1">
+                         <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase">Risk Stability</div>
+                         <div id="ana-risk-stability" style="font-size:18px; font-weight:800; color:var(--accent-green)">STABLE</div>
+                      </div>
+                   </div>
+                </div>
+             </div>
+
+             <div class="glass-card">
+                <div class="card-header">
+                   <h3 class="card-title">Top Performers</h3>
+                </div>
+                <div class="table-wrap" style="max-height:240px; overflow-y:auto">
+                   <table>
+                      <thead>
+                         <tr><th>Rank</th><th>Student</th><th>Score</th><th>Grade</th></tr>
+                      </thead>
+                      <tbody id="leaderboard-mini-list">
+                         <!-- Dynamically populated -->
+                      </tbody>
+                   </table>
+                </div>
+             </div>
+          </div>
+
+          <!-- SUMMARY TERMINALS -->
+          <div class="analytics-layout-tertiary">
+             <div class="glass-card" style="padding:20px; display:flex; align-items:center; gap:16px">
+                 <div style="width:48px; height:48px; background:rgba(59, 130, 246, 0.1); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px">📈</div>
+                 <div>
+                    <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Overall Performance</div>
+                    <div style="font-size:15px; font-weight:700; color:var(--text-primary)">Stable & Improving</div>
+                 </div>
+             </div>
+             <div class="glass-card" style="padding:20px; display:flex; align-items:center; gap:16px">
+                 <div style="width:48px; height:48px; background:rgba(16, 185, 129, 0.1); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px">🛡️</div>
+                 <div>
+                    <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">System Health</div>
+                    <div style="font-size:15px; font-weight:700; color:var(--accent-green)">99.9% Operational</div>
+                 </div>
+             </div>
+             <div class="glass-card" style="padding:20px; display:flex; align-items:center; gap:16px">
+                 <div style="width:48px; height:48px; background:rgba(236, 72, 153, 0.1); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px">⚠️</div>
+                 <div>
+                    <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Risk Indicator</div>
+                    <div style="font-size:15px; font-weight:700; color:var(--accent-pink)">No Major Breaches</div>
+                 </div>
+             </div>
           </div>
         </section>
 
         <!-- SECTION: PROCTORING -->
         <section id="proctoring-section" class="tab-content">
-          <div class="section-header">
-            <h1 class="page-title">Proctoring <span class="text-gradient">Monitor.</span></h1>
+          <div class="section-top" style="margin-bottom: 32px">
+            <div>
+              <h1 class="page-title">Proctoring <span class="text-gradient">Monitor.</span></h1>
+              <p class="page-desc">Advanced AI-driven surveillance and granular forensic session auditing.</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:16px">
+               <button class="btn btn-primary" onclick="refreshProctoring()"><i class="fas fa-sync-alt"></i> Refresh Forensic Engine</button>
+            </div>
           </div>
-          
-          <div class="proctoring-layout">
-             <div class="glass-card violations-log">
-               <h3 class="card-title">Recent Suspicious Sessions</h3>
-               <div class="table-wrap">
-                 <table>
-                   <thead>
-                     <tr>
-                       <th>Time</th>
-                       <th>User</th>
-                       <th>Violation Type</th>
-                       <th>Risk Score</th>
-                       <th>Action</th>
-                     </tr>
-                   </thead>
-                   <tbody id="violations-list"></tbody>
-                 </table>
+
+          <!-- SUMMARY CARDS (Enhanced Premium Suite) -->
+          <div class="stats-row">
+             <div class="stat-card" style="border-left:4px solid var(--accent-amber)">
+                <div class="s-icon" style="background:rgba(245, 158, 11, 0.1); color:var(--accent-amber)">📸</div>
+                <div class="s-info">
+                   <span class="s-label">Suspicious Sessions</span>
+                   <span class="s-value" id="proc-stat-susp">0</span>
+                </div>
+             </div>
+             <div class="stat-card" style="border-left:4px solid var(--accent-pink)">
+                <div class="s-icon" style="background:rgba(236, 72, 153, 0.1); color:var(--accent-pink)">🚨</div>
+                <div class="s-info">
+                   <span class="s-label">High Risk Sessions</span>
+                   <span class="s-value" id="proc-stat-high" style="color:var(--accent-pink)">0</span>
+                </div>
+             </div>
+             <div class="stat-card" style="border-left:4px solid #cc0000">
+                <div class="s-icon" style="background:rgba(153, 27, 27, 0.1); color:#cc0000">🚫</div>
+                <div class="s-info">
+                   <span class="s-label">Cancelled by AI</span>
+                   <span class="s-value" id="proc-stat-cancelled">0</span>
+                </div>
+             </div>
+             <div class="stat-card" style="border-left:4px solid var(--accent-blue)">
+                <div class="s-icon" style="background:rgba(59, 130, 246, 0.1); color:var(--accent-blue)">🛡️</div>
+                <div class="s-info">
+                   <span class="s-label">Avg Cheating Score</span>
+                   <span class="s-value" id="proc-stat-avg">0%</span>
+                </div>
+             </div>
+          </div>
+
+          <!-- CONTROLS & MONITORING GRID -->
+          <div class="glass-card" style="border-radius:20px; overflow:hidden">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding:20px 24px; border-bottom:1px solid var(--border-subtle); background:rgba(255,255,255,0.02)">
+               <div style="display:flex; align-items:center; gap:12px">
+                  <h3 class="card-title">Real-Time Surveillance Logs</h3>
+                  <span class="status-badge active" style="font-size:9px; padding:2px 8px">AI LIVE AUDIT</span>
                </div>
+               <div style="display:flex; gap:12px; align-items:center">
+                  <span style="font-size:11px; font-weight:700; color:var(--text-tertiary); text-transform:uppercase">Global Filter:</span>
+                  <select id="proctorMainFilter" class="form-control" style="width:200px" onchange="runProctorFilter(this.value)">
+                     <option value="all">All Risks</option>
+                     <option value="LOW">Low Risk</option>
+                     <option value="MEDIUM">Medium Risk</option>
+                     <option value="HIGH">High Risk</option>
+                     <option value="CRITICAL">Critical Risk</option>
+                     <option value="CANCELLED">Cancelled</option>
+                     <option value="SUSPICIOUS">Suspicious</option>
+                  </select>
+               </div>
+            </div>
+
+            <div class="table-wrap">
+               <table id="proctoringMonitorTable">
+                  <thead>
+                     <tr>
+                        <th>Time</th>
+                        <th>Student ID</th>
+                        <th>Student Name</th>
+                        <th>Exam Title</th>
+                        <th>Violation</th>
+                        <th>Severity</th>
+                        <th>Score</th>
+                        <th>Risk Level</th>
+                        <th>Status</th>
+                        <th style="text-align:right">Actions</th>
+                     </tr>
+                  </thead>
+                  <tbody id="proctoring-monitor-list"></tbody>
+               </table>
+            </div>
+            <div id="proctorEmptyState" style="display:none; padding:80px 60px; text-align:center">
+                <div style="font-size:64px; margin-bottom:20px">🕊️</div>
+                <h3 style="font-weight:800; font-family:'Syne'">No security events detected.</h3>
+                <p style="color:var(--text-tertiary); max-width:400px; margin:0 auto">Your examination server is currently secure. Adjust your forensic filters or sync with the AI monitoring engine.</p>
+             </div>
+          </div>
+        </section>
+
+        <!-- SECTION: ATTEMPTS -->
+        <section id="attempts-section" class="tab-content">
+          <div class="section-top" style="margin-bottom: 24px">
+            <div>
+              <h1 class="page-title">Attempt <span class="text-gradient">Intelligence.</span></h1>
+            </div>
+            <div style="display:flex; align-items:center; gap:16px">
+               <span id="autoRefreshBadge" class="status-badge" style="background:rgba(59, 130, 246, 0.1); color:var(--accent-blue); padding:4px 12px; font-weight:700; font-size:11px">AUTO-SYNC: 30s</span>
+               <button class="btn btn-primary" onclick="refreshAttempts()"><i class="fas fa-sync-alt"></i> Sync Engine</button>
+            </div>
+          </div>
+
+          <!-- TOP STAT CARDS -->
+          <div class="attempts-stats-grid">
+             <div class="attempts-stat-card">
+                <div class="s-label">Total Attempts</div>
+                <div class="s-value s-animate" id="att-total" style="color:var(--text-primary)">0</div>
+                <div class="s-bg-icon">📝</div>
+             </div>
+             <div class="attempts-stat-card">
+                <div class="s-label">Active Now</div>
+                <div class="s-value s-animate" id="att-active" style="color:var(--accent-blue)">0</div>
+                <div class="s-bg-icon">🌀</div>
+             </div>
+             <div class="attempts-stat-card">
+                <div class="s-label">Completed</div>
+                <div class="s-value s-animate" id="att-completed" style="color:var(--accent-green)">0</div>
+                <div class="s-bg-icon">✅</div>
+             </div>
+             <div class="attempts-stat-card">
+                <div class="s-label">Auto-Submitted</div>
+                <div class="s-value s-animate" id="att-auto" style="color:var(--accent-amber)">0</div>
+                <div class="s-bg-icon">⏳</div>
+             </div>
+             <div class="attempts-stat-card">
+                <div class="s-label">Cancelled</div>
+                <div class="s-value s-animate" id="att-cancelled" style="color:var(--accent-pink)">0</div>
+                <div class="s-bg-icon">🚫</div>
+             </div>
+             <div class="attempts-stat-card">
+                <div class="s-label">High Risk</div>
+                <div class="s-value s-animate" id="att-high-risk" style="color:var(--accent-pink)">0</div>
+                <div class="s-bg-icon">⚠️</div>
+             </div>
+             <div class="attempts-stat-card">
+                <div class="s-label">Avg Score</div>
+                <div class="s-value s-animate" id="att-avg-score" style="color:var(--text-primary)">0%</div>
+                <div class="s-bg-icon">📊</div>
+             </div>
+             <div class="attempts-stat-card">
+                <div class="s-label">Avg Cheating</div>
+                <div class="s-value s-animate" id="att-avg-cheat" style="color:var(--accent-pink)">0%</div>
+                <div class="s-bg-icon">🛡️</div>
+             </div>
+          </div>
+
+          <!-- FILTER BAR -->
+          <div class="glass-card" style="padding:20px; margin-bottom:24px; border-radius:16px">
+             <div class="attempts-filter-grid">
+                <div class="form-group" style="margin-bottom:0">
+                   <label style="font-size:10px; font-weight:800; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; display:block">Search Student / ID</label>
+                   <input type="text" id="attSearch" class="form-control" placeholder="e.g. TX_8921..." oninput="handleAttemptFilters()" style="height:40px; font-size:13px">
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                   <label style="font-size:10px; font-weight:800; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; display:block">Status</label>
+                   <select id="attStatus" class="form-control" onchange="handleAttemptFilters()" style="height:40px; font-size:13px">
+                      <option value="all">All States</option>
+                      <option value="STARTED">STARTED</option>
+                      <option value="COMPLETED">COMPLETED</option>
+                      <option value="INVALIDATED">INVALIDATED</option>
+                      <option value="AUTO_SUBMITTED">AUTO_SUBMITTED</option>
+                      <option value="EXPIRED">EXPIRED</option>
+                   </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                   <label style="font-size:10px; font-weight:800; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; display:block">Risk Level</label>
+                   <select id="attRisk" class="form-control" onchange="handleAttemptFilters()" style="height:40px; font-size:13px">
+                      <option value="all">Any Risk</option>
+                      <option value="LOW">LOW</option>
+                      <option value="MEDIUM">MEDIUM</option>
+                      <option value="HIGH">HIGH</option>
+                      <option value="CRITICAL">CRITICAL</option>
+                   </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                   <label style="font-size:10px; font-weight:800; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; display:block">Target Exam</label>
+                   <select id="attExam" class="form-control" onchange="handleAttemptFilters()" style="height:40px; font-size:13px">
+                      <option value="all">All Exams</option>
+                   </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                   <label style="font-size:10px; font-weight:800; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; display:block">Activity Date</label>
+                   <input type="date" id="attDate" class="form-control" onchange="handleAttemptFilters()" style="height:40px; font-size:13px">
+                </div>
+                <button class="btn btn-ghost" onclick="resetAttemptFilters()" style="height:40px; padding:0 20px; font-weight:700">Reset</button>
+             </div>
+          </div>
+
+          <!-- TABLE -->
+          <div class="glass-card">
+             <div class="table-wrap">
+                <table>
+                   <thead>
+                      <tr>
+                         <th>Attempt ID</th>
+                         <th>Student</th>
+                         <th>Exam Title</th>
+                         <th>No.</th>
+                         <th>Status</th>
+                         <th>Score</th>
+                         <th>Accuracy</th>
+                         <th>Cheating</th>
+                         <th>Risk</th>
+                         <th>Time Slot</th>
+                         <th style="text-align:right">Actions</th>
+                      </tr>
+                   </thead>
+                   <tbody id="attemptsTableBody"></tbody>
+                </table>
+             </div>
+             <div id="attemptsEmptyState" style="display:none; padding:80px 20px; text-align:center">
+                <div style="font-size:48px; margin-bottom:16px">🔍</div>
+                <h3 style="font-size:18px; font-weight:700">No attempts found</h3>
+                <p style="color:var(--text-tertiary); font-size:13px">Try adjusting your filters or sync the engine.</p>
+             </div>
+             <div id="attemptsPagination" style="padding:16px; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center">
+                <span style="font-size:12px; color:var(--text-tertiary)">Showing items <span id="attRowRange">0-0</span> of <span id="attTotalFiltered">0</span></span>
+                <div style="display:flex; gap:8px">
+                   <button class="btn btn-ghost btn-sm" id="prevAttPage">Prev</button>
+                   <button class="btn btn-ghost btn-sm" id="nextAttPage">Next</button>
+                </div>
              </div>
           </div>
         </section>
 
         <!-- SECTION: CERTIFICATES -->
         <section id="certificates-section" class="tab-content">
-           <div class="section-header">
-            <h1 class="page-title">Issued <span class="text-gradient">Credentials.</span></h1>
+          <div class="section-top" style="margin-bottom: 24px">
+            <div>
+              <h1 class="page-title">Certificates <span class="text-gradient">Management.</span></h1>
+              <p class="page-desc">Certificates Console</p>
+            </div>
           </div>
-          <div class="glass-card">
+        
+          <!-- TOP STAT CARDS -->
+          <div class="stats-row">
+              <div class="stat-card">
+                  <div class="s-icon" style="background:rgba(59, 130, 246, 0.1); color:var(--accent-blue)">🎓</div>
+                  <div class="s-info">
+                      <span class="s-label">Total Certificates</span>
+                      <span class="s-value" id="cert-stat-total"><div class="skeleton" style="width:40px; height:24px"></div></span>
+                  </div>
+              </div>
+              <div class="stat-card">
+                  <div class="s-icon" style="background:rgba(16, 185, 129, 0.1); color:var(--accent-green)">✅</div>
+                  <div class="s-info">
+                      <span class="s-label">Active Certificates</span>
+                      <span class="s-value" id="cert-stat-active"><div class="skeleton" style="width:40px; height:24px"></div></span>
+                  </div>
+              </div>
+              <div class="stat-card">
+                  <div class="s-icon" style="background:rgba(236, 72, 153, 0.1); color:var(--accent-pink)">🚫</div>
+                  <div class="s-info">
+                      <span class="s-label">Revoked Certificates</span>
+                      <span class="s-value" id="cert-stat-revoked"><div class="skeleton" style="width:40px; height:24px"></div></span>
+                  </div>
+              </div>
+              <div class="stat-card">
+                  <div class="s-icon" style="background:rgba(245, 158, 11, 0.1); color:var(--accent-amber)">📅</div>
+                  <div class="s-info">
+                      <span class="s-label">Issued Today</span>
+                      <span class="s-value" id="cert-stat-today"><div class="skeleton" style="width:40px; height:24px"></div></span>
+                  </div>
+              </div>
+          </div>
+        
+          <!-- FILTER BAR -->
+          <div class="glass-card" style="padding:20px; margin-bottom:24px; border-radius:16px">
+             <div class="attempts-filter-grid">
+                <div class="form-group" style="margin-bottom:0">
+                   <input type="text" id="certSearch" class="form-control" placeholder="Search ID or Name..." oninput="handleCertFilters()">
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                   <select id="certFilterStatus" class="form-control" onchange="handleCertFilters()">
+                      <option value="all">Any Status</option>
+                      <option value="true">Active</option>
+                      <option value="false">Revoked</option>
+                   </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                   <select id="certFilterGrade" class="form-control" onchange="handleCertFilters()">
+                      <option value="all">Any Grade</option>
+                      <option value="A+">A+</option>
+                      <option value="A">A</option>
+                      <option value="B">B</option>
+                      <option value="C">C</option>
+                      <option value="Fail">Fail</option>
+                   </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                   <select id="certFilterExam" class="form-control" onchange="handleCertFilters()">
+                      <option value="all">Any Exam</option>
+                   </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                   <select id="certFilterDept" class="form-control" onchange="handleCertFilters()">
+                      <option value="all">Any Dept</option>
+                   </select>
+                </div>
+                <div style="display:flex; gap:8px">
+                    <button class="btn btn-ghost" onclick="resetCertFilters()" style="padding:0 16px; border:1px solid var(--border-subtle)" title="Reset Filters"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+                    <button class="btn btn-primary" onclick="refreshCertificates()" style="padding:0 16px; min-width:110px" title="Refresh Data"><i class="fa-solid fa-arrows-rotate"></i> Sync</button>
+                </div>
+             </div>
+          </div>
+        
+          <!-- TABLE -->
+          <div class="glass-card" style="border-radius:20px; overflow:hidden">
             <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Recipient</th>
-                    <th>Exam Name</th>
-                    <th>Issue Date</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="certs-list"></tbody>
-              </table>
+               <table id="certificatesTable">
+                  <thead>
+                     <tr>
+                        <th style="cursor:pointer; min-width:200px" onclick="sortCerts('name')">Recipient ↕</th>
+                        <th style="cursor:pointer" onclick="sortCerts('id')">Cert ID ↕</th>
+                        <th>Department</th>
+                        <th>Roll No</th>
+                        <th>Sec</th>
+                        <th>Exam Title</th>
+                        <th style="cursor:pointer; text-align:center" onclick="sortCerts('score')">Score ↕</th>
+                        <th style="text-align:center">Grade</th>
+                        <th style="cursor:pointer" onclick="sortCerts('date')">Issue Date ↕</th>
+                        <th style="text-align:center">Status</th>
+                        <th style="text-align:right; min-width:240px">Actions</th>
+                     </tr>
+                  </thead>
+                  <tbody id="certs-list"></tbody>
+               </table>
+            </div>
+            
+            <div id="certEmptyState" style="display:none; padding:80px 60px; text-align:center">
+                <div style="font-size:64px; margin-bottom:20px">🪹</div>
+                <h3 style="font-weight:800; font-family:'Syne'">No certificates available</h3>
+                <p style="color:var(--text-tertiary);">We couldn't find matching certificates. Try adjusting your filters.</p>
+            </div>
+        
+            <!-- Paginate -->
+            <div style="padding:16px 24px; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center">
+                 <span style="font-size:12px; color:var(--text-tertiary)" id="certPageInfo">Showing 1 to 10</span>
+                 <div style="display:flex; gap:8px">
+                     <button class="btn btn-ghost btn-sm" id="prevCertPage">Prev</button>
+                     <button class="btn btn-ghost btn-sm" id="nextCertPage">Next</button>
+                 </div>
             </div>
           </div>
         </section>
 
         <!-- SECTION: LEADERBOARD -->
         <section id="leaderboard-section" class="tab-content">
-           <div class="section-header">
-            <h1 class="page-title">Global <span class="text-gradient">Rankings.</span></h1>
+          <div class="section-header">
+            <h1 class="page-title">Leaderboard / <span class="text-gradient">Performance Rankings.</span></h1>
+            <div class="header-actions">
+               <button class="btn btn-ghost" onclick="exportLeaderboard()" style="border:1px solid var(--border-subtle)"><i class="fa-solid fa-file-export"></i> Export CSV</button>
+               <button class="btn btn-primary" onclick="refreshLeaderboard()"><i class="fa-solid fa-arrows-rotate"></i> Sync Rankings</button>
+            </div>
           </div>
-          <div class="leaderboard-container">
-             <div class="podium-area">
-                <div class="podium second-place">
-                  <img src="https://ui-avatars.com/api/?name=Sarah+Lee&background=cbd5e1" alt="2nd">
-                  <span class="p-name">Sarah Lee</span>
-                  <span class="p-score">98.2</span>
+
+          <!-- Top Stats -->
+          <div class="leader-stats-row">
+            <div class="l-stat-card glass-card">
+              <div class="l-stat-icon" style="background:rgba(59, 130, 246, 0.1); color:var(--accent-blue)">👥</div>
+              <div class="l-stat-info">
+                  <div class="l-stat-label">Participants</div>
+                  <div class="l-stat-value" id="lb-stat-total">--</div>
+              </div>
+            </div>
+            <div class="l-stat-card glass-card">
+              <div class="l-stat-icon" style="background:rgba(16, 185, 129, 0.1); color:var(--accent-green)">🏆</div>
+              <div class="l-stat-info">
+                  <div class="l-stat-label">Highest Score</div>
+                  <div class="l-stat-value" id="lb-stat-highest">--</div>
+              </div>
+            </div>
+            <div class="l-stat-card glass-card">
+              <div class="l-stat-icon" style="background:rgba(245, 158, 11, 0.1); color:var(--accent-amber)">📈</div>
+              <div class="l-stat-info">
+                  <div class="l-stat-label">Avg. Percentage</div>
+                  <div class="l-stat-value" id="lb-stat-avg">--</div>
+              </div>
+            </div>
+            <div class="l-stat-card glass-card">
+              <div class="l-stat-icon" style="background:rgba(139, 92, 246, 0.1); color:var(--accent-purple)">💠</div>
+              <div class="l-stat-info">
+                  <div class="l-stat-label">Top Rank Score</div>
+                  <div class="l-stat-value" id="lb-stat-top">--</div>
+              </div>
+            </div>
+            <div class="l-stat-card glass-card">
+              <div class="l-stat-icon" style="background:rgba(239, 68, 68, 0.1); color:var(--accent-pink)">📉</div>
+              <div class="l-stat-info">
+                  <div class="l-stat-label">Lowest Score</div>
+                  <div class="l-stat-value" id="lb-stat-lowest">--</div>
+              </div>
+            </div>
+            <div class="l-stat-card glass-card">
+              <div class="l-stat-icon" style="background:rgba(6, 182, 212, 0.1); color:var(--accent-blue)">✅</div>
+              <div class="l-stat-info">
+                  <div class="l-stat-label">Pass Rate</div>
+                  <div class="l-stat-value" id="lb-stat-pass">--</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Podium Area -->
+          <div class="podium-layout" id="podium-view" style="margin-top: 20px;">
+             <!-- Dynamically injected podium spots -->
+          </div>
+
+          <!-- Filter Bar -->
+          <div class="glass-card lb-filter-bar">
+             <div class="lb-filter-flex">
+                <div class="f-item search">
+                   <label><i class="fa-solid fa-magnifying-glass"></i> Search Student</label>
+                   <input type="text" id="lbSearch" class="form-control" placeholder="By name or ID..." oninput="handleLeaderboardFilters()">
                 </div>
-                <div class="podium first-place">
-                  <img src="https://ui-avatars.com/api/?name=John+Doe&background=3b82f6" alt="1st">
-                  <span class="p-name">John Doe</span>
-                  <span class="p-score">99.5</span>
+                <div class="f-item">
+                   <label>Exam</label>
+                   <select id="lbFilterExam" class="form-control" onchange="handleLeaderboardFilters()">
+                      <option value="all">Any Exam</option>
+                   </select>
                 </div>
-                <div class="podium third-place">
-                  <img src="https://ui-avatars.com/api/?name=Mike+Ross&background=94a3b8" alt="3rd">
-                  <span class="p-name">Mike Ross</span>
-                  <span class="p-score">97.8</span>
+                <div class="f-item">
+                   <label>Department</label>
+                   <select id="lbFilterDept" class="form-control" onchange="handleLeaderboardFilters()">
+                      <option value="all">Any Dept</option>
+                   </select>
+                </div>
+                <div class="f-item">
+                    <label>Rank Range</label>
+                    <select id="lbFilterRank" class="form-control" onchange="handleLeaderboardFilters()">
+                       <option value="all">Any Rank</option>
+                       <option value="1-10">Top 10</option>
+                       <option value="11-50">Top 50</option>
+                       <option value="51-100">Top 100</option>
+                    </select>
+                 </div>
+                 <div class="f-item tiny">
+                    <label>Min %</label>
+                    <input type="number" id="lbFilterPct" class="form-control" placeholder="60" oninput="handleLeaderboardFilters()">
+                 </div>
+                <div class="f-item action">
+                    <button class="btn btn-ghost reset-btn" onclick="resetLeaderboardFilters()" title="Reset All"><i class="fa-solid fa-rotate-left"></i></button>
+                    <button class="btn btn-primary refresh-btn" onclick="refreshLeaderboard()" title="Sync"><i class="fa-solid fa-arrows-rotate"></i></button>
                 </div>
              </div>
-             <div class="glass-card rank-table-wrap">
-            <table class="rank-table">
-              <thead>
-                <tr>
-                  <th>Rank</th>
-                  <th>Student</th>
-                  <th>Points</th>
-                  <th>Avg Accuracy</th>
-                </tr>
-              </thead>
-              <tbody id="ranks-list"></tbody>
-            </table>
+          </div>
+
+          <!-- Leaderboard Table -->
+          <div class="glass-card lb-table-wrap">
+             <div class="lb-table-container" style="max-height: 600px;">
+                <table class="lb-table">
+                   <thead>
+                      <tr>
+                         <th onclick="sortLeaderboard('rank')" style="cursor:pointer">Rank <i class="fa-solid fa-sort"></i></th>
+                         <th>Student Participant</th>
+                         <th>Student ID</th>
+                         <th>Department</th>
+                         <th onclick="sortLeaderboard('score')" style="cursor:pointer; text-align:center">Score <i class="fa-solid fa-sort"></i></th>
+                         <th onclick="sortLeaderboard('percentage')" style="cursor:pointer; text-align:center">Pct % <i class="fa-solid fa-sort"></i></th>
+                         <th style="text-align:center">Attempts</th>
+                         <th style="text-align:center">Result</th>
+                         <th style="text-align:right">Action Suite</th>
+                      </tr>
+                   </thead>
+                   <tbody id="lb-list">
+                      <!-- Data injected here -->
+                   </tbody>
+                </table>
+             </div>
+             
+             <!-- Empty State -->
+             <div id="lbEmptyState" style="display:none; text-align:center; padding:60px 20px; background:rgba(255,255,255,0.02); border-radius:12px; border:1px dashed var(--border-subtle); margin:20px;">
+                <div style="font-size:64px; margin-bottom:16px; opacity:0.3">🏆</div>
+                <h3 style="color:var(--text-primary)">No records match your criteria</h3>
+                <p style="color:var(--text-tertiary)">Adjust filters or search query to find students.</p>
+             </div>
+
+             <!-- Paginate -->
+             <div class="pagination-footer">
+                  <div style="display:flex; align-items:center; gap:20px">
+                      <div style="display:flex; align-items:center; gap:8px">
+                         <span style="font-size:12px; color:var(--text-tertiary)">Show</span>
+                         <select id="lbPageSize" class="form-control-sm" onchange="window.lbPageSize = parseInt(this.value); handleLeaderboardFilters()" style="background:var(--bg-tertiary); border:1px solid var(--border-subtle); color:var(--text-primary); border-radius:4px; padding:2px 8px;">
+                             <option value="10">10</option>
+                             <option value="25">25</option>
+                             <option value="50">50</option>
+                         </select>
+                      </div>
+                      <span style="font-size:12px; color:var(--text-tertiary)" id="lbPageInfo">Showing 1 to 10 of 45</span>
+                  </div>
+                  <div class="btn-group" style="display:flex; gap:12px">
+                      <button class="btn btn-ghost btn-sm" id="prevLBPage" onclick="lbPrevPage()" style="border:1px solid var(--border-subtle); min-width:100px">Previous</button>
+                      <button class="btn btn-primary btn-sm" id="nextLBPage" onclick="lbNextPage()" style="min-width:100px">Next Page</button>
+                  </div>
+             </div>
+          </div>
+
+          <!-- Charts Section -->
+          <div class="dashboard-grid lb-charts-grid" style="margin-top: 24px;">
+             <div class="glass-card chart-container">
+                <h3 class="card-title" style="display:flex; justify-content:space-between; align-items:center">
+                    <span><i class="fa-solid fa-chart-bar" style="color:var(--accent-blue)"></i> Score Distribution</span>
+                    <span style="font-size:11px; color:var(--text-tertiary)">Metric: Student Count</span>
+                </h3>
+                <div class="chart-wrapper">
+                   <canvas id="lbScoreChart"></canvas>
+                </div>
+             </div>
+             <div class="glass-card chart-container">
+                <h3 class="card-title" style="display:flex; justify-content:space-between; align-items:center">
+                    <span><i class="fa-solid fa-chart-line" style="color:var(--accent-pink)"></i> Performance Trends</span>
+                    <span style="font-size:11px; color:var(--text-tertiary)">Metric: Percentile</span>
+                </h3>
+                <div class="chart-wrapper">
+                   <canvas id="lbPctChart"></canvas>
+                </div>
+             </div>
+          </div>
+        </section>
+
+        <!-- SECTION: SETTINGS -->
+        <!-- SECTION: SETTINGS -->
+        <section id="settings-section" class="tab-content">
+          <div class="section-header">
+            <h1 class="page-title">Management / <span class="text-gradient">Core Settings.</span></h1>
+            <p class="page-desc">Global platform behavior and operational rules.</p>
+          </div>
+
+          <div class="settings-grid">
+            <!-- System Config -->
+            <div class="glass-card settings-card">
+              <h3 class="card-title"><i class="fa-solid fa-server"></i> System Configuration</h3>
+              <div class="settings-content">
+                <div class="input-set">
+                  <label>Default Exam Duration (Min)</label>
+                  <input type="number" class="form-control" value="60">
+                </div>
+                <div class="input-set">
+                  <label>Passing Percentage (%)</label>
+                  <input type="number" class="form-control" value="40">
+                </div>
+                <div class="check-set">
+                  <span>Enable Negative Marking</span>
+                  <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                </div>
+                <div class="input-set">
+                  <label>Max Attempts Per Exam</label>
+                  <input type="number" class="form-control" value="3">
+                </div>
+                <div class="check-set">
+                   <span>Global Auto-Submit</span>
+                   <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Proctoring Settings -->
+            <div class="glass-card settings-card">
+              <h3 class="card-title"><i class="fa-solid fa-shield-halved"></i> Proctoring Control</h3>
+              <div class="settings-content">
+                <div class="input-set">
+                  <label>Cheating Threshold (Risk %)</label>
+                  <input type="range" min="0" max="100" value="70" class="range-slider">
+                  <div style="font-size:10px; color:var(--text-tertiary); margin-top:4px">Value: <span id="threshold-val">70%</span></div>
+                </div>
+                <div class="input-set">
+                  <label>Tab Switch Limit</label>
+                  <input type="number" class="form-control" value="3">
+                </div>
+                <div class="check-set">
+                  <span>Face Detection</span>
+                  <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                </div>
+                <div class="check-set">
+                  <span>Noise Detection (Beta)</span>
+                  <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                </div>
+                <div class="check-set">
+                   <span>Auto-Invalidate Session</span>
+                   <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Certificates -->
+            <div class="glass-card settings-card">
+              <h3 class="card-title"><i class="fa-solid fa-file-contract"></i> Certificate System</h3>
+              <div class="settings-content">
+                <div class="check-set">
+                  <span>Enable Generation</span>
+                  <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                </div>
+                <div class="input-set">
+                  <label>Template Style</label>
+                  <select class="form-control">
+                    <option>Global Standard 2024</option>
+                    <option>Corporate Minimal</option>
+                    <option>Elite Distinction</option>
+                  </select>
+                </div>
+                <div class="upload-set">
+                  <label>Admin Signature (.png)</label>
+                  <input type="file" id="sig-upload" hidden>
+                  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('sig-upload').click()">Upload File</button>
+                </div>
+                <div class="upload-set">
+                  <label>Official Seal (.png)</label>
+                  <input type="file" id="seal-upload" hidden>
+                  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('seal-upload').click()">Upload File</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- UI Preferences -->
+            <div class="glass-card settings-card">
+              <h3 class="card-title"><i class="fa-solid fa-wand-magic-sparkles"></i> UI & Experience</h3>
+              <div class="settings-content">
+                <div class="input-set">
+                  <label>Active Theme</label>
+                  <select class="form-control" onchange="window.setTheme(this.value)">
+                    <option value="dark">Vantablack (Dark)</option>
+                    <option value="light">Pure White (Light)</option>
+                    <option value="system">Sync With System</option>
+                  </select>
+                </div>
+                <div class="check-set">
+                  <span>Compact Mode</span>
+                  <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                </div>
+                <div class="check-set">
+                  <span>Reduced Motion</span>
+                  <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-actions">
+            <button class="btn btn-ghost" onclick="resetSettings()">Reset to Defaults</button>
+            <button class="btn btn-primary" onclick="saveSettings()">Save Configuration</button>
+          </div>
+        </section>
+
+        <!-- SECTION: AUDIT LOGS -->
+        <section id="audit-section" class="tab-content">
+          <div class="section-header">
+            <h1 class="page-title">Security / <span class="text-gradient">Audit Logs.</span></h1>
+            <p class="page-desc">Comprehensive history of all administrative and teacher operations.</p>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="s-icon" style="background:rgba(255,165,0,0.05)">📜</div>
+              <div class="s-info"><span class="s-label">TOTAL ACTIONS</span><span class="s-value" id="audit-total">4,291</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="s-icon" style="background:rgba(255,69,0,0.05)">⚡</div>
+              <div class="s-info"><span class="s-label">TODAY ACTIONS</span><span class="s-value" id="audit-today">182</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="s-icon" style="background:rgba(59,130,246,0.05)">🛡️</div>
+              <div class="s-info"><span class="s-label">ADMIN ACTIONS</span><span class="s-value" id="audit-admin">892</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="s-icon" style="background:rgba(139,92,246,0.05)">👨‍🏫</div>
+              <div class="s-info"><span class="s-label">TEACHER ACTIONS</span><span class="s-value" id="audit-teacher">3,399</span></div>
+            </div>
+          </div>
+
+          <div class="glass-card filter-bar">
+             <div class="audit-filter-flex">
+                <div class="f-item search">
+                   <label>SEARCH USER / ID</label>
+                   <input type="text" id="auditSearch" class="form-control" placeholder="By name, email, or ID..." oninput="handleAuditFilters()">
+                </div>
+                <div class="f-item">
+                   <label>ACTION TYPE</label>
+                   <select id="auditActionFilter" class="form-control" onchange="handleAuditFilters()">
+                      <option value="all">All Actions</option>
+                      <option value="LOGIN">Login / Logout</option>
+                      <option value="EXAM_CREATE">Exam Creation</option>
+                      <option value="CERT_REVOKE">Cert Revocation</option>
+                      <option value="USER_EDIT">User Modification</option>
+                   </select>
+                </div>
+                <div class="f-item">
+                   <label>MODULE</label>
+                   <select id="auditModuleFilter" class="form-control" onchange="handleAuditFilters()">
+                      <option value="all">All Modules</option>
+                      <option value="EXAMS">Exams</option>
+                      <option value="USERS">Users</option>
+                      <option value="CERTS">Certificates</option>
+                      <option value="SYSTEM">System</option>
+                   </select>
+                </div>
+                <div class="f-item action">
+                   <button class="btn btn-premium" onclick="exportAuditCSV()"><i class="fa-solid fa-download"></i> Export Logs</button>
+                </div>
+             </div>
+          </div>
+
+          <div class="glass-card table-section">
+             <div class="table-scroll">
+                <table class="lb-table" id="auditTable">
+                   <thead>
+                      <tr>
+                         <th>Timestamp</th>
+                         <th>User</th>
+                         <th>Role</th>
+                         <th>Action</th>
+                         <th>Module</th>
+                         <th>IP Address</th>
+                         <th style="text-align:right">Details</th>
+                      </tr>
+                   </thead>
+                   <tbody id="audit-list"></tbody>
+                </table>
+             </div>
+             <div id="auditEmptyState" style="display:none; text-align:center; padding:50px">No logs found.</div>
+          </div>
+        </section>
+
+        <!-- SECTION: REPORTS -->
+        <section id="reports-section" class="tab-content">
+          <div class="section-header">
+            <h1 class="page-title">Intelligence / <span class="text-gradient">Report Engine.</span></h1>
+            <p class="page-desc">Generate, compile, and export complex system datasets.</p>
+          </div>
+
+          <div class="reports-grid">
+            <div class="glass-card report-gen-card">
+              <div class="r-icon">📋</div>
+              <h3 class="r-title">Exams Summary</h3>
+              <p class="r-desc">Success rates, difficult questions, and timeline analysis.</p>
+              <div class="r-actions">
+                <button class="btn btn-primary btn-sm" onclick="generateReport('EXAMS')">Generate</button>
+                <button class="btn btn-ghost btn-sm" onclick="exportReport('EXAMS', 'CSV')">CSV</button>
+                <button class="btn btn-ghost btn-sm" onclick="exportReport('EXAMS', 'PDF')">PDF</button>
+              </div>
+            </div>
+            <div class="glass-card report-gen-card">
+              <div class="r-icon">🛡️</div>
+              <h3 class="r-title">Proctoring Forensic</h3>
+              <p class="r-desc">Risk aggregation, violation logs, and cheating trends.</p>
+              <div class="r-actions">
+                <button class="btn btn-primary btn-sm" onclick="generateReport('PROCTOR')">Generate</button>
+                <button class="btn btn-ghost btn-sm" onclick="exportReport('PROCTOR', 'CSV')">CSV</button>
+                <button class="btn btn-ghost btn-sm" onclick="exportReport('PROCTOR', 'PDF')">PDF</button>
+              </div>
+            </div>
+            <div class="glass-card report-gen-card">
+               <div class="r-icon">🧑‍🎓</div>
+               <h3 class="r-title">Student Performance</h3>
+               <p class="r-desc">Individual ranking, percentage distribution, attempts.</p>
+               <div class="r-actions">
+                 <button class="btn btn-primary btn-sm" onclick="generateReport('PERF')">Generate</button>
+                 <button class="btn btn-ghost btn-sm" onclick="exportReport('PERF', 'CSV')">CSV</button>
+                 <button class="btn btn-ghost btn-sm" onclick="exportReport('PERF', 'PDF')">PDF</button>
+               </div>
+            </div>
+             <div class="glass-card report-gen-card">
+               <div class="r-icon">🎓</div>
+               <h3 class="r-title">Certificates Log</h3>
+               <p class="r-desc">Issuance count, verification status, revokes.</p>
+               <div class="r-actions">
+                 <button class="btn btn-primary btn-sm" onclick="generateReport('CERTS')">Generate</button>
+                 <button class="btn btn-ghost btn-sm" onclick="exportReport('CERTS', 'CSV')">CSV</button>
+                 <button class="btn btn-ghost btn-sm" onclick="exportReport('CERTS', 'PDF')">PDF</button>
+               </div>
+            </div>
+          </div>
+
+          <div class="glass-card table-section" style="margin-top:24px">
+             <div class="card-header" style="padding:20px; border-bottom:1px solid var(--border-subtle)">
+                <h3 class="card-title">Generated History</h3>
+             </div>
+             <div class="table-scroll">
+                <table class="lb-table">
+                   <thead>
+                      <tr><th>Report Name</th><th>Type</th><th>By</th><th>Date</th><th style="text-align:right">Action</th></tr>
+                   </thead>
+                   <tbody id="report-history"></tbody>
+                </table>
+             </div>
+          </div>
+        </section>
+
+        <!-- SECTION: NOTIFICATIONS -->
+        <section id="notifications-section" class="tab-content">
+          <div class="section-header">
+            <h1 class="page-title">Inbox / <span class="text-gradient">Critical Alerts.</span></h1>
+            <div class="header-actions">
+               <button class="btn btn-ghost btn-sm" onclick="markAllRead()"><i class="fa-solid fa-check-double"></i> Mark All Read</button>
+               <button class="btn btn-ghost btn-sm" onclick="clearNotifs()" style="color:var(--accent-pink)"><i class="fa-solid fa-trash"></i> Delete All</button>
+            </div>
+          </div>
+
+          <div class="notif-layout">
+             <div class="glass-card notif-filters">
+                <button class="n-filter active" onclick="filterNotifs('all', this)">All Notifications <span>12</span></button>
+                <button class="n-filter" onclick="filterNotifs('cheating', this)">Cheating Alerts <span>3</span></button>
+                <button class="n-filter" onclick="filterNotifs('exam', this)">Exam Updates <span>5</span></button>
+                <button class="n-filter" onclick="filterNotifs('cert', this)">Certificates <span>2</span></button>
+                <button class="n-filter" onclick="filterNotifs('system', this)">System <span>2</span></button>
+             </div>
+             <div class="notif-list-cont" id="notif-list">
+                <!-- Notifications injected here -->
+             </div>
+          </div>
+        </section>
+
+        <!-- SECTION: ADMIN PROFILE -->
+        <section id="profile-section" class="tab-content">
+           <div class="section-header">
+            <h1 class="page-title">Personal / <span class="text-gradient">Admin Profile.</span></h1>
+          </div>
+
+          <div class="profile-page-grid">
+             <div class="glass-card profile-info-card">
+                <div class="p-header">
+                   <div class="p-avatar-wrap">
+                      <img src="https://ui-avatars.com/api/?name=System+Admin&background=3b82f6&color=fff" id="admin-p-img">
+                      <button class="p-overlay-cam" onclick="document.getElementById('profile-up').click()"><i class="fa-solid fa-camera"></i></button>
+                      <input type="file" id="profile-up" hidden>
+                   </div>
+                   <div class="p-names">
+                      <h2 id="admin-p-name">System Admin</h2>
+                      <span id="admin-p-role">Superuser Administrator</span>
+                   </div>
+                </div>
+                <div class="p-body-grid">
+                    <div class="input-set">
+                       <label>FULL NAME</label>
+                       <input type="text" class="form-control" value="System Admin">
+                    </div>
+                    <div class="input-set">
+                       <label>EMAIL ADDRESS</label>
+                       <input type="email" class="form-control" value="admin@semconsole.com">
+                    </div>
+                    <div class="input-set">
+                       <label>DEPARTMENT</label>
+                       <input type="text" class="form-control" value="Operations">
+                    </div>
+                    <div class="input-set">
+                       <label>TIMEZONE</label>
+                       <select class="form-control" style="height: 48px; border-radius: 12px; background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); color:var(--text-primary); padding:0 16px;">
+                          <option>GMT +5:30 (India)</option>
+                          <option>UTC</option>
+                       </select>
+                    </div>
+                 </div>
+                <div style="margin-top:20px"><button class="btn btn-primary" onclick="updateAdminProfile()">Update Basic Info</button></div>
+             </div>
+
+             <div class="glass-card profile-sec-card">
+                 <h3 class="card-title" style="margin-bottom:24px"><i class="fa-solid fa-shield-halved" style="color:var(--accent-blue)"></i> Security & Preferences</h3>
+                 <div class="sec-group">
+                    <label style="font-size:11px; font-weight:800; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.8px">Change Password</label>
+                    <input type="password" class="form-control" placeholder="New Password" style="margin-bottom:12px">
+                    <input type="password" class="form-control" placeholder="Confirm New Password">
+                    <button class="btn btn-ghost btn-sm" style="height:40px; border-radius:10px; margin-top:12px" onclick="updateAdminPass()">Update Password</button>
+                 </div>
+                 <div class="pref-group" style="margin-top:32px; border-top:1px solid var(--border-subtle); padding-top:32px">
+                    <div class="check-set" style="margin-bottom:12px; padding:16px; background:rgba(255,255,255,0.02); border-radius:12px;">
+                       <span style="font-size:13px; font-weight:600">Two-Factor Auth</span>
+                       <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                    </div>
+                    <div class="check-set" style="margin-bottom:12px; padding:16px; background:rgba(255,255,255,0.02); border-radius:12px;">
+                       <span style="font-size:13px; font-weight:600">Email Notifications</span>
+                       <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+                    </div>
+                    <div class="check-set" style="margin-bottom:0; padding:16px; background:rgba(255,255,255,0.02); border-radius:12px;">
+                       <span style="font-size:13px; font-weight:600">Login Session Persistent</span>
+                       <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                    </div>
+                 </div>
+                 <div style="margin-top:32px">
+                    <button class="btn btn-ghost" style="width:100%; height:48px; border-radius:14px; color:var(--accent-pink); border-color:rgba(236,72,153,0.2); background:rgba(236,72,153,0.03)" onclick="logoutAdmin()">Logout Account</button>
+                 </div>
+              </div>
           </div>
         </section>
 
       </div>
-    </main>
 
+      <!-- MODALS -->
+      <div id="addTeacherModal" class="modal-overlay" onclick="closeModalOutside(event, 'addTeacherModal')">
+        <div class="modal-content large">
+          <div class="modal-header">
+            <h3 class="modal-title">Create New Teacher</h3>
+            <button class="modal-close" onclick="closeModal('addTeacherModal')">&times;</button>
+          </div>
+          <form id="createTeacherForm" novalidate onsubmit="submitAddTeacher(event, this.querySelector('button[type=submit]'))">
+            <input type="hidden" id="t-id">
+            <div class="form-section-title">Basic Info</div>
+            <div class="form-grid">
+              <div class="form-group full-span">
+                <label>Full Name *</label>
+                <input type="text" id="t-name" class="form-control" placeholder="e.g. Dr. Jane Smith">
+                <span class="error-msg">Minimum 3 characters required.</span>
+              </div>
+              <div class="form-group">
+                <label>Email *</label>
+                <input type="email" id="t-email" class="form-control" placeholder="jane.smith@example.com">
+                <span class="error-msg">Valid email required.</span>
+              </div>
+              <div class="form-group">
+                <label>Password *</label>
+                <input type="password" id="t-pwd" class="form-control" placeholder="••••••••">
+                <span class="error-msg">Minimum 6 characters.</span>
+              </div>
+            </div>
+
+            <div class="form-section-title">Contact & Organization</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="t-phone" class="form-control" placeholder="10 Digits (Optional)">
+                <span class="error-msg">Must be exactly 10 digits if provided.</span>
+              </div>
+              <div class="form-group">
+                <label>Employee ID</label>
+                <input type="text" id="t-empid" class="form-control" placeholder="EMP-#### (Optional)">
+                <span class="error-msg">Employee ID is invalid.</span>
+              </div>
+            </div>
+
+            <div class="form-section-title">Professional Details</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Department</label>
+                <input type="text" id="t-dept" class="form-control" placeholder="e.g. Engineering">
+              </div>
+              <div class="form-group">
+                <label>Designation</label>
+                <input type="text" id="t-designation" class="form-control" placeholder="e.g. Senior Lecturer">
+              </div>
+              <div class="form-group">
+                <label>Experience Years</label>
+                <input type="number" id="t-exp" class="form-control" placeholder="0" min="0">
+                <span class="error-msg">Must be a valid number >= 0.</span>
+              </div>
+              <div class="form-group">
+                <label>Qualification</label>
+                <input type="text" id="t-qual" class="form-control" placeholder="e.g. Ph.D">
+              </div>
+            </div>
+
+            <div class="form-section-title">Optional Media</div>
+            <div class="form-grid">
+              <div class="form-group full-span">
+                <label>Profile Image URL</label>
+                <input type="url" id="t-img" class="form-control" placeholder="https://...">
+              </div>
+            </div>
+
+            <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--border-subtle)">
+               <button type="submit" class="btn btn-primary" style="width:100%">Create Teacher</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="evidenceModal" class="modal-overlay">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 class="modal-title">Review Evidence</h3>
+            <button class="modal-close" onclick="closeModal('evidenceModal')">&times;</button>
+          </div>
+          <p id="evidence-desc" style="color:var(--text-secondary); font-size:14px;"></p>
+          <img src="https://images.unsplash.com/photo-1544717305-2782549b5136?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" alt="Evidence" class="evidence-image">
+          <div style="display:flex;gap:12px;margin-top:24px;">
+              <button class="btn btn-ghost" style="flex:1" onclick="submitEvidenceAction(this, 'Dismiss')">Dismiss</button>
+              <button class="btn btn-primary" style="flex:1;background:var(--accent-pink)" onclick="submitEvidenceAction(this, 'Flag')">Flag Student</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="createExamModal" class="modal-overlay" onclick="closeModalOutside(event, 'createExamModal')">
+        <div class="modal-content large">
+          <div class="modal-header">
+            <h3 class="modal-title">Create New Exam</h3>
+            <button class="modal-close" onclick="closeModal('createExamModal')">&times;</button>
+          </div>
+          
+          <form id="createExamForm" novalidate onsubmit="submitCreateExam(event, this.querySelector('button[type=submit]'))">
+            <!-- Basic Settings -->
+            <div class="form-section-title">Basic Information</div>
+            <div class="form-grid">
+              <div class="form-group full-span">
+                <label>Exam Title *</label>
+                <input type="text" id="ex-title" class="form-control" placeholder="e.g. Midterm 1: Advanced JS">
+                <span class="error-msg">Title is required.</span>
+              </div>
+              <div class="form-group full-span">
+                <label>Description</label>
+                <textarea id="ex-desc" class="form-control" style="height: 60px; padding-top: 10px;" placeholder="Instructions or rules..."></textarea>
+              </div>
+              <div class="form-group full-span">
+                <label>Subject *</label>
+                <input type="text" id="ex-subj" class="form-control" placeholder="e.g. Computer Science">
+                <span class="error-msg">Subject is required.</span>
+              </div>
+            </div>
+
+            <!-- Timing -->
+            <div class="form-section-title">Timing Configuration</div>
+            <div class="form-grid">
+              <div class="form-group full-span">
+                <label>Duration (Minutes) *</label>
+                <input type="number" id="ex-dur" class="form-control" min="1" placeholder="90">
+                <span class="error-msg">Duration must be greater than 0.</span>
+              </div>
+              <div class="form-group">
+                <label>Start Time *</label>
+                <input type="datetime-local" id="ex-start" class="form-control">
+                <span class="error-msg">Valid start time is required.</span>
+              </div>
+              <div class="form-group">
+                <label>End Time *</label>
+                <input type="datetime-local" id="ex-end" class="form-control">
+                <span class="error-msg">End time must be after start time.</span>
+              </div>
+            </div>
+
+            <!-- Marks & grading -->
+            <div class="form-section-title">Grading Framework</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Total Marks *</label>
+                <input type="number" id="ex-total" class="form-control" min="1">
+                <span class="error-msg">Must be > 0.</span>
+              </div>
+              <div class="form-group">
+                <label>Passing Marks *</label>
+                <input type="number" id="ex-pass" class="form-control" min="0">
+                <span class="error-msg">Cannot exceed Total Marks.</span>
+              </div>
+              <div class="form-group">
+                <label>Marks Per Question *</label>
+                <input type="number" id="ex-perq" class="form-control" min="0.1" step="0.1">
+                <span class="error-msg">Must be > 0.</span>
+              </div>
+              <div class="form-group">
+                <label>Negative Marks (Optional)</label>
+                <input type="number" id="ex-neg" class="form-control" value="0" min="0" step="0.1">
+                <span class="error-msg">Must be >= 0.</span>
+              </div>
+            </div>
+
+            <!-- Settings -->
+            <div class="form-section-title">Attempt & Constraints</div>
+            <div class="form-grid">
+              <div class="form-group full-span">
+                <label>Max Attempts *</label>
+                <input type="number" id="ex-attempts" class="form-control" value="1" min="1">
+                <span class="error-msg">Must be >= 1.</span>
+              </div>
+              
+              <div class="form-group full-span" style="display:flex; flex-direction:column; gap:8px;">
+                <div class="toggle-wrap">
+                  <label for="ex-shuffle-q">Shuffle Questions</label>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="ex-shuffle-q" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="toggle-wrap">
+                  <label for="ex-shuffle-o">Shuffle Options</label>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="ex-shuffle-o" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Distribution -->
+            <div class="form-section-title">Difficulty Distribution</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Easy Count</label>
+                <input type="number" id="ex-easy" class="form-control" value="0" min="0">
+                <span class="error-msg">Must be >= 0.</span>
+              </div>
+              <div class="form-group">
+                <label>Medium Count</label>
+                <input type="number" id="ex-med" class="form-control" value="0" min="0">
+                <span class="error-msg">Must be >= 0.</span>
+              </div>
+              <div class="form-group full-span">
+                <label>Difficult Count</label>
+                <input type="number" id="ex-diff" class="form-control" value="0" min="0">
+                <span class="error-msg">Must be >= 0.</span>
+              </div>
+            </div>
+
+            <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--border-subtle)">
+               <button type="submit" class="btn btn-primary" style="width:100%">Create Exam</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div id="deleteConfirmModal" class="modal-overlay" onclick="closeModalOutside(event, 'deleteConfirmModal')">
+        <div class="modal-content" style="width:400px; text-align:center">
+          <div class="modal-header" style="justify-content:center; border-bottom:none">
+            <h3 class="modal-title" id="deleteConfirmTitle" style="color:var(--accent-pink)">Confirm Deletion</h3>
+          </div>
+          <p id="deleteConfirmMessage" style="margin-bottom:12px; color:var(--text-secondary)">Are you absolutely sure you want to delete this exam? This action cannot be undone.</p>
+          <p id="deleteConfirmInstruction" style="margin-bottom:10px; color:var(--text-tertiary); font-size:12px; display:none"></p>
+          <input id="deleteConfirmInput" type="text" class="form-control" placeholder="Type confirmation text..." style="display:none; margin-bottom:8px">
+          <div id="deleteConfirmError" style="display:none; margin-bottom:16px; font-size:11px; color:var(--accent-pink); text-align:left">Confirmation text does not match.</div>
+          <div style="display:flex; gap:12px">
+            <button class="btn btn-ghost" style="flex:1" onclick="closeDeleteConfirmModal()">Cancel</button>
+            <button class="btn btn-primary" style="flex:1; background:var(--accent-pink)" id="confirmDeleteBtn">Yes, Delete</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="uploadQuestionsModal" class="modal-overlay" onclick="closeModalOutside(event, 'uploadQuestionsModal')">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 class="modal-title">Upload Questions</h3>
+            <button class="modal-close" onclick="closeModal('uploadQuestionsModal')">&times;</button>
+          </div>
+          <div class="form-group">
+            <label>Exam Code</label>
+            <input type="text" id="uq-code" class="form-control" disabled>
+          </div>
+          <div class="form-group">
+            <label>Select CSV/Excel File *</label>
+            <input type="file" id="uq-file" class="form-control" accept=".csv, .xlsx" style="padding-top:8px">
+            <span class="error-msg">Please select a valid file.</span>
+          </div>
+          <button class="btn btn-primary" style="width:100%" onclick="submitUploadQuestions(this)">Upload File</button>
+        </div>
+      </div>
+
+      <div id="viewQuestionsModal" class="modal-overlay" onclick="closeModalOutside(event, 'viewQuestionsModal')">
+        <div class="modal-content large">
+          <div class="modal-header">
+            <h3 class="modal-title">View Questions: <span id="vq-title" style="font-weight:700"></span></h3>
+            <button class="modal-close" onclick="closeModal('viewQuestionsModal')">&times;</button>
+          </div>
+          <div class="table-wrap" style="max-height: 50vh; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: 8px;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead style="position: sticky; top: 0; background: var(--bg-tertiary); z-index: 10;">
+                <tr>
+                  <th>#</th>
+                  <th>Question Content</th>
+                  <th>Type</th>
+                  <th>Difficulty</th>
+                </tr>
+              </thead>
+              <tbody id="vq-list">
+                 <!-- Generated dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top:24px; text-align:right;">
+             <button class="btn btn-ghost" onclick="closeModal('viewQuestionsModal')">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="viewStudentModal" class="modal-overlay" onclick="closeModalOutside(event, 'viewStudentModal')">
+        <div class="modal-content medium" style="width:500px">
+          <div class="modal-header">
+            <h3 class="modal-title">Student Profile</h3>
+            <button class="modal-close" onclick="closeModal('viewStudentModal')">&times;</button>
+          </div>
+          <div class="activity-scroll-area">
+             <div style="padding: 16px 0; display:flex; flex-direction:column; gap:24px">
+                <!-- Basic Info -->
+                <div style="display:flex; align-items:center; gap:20px; padding-bottom:20px; border-bottom:1px solid var(--border-subtle)">
+                   <div style="width:64px; height:64px; border-radius:16px; background:var(--bg-tertiary); color:var(--accent-blue); display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:800; border:1px solid var(--border-subtle)" id="vs-initial">S</div>
+                   <div style="display:flex; flex-direction:column; gap:4px">
+                      <h2 style="font-size:20px; font-weight:800; color:var(--text-primary)" id="vs-name">-</h2>
+                      <span style="font-size:12px; color:var(--text-tertiary); font-weight:700; text-transform:uppercase">Student ID: <span id="vs-id" style="color:var(--text-secondary)">-</span></span>
+                   </div>
+                </div>
+
+                <!-- Info Grid -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px">
+                   <div style="display:flex; flex-direction:column; gap:4px">
+                      <span style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Email Address</span>
+                      <span style="font-size:14px; font-weight:600; color:var(--text-primary)" id="vs-email">-</span>
+                   </div>
+                   <div style="display:flex; flex-direction:column; gap:4px">
+                      <span style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Account Status</span>
+                      <span id="vs-status">-</span>
+                   </div>
+                   <div style="display:flex; flex-direction:column; gap:4px">
+                      <span style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Access Role</span>
+                      <span style="font-size:14px; font-weight:700; color:var(--text-secondary)">STUDENT</span>
+                   </div>
+                   <div style="display:flex; flex-direction:column; gap:4px">
+                      <span style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Last Login</span>
+                      <span style="font-size:14px; font-weight:600; color:var(--text-primary)" id="vs-last-login">-</span>
+                   </div>
+                </div>
+
+                <!-- Metrics Section -->
+                <div>
+                   <h4 style="font-size:12px; color:var(--text-tertiary); text-transform:uppercase; margin-bottom:12px; border-bottom:1px solid var(--border-subtle); padding-bottom:8px">Exam Metrics</h4>
+                   <div class="activity-summary-grid">
+                      <div class="summary-item">
+                         <div class="summary-label">Attempted</div>
+                         <div class="summary-val" id="vs-attempted">0</div>
+                      </div>
+                      <div class="summary-item">
+                         <div class="summary-label">Avg. Score</div>
+                         <div class="summary-val" id="vs-avg-score">0%</div>
+                      </div>
+                      <div class="summary-item">
+                         <div class="summary-label">Pass Rate</div>
+                         <div class="summary-val" id="vs-pass-rate" style="color:var(--accent-green)">0%</div>
+                      </div>
+                   </div>
+                </div>
+
+                <!-- Performance -->
+                <div>
+                   <h4 style="font-size:12px; color:var(--text-tertiary); text-transform:uppercase; margin-bottom:12px; border-bottom:1px solid var(--border-subtle); padding-bottom:8px">Performance Peak</h4>
+                   <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+                      <div style="background:var(--bg-tertiary); padding:12px; border-radius:10px; display:flex; justify-content:space-between; align-items:center">
+                         <span style="font-size:12px; color:var(--text-secondary)">Highest Score</span>
+                         <span style="font-weight:800; color:var(--accent-blue)" id="vs-highest">0%</span>
+                      </div>
+                      <div style="background:var(--bg-tertiary); padding:12px; border-radius:10px; display:flex; justify-content:space-between; align-items:center">
+                         <span style="font-size:12px; color:var(--text-secondary)">Lowest Score</span>
+                         <span style="font-weight:800; color:var(--accent-pink)" id="vs-lowest">0%</span>
+                      </div>
+                   </div>
+                </div>
+             </div>
+          </div>
+          <div style="margin-top:24px; padding-top:24px; border-top:1px solid var(--border-subtle)">
+             <button class="btn btn-primary" style="width:100%" onclick="closeModal('viewStudentModal')">Close Profile</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="viewTeacherModal" class="modal-overlay" onclick="closeModalOutside(event, 'viewTeacherModal')">
+        <div class="modal-content medium" style="width:500px">
+          <div class="modal-header">
+            <h3 class="modal-title">Teacher Profile</h3>
+            <button class="modal-close" onclick="closeModal('viewTeacherModal')">&times;</button>
+          </div>
+          <div style="padding: 16px 0; display:flex; flex-direction:column; gap:20px">
+            <div style="display:flex; align-items:center; gap:20px; padding-bottom:20px; border-bottom:1px solid var(--border-subtle)">
+               <div style="width:64px; height:64px; border-radius:16px; background:var(--gradient-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:800" id="vt-initial">T</div>
+               <div style="display:flex; flex-direction:column; gap:4px">
+                  <h2 style="font-size:20px; font-weight:800; color:var(--text-primary)" id="vt-name">-</h2>
+                  <span style="font-size:12px; color:var(--accent-blue); font-weight:700; text-transform:uppercase" id="vt-role">Teacher Profile</span>
+               </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px">
+               <div style="display:flex; flex-direction:column; gap:4px">
+                  <span style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Email Address</span>
+                  <span style="font-size:14px; font-weight:600; color:var(--text-primary)" id="vt-email">-</span>
+               </div>
+               <div style="display:flex; flex-direction:column; gap:4px">
+                  <span style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Phone Number</span>
+                  <span style="font-size:14px; font-weight:600; color:var(--text-primary)" id="vt-phone">-</span>
+               </div>
+               <div style="display:flex; flex-direction:column; gap:4px">
+                  <span style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Department</span>
+                  <span style="font-size:14px; font-weight:600; color:var(--text-primary)" id="vt-dept">-</span>
+               </div>
+               <div style="display:flex; flex-direction:column; gap:4px">
+                  <span style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Designation</span>
+                  <span style="font-size:14px; font-weight:600; color:var(--text-primary)" id="vt-designation">-</span>
+               </div>
+               <div style="display:flex; flex-direction:column; gap:4px">
+                  <span style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Experience</span>
+                  <span style="font-size:14px; font-weight:600; color:var(--text-primary)" id="vt-exp">-</span>
+               </div>
+               <div style="display:flex; flex-direction:column; gap:4px">
+                  <span style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Employee ID</span>
+                  <span style="font-size:14px; font-weight:700; color:var(--accent-blue)" id="vt-empid">-</span>
+               </div>
+               <div style="display:flex; flex-direction:column; gap:4px">
+                  <span style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Account status</span>
+                  <span id="vt-status">-</span>
+               </div>
+            </div>
+          </div>
+          <div style="margin-top:24px; padding-top:24px; border-top:1px solid var(--border-subtle); display:flex; gap:12px">
+             <button class="btn btn-ghost" style="flex:1" onclick="closeModal('viewTeacherModal')">Close</button>
+             <button class="btn btn-primary" style="flex:1" onclick="closeModal('viewTeacherModal'); openTeacherActivity(window.currentViewingTeacherId)">View Activity</button>
+          </div>
+        </div>
+      </div>
+      
+      <div id="teacherActivityModal" class="modal-overlay" onclick="closeModalOutside(event, 'teacherActivityModal')">
+        <div class="modal-content large" style="width:800px; height:auto; max-height:85vh">
+          <div class="modal-header">
+            <div>
+              <h3 class="modal-title">Activity Monitor: <span id="ta-name" class="text-gradient">-</span></h3>
+              <div style="font-size:12px; color:var(--text-tertiary); margin-top:4px">Monitoring teacher performance and system operations.</div>
+            </div>
+            <button class="modal-close" onclick="closeModal('teacherActivityModal')">&times;</button>
+          </div>
+
+          <div class="activity-summary-grid">
+             <div class="summary-item">
+                <div class="summary-label">Exams Conducted</div>
+                <div class="summary-val s-animate" id="ta-exams-conducted">0</div>
+             </div>
+             <div class="summary-item">
+                <div class="summary-label">Students Evaluated</div>
+                <div class="summary-val s-animate" id="ta-students-eval">0</div>
+             </div>
+             <div class="summary-item">
+                <div class="summary-label">Certificates Issued</div>
+                <div class="summary-val s-animate" id="ta-certs">0</div>
+             </div>
+          </div>
+
+          <div class="modal-tabs">
+             <button class="modal-tab-btn active" onclick="switchActivityTab(this, 'ta-exams')">Exams</button>
+             <button class="modal-tab-btn" onclick="switchActivityTab(this, 'ta-questions')">Questions</button>
+             <button class="modal-tab-btn" onclick="switchActivityTab(this, 'ta-attempts')">Attempts</button>
+             <button class="modal-tab-btn" onclick="switchActivityTab(this, 'ta-alerts')">Security Alerts</button>
+          </div>
+
+          <div class="activity-scroll-area">
+             <div id="ta-exams" class="activity-section active">
+                <div class="table-wrap">
+                   <table>
+                      <thead>
+                         <tr><th>Exam Name</th><th>Code</th><th>Date</th><th>Status</th></tr>
+                      </thead>
+                      <tbody id="ta-exams-list"></tbody>
+                   </table>
+                </div>
+             </div>
+             <div id="ta-questions" class="activity-section">
+                <div class="table-wrap">
+                   <table>
+                      <thead>
+                         <tr><th>Topic</th><th>Count</th><th>Upload Date</th></tr>
+                      </thead>
+                      <tbody id="ta-questions-list"></tbody>
+                   </table>
+                </div>
+             </div>
+             <div id="ta-attempts" class="activity-section">
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:16px">
+                   <div style="background:var(--bg-tertiary); padding:16px; border-radius:12px; text-align:center">
+                      <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Total handled</div>
+                      <div style="font-size:24px; font-weight:800" id="ta-att-count">0</div>
+                   </div>
+                   <div style="background:var(--bg-tertiary); padding:16px; border-radius:12px; text-align:center">
+                      <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Average Score</div>
+                      <div style="font-size:24px; font-weight:800" id="ta-att-avg">0%</div>
+                   </div>
+                   <div style="background:var(--bg-tertiary); padding:16px; border-radius:12px; text-align:center">
+                      <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Pass Rate</div>
+                      <div style="font-size:24px; font-weight:800; color:var(--accent-green)" id="ta-att-pass">0%</div>
+                   </div>
+                </div>
+                <div style="font-size:13px; color:var(--text-secondary); text-align:center; padding:20px; background:var(--bg-card); border-radius:12px; border:1px solid var(--border-subtle)">
+                   Detailed student breakdown available in Exams section.
+                </div>
+             </div>
+             <div id="ta-alerts" class="activity-section">
+                <div style="display:flex; flex-direction:column; gap:12px" id="ta-alerts-list"></div>
+             </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div><!-- End of dashboard-wrapper -->
+
+  <!-- GLOBAL OVERLAYS (Outside wrapper to prevent stacking issues) -->
+  <div id="toastContainer" class="toast-container" style="position:fixed; bottom:24px; right:24px; z-index:100000"></div>
+
+  <!-- VIEW EVENTS MODAL -->
+  <div id="pmEventsModal" class="modal-overlay" onclick="closeModalOutside(event, 'pmEventsModal')">
+     <div class="modal-content glass-card large">
+        <div class="modal-header">
+           <h2 class="modal-title">AI Violation Forensic Log</h2>
+           <button class="modal-close" onclick="closeModal('pmEventsModal')">×</button>
+        </div>
+        <div class="modal-body" style="padding:0">
+           <div class="table-wrap" style="max-height:450px; overflow-y:auto; overflow-x:auto;">
+              <table id="pmEventsTable" style="width:100%; min-width:880px; table-layout:fixed">
+                 <thead>
+                    <tr><th>Event Type</th><th>Severity</th><th>Score</th><th>Details</th><th>Timestamp</th><th style="text-align:right">Evidence</th></tr>
+                 </thead>
+                 <tbody id="pmEventsList"></tbody>
+              </table>
+           </div>
+        </div>
+     </div>
   </div>
 
-  <!-- Chart.js CDN -->
+  <div id="pmSummaryModal" class="modal-overlay" onclick="closeModalOutside(event, 'pmSummaryModal')">
+     <div class="modal-content glass-card" style="max-width:480px">
+        <div class="modal-header">
+           <h2 class="modal-title">Attempt Risk Intelligence</h2>
+           <button class="modal-close" onclick="closeModal('pmSummaryModal')">×</button>
+        </div>
+        <div class="modal-body" id="pmSummaryBody"></div>
+     </div>
+  </div>
+
+  <div id="pmEvidenceModal" class="modal-overlay" onclick="closeModalOutside(event, 'pmEvidenceModal')">
+     <div class="modal-content glass-card" style="max-width:600px">
+        <div class="modal-header">
+           <h2 class="modal-title">Security Capture</h2>
+           <button class="modal-close" onclick="closeModal('pmEvidenceModal')">×</button>
+        </div>
+        <div class="modal-body" style="text-align:center">
+           <div id="pmEvidenceContent" style="background:var(--bg-tertiary); border-radius:12px; min-height:400px; display:flex; align-items:center; justify-content:center">
+              <span style="color:var(--text-tertiary)">Processing forensic audit...</span>
+           </div>
+        </div>
+     </div>
+  </div>
+
+  <!-- ATTEMPT INTEL DRAWER -->
+  <div id="attemptIntelDrawer" class="side-drawer" style="z-index: 100002;">
+     <div class="drawer-overlay" onclick="closeAttemptDrawer()"></div>
+     <div class="drawer-panel glass-card">
+        <div class="drawer-header">
+           <div>
+              <h2 class="drawer-title">Session Intelligence</h2>
+              <span id="drawerAttemptID" style="font-family:'JetBrains Mono'; font-size:12px; color:var(--accent-blue)">-</span>
+           </div>
+           <button class="btn-close" onclick="closeAttemptDrawer()">×</button>
+        </div>
+        <div class="drawer-content" id="drawerBody">
+           <div class="drawer-section">
+              <div class="user-intel-card" style="display:flex; align-items:center; gap:12px; margin-bottom:16px">
+                 <img id="drawerStudentAvatar" src="https://ui-avatars.com/api/?name=S+D" alt="Avatar" style="width:48px; height:48px; border-radius:50%">
+                 <div>
+                    <div id="drawerStudentName" style="font-weight:700; font-size:16px">-</div>
+                    <div id="drawerStudentEmail" style="font-size:12px; color:var(--text-tertiary)">-</div>
+                 </div>
+              </div>
+           </div>
+           <div class="drawer-section">
+              <div style="font-size:11px; font-weight:800; color:var(--text-tertiary); text-transform:uppercase; margin-bottom:12px">AI Risk Profiling</div>
+              <div class="risk-meter-wrap">
+                 <div style="display:flex; justify-content:space-between; margin-bottom:8px">
+                    <span style="font-size:12px; font-weight:700">Cheating Probability</span>
+                    <span id="drawerCheatScore" style="font-weight:800; color:var(--accent-pink)">0%</span>
+                 </div>
+                 <div class="meter-bg" style="height:6px; background:rgba(255,255,255,0.05); border-radius:3px; overflow:hidden">
+                    <div id="drawerCheatBar" class="meter-fill" style="width:0; background:var(--accent-pink); height:100%; transition:0.4s"></div>
+                 </div>
+              </div>
+           </div>
+        </div>
+     </div>
+  </div>
+
+  <div id="editExamModal" class="modal-overlay" onclick="closeModalOutside(event, 'editExamModal')">
+     <div class="modal-content glass-card">
+        <div class="modal-header">
+           <h2 class="modal-title">Edit Exam Information</h2>
+           <button class="modal-close" onclick="closeModal('editExamModal')">×</button>
+        </div>
+        <div class="modal-body">
+           <form id="editExamForm" onsubmit="submitEditExam(event, this.querySelector('button[type=submit]'))">
+              <input type="hidden" id="edit-ex-id">
+              <div style="margin-bottom:16px">
+                 <label style="display:block; font-size:12px; margin-bottom:8px">Exam Title</label>
+                 <input type="text" id="edit-ex-title" class="form-control" style="width:100%; background:var(--bg-tertiary); border:1px solid var(--border-subtle); border-radius:8px; padding:10px; color:var(--text-primary)">
+              </div>
+              <div style="margin-bottom:16px">
+                 <label style="display:block; font-size:12px; margin-bottom:8px">Duration (Min)</label>
+                 <input type="number" id="edit-ex-dur" class="form-control" style="width:100%; background:var(--bg-tertiary); border:1px solid var(--border-subtle); border-radius:8px; padding:10px; color:var(--text-primary)">
+              </div>
+              <button type="submit" class="btn btn-primary" style="width:100%">Update Exam</button>
+           </form>
+        </div>
+     </div>
+  </div>
+
+  <div id="certificateViewModal" class="modal-overlay" onclick="closeModalOutside(event, 'certificateViewModal')">
+     <div class="modal-content glass-card large">
+        <div class="modal-header">
+           <h2 class="modal-title">Certificate Details</h2>
+           <button class="modal-close" onclick="closeModal('certificateViewModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex; gap:24px; margin-bottom:24px;">
+                <img id="certModalPhoto" src="" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid var(--border-subtle)">
+                <div style="flex:1">
+                    <h3 id="certModalName" style="font-size:24px; font-weight:800; margin-bottom:4px"></h3>
+                    <div id="certModalDept" style="color:var(--text-secondary); margin-bottom:12px; font-family:'JetBrains Mono'"></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:13px">
+                        <div><b>College:</b> <span id="certModalCollege"></span></div>
+                        <div><b>Roll No:</b> <span id="certModalRoll"></span></div>
+                        <div><b>Section:</b> <span id="certModalSec"></span></div>
+                        <div><b>Exam:</b> <span id="certModalExam"></span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-tertiary); border-radius:12px; padding:20px; border:1px solid var(--border-subtle)">
+                <div style="text-align:center">
+                    <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:800">Score</div>
+                    <div id="certModalScore" style="font-size:24px; font-weight:800; color:var(--accent-blue)"></div>
+                </div>
+                <div style="text-align:center">
+                    <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:800">Grade</div>
+                    <div id="certModalGrade"></div>
+                </div>
+                <div style="text-align:center">
+                    <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:800">Certificate ID</div>
+                    <div id="certModalID" style="font-family:'JetBrains Mono'; font-weight:700"></div>
+                </div>
+                <div style="text-align:center">
+                    <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:800">Issue Date</div>
+                    <div id="certModalDate" style="font-weight:700; color:var(--text-primary)"></div>
+                </div>
+                <div>
+                   <img id="certModalQR" src="" style="width:64px; height:64px; border-radius:8px">
+                </div>
+            </div>
+            
+            <div style="margin-top:24px; display:flex; gap:12px; justify-content:flex-end">
+                <button class="btn btn-ghost" onclick="closeModal('certificateViewModal')">Close</button>
+                <button class="btn btn-primary" id="certModalDownloadBtn" onclick="downloadCert()"><i class="fas fa-download"></i> Download PDF</button>
+            </div>
+        </div>
+     </div>
+  </div>
+
+  <div id="certVerifyModal" class="modal-overlay" onclick="closeModalOutside(event, 'certVerifyModal')">
+     <div class="modal-content glass-card" style="text-align:center; max-width:400px; padding:40px">
+         <div id="certVerifyStatus" style="font-size:72px; margin-bottom:20px; min-height:80px"></div>
+         <h2 class="modal-title" id="certVerifyTitle" style="margin-bottom:12px"></h2>
+         <p id="certVerifyDesc" style="color:var(--text-secondary); margin-bottom:32px; font-size:14px; line-height:1.6"></p>
+         <button class="btn btn-ghost" style="width:100%" onclick="closeModal('certVerifyModal')">Close Panel</button>
+     </div>
+  </div>
+
+  <!-- Modal Container End -->
+
+  <!-- Dependencies -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
-  <script src="../assets/pages/admin/js/dashboard.js"></script>
+  <script src="../assets/core/js/theme.js"></script>
+  <script src="../assets/pages/admin/js/dashboard.js?v=20240404100"></script>
+  <script src="../assets/pages/admin/js/admin-live.js?v=20240405100"></script>
 </body>
 </html>

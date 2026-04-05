@@ -13,6 +13,13 @@ public class AuthResponse {
     private Long userId;
     private String name;
     private String email;
+    private String employeeId;
+    private String phone;
+    private String profileImage;
+    private String department;
+    private String designation;
+    private Integer experienceYears;
+    private String qualification;
 
     private Long expiresIn;
     private LocalDateTime issuedAt;
@@ -68,6 +75,34 @@ public class AuthResponse {
         return email;
     }
 
+    public String getEmployeeId() {
+        return employeeId;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public String getProfileImage() {
+        return profileImage;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public String getDesignation() {
+        return designation;
+    }
+
+    public Integer getExperienceYears() {
+        return experienceYears;
+    }
+
+    public String getQualification() {
+        return qualification;
+    }
+
     public Long getExpiresIn() {
         return expiresIn;
     }
@@ -104,6 +139,34 @@ public class AuthResponse {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public void setEmployeeId(String employeeId) {
+        this.employeeId = employeeId;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
+
+    public void setDesignation(String designation) {
+        this.designation = designation;
+    }
+
+    public void setExperienceYears(Integer experienceYears) {
+        this.experienceYears = experienceYears;
+    }
+
+    public void setQualification(String qualification) {
+        this.qualification = qualification;
     }
 
     public void setExpiresIn(Long expiresIn) {

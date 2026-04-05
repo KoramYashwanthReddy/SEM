@@ -7,6 +7,7 @@ import com.yashwanth.ai_exam_system.enums.AttemptStatus;
 import com.yashwanth.ai_exam_system.entity.ExamStatus;
 import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRepository;
+import com.yashwanth.ai_exam_system.repository.QuestionRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,15 +29,18 @@ public class ExamService {
 
     private final ExamRepository examRepository;
     private final ExamAttemptRepository attemptRepository;
+    private final QuestionRepository questionRepository;
     private final CheatingDetectionService cheatingDetectionService;
 
     public ExamService(
             ExamRepository examRepository,
             ExamAttemptRepository attemptRepository,
+            QuestionRepository questionRepository,
             CheatingDetectionService cheatingDetectionService) {
 
         this.examRepository = examRepository;
         this.attemptRepository = attemptRepository;
+        this.questionRepository = questionRepository;
         this.cheatingDetectionService = cheatingDetectionService;
     }
 
@@ -95,10 +99,11 @@ public class ExamService {
 
         Exam exam = getExamByCode(examCode);
 
-        if (!Boolean.TRUE.equals(exam.getQuestionsUploaded())) {
-            throw new RuntimeException("Upload questions before publishing exam");
+        if (!hasPublishedQuestions(examCode)) {
+            throw new IllegalArgumentException("Upload questions before publishing exam");
         }
 
+        exam.setQuestionsUploaded(true);
         exam.setStatus(ExamStatus.PUBLISHED);
         return examRepository.save(exam);
     }
@@ -235,5 +240,11 @@ public class ExamService {
     private ExamAttempt getAttempt(Long attemptId) {
         return attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
+    }
+
+    private boolean hasPublishedQuestions(String examCode) {
+        return questionRepository.findByExamCode(examCode)
+                .stream()
+                .anyMatch(question -> !Boolean.FALSE.equals(question.getActive()));
     }
 }

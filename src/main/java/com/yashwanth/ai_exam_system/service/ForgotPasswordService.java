@@ -23,7 +23,7 @@ public class ForgotPasswordService {
 
     private static final int TOKEN_EXPIRY_MINUTES = 15;
 
-    @Value("${app.frontend.reset-url:http://localhost:3000/reset-password}")
+    @Value("${app.frontend.reset-url:http://localhost:8080/reset-password}")
     private String resetBaseUrl;
 
     private final PasswordResetTokenRepository tokenRepository;

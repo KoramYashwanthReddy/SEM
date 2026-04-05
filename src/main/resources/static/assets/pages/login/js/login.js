@@ -76,8 +76,11 @@ const Login = (() => {
     setLoading(true);
 
     try {
+      const apiBase = /^https?:/i.test(window.location.origin)
+        ? window.location.origin
+        : "http://localhost:8080";
 
-      const response = await fetch('http://localhost:50700/api/auth/login', {
+      const response = await fetch(`${apiBase}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -95,7 +98,15 @@ const Login = (() => {
       }
 
       // Save token
-      localStorage.setItem('token', data.token);
+      const token = data.accessToken || data.token || data.jwt;
+      if (!token) {
+        throw new Error("Invalid authentication response");
+      }
+      if (data.role !== 'STUDENT') {
+        throw new Error('Access denied. Student only.');
+      }
+      localStorage.setItem('token', token);
+      localStorage.setItem('accessToken', token);
       localStorage.setItem('role', data.role);
       localStorage.setItem('user', JSON.stringify(data));
 
@@ -103,11 +114,7 @@ const Login = (() => {
 
       // Redirect based on role
       setTimeout(() => {
-        if (data.role === 'STUDENT') {
-          window.location.href = 'student-dashboard.html';
-        } else {
-          window.location.href = 'index.html';
-        }
+        window.location.href = 'student-dashboard.html';
       }, 1000);
 
     } catch (error) {

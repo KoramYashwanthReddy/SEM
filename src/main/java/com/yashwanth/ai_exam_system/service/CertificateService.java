@@ -10,6 +10,7 @@ import com.yashwanth.ai_exam_system.entity.StudentProfile;
 import com.yashwanth.ai_exam_system.repository.CertificateRepository;
 import com.yashwanth.ai_exam_system.repository.StudentProfileRepository;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.util.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +46,8 @@ public class CertificateService {
             Long studentId,
             String examCode,
             String examTitle,
-            double score
+            double score,
+            String baseUrl
     ) {
 
         StudentProfile profile = getValidatedProfile(studentId);
@@ -65,7 +67,7 @@ public class CertificateService {
         }
 
         String certificateId = generateCertificateId();
-        String verifyUrl = buildVerifyUrl(certificateId);
+        String verifyUrl = buildVerifyUrl(certificateId, baseUrl);
 
         byte[] qrImage = qrCodeService.generateQRCode(verifyUrl);
 
@@ -165,8 +167,16 @@ public class CertificateService {
                 .toUpperCase();
     }
 
-    private String buildVerifyUrl(String certificateId) {
-        return "http://localhost:8080/api/certificate/verify/" + certificateId;
+    private String buildVerifyUrl(String certificateId, String baseUrl) {
+        String resolvedBaseUrl = StringUtils.hasText(baseUrl)
+                ? baseUrl.replaceAll("/+$", "")
+                : "";
+
+        if (!StringUtils.hasText(resolvedBaseUrl)) {
+            return "/api/certificate/verify/" + certificateId;
+        }
+
+        return resolvedBaseUrl + "/api/certificate/verify/" + certificateId;
     }
 
     private String calculateGrade(double score) {

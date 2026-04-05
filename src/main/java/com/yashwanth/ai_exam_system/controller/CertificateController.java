@@ -5,7 +5,9 @@ import com.yashwanth.ai_exam_system.repository.CertificateRepository;
 import com.yashwanth.ai_exam_system.service.CertificateService;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @RestController
@@ -28,11 +30,18 @@ public class CertificateController {
             @RequestParam Long studentId,
             @RequestParam String examCode,
             @RequestParam String examTitle,
-            @RequestParam double score
+            @RequestParam double score,
+            HttpServletRequest request
     ) {
 
+        String baseUrl = ServletUriComponentsBuilder
+                .fromRequestUri(request)
+                .replacePath(null)
+                .build()
+                .toUriString();
+
         byte[] pdf = certificateService.generateCertificate(
-                studentId, examCode, examTitle, score
+                studentId, examCode, examTitle, score, baseUrl
         );
 
         return ResponseEntity.ok()

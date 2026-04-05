@@ -120,7 +120,7 @@
 
         <p class="hero-desc">
           The world's most advanced AI examination platform. Real-time cheating detection, 
-          intelligent analytics, instant certification — trusted by 500+ institutions.
+          intelligent analytics, and instant certification powered by live system data.
         </p>
 
         <div class="hero-actions">
@@ -134,16 +134,16 @@
 
         <div class="hero-stats">
           <div class="hero-stat">
-            <span class="hero-stat-num" data-count="2.4" data-suffix="M+" data-prefix="">2.4M+</span>
+            <span class="hero-stat-num" id="home-hero-exams">0</span>
             <span class="hero-stat-label">Exams Conducted</span>
           </div>
           <div class="hero-stat">
-            <span class="hero-stat-num">99.7%</span>
-            <span class="hero-stat-label">Detection Accuracy</span>
+            <span class="hero-stat-num" id="home-hero-pass-rate">0%</span>
+            <span class="hero-stat-label">Pass Rate</span>
           </div>
           <div class="hero-stat">
-            <span class="hero-stat-num">500+</span>
-            <span class="hero-stat-label">Institutions</span>
+            <span class="hero-stat-num" id="home-hero-certificates">0</span>
+            <span class="hero-stat-label">Certificates Issued</span>
           </div>
         </div>
       </div>
@@ -214,7 +214,7 @@
         <div class="feature-icon-wrap fi-blue">🤖</div>
         <div class="feature-title">AI Proctoring</div>
         <p class="feature-desc">Real-time face detection, gaze tracking, noise analysis, and tab-switch prevention powered by computer vision models.</p>
-        <div class="feature-tag">✦ 99.7% Accuracy</div>
+        <div class="feature-tag">✦ Live System Data</div>
       </div>
 
       <div class="feature-card reveal stagger-2">
@@ -514,27 +514,27 @@
     <div class="analytics-top reveal">
       <div class="stat-card">
         <div class="stat-card-icon">📝</div>
-        <div class="stat-card-num" data-count="12847" data-suffix="">12,847</div>
+        <div class="stat-card-num" id="home-month-exams">0</div>
         <div class="stat-card-label">Exams This Month</div>
-        <span class="stat-card-delta delta-up">↑ 23.4%</span>
+        <span class="stat-card-delta delta-up" id="home-month-exams-delta">Live</span>
       </div>
       <div class="stat-card">
         <div class="stat-card-icon">👥</div>
-        <div class="stat-card-num" data-count="94720" data-suffix="">94,720</div>
+        <div class="stat-card-num" id="home-active-students">0</div>
         <div class="stat-card-label">Active Students</div>
-        <span class="stat-card-delta delta-up">↑ 11.2%</span>
+        <span class="stat-card-delta delta-up" id="home-active-students-delta">Live</span>
       </div>
       <div class="stat-card">
         <div class="stat-card-icon">✅</div>
-        <div class="stat-card-num">96.4%</div>
+        <div class="stat-card-num" id="home-completion-rate">0%</div>
         <div class="stat-card-label">Avg Completion Rate</div>
-        <span class="stat-card-delta delta-up">↑ 2.1%</span>
+        <span class="stat-card-delta delta-up" id="home-completion-delta">Live</span>
       </div>
       <div class="stat-card">
         <div class="stat-card-icon">⚠️</div>
-        <div class="stat-card-num">0.3%</div>
+        <div class="stat-card-num" id="home-violation-rate">0%</div>
         <div class="stat-card-label">Violation Rate</div>
-        <span class="stat-card-delta delta-down">↓ 0.8%</span>
+        <span class="stat-card-delta delta-down" id="home-violation-delta">Live</span>
       </div>
     </div>
 
@@ -543,7 +543,7 @@
         <div class="chart-header">
           <div>
             <div class="chart-title">Score Distribution</div>
-            <div class="chart-subtitle">March 2025 · All Exams</div>
+            <div class="chart-subtitle" id="home-score-subtitle">Loading live analytics…</div>
           </div>
           <div class="chart-filters">
             <button class="chart-filter active">Week</button>
@@ -560,7 +560,7 @@
         <div class="chart-header">
           <div>
             <div class="chart-title">Violation Types</div>
-            <div class="chart-subtitle">Breakdown by category</div>
+            <div class="chart-subtitle" id="home-violation-subtitle">Loading live analytics…</div>
           </div>
         </div>
         <div style="height:220px;">
@@ -572,7 +572,7 @@
         <div class="chart-header">
           <div>
             <div class="chart-title">Completion & Pass Rate Trends</div>
-            <div class="chart-subtitle">12-month rolling · All departments</div>
+            <div class="chart-subtitle" id="home-trend-subtitle">Loading live analytics…</div>
           </div>
           <div class="chart-filters">
             <button class="chart-filter active">2025</button>
@@ -620,9 +620,9 @@
 
           <div class="cert-title-section">
             <div class="cert-presents">THIS IS TO CERTIFY THAT</div>
-            <div class="cert-student-name">Alexandra Rivera</div>
+            <div class="cert-student-name" id="home-cert-student">Live Certificate</div>
             <div class="cert-of-completion">Certificate of Excellence</div>
-            <p class="cert-desc">has successfully completed the examination in<br><strong>Advanced JavaScript & Node.js Development</strong><br>with a score of <strong>94/100</strong> on March 15, 2025</p>
+            <p class="cert-desc" id="home-cert-desc">Live certificate data will appear here.</p>
           </div>
 
           <div class="cert-footer">
@@ -632,13 +632,13 @@
 
             <div class="cert-sign">
               <div class="cert-sign-line"></div>
-              <div class="cert-sign-name">Dr. Emily Chen · Dean of Examinations</div>
+              <div class="cert-sign-name" id="home-cert-authority">SEM Platform · Examinations</div>
             </div>
 
             <div style="text-align:right;">
               <div style="font-size:10px;color:#64748b;font-family:'JetBrains Mono',monospace;margin-bottom:4px;">CERT ID</div>
-              <div style="font-size:12px;font-weight:700;color:#1e293b;font-family:'JetBrains Mono',monospace;">NX-2025-8472</div>
-              <div style="font-size:9.5px;color:#94a3b8;margin-top:4px;">Issued: 15 Mar 2025</div>
+              <div style="font-size:12px;font-weight:700;color:#1e293b;font-family:'JetBrains Mono',monospace;" id="home-cert-id">—</div>
+              <div style="font-size:9.5px;color:#94a3b8;margin-top:4px;" id="home-cert-issued">Issued: —</div>
             </div>
           </div>
         </div>
@@ -705,18 +705,18 @@
           </div>
         </div>
 
-        <div class="admin-main">
+          <div class="admin-main">
           <div class="admin-stats-row">
             <div class="mini-stat">
-              <div class="mini-stat-num">2,847</div>
+              <div class="mini-stat-num" id="home-admin-active-exams">0</div>
               <div class="mini-stat-label">Active Exams</div>
             </div>
             <div class="mini-stat">
-              <div class="mini-stat-num">94,720</div>
+              <div class="mini-stat-num" id="home-admin-total-students">0</div>
               <div class="mini-stat-label">Enrolled Students</div>
             </div>
             <div class="mini-stat">
-              <div class="mini-stat-num">12</div>
+              <div class="mini-stat-num" id="home-admin-live-sessions">0</div>
               <div class="mini-stat-label">Live Sessions</div>
             </div>
           </div>
@@ -732,36 +732,7 @@
                   <th>Score Avg</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr>
-                  <td style="font-weight:600;color:var(--text-primary);">Advanced JS</td>
-                  <td>Engineering</td>
-                  <td>342</td>
-                  <td><span class="status-pill sp-active">● Active</span></td>
-                  <td>76.4%</td>
-                </tr>
-                <tr>
-                  <td style="font-weight:600;color:var(--text-primary);">ML Fundamentals</td>
-                  <td>Data Science</td>
-                  <td>218</td>
-                  <td><span class="status-pill sp-pending">● Pending</span></td>
-                  <td>—</td>
-                </tr>
-                <tr>
-                  <td style="font-weight:600;color:var(--text-primary);">System Design</td>
-                  <td>Architecture</td>
-                  <td>189</td>
-                  <td><span class="status-pill sp-done">● Completed</span></td>
-                  <td>82.1%</td>
-                </tr>
-                <tr>
-                  <td style="font-weight:600;color:var(--text-primary);">Cloud Security</td>
-                  <td>Infra</td>
-                  <td>97</td>
-                  <td><span class="status-pill sp-done">● Completed</span></td>
-                  <td>71.8%</td>
-                </tr>
-              </tbody>
+              <tbody id="home-admin-exams"></tbody>
             </table>
           </div>
         </div>
@@ -913,7 +884,7 @@
           The Future of Examination<br><span class="text-gradient">Starts Today</span>
         </h2>
         <p style="font-size:1.1rem;color:var(--text-secondary);line-height:1.75;margin-bottom:36px;">
-          Join 500+ institutions already using SEM. Set up your first exam in under 5 minutes.
+          Join institutions already using SEM. Set up your first exam in under 5 minutes.
         </p>
         <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
           <a href="pages/signup.html" class="btn btn-primary btn-lg" data-loading-text="Starting..." data-open-delay="1200">🚀 Start for Free — No CC Required</a>
@@ -999,6 +970,7 @@
 <script src="assets/core/js/theme.js"></script>
 <script src="assets/pages/home/js/scroll.js"></script>
 <script src="assets/pages/home/js/effects.js"></script>
+<script src="assets/pages/home/js/home-live.js"></script>
 <script src="assets/pages/home/js/animations.js"></script>
 <script src="assets/pages/home/js/cursor.js"></script>
 <script src="assets/pages/home/js/app.js"></script>
