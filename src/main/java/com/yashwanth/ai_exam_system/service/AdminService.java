@@ -5,11 +5,17 @@ import com.yashwanth.ai_exam_system.entity.*;
 import com.yashwanth.ai_exam_system.enums.AttemptStatus;
 import com.yashwanth.ai_exam_system.repository.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -17,6 +23,9 @@ import java.util.stream.Stream;
 @Service
 @Transactional
 public class AdminService {
+    private static final Logger log = LoggerFactory.getLogger(AdminService.class);
+    private static final int TEACHER_CREATE_LIVE_FOR_SECONDS = 600;
+    private static final long MAX_PROFILE_IMAGE_SIZE_BYTES = 5L * 1024L * 1024L;
 
     private final ExamRepository examRepository;
     private final ExamAttemptRepository attemptRepository;
@@ -25,6 +34,7 @@ public class AdminService {
     private final CertificateRepository certificateRepository;
     private final QuestionRepository questionRepository;
     private final UserRepository userRepository;
+    private final AdminNotificationService adminNotificationService;
     private final PasswordEncoder passwordEncoder;
 
     public AdminService(
@@ -35,6 +45,7 @@ public class AdminService {
             CertificateRepository certificateRepository,
             QuestionRepository questionRepository,
             UserRepository userRepository,
+            AdminNotificationService adminNotificationService,
             PasswordEncoder passwordEncoder) {
 
         this.examRepository = examRepository;
@@ -44,50 +55,114 @@ public class AdminService {
         this.certificateRepository = certificateRepository;
         this.questionRepository = questionRepository;
         this.userRepository = userRepository;
+        this.adminNotificationService = adminNotificationService;
         this.passwordEncoder = passwordEncoder;
     }
 
     // ================= TEACHER =================
 
-    public String createTeacher(CreateTeacherRequest request) {
+    public Map<String, Object> createTeacher(CreateTeacherRequest request, MultipartFile profileImageFile) {
 
-        if (userRepository.existsByEmail(request.getEmail())) {
+        String email = request.getEmail() == null ? "" : request.getEmail().trim();
+        String employeeId = request.getEmployeeId() == null ? "" : request.getEmployeeId().trim();
+        String phone = request.getPhone() == null ? "" : request.getPhone().trim();
+
+        if (email.isBlank()) {
+            throw new RuntimeException("Email is required");
+        }
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new RuntimeException("Password is required");
+        }
+
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new RuntimeException("Email already exists");
         }
 
-        if (request.getEmployeeId() != null &&
-                userRepository.existsByEmployeeId(request.getEmployeeId())) {
+        if (!employeeId.isBlank() && userRepository.existsByEmployeeId(employeeId)) {
             throw new RuntimeException("Employee ID already exists");
+        }
+        if (!phone.isBlank() && userRepository.findByPhone(phone).isPresent()) {
+            throw new RuntimeException("Mobile number already exists");
         }
 
         User teacher = new User();
         teacher.setName(request.getFullName());
-        teacher.setEmail(request.getEmail());
+        teacher.setEmail(email);
         teacher.setPassword(passwordEncoder.encode(request.getPassword()));
         teacher.setRole(Role.TEACHER);
 
-        teacher.setPhone(request.getPhone());
-        teacher.setProfileImage(request.getProfileImage());
+        teacher.setPhone(phone.isBlank() ? null : phone);
+        teacher.setProfileImage(resolveProfileImage(request.getProfileImage(), profileImageFile, null));
         teacher.setDepartment(request.getDepartment());
         teacher.setDesignation(request.getDesignation());
         teacher.setExperienceYears(request.getExperienceYears());
         teacher.setQualification(request.getQualification());
-        teacher.setEmployeeId(request.getEmployeeId());
+        teacher.setEmployeeId(employeeId.isBlank() ? null : employeeId);
 
-        userRepository.save(teacher);
+        try {
+            userRepository.saveAndFlush(teacher);
+        } catch (DataIntegrityViolationException ex) {
+            throw new RuntimeException("Unable to create teacher due to duplicate or invalid data");
+        }
 
-        return "Teacher created successfully";
+        try {
+            adminNotificationService.createNotification(
+                    "USER",
+                    "Teacher Created",
+                    "New teacher profile created for " + teacher.getName(),
+                    "Admin Console",
+                    "info",
+                    null
+            );
+        } catch (Exception notificationError) {
+            log.warn("Teacher created but admin notification failed: {}", notificationError.getMessage());
+        }
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", true);
+        response.put("message", "Teacher created successfully");
+        response.put("id", teacher.getId());
+        response.put("email", teacher.getEmail());
+        response.put("phone", teacher.getPhone());
+        response.put("mobileNo", teacher.getPhone());
+        response.put("liveFor", TEACHER_CREATE_LIVE_FOR_SECONDS);
+        return response;
     }
 
-    public String updateTeacher(Long userId, CreateTeacherRequest request) {
+    public Map<String, Object> updateTeacher(Long userId, CreateTeacherRequest request, MultipartFile profileImageFile) {
         User teacher = getUser(userId);
+        String email = request.getEmail() == null ? "" : request.getEmail().trim();
+        String employeeId = request.getEmployeeId() == null ? "" : request.getEmployeeId().trim();
+        String phone = request.getPhone() == null ? "" : request.getPhone().trim();
 
         if (teacher.getRole() != Role.TEACHER) {
             throw new RuntimeException("User is not a teacher");
         }
 
         teacher.setName(request.getFullName());
-        teacher.setEmail(request.getEmail());
+        teacher.setEmail(email);
+
+        if (!email.isBlank()) {
+            userRepository.findByEmailIgnoreCase(email).ifPresent(existing -> {
+                if (!existing.getId().equals(userId)) {
+                    throw new RuntimeException("Email already exists");
+                }
+            });
+        }
+        if (!employeeId.isBlank()) {
+            userRepository.findByEmployeeIdIgnoreCase(employeeId).ifPresent(existing -> {
+                if (!existing.getId().equals(userId)) {
+                    throw new RuntimeException("Employee ID already exists");
+                }
+            });
+        }
+        if (!phone.isBlank()) {
+            userRepository.findByPhone(phone).ifPresent(existing -> {
+                if (!existing.getId().equals(userId)) {
+                    throw new RuntimeException("Mobile number already exists");
+                }
+            });
+        }
 
         if (request.getPassword() != null &&
                 !request.getPassword().isBlank() &&
@@ -95,17 +170,111 @@ public class AdminService {
             teacher.setPassword(passwordEncoder.encode(request.getPassword()));
         }
 
-        teacher.setPhone(request.getPhone());
-        teacher.setProfileImage(request.getProfileImage());
+        teacher.setPhone(phone.isBlank() ? null : phone);
+        teacher.setProfileImage(resolveProfileImage(request.getProfileImage(), profileImageFile, teacher.getProfileImage()));
         teacher.setDepartment(request.getDepartment());
         teacher.setDesignation(request.getDesignation());
         teacher.setExperienceYears(request.getExperienceYears());
         teacher.setQualification(request.getQualification());
-        teacher.setEmployeeId(request.getEmployeeId());
+        teacher.setEmployeeId(employeeId.isBlank() ? null : employeeId);
 
-        userRepository.save(teacher);
+        try {
+            userRepository.saveAndFlush(teacher);
+        } catch (DataIntegrityViolationException ex) {
+            throw new RuntimeException("Unable to update teacher due to duplicate or invalid data");
+        }
 
-        return "Teacher updated successfully";
+        try {
+            adminNotificationService.createNotification(
+                    "USER",
+                    "Teacher Updated",
+                    "Teacher profile updated for " + teacher.getName(),
+                    "Admin Console",
+                    "info",
+                    null
+            );
+        } catch (Exception notificationError) {
+            log.warn("Teacher updated but admin notification failed: {}", notificationError.getMessage());
+        }
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", true);
+        response.put("message", "Teacher updated successfully");
+        response.put("id", teacher.getId());
+        response.put("email", teacher.getEmail());
+        response.put("phone", teacher.getPhone());
+        response.put("mobileNo", teacher.getPhone());
+        response.put("liveFor", TEACHER_CREATE_LIVE_FOR_SECONDS);
+        return response;
+    }
+
+    public Map<String, Object> checkTeacherUniqueness(String email, String employeeId, String phone, Long excludeUserId) {
+        String normalizedEmail = email == null ? "" : email.trim();
+        String normalizedEmployeeId = employeeId == null ? "" : employeeId.trim();
+        String normalizedPhone = phone == null ? "" : phone.trim();
+
+        boolean emailExists = false;
+        if (!normalizedEmail.isBlank()) {
+            emailExists = userRepository.findByEmailIgnoreCase(normalizedEmail)
+                    .map(user -> excludeUserId == null || !user.getId().equals(excludeUserId))
+                    .orElse(false);
+        }
+
+        boolean employeeIdExists = false;
+        if (!normalizedEmployeeId.isBlank()) {
+            employeeIdExists = userRepository.findByEmployeeIdIgnoreCase(normalizedEmployeeId)
+                    .map(user -> excludeUserId == null || !user.getId().equals(excludeUserId))
+                    .orElse(false);
+        }
+
+        boolean phoneExists = false;
+        if (!normalizedPhone.isBlank()) {
+            phoneExists = userRepository.findByPhone(normalizedPhone)
+                    .map(user -> excludeUserId == null || !user.getId().equals(excludeUserId))
+                    .orElse(false);
+        }
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("emailExists", emailExists);
+        response.put("employeeIdExists", employeeIdExists);
+        response.put("phoneExists", phoneExists);
+        response.put("mobileNoExists", phoneExists);
+        response.put("email", normalizedEmail);
+        response.put("employeeId", normalizedEmployeeId);
+        response.put("phone", normalizedPhone);
+        response.put("mobileNo", normalizedPhone);
+        return response;
+    }
+
+    private String resolveProfileImage(String profileImageUrl, MultipartFile profileImageFile, String existingProfileImage) {
+        if (profileImageFile != null && !profileImageFile.isEmpty()) {
+            return encodeProfileImage(profileImageFile);
+        }
+
+        String requestedUrl = profileImageUrl == null ? "" : profileImageUrl.trim();
+        if (!requestedUrl.isBlank()) {
+            return requestedUrl;
+        }
+
+        return existingProfileImage;
+    }
+
+    private String encodeProfileImage(MultipartFile file) {
+        String contentType = file.getContentType() == null ? "" : file.getContentType().toLowerCase(Locale.ROOT);
+        if (!contentType.startsWith("image/")) {
+            throw new RuntimeException("Profile image must be a valid image file");
+        }
+
+        if (file.getSize() > MAX_PROFILE_IMAGE_SIZE_BYTES) {
+            throw new RuntimeException("Profile image size exceeds limit (5MB)");
+        }
+
+        try {
+            String base64 = Base64.getEncoder().encodeToString(file.getBytes());
+            return "data:" + contentType + ";base64," + base64;
+        } catch (IOException ex) {
+            throw new RuntimeException("Unable to process profile image upload");
+        }
     }
 
     public Map<String, Object> getTeacherActivity(Long userId) {
@@ -210,7 +379,9 @@ public class AdminService {
     // ================= EXAMS =================
 
     public List<Exam> getAllExams() {
-        return examRepository.findAll();
+        return examRepository.findAll().stream()
+                .sorted(Comparator.comparing(Exam::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
+                .collect(Collectors.toList());
     }
 
     public void deleteExam(String examCode) {
@@ -219,6 +390,15 @@ public class AdminService {
 
         exam.setActive(false);
         examRepository.save(exam);
+
+        adminNotificationService.createNotification(
+                "EXAM",
+                "Exam Deactivated",
+                "Exam " + exam.getTitle() + " (" + examCode + ") was removed from active use",
+                "Admin Console",
+                "warning",
+                null
+        );
     }
 
     public List<Question> getAllQuestions() {
@@ -240,9 +420,6 @@ public class AdminService {
         if (exam.isPublished()) {
             throw new IllegalArgumentException("Published exams cannot be edited");
         }
-        if (Boolean.TRUE.equals(exam.getQuestionsUploaded())) {
-            throw new IllegalArgumentException("Questions already uploaded for this exam");
-        }
 
         validateQuestionExamCodes(examCode, questions);
 
@@ -263,6 +440,15 @@ public class AdminService {
         exam.setQuestionsUploaded(true);
         exam.setStatus(ExamStatus.QUESTIONS_UPLOADED);
         examRepository.save(exam);
+
+        adminNotificationService.createNotification(
+                "EXAM",
+                "Questions Uploaded",
+                savedQuestions.size() + " questions uploaded for " + exam.getTitle(),
+                "Admin Console",
+                "info",
+                null
+        );
 
         Map<String, Object> result = new HashMap<>();
         result.put("examCode", examCode);
@@ -287,6 +473,16 @@ public class AdminService {
         User user = getUser(userId);
         user.setEnabled(!user.isEnabled());
         userRepository.save(user);
+
+        adminNotificationService.createNotification(
+                "USER",
+                user.isEnabled() ? "User Enabled" : "User Disabled",
+                user.getRole() + " account " + (user.isEnabled() ? "enabled" : "disabled") + " for " + user.getName(),
+                "Admin Console",
+                "warning",
+                null
+        );
+
         return toUserSummary(user);
     }
 
@@ -294,6 +490,16 @@ public class AdminService {
         User user = getUser(userId);
         user.setAccountNonLocked(!user.isAccountNonLocked());
         userRepository.save(user);
+
+        adminNotificationService.createNotification(
+                "USER",
+                user.isAccountNonLocked() ? "Account Unlocked" : "Account Locked",
+                user.getRole() + " account " + (user.isAccountNonLocked() ? "unlocked" : "locked") + " for " + user.getName(),
+                "Admin Console",
+                "warning",
+                null
+        );
+
         return toUserSummary(user);
     }
 
@@ -305,6 +511,15 @@ public class AdminService {
         }
 
         userRepository.delete(user);
+
+        adminNotificationService.createNotification(
+                "USER",
+                "User Deleted",
+                user.getRole() + " account deleted for " + user.getName(),
+                "Admin Console",
+                "critical",
+                null
+        );
     }
 
     // ================= ATTEMPTS =================
@@ -408,6 +623,15 @@ public class AdminService {
 
         attempt.markCancelled("Cancelled manually by admin");
         attemptRepository.save(attempt);
+
+        adminNotificationService.createNotification(
+                "CHEATING",
+                "Attempt Cancelled",
+                "Attempt " + attemptId + " was cancelled by admin",
+                "Admin Console",
+                "critical",
+                null
+        );
     }
 
     public void forceSubmitAttempt(Long attemptId) {
@@ -421,6 +645,15 @@ public class AdminService {
         attempt.markAutoSubmitted();
         attempt.setRemarks("Force submitted by admin");
         attemptRepository.save(attempt);
+
+        adminNotificationService.createNotification(
+                "CHEATING",
+                "Attempt Force Submitted",
+                "Attempt " + attemptId + " was force submitted by admin",
+                "Admin Console",
+                "warning",
+                null
+        );
     }
 
     public void restoreAttempt(Long attemptId) {
@@ -437,6 +670,15 @@ public class AdminService {
         attempt.setRemarks("Restored by admin");
 
         attemptRepository.save(attempt);
+
+        adminNotificationService.createNotification(
+                "CHEATING",
+                "Attempt Restored",
+                "Attempt " + attemptId + " was restored by admin",
+                "Admin Console",
+                "info",
+                null
+        );
     }
 
     // ================= DASHBOARD =================
@@ -585,7 +827,7 @@ public class AdminService {
         question.setTopic(topic.isBlank() ? "general" : topic);
 
         String difficulty = stringValue(payload.get("difficulty"));
-        question.setDifficulty(difficulty.isBlank() ? "Easy" : difficulty);
+        question.setDifficulty(normalizeDifficulty(difficulty.isBlank() ? "Easy" : difficulty));
 
         Integer marks = integerValue(payload.get("marks"));
         if (marks == null || marks <= 0) {
@@ -620,6 +862,15 @@ public class AdminService {
             return QuestionType.MCQ;
         }
         throw new IllegalArgumentException("Row " + rowNumber + ": invalid question type '" + value + "'");
+    }
+
+    private String normalizeDifficulty(String value) {
+        String raw = stringValue(value).toUpperCase(Locale.ROOT);
+        if (raw.isBlank()) return "Easy";
+        if (raw.equals("EASY")) return "Easy";
+        if (raw.equals("MEDIUM")) return "Medium";
+        if (raw.equals("DIFFICULT") || raw.equals("HARD")) return "Hard";
+        throw new IllegalArgumentException("Invalid difficulty '" + value + "'. Allowed: Easy, Medium, Hard");
     }
 
     private String stringValue(Object value) {

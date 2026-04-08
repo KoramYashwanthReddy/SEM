@@ -10,6 +10,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.yashwanth.ai_exam_system.dto.*;
 import com.yashwanth.ai_exam_system.entity.Role;
 import com.yashwanth.ai_exam_system.entity.User;
+import com.yashwanth.ai_exam_system.exception.ConflictException;
+import com.yashwanth.ai_exam_system.exception.ForbiddenException;
+import com.yashwanth.ai_exam_system.exception.ResourceNotFoundException;
+import com.yashwanth.ai_exam_system.exception.UnauthorizedException;
+import com.yashwanth.ai_exam_system.exception.ValidationException;
 import com.yashwanth.ai_exam_system.repository.UserRepository;
 import com.yashwanth.ai_exam_system.security.JwtService;
 
@@ -42,7 +47,7 @@ public class AuthService {
         logger.info("Register attempt: {}", request.getEmail());
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already registered");
+            throw new ConflictException("Email already registered");
         }
 
         User user = new User();
@@ -67,7 +72,7 @@ public class AuthService {
 
         String identifier = request.getEmail() == null ? "" : request.getEmail().trim();
         if (identifier.isBlank()) {
-            throw new RuntimeException("Email or employee ID is required");
+            throw new ValidationException("Email or employee ID is required");
         }
 
         logger.info("Login attempt: {}", identifier);
@@ -75,7 +80,7 @@ public class AuthService {
         User user = userRepository.findByEmailIgnoreCase(identifier)
                 .or(() -> userRepository.findByEmployeeIdIgnoreCase(identifier))
                 .orElseThrow(() ->
-                        new RuntimeException("User not found"));
+                        new ResourceNotFoundException("User not found"));
 
         validateUser(user);
 
@@ -83,7 +88,7 @@ public class AuthService {
                 request.getPassword(),
                 user.getPassword())) {
 
-            throw new RuntimeException("Invalid credentials");
+            throw new UnauthorizedException("Invalid credentials");
         }
 
         logger.info("Login successful: {}", user.getEmail());
@@ -97,14 +102,14 @@ public class AuthService {
     public AuthResponse refreshToken(String refreshToken) {
 
         if (!jwtService.isRefreshToken(refreshToken)) {
-            throw new RuntimeException("Invalid refresh token");
+            throw new UnauthorizedException("Invalid refresh token");
         }
 
         String email = jwtService.extractEmail(refreshToken);
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
-                        new RuntimeException("User not found"));
+                        new ResourceNotFoundException("User not found"));
 
         validateUser(user);
 
@@ -121,11 +126,11 @@ public class AuthService {
     private void validateUser(User user) {
 
         if (!user.isEnabled()) {
-            throw new RuntimeException("Account disabled");
+            throw new ForbiddenException("Account disabled");
         }
 
         if (!user.isAccountNonLocked()) {
-            throw new RuntimeException("Account locked");
+            throw new ForbiddenException("Account locked");
         }
     }
 

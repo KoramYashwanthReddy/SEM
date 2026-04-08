@@ -77,6 +77,8 @@ public class CheatingDetectionService {
                         attempt.getStudentId(),
                         "Exam cancelled due to cheating. Score: " + score
                 );
+
+                notifyTeacher(attempt, "CHEATING", "Attempt Cancelled", "Attempt " + attemptId + " was cancelled due to cheating");
             }
         }
         // ================= HIGH RISK =================
@@ -92,9 +94,15 @@ public class CheatingDetectionService {
             sendAlert = true;
 
             notificationService.notifyAdmin(
-                    "High risk detected → Attempt ID: "
-                            + attemptId + " | Score: " + score
+                    "CHEATING",
+                    "High Risk Detected",
+                    "High risk detected -> Attempt ID: "
+                            + attemptId + " | Score: " + score,
+                    "AI Proctoring",
+                    "high"
             );
+
+            notifyTeacher(attempt, "CHEATING", "High Risk Detected", "High risk detected for attempt " + attemptId + " | Score: " + score);
         }
         // ================= WARNING =================
         else if (score >= WARNING_THRESHOLD) {
@@ -112,6 +120,8 @@ public class CheatingDetectionService {
                     attempt.getStudentId(),
                     "Warning: Suspicious activity detected!"
             );
+
+            notifyTeacher(attempt, "WARNING", "Suspicious Behavior", "Warning issued for attempt " + attemptId);
         }
 
         attemptRepository.save(attempt);
@@ -147,5 +157,20 @@ public class CheatingDetectionService {
         );
 
         webSocketAlertService.sendCheatingAlert(alert);
+    }
+
+    private void notifyTeacher(ExamAttempt attempt, String category, String title, String message) {
+        String teacherKey = attempt.getExam() != null ? attempt.getExam().getCreatedBy() : null;
+        if (teacherKey == null || teacherKey.isBlank()) {
+            return;
+        }
+        notificationService.notifyTeacher(
+                teacherKey,
+                category,
+                title,
+                message,
+                "AI Proctoring",
+                "high"
+        );
     }
 }

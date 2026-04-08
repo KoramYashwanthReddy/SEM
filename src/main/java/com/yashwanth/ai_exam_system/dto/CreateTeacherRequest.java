@@ -20,7 +20,7 @@ public class CreateTeacherRequest {
     @Size(min = 6, max = 100, message = "Password must be at least 6 characters")
     private String password;
 
-    @Pattern(regexp = "^[0-9]{10}$", message = "Phone must be 10 digits")
+    @Pattern(regexp = "^$|^[0-9]{10}$", message = "Phone must be 10 digits")
     private String phone;
 
     private String profileImage;
@@ -71,7 +71,7 @@ public class CreateTeacherRequest {
     }
 
     public void setPhone(String phone) {
-        this.phone = phone;
+        this.phone = (phone == null || phone.trim().isEmpty()) ? null : phone.trim();
     }
 
     public String getProfileImage() {

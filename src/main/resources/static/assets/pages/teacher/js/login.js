@@ -13,6 +13,37 @@ const TeacherLogin = (() => {
   const btnText = submitBtn?.querySelector('.btn-text');
   let speedTimeout;
 
+  function sanitizeUserForStorage(raw) {
+    const user = raw && typeof raw === "object" ? { ...raw } : {};
+    const heavyImage = String(user.profileImage || "").trim();
+    if (heavyImage.startsWith("data:")) {
+      user.profileImage = "";
+    }
+    return {
+      id: user.userId || user.id || null,
+      userId: user.userId || user.id || null,
+      name: user.name || "",
+      email: user.email || "",
+      role: user.role || "TEACHER",
+      phone: user.phone || "",
+      department: user.department || "",
+      designation: user.designation || "",
+      qualification: user.qualification || "",
+      employeeId: user.employeeId || "",
+      profileImage: user.profileImage || ""
+    };
+  }
+
+  function safeSetStorage(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      console.warn(`Skipping localStorage key '${key}' due to quota/storage error`, error);
+      return false;
+    }
+  }
+
   async function readErrorMessage(response) {
     const fallback = response?.statusText || `Request failed (${response?.status || "unknown"})`;
     try {
@@ -108,12 +139,12 @@ const TeacherLogin = (() => {
       }
 
       // ================= SAVE TOKEN =================
-      localStorage.setItem("token", token);
-      localStorage.setItem("accessToken", token);
-      localStorage.setItem("role", data.role);
+      safeSetStorage("token", token);
+      safeSetStorage("accessToken", token);
+      safeSetStorage("role", data.role);
 
       // ================= SAVE TEACHER DATA =================
-      localStorage.setItem("teacher", JSON.stringify({
+      safeSetStorage("teacher", JSON.stringify({
         id: data.id,
         name: data.name,
         email: data.email,
@@ -124,7 +155,7 @@ const TeacherLogin = (() => {
       }));
 
       // Save full response
-      localStorage.setItem("user", JSON.stringify(data));
+      safeSetStorage("user", JSON.stringify(sanitizeUserForStorage(data)));
 
       setSuccess();
 

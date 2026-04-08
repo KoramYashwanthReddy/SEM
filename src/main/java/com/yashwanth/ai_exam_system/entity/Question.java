@@ -103,7 +103,11 @@ public class Question {
     // ENUM SAFE
     public DifficultyLevel getDifficultyLevel() {
         if (difficulty == null) return null;
-        return DifficultyLevel.valueOf(difficulty.toUpperCase());
+        String normalized = difficulty.trim().toUpperCase();
+        if ("HARD".equals(normalized)) {
+            normalized = "DIFFICULT";
+        }
+        return DifficultyLevel.valueOf(normalized);
     }
 
     public String getTopic() { return topic; }

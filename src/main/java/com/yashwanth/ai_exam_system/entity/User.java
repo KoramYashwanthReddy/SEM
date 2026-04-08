@@ -41,7 +41,8 @@ public class User {
     @Column(length = 15)
     private String phone;
 
-    @Column(length = 255)
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String profileImage;
 
     @Column(length = 100)

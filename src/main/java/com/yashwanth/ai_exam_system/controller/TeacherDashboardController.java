@@ -13,7 +13,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/teacher/dashboard")
-@PreAuthorize("hasRole('TEACHER')")
+@PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
 public class TeacherDashboardController {
 
     private final TeacherDashboardService dashboardService;

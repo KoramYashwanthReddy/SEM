@@ -1,21 +1,40 @@
 package com.yashwanth.ai_exam_system.dto;
 
-import java.time.LocalDate;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public class StudentProfileRequest {
 
+    @NotBlank(message = "Full name is required")
+    @Size(max = 150, message = "Full name is too long")
     private String fullName;
+
     private String phone;
     private String gender;
-    private LocalDate dateOfBirth;
+    private String dateOfBirth;
 
+    @NotBlank(message = "College name is required")
+    @Size(max = 200, message = "College name is too long")
     private String collegeName;
+
+    @NotBlank(message = "Department is required")
+    @Size(max = 150, message = "Department is too long")
     private String department;
+
     private String year;
+
+    @NotBlank(message = "Roll number is required")
+    @Size(max = 50, message = "Roll number is too long")
     private String rollNumber;
+
     private String section;
 
     private String profilePhoto;
+
+    @Email(message = "Invalid email format")
+    @Size(max = 255, message = "Email is too long")
+    private String email;
 
     public String getFullName() {
         return fullName;
@@ -41,11 +60,11 @@ public class StudentProfileRequest {
         this.gender = gender;
     }
 
-    public LocalDate getDateOfBirth() {
+    public String getDateOfBirth() {
         return dateOfBirth;
     }
 
-    public void setDateOfBirth(LocalDate dateOfBirth) {
+    public void setDateOfBirth(String dateOfBirth) {
         this.dateOfBirth = dateOfBirth;
     }
 
@@ -95,5 +114,13 @@ public class StudentProfileRequest {
 
     public void setProfilePhoto(String profilePhoto) {
         this.profilePhoto = profilePhoto;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 }

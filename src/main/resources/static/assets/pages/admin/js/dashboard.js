@@ -1096,13 +1096,14 @@ window.submitAddTeacher = async function(event, btn) {
     event.preventDefault();
     
     // Values
-    const val = (id) => document.getElementById(id).value.trim();
+    const val = (id) => document.getElementById(id)?.value?.trim() || '';
     
     const name = val('t-name');
     const email = val('t-email');
     const pwd = val('t-pwd');
     const phone = val('t-phone');
     const dept = val('t-dept') || 'General';
+    const profileImage = '';
     const empid = val('t-empid');
     const expStr = val('t-exp');
     const exp = parseFloat(expStr);
@@ -1147,12 +1148,14 @@ window.submitAddTeacher = async function(event, btn) {
                 t.fullName = name; t.email = email; t.phone = phone; t.department = dept;
                 t.designation = val('t-designation'); t.experienceYears = exp || 0; 
                 t.qualification = val('t-qual'); t.employeeId = empid;
+                t.profileImage = profileImage || t.profileImage || '';
                 // password ignored in edit simulate
             }
         } else {
                 window.teachersData.unshift({
                     id: 'T-'+Date.now(),
                     fullName: name, email: email, phone: phone, department: dept,
+                    profileImage: profileImage,
                     designation: val('t-designation'), experienceYears: exp || 0,
                     qualification: val('t-qual'), employeeId: empid, status: 'Active',
                     examsCreated: [], questionsUploaded: [], 
@@ -1538,6 +1541,8 @@ window.openEditTeacher = function(id) {
     document.getElementById('t-exp').value = t.experienceYears || '';
     document.getElementById('t-qual').value = t.qualification || '';
     document.getElementById('t-empid').value = t.employeeId || '';
+    const profileImageInput = document.getElementById('t-img-file');
+    if(profileImageInput) profileImageInput.value = '';
     // reset pwd and focus states
     document.getElementById('t-pwd').value = '********';
     
@@ -3928,14 +3933,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.logoutAdmin = function() {
-    if(confirm("Are you sure you want to exit the Administrative Console?")) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('jwt');
-        localStorage.removeItem('role');
-        localStorage.removeItem('user');
-        window.location.href = 'admin-login.html';
-    }
+    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('jwt');
+    localStorage.removeItem('role');
+    localStorage.removeItem('user');
+    window.location.href = 'role-selection.html';
 };
 
 window.updateNotifBadges = () => {

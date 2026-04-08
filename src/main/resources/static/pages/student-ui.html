@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student UI | SEM AI Exam System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/core/css/themes.css">
+  <link rel="stylesheet" href="../assets/pages/student/css/student-ui.css">
+</head>
+<body class="student-page">
+  <div class="noise-overlay"></div>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <span class="brand-badge">SEM</span>
+          <span class="brand-text">Student Console</span>
+        </div>
+      </div>
+      <nav class="side-nav" id="sideNav" aria-label="Student navigation">
+        <button class="nav-link active" data-section="dashboard"><span class="nav-icon" data-icon="dashboard"></span><span>Dashboard</span></button>
+        <button class="nav-link" data-section="exams"><span class="nav-icon" data-icon="exams"></span><span>Exam</span></button>
+        <button class="nav-link" data-section="my-exams"><span class="nav-icon" data-icon="exams"></span><span>My Exams</span></button>
+        <button class="nav-link" data-section="results"><span class="nav-icon" data-icon="results"></span><span>Results</span></button>
+        <button class="nav-link" data-section="certificates"><span class="nav-icon" data-icon="certificates"></span><span>Certificates</span></button>
+        <button class="nav-link" data-section="leaderboard"><span class="nav-icon" data-icon="leaderboard"></span><span>Leaderboard</span></button>
+        <button class="nav-link" data-section="profile"><span class="nav-icon" data-icon="profile"></span><span>Profile</span></button>
+        <button class="nav-link" data-section="analytics"><span class="nav-icon" data-icon="analytics"></span><span>Analytics</span></button>
+        <button class="nav-link" data-section="notifications">
+          <span class="nav-icon" data-icon="bell"></span>
+          <span>Notifications</span>
+          <span class="nav-badge" id="notifNavCount">0</span>
+        </button>
+        <button class="nav-link" data-section="schedule"><span class="nav-icon" data-icon="calendar"></span><span>Schedule</span></button>
+        <button class="nav-link" data-section="proctoring"><span class="nav-icon" data-icon="shield"></span><span>Proctoring Status</span></button>
+        <button class="nav-link" data-section="help-support"><span class="nav-icon" data-icon="help"></span><span>Help &amp; Support</span></button>
+        <button class="nav-link" data-section="settings"><span class="nav-icon" data-icon="settings"></span><span>Settings</span></button>
+        <button class="nav-link logout" id="logoutBtn" type="button"><span class="nav-icon" data-icon="logout"></span><span>Logout</span></button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="student-mini">
+          <img id="sidebarAvatar" alt="Student avatar">
+          <div>
+            <strong id="sidebarName">Student</strong>
+            <small id="sidebarRole">Learner</small>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="top-nav">
+        <div class="nav-left">
+          <button id="toggle-sidebar" class="icon-btn sidebar-toggle" type="button" aria-label="Toggle sidebar">
+            <span class="svg-icon" data-icon="menu"></span>
+            <span class="toggle-text">Collapse</span>
+          </button>
+          <label class="search-wrap" aria-label="Search dashboard data">
+            <span class="search-icon svg-icon" data-icon="search"></span>
+            <input id="top-nav-search" type="text" placeholder="Search exams, results, certificates..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+          </label>
+        </div>
+
+        <div class="nav-right">
+          <div class="live-pill"><span class="dot"></span><span id="liveClock">LIVE</span></div>
+          <div class="theme-toggle" id="themeToggle" role="group" aria-label="Theme modes">
+            <button type="button" class="theme-toggle-btn" data-theme-mode="light"><span class="svg-icon" data-icon="sun"></span><span>Light</span></button>
+            <button type="button" class="theme-toggle-btn" data-theme-mode="system"><span class="svg-icon" data-icon="system"></span><span>System</span></button>
+            <button type="button" class="theme-toggle-btn" data-theme-mode="dark"><span class="svg-icon" data-icon="moon"></span><span>Dark</span></button>
+          </div>
+          <button id="notifBtn" class="notification-trigger" type="button" aria-label="Notifications">
+            <span class="svg-icon" data-icon="bell"></span>
+            <span class="n-count" id="notifCount">3</span>
+          </button>
+          <div class="profile-dd" id="profileDd">
+            <button id="profileMenuBtn" class="profile-btn" type="button" aria-haspopup="true" aria-expanded="false">
+              <img id="topAvatar" alt="Student profile">
+              <span id="topName">Student</span>
+              <span class="svg-icon chevron" data-icon="chevron"></span>
+            </button>
+            <div id="profileMenu" class="dropdown-menu" role="menu">
+              <button type="button" data-section-jump="profile">Profile</button>
+              <button type="button" data-section-jump="settings">Settings</button>
+              <button type="button" id="profileLogout">Logout</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="content-body">
+        <section id="dashboard" class="section active">
+          <div class="section-head">
+            <div class="header-titles">
+              <h1 class="page-title">Student <span class="text-gradient">Dashboard</span></h1>
+              <p class="page-desc">Academic overview, score trajectory, and recent exam activity.</p>
+            </div>
+            <div class="head-actions">
+              <button class="btn ghost" id="refreshDashboard" type="button"><span class="svg-icon" data-icon="refresh"></span>Refresh</button>
+              <button class="btn primary" id="dashboardActionBtn" type="button"><span class="svg-icon" data-icon="spark"></span>Review Progress</button>
+            </div>
+          </div>
+
+          <div class="stats-grid" id="dashStatsGrid"></div>
+
+          <div class="dashboard-main-row">
+            <article class="glass-card chart-card">
+              <div class="card-header">
+                <div class="ch-left">
+                  <h3 class="card-title">Performance Trend</h3>
+                  <span class="card-hint">Canvas placeholder - responsive resize enabled</span>
+                </div>
+                <div class="ch-right">
+                  <span class="tag neutral" id="trendRange">Last 12 attempts</span>
+                </div>
+              </div>
+              <div class="chart-stage">
+                <canvas id="performanceTrendChart" aria-label="Performance trend chart"></canvas>
+                <div class="chart-placeholder" id="chartPlaceholder">Performance chart placeholder</div>
+              </div>
+            </article>
+          </div>
+
+          <div class="split-grid">
+            <article class="card">
+              <div class="card-head">
+                <h3>Recent Attempts</h3>
+                <div class="card-tools">
+                  <button class="btn ghost small" type="button" id="attemptsResetBtn">Reset</button>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="dash-table">
+                  <thead>
+                    <tr>
+                      <th>Exam Code</th>
+                      <th>Obtained Marks</th>
+                      <th>Total Marks</th>
+                      <th>Percentage</th>
+                      <th>Badge</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentAttemptsBody"></tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="exams" class="section">
+          <div class="section-head">
+            <div class="header-titles">
+              <h1 class="page-title">Exam <span class="text-gradient">Catalog</span></h1>
+              <p class="page-desc">Unregistered, upcoming, and expired exams with access-state awareness.</p>
+            </div>
+            <div class="head-actions">
+              <label class="search-wrap" aria-label="Search exams">
+                <span class="search-icon svg-icon" data-icon="search"></span>
+                <input id="examSearch" type="text" placeholder="Search title, code, subject..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+              </label>
+              <select id="examFilter" class="inline-select">
+                <option value="all">All</option>
+                <option value="unregistered">Unregistered</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <div class="tab-group" role="tablist" aria-label="Exam categories">
+              <button class="tab-btn active" data-tab="all" type="button">All Exams</button>
+              <button class="tab-btn" data-tab="unregistered" type="button">Unregistered</button>
+              <button class="tab-btn" data-tab="upcoming" type="button">Upcoming</button>
+              <button class="tab-btn" data-tab="closed" type="button">Closed</button>
+            </div>
+            <div class="summary-pill" id="summaryPill">0 visible exams</div>
+          </div>
+
+          <div class="exam-legend" id="examStatusLegend"></div>
+
+          <div class="exam-panels">
+            <section class="exam-group" data-group="unregistered" aria-labelledby="unregisteredTitle">
+              <div class="group-head">
+                <div>
+                  <h2 id="unregisteredTitle">Unregistered Exams</h2>
+                  <p>Register before the access window closes.</p>
+                </div>
+                <span class="tag danger" id="unregisteredCount">0</span>
+              </div>
+              <div class="exam-grid" id="unregisteredGrid"></div>
+            </section>
+
+            <section class="exam-group" data-group="upcoming" aria-labelledby="upcomingTitle">
+              <div class="group-head">
+                <div>
+                  <h2 id="upcomingTitle">Upcoming Exams</h2>
+                  <p>Registered exams that are not yet live.</p>
+                </div>
+                <span class="tag neutral" id="upcomingCount">0</span>
+              </div>
+              <div class="exam-grid" id="upcomingGrid"></div>
+            </section>
+
+            <section class="exam-group" data-group="closed" aria-labelledby="closedTitle">
+              <div class="group-head">
+                <div>
+                  <h2 id="closedTitle">Closed Exams</h2>
+                  <p>Expired, completed, or time-ended exams.</p>
+                </div>
+                <span class="tag neutral" id="closedCount">0</span>
+              </div>
+              <div class="exam-grid" id="closedGrid"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="my-exams" class="section">
+          <div class="section-head">
+            <div class="header-titles">
+              <h1 class="page-title">My <span class="text-gradient">Exams</span></h1>
+              <p class="page-desc">Registered exams, resume sessions, and re-exam opportunities.</p>
+            </div>
+            <div class="head-actions">
+              <label class="search-wrap" aria-label="Search my exams">
+                <span class="search-icon svg-icon" data-icon="search"></span>
+                <input id="myExamSearch" type="text" placeholder="Search registered exams..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+              </label>
+              <select id="myExamFilter" class="inline-select">
+                <option value="all">All</option>
+                <option value="registered">Registered</option>
+                <option value="resume">Resume</option>
+                <option value="reexam">Re-Exam</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <div class="tab-group" role="tablist" aria-label="My exam categories">
+              <button class="tab-btn active" data-my-tab="all" type="button">All Registered</button>
+              <button class="tab-btn" data-my-tab="registered" type="button">Registered</button>
+              <button class="tab-btn" data-my-tab="resume" type="button">Resume</button>
+              <button class="tab-btn" data-my-tab="reexam" type="button">Re-Exam</button>
+            </div>
+            <div class="summary-pill" id="myExamSummaryPill">0 visible exams</div>
+          </div>
+
+          <div class="exam-panels my-exam-panels">
+            <section class="exam-group" data-my-group="registered" aria-labelledby="registeredTitle">
+              <div class="group-head">
+                <div>
+                  <h2 id="registeredTitle">Registered Exams</h2>
+                  <p>All active registrations in one place.</p>
+                </div>
+                <span class="tag success" id="registeredCount">0</span>
+              </div>
+              <div class="exam-grid" id="registeredGrid"></div>
+            </section>
+
+            <section class="exam-group" data-my-group="resume" aria-labelledby="resumeMyTitle">
+              <div class="group-head">
+                <div>
+                  <h2 id="resumeMyTitle">Resume Sessions</h2>
+                  <p>Continue saved attempts with verification intact.</p>
+                </div>
+                <span class="tag warning" id="resumeMyCount">0</span>
+              </div>
+              <div class="exam-grid" id="resumeMyGrid"></div>
+            </section>
+
+            <section class="exam-group" data-my-group="reexam" aria-labelledby="reexamTitle">
+              <div class="group-head">
+                <div>
+                  <h2 id="reexamTitle">Re-Exam Opportunities</h2>
+                  <p>Failed attempts eligible for a fresh secure run.</p>
+                </div>
+                <span class="tag neutral" id="reexamCount">0</span>
+              </div>
+              <div class="exam-grid" id="reexamGrid"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="results" class="section">
+          <div class="section-head">
+            <div class="header-titles">
+              <h1 class="page-title">My <span class="text-gradient">Results</span></h1>
+              <p class="page-desc">Performance and exam results with score analytics and submission history.</p>
+            </div>
+            <div class="head-actions">
+              <label class="search-wrap" aria-label="Search results">
+                <span class="search-icon svg-icon" data-icon="search"></span>
+                <input id="resultsSearch" type="text" placeholder="Search exam code..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+              </label>
+              <select id="resultsFilter" class="inline-select">
+                <option value="all">All</option>
+                <option value="passed">Passed</option>
+                <option value="failed">Failed</option>
+                <option value="highscore">High Score</option>
+                <option value="recent">Recent</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="results-summary-grid" id="resultsSummaryGrid"></div>
+
+          <div class="toolbar results-toolbar">
+            <div class="toolbar-copy">
+              <strong>Result History</strong>
+              <span>Sorted by the most recent submissions and filtered locally.</span>
+            </div>
+            <button id="resultsResetBtn" class="btn ghost small" type="button"><span class="svg-icon" data-icon="refresh"></span>Reset</button>
+          </div>
+
+          <article class="card table-card results-table-card">
+            <div class="table-wrap">
+              <table class="dash-table results-table">
+                <thead>
+                  <tr>
+                    <th>Exam Code</th>
+                    <th>Score</th>
+                    <th>Percentage</th>
+                    <th>Result</th>
+                    <th>Correct</th>
+                    <th>Wrong</th>
+                    <th>Unanswered</th>
+                    <th>Time Taken</th>
+                    <th>Submitted Date</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="resultsBody"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="certificates" class="section">
+          <div class="section-head">
+            <div class="header-titles">
+              <h1 class="page-title">My <span class="text-gradient">Certificates</span></h1>
+              <p class="page-desc">Earned certificates, achievements, and verification history.</p>
+            </div>
+            <div class="head-actions">
+              <label class="search-wrap" aria-label="Search certificates">
+                <span class="search-icon svg-icon" data-icon="search"></span>
+                <input id="certificatesSearch" type="text" placeholder="Search certificate ID or exam title..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+              </label>
+              <select id="certificatesFilter" class="inline-select">
+                <option value="all">All</option>
+                <option value="verified">Verified</option>
+                <option value="revoked">Revoked</option>
+                <option value="highest">Highest Grade</option>
+                <option value="recent">Recent</option>
+              </select>
+            </div>
+          </div>
+          <div class="results-summary-grid certificates-summary-grid" id="certificatesSummaryGrid"></div>
+          <div class="toolbar results-toolbar certificates-toolbar">
+            <div class="toolbar-copy">
+              <strong>Certificate Gallery</strong>
+              <span>Sorted locally by issuance date and filtered in real time.</span>
+            </div>
+            <button id="certificatesResetBtn" class="btn ghost small" type="button"><span class="svg-icon" data-icon="refresh"></span>Reset</button>
+          </div>
+          <div class="card-grid three certificates-grid" id="certificatesGrid"></div>
+        </section>
+
+        <section id="leaderboard" class="section">
+          <div class="section-head">
+            <div class="header-titles">
+              <h1 class="page-title"><span class="text-gradient">Leaderboard</span></h1>
+              <p class="page-desc">Global and exam ranking insights with live local sorting and user highlight.</p>
+            </div>
+            <div class="head-actions">
+              <div class="segmented-toggle" id="leaderboardModeToggle" role="tablist" aria-label="Leaderboard mode">
+                <button type="button" class="segmented-btn active" data-leaderboard-mode="global">Global</button>
+                <button type="button" class="segmented-btn" data-leaderboard-mode="exam">Exam</button>
+              </div>
+              <label class="search-wrap" aria-label="Search leaderboard">
+                <span class="search-icon svg-icon" data-icon="search"></span>
+                <input id="leaderboardSearch" class="inline-search" type="text" placeholder="Search student name..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+              </label>
+              <select id="leaderboardSort" class="inline-select">
+                <option value="rank">Rank</option>
+                <option value="score">Score</option>
+                <option value="percentage">Percentage</option>
+              </select>
+              <button id="leaderboardRefresh" class="btn ghost small" type="button"><span class="svg-icon" data-icon="refresh"></span>Refresh</button>
+            </div>
+          </div>
+          <div class="results-summary-grid leaderboard-summary-grid" id="leaderboardSummaryGrid"></div>
+          <div class="leaderboard-spotlight">
+            <article class="card your-rank-card" id="yourRankCard"></article>
+          </div>
+          <div class="podium-grid" id="podiumGrid"></div>
+          <article class="card table-card">
+            <div class="card-head leaderboard-table-head"><h3>Rankings</h3><span class="card-hint">Top 15 students</span></div>
+            <div class="table-wrap leaderboard-table-wrap">
+              <table class="dash-table leaderboard-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Student</th>
+                    <th>Score</th>
+                    <th>Percentage</th>
+                    <th>Performance</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboardBody"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="analytics" class="section">
+          <div class="section-head">
+            <div class="header-titles">
+              <h1 class="page-title">Performance <span class="text-gradient">Analytics</span></h1>
+              <p class="page-desc">Summary cards and chart placeholders for deeper student performance insights.</p>
+            </div>
+          </div>
+          <div class="stats-grid analytics-grid" id="analyticsCards"></div>
+          <div class="chart-grid three">
+            <article class="card chart-card">
+              <div class="card-head"><h3>Attempt Distribution</h3></div>
+              <canvas id="analyticsLineChart"></canvas>
+            </article>
+            <article class="card chart-card">
+              <div class="card-head"><h3>Pass Rate</h3></div>
+              <canvas id="analyticsBarChart"></canvas>
+            </article>
+            <article class="card chart-card">
+              <div class="card-head"><h3>Score Mix</h3></div>
+              <canvas id="analyticsDonutChart"></canvas>
+            </article>
+          </div>
+        </section>
+
+        <section id="profile" class="section">
+          <div class="section-head">
+            <div class="header-titles">
+              <h1 class="page-title">Student <span class="text-gradient">Profile</span></h1>
+              <p class="page-desc">Editable profile layout prepared for future data binding.</p>
+            </div>
+            <div class="head-actions">
+              <button class="btn ghost" type="button" id="editProfileBtn">Edit Profile</button>
+              <button class="btn primary" type="button" id="saveProfileBtn">Save Changes</button>
+            </div>
+          </div>
+          <article class="card profile-card">
+            <form class="profile-form" id="profileForm">
+              <label>
+                <span>Full Name</span>
+                <input type="text" id="fullName" name="fullName">
+              </label>
+              <label>
+                <span>Email</span>
+                <input type="email" id="email" name="email">
+              </label>
+              <label>
+                <span>Phone</span>
+                <input type="text" id="phone" name="phone">
+              </label>
+              <label>
+                <span>College Name</span>
+                <input type="text" id="collegeName" name="collegeName">
+              </label>
+              <label>
+                <span>Department</span>
+                <input type="text" id="department" name="department">
+              </label>
+              <label>
+                <span>Year</span>
+                <input type="text" id="year" name="year">
+              </label>
+              <label>
+                <span>Roll Number</span>
+                <input type="text" id="rollNumber" name="rollNumber">
+              </label>
+              <label>
+                <span>Section</span>
+                <input type="text" id="sectionField" name="section">
+              </label>
+            </form>
+          </article>
+        </section>
+
+        <section id="settings" class="section">
+          <div class="section-head">
+            <div class="header-titles">
+              <h1 class="page-title">Account <span class="text-gradient">Settings</span></h1>
+              <p class="page-desc">UI-only settings panel matching the dashboard system language.</p>
+            </div>
+          </div>
+          <div class="split-grid settings-grid">
+            <article class="card setting-card">
+              <div class="card-head"><h3>Notifications</h3><span class="tag success">Enabled</span></div>
+              <p class="card-copy">Email reminders, exam alerts, and certificate updates.</p>
+              <label class="toggle-row"><span>Email Alerts</span><span class="toggle"><input type="checkbox" checked><span></span></span></label>
+              <label class="toggle-row"><span>Exam Reminders</span><span class="toggle"><input type="checkbox" checked><span></span></span></label>
+            </article>
+            <article class="card setting-card">
+              <div class="card-head"><h3>Display Preferences</h3><span class="tag neutral">Theme</span></div>
+              <p class="card-copy">Theme and density controls aligned with the existing enterprise shell.</p>
+              <label class="toggle-row"><span>Compact Table Density</span><span class="toggle"><input type="checkbox"><span></span></span></label>
+              <label class="toggle-row"><span>High Contrast Focus</span><span class="toggle"><input type="checkbox"><span></span></span></label>
+            </article>
+          </div>
+        </section>
+
+        <section id="notifications" class="section">
+          <div class="section-head">
+            <div class="header-titles">
+              <h1 class="page-title">System <span class="text-gradient">Notifications</span></h1>
+              <p class="page-desc">Exam alerts, certificate updates, and result notifications in one secure stream.</p>
+            </div>
+            <div class="head-actions">
+              <select id="notificationTypeFilter" class="inline-select">
+                <option value="all">All Types</option>
+                <option value="exam">Exam</option>
+                <option value="result">Result</option>
+                <option value="certificate">Certificate</option>
+              </select>
+              <button id="markAllReadBtn" class="btn ghost small" type="button">Mark all as read</button>
+              <button id="clearNotificationsBtn" class="btn primary small" type="button">Clear notifications</button>
+            </div>
+          </div>
+          <div class="panel-shell">
+            <div class="panel-shell-head">
+              <div>
+                <h2>Notifications Center</h2>
+                <p><span id="unreadNotificationCount">0</span> unread notifications remaining.</p>
+              </div>
+              <span class="tag success">Live feed</span>
+            </div>
+            <div class="scroll-panel notification-stream" id="notificationStream"></div>
+          </div>
+        </section>
+
+        <section id="schedule" class="section">
+          <div class="section-head">
+            <div class="header-titles">
+              <h1 class="page-title">Exam <span class="text-gradient">Schedule</span></h1>
+              <p class="page-desc">Upcoming exams, live windows, and a timeline view organized by nearest session.</p>
+            </div>
+            <div class="head-actions">
+              <select id="scheduleDateFilter" class="inline-select">
+                <option value="all">All Dates</option>
+                <option value="today">Today</option>
+                <option value="week">Next 7 Days</option>
+              </select>
+            </div>
+          </div>
+          <div class="split-grid schedule-grid">
+            <article class="card schedule-hero">
+              <div class="card-head">
+                <div>
+                  <h3>Today</h3>
+                  <p class="card-copy">Your nearest scheduled exams with countdown awareness.</p>
+                </div>
+                <span class="tag neutral" id="scheduleTodayLabel">0 exams today</span>
+              </div>
+              <div class="scroll-panel schedule-list" id="scheduleList"></div>
+            </article>
+            <article class="card schedule-hero">
+              <div class="card-head">
+                <div>
+                  <h3>Timeline</h3>
+                  <p class="card-copy">A compact execution view for the next exam windows.</p>
+                </div>
+                <span class="tag success">Ordered</span>
+              </div>
+              <div class="scroll-panel timeline-list" id="scheduleTimeline"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="proctoring" class="section">
+          <div class="section-head">
+            <div class="header-titles">
+              <h1 class="page-title">Proctoring <span class="text-gradient">Status</span></h1>
+              <p class="page-desc">Live device, environment, and identity checks for the active session.</p>
+            </div>
+          </div>
+          <div class="split-grid proctoring-grid">
+            <article class="card proctoring-summary">
+              <div class="card-head">
+                <div>
+                  <h3>Monitoring Status</h3>
+                  <p class="card-copy">Enterprise proctoring controls are displayed below.</p>
+                </div>
+                <span class="tag success">AI monitoring active</span>
+              </div>
+              <div class="status-grid" id="proctoringStatusGrid"></div>
+            </article>
+            <article class="card proctoring-summary">
+              <div class="card-head">
+                <div>
+                  <h3>Session Summary</h3>
+                  <p class="card-copy">Identity enforcement and violation tracking.</p>
+                </div>
+                <span class="tag neutral">Live pulse</span>
+              </div>
+              <div class="proctoring-summary-panel" id="proctoringSummaryPanel"></div>
+            </article>
+          </div>
+        </section>
+
+        <section id="help-support" class="section">
+          <div class="section-head">
+            <div class="header-titles">
+              <h1 class="page-title">Help <span class="text-gradient">&amp; Support</span></h1>
+              <p class="page-desc">Self-service support, guided FAQs, and secure reporting in one place.</p>
+            </div>
+          </div>
+          <div class="support-layout">
+            <article class="card support-card">
+              <div class="card-head">
+                <div>
+                  <h3>Help Categories</h3>
+                  <p class="card-copy">Switch between FAQ, contact, and issue workflows.</p>
+                </div>
+              </div>
+              <div class="tab-group support-tabs" role="tablist" aria-label="Help categories">
+                <button class="tab-btn active" data-support-tab="faq" type="button">FAQ</button>
+                <button class="tab-btn" data-support-tab="contact" type="button">Contact Support</button>
+                <button class="tab-btn" data-support-tab="report" type="button">Report Issue</button>
+              </div>
+              <div class="support-tab-panels">
+                <div class="support-panel active" data-support-panel="faq">
+                  <div id="faqAccordion" class="faq-accordion"></div>
+                </div>
+                <div class="support-panel" data-support-panel="contact">
+                  <form id="contactSupportForm" class="support-form">
+                    <label class="verification-field"><span>Subject</span><input name="subject" type="text" placeholder="Short summary" required><p class="field-error" data-error-for="subject"></p></label>
+                    <label class="verification-field"><span>Issue Type</span><select name="issueType" class="inline-select" required><option value="">Select type</option><option value="exam">Exam</option><option value="account">Account</option><option value="certificate">Certificate</option><option value="technical">Technical</option></select><p class="field-error" data-error-for="issueType"></p></label>
+                    <label class="verification-field support-textarea"><span>Description</span><textarea name="description" rows="5" placeholder="Describe the issue clearly" required></textarea><p class="field-error" data-error-for="description"></p></label>
+                    <label class="verification-field"><span>Priority</span><select name="priority" class="inline-select" required><option value="">Select priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select><p class="field-error" data-error-for="priority"></p></label>
+                    <div class="support-form-actions"><button class="btn primary" type="submit">Submit Request</button></div>
+                  </form>
+                </div>
+                <div class="support-panel" data-support-panel="report">
+                  <form id="reportIssueForm" class="support-form">
+                    <label class="verification-field"><span>Subject</span><input name="subject" type="text" placeholder="Issue subject" required><p class="field-error" data-error-for="subject"></p></label>
+                    <label class="verification-field"><span>Priority</span><select name="priority" class="inline-select" required><option value="">Select priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select><p class="field-error" data-error-for="priority"></p></label>
+                    <label class="verification-field support-textarea"><span>Description</span><textarea name="description" rows="5" placeholder="Explain the issue with context" required></textarea><p class="field-error" data-error-for="description"></p></label>
+                    <label class="verification-field"><span>Attachment</span><input name="attachment" type="file" accept=".png,.jpg,.jpeg,.pdf,.txt"><p class="field-error" data-error-for="attachment"></p></label>
+                    <div class="support-form-actions"><button class="btn primary" type="submit">Report Issue</button></div>
+                  </form>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="notify-drop" id="notifyDrop" role="menu" aria-label="Notifications">
+    <div class="card-head">
+      <h3>Notifications</h3>
+      <span class="tag neutral" id="notifyDropCount">0</span>
+    </div>
+    <div class="notify-list" id="notifyList"></div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="detailModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle">
+      <div class="modal-head">
+        <div>
+          <p class="panel-kicker" id="detailModalKicker">Student Detail</p>
+          <h3 id="detailModalTitle">Details</h3>
+        </div>
+        <button class="icon-btn" id="detailModalClose" type="button" aria-label="Close modal">
+          <span class="svg-icon" data-icon="logout"></span>
+        </button>
+      </div>
+      <div class="modal-body" id="detailModalBody"></div>
+      <div class="modal-foot" id="detailModalFoot"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden exam-modal-backdrop" id="examVerificationModal" aria-hidden="true">
+    <div class="modal-card exam-verification-card" role="dialog" aria-modal="true" aria-labelledby="examVerificationTitle">
+      <div class="exam-verification-head">
+        <div class="exam-verification-copy">
+          <p class="panel-kicker">Pre-Exam Verification</p>
+          <h3 id="examVerificationTitle">Verify Your Identity</h3>
+          <p class="exam-verification-subtitle" id="examVerificationSubtitle">Complete the verification steps before starting the exam.</p>
+        </div>
+        <button class="icon-btn" id="examVerificationClose" type="button" aria-label="Close verification modal">
+          <span class="svg-icon" data-icon="logout"></span>
+        </button>
+      </div>
+      <div class="exam-stepper" id="examStepper" aria-label="Verification steps"></div>
+      <div class="exam-verification-indicators" id="examSecurityIndicators"></div>
+      <div class="exam-verification-body" id="examVerificationBody"></div>
+      <div class="exam-verification-foot" id="examVerificationFoot"></div>
+    </div>
+  </div>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="../assets/pages/student/js/student-ui.js?v=20260408a"></script>
+</body>
+</html>
+

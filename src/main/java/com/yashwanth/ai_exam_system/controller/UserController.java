@@ -3,6 +3,9 @@ package com.yashwanth.ai_exam_system.controller;
 import com.yashwanth.ai_exam_system.dto.ChangePasswordRequest;
 import com.yashwanth.ai_exam_system.dto.TeacherProfileUpdateRequest;
 import com.yashwanth.ai_exam_system.entity.User;
+import com.yashwanth.ai_exam_system.exception.ForbiddenException;
+import com.yashwanth.ai_exam_system.exception.ResourceNotFoundException;
+import com.yashwanth.ai_exam_system.exception.ValidationException;
 import com.yashwanth.ai_exam_system.repository.UserRepository;
 
 import org.springframework.http.MediaType;
@@ -45,7 +48,7 @@ public class UserController {
 
         if (request.getEmail() != null && !request.getEmail().isBlank()
                 && !user.getEmail().equalsIgnoreCase(request.getEmail())) {
-            throw new RuntimeException("Email cannot be changed from the profile screen");
+            throw new ValidationException("Email cannot be changed from the profile screen");
         }
 
         if (request.getName() != null) user.setName(request.getName());
@@ -71,17 +74,17 @@ public class UserController {
         User user = getCurrentUser(auth.getName());
 
         if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
-            throw new RuntimeException("Current password is required");
+            throw new ValidationException("Current password is required");
         }
         if (request.getNewPassword() == null || request.getNewPassword().length() < 8) {
-            throw new RuntimeException("New password must be at least 8 characters");
+            throw new ValidationException("New password must be at least 8 characters");
         }
         if (request.getConfirmPassword() == null
                 || !request.getNewPassword().equals(request.getConfirmPassword())) {
-            throw new RuntimeException("Passwords do not match");
+            throw new ValidationException("Passwords do not match");
         }
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-            throw new RuntimeException("Current password is invalid");
+            throw new ValidationException("Current password is invalid");
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
@@ -99,7 +102,7 @@ public class UserController {
             @RequestParam("file") MultipartFile file) throws Exception {
 
         if (file.isEmpty()) {
-            throw new RuntimeException("File is empty");
+            throw new ValidationException("File is empty");
         }
 
         User user = getCurrentUser(auth.getName());
@@ -121,8 +124,13 @@ public class UserController {
     }
 
     private User getCurrentUser(String email) {
-        return userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!user.isEnabled() || !user.isAccountNonLocked()) {
+            throw new ForbiddenException("Account is not verified or is locked");
+        }
+        return user;
     }
 
     private Map<String, Object> profileMap(User user) {
@@ -138,6 +146,7 @@ public class UserController {
         map.put("employeeId", user.getEmployeeId());
         map.put("profileImage", user.getProfileImage());
         map.put("enabled", user.isEnabled());
+        map.put("verified", user.isEnabled());
         map.put("accountNonLocked", user.isAccountNonLocked());
         map.put("createdAt", user.getCreatedAt());
         map.put("updatedAt", user.getUpdatedAt());

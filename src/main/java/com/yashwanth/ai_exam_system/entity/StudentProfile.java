@@ -39,6 +39,7 @@ public class StudentProfile {
 
     private String collegeName;
     private String department;
+    @Column(name = "academic_year")
     private String year;
 
     @Column(length = 50)
@@ -46,7 +47,8 @@ public class StudentProfile {
 
     private String section;
 
-    @Column(length = 2000)
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String profilePhoto;
 
     private boolean profileCompleted = false;

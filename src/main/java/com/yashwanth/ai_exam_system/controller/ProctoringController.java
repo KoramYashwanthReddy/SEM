@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
@@ -35,6 +36,7 @@ public class ProctoringController {
     // 🔥 RECORD EVENT
     // =========================================================
     @PostMapping("/event")
+    @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<Map<String, Object>> recordEvent(
             @Valid @RequestBody ProctoringEventRequest request) {
 
@@ -47,6 +49,7 @@ public class ProctoringController {
     // 📊 GET EVENTS
     // =========================================================
     @GetMapping("/events/{attemptId}")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public ResponseEntity<Map<String, Object>> getEvents(
             @PathVariable Long attemptId) {
 
@@ -58,6 +61,7 @@ public class ProctoringController {
     // 🚨 CHECK SUSPICIOUS
     // =========================================================
     @GetMapping("/suspicious/{attemptId}")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public ResponseEntity<Map<String, Object>> isSuspicious(
             @PathVariable Long attemptId) {
 
@@ -73,6 +77,7 @@ public class ProctoringController {
     // 🔥 GET CHEATING SCORE
     // =========================================================
     @GetMapping("/score/{attemptId}")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public ResponseEntity<Map<String, Object>> getScore(
             @PathVariable Long attemptId) {
 
@@ -88,6 +93,7 @@ public class ProctoringController {
     // 🚫 AUTO FLAG CHECK
     // =========================================================
     @GetMapping("/flag/{attemptId}")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public ResponseEntity<Map<String, Object>> checkAutoFlag(
             @PathVariable Long attemptId) {
 
@@ -103,6 +109,7 @@ public class ProctoringController {
     // ⛔ AUTO CANCEL CHECK
     // =========================================================
     @GetMapping("/cancel/{attemptId}")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public ResponseEntity<Map<String, Object>> checkAutoCancel(
             @PathVariable Long attemptId) {
 
@@ -118,6 +125,7 @@ public class ProctoringController {
     // 📈 FULL SUMMARY
     // =========================================================
     @GetMapping("/summary/{attemptId}")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public ResponseEntity<Map<String, Object>> getSummary(
             @PathVariable Long attemptId) {
 
@@ -131,6 +139,7 @@ public class ProctoringController {
     // TEACHER ACTION ALIASES
     // =========================================================
     @PostMapping("/attempt/{attemptId}/warn")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public ResponseEntity<Map<String, Object>> warnAttempt(
             @PathVariable Long attemptId) {
 
@@ -139,6 +148,7 @@ public class ProctoringController {
     }
 
     @PostMapping("/attempt/{attemptId}/mark-safe")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public ResponseEntity<Map<String, Object>> markAttemptSafe(
             @PathVariable Long attemptId) {
 
@@ -147,6 +157,7 @@ public class ProctoringController {
     }
 
     @PostMapping("/attempt/{attemptId}/cancel")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public ResponseEntity<Map<String, Object>> cancelAttempt(
             @PathVariable Long attemptId) {
 
@@ -155,6 +166,7 @@ public class ProctoringController {
     }
 
     @GetMapping("/evidence/{attemptId}/summary")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public ResponseEntity<Map<String, Object>> evidenceSummary(
             @PathVariable Long attemptId) {
 
@@ -170,6 +182,7 @@ public class ProctoringController {
     }
 
     @GetMapping("/evidence/{attemptId}/{tab}")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public ResponseEntity<Map<String, Object>> evidenceTab(
             @PathVariable Long attemptId,
             @PathVariable String tab) {
@@ -187,6 +200,7 @@ public class ProctoringController {
     }
 
     @GetMapping("/evidence/{attemptId}/download")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public ResponseEntity<byte[]> downloadEvidence(
             @PathVariable Long attemptId) {
 
@@ -198,6 +212,7 @@ public class ProctoringController {
     }
 
     @GetMapping("/evidence/{attemptId}/report")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public ResponseEntity<byte[]> evidenceReport(
             @PathVariable Long attemptId) {
 

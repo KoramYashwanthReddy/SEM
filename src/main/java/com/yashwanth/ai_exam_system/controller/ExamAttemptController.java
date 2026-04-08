@@ -2,7 +2,10 @@ package com.yashwanth.ai_exam_system.controller;
 
 import com.yashwanth.ai_exam_system.dto.*;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
+import com.yashwanth.ai_exam_system.entity.Role;
 import com.yashwanth.ai_exam_system.entity.User;
+import com.yashwanth.ai_exam_system.exception.ForbiddenException;
+import com.yashwanth.ai_exam_system.exception.ResourceNotFoundException;
 import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRepository;
 import com.yashwanth.ai_exam_system.repository.UserRepository;
@@ -12,6 +15,7 @@ import com.yashwanth.ai_exam_system.service.ExamNavigationService;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -48,7 +52,12 @@ public class ExamAttemptController {
 
     // ✅ START EXAM
     @PostMapping("/start")
-    public ExamAttempt startExam(@RequestBody StartExamRequest request) {
+    @PreAuthorize("hasRole('STUDENT')")
+    public ExamAttempt startExam(@RequestBody StartExamRequest request, Authentication auth) {
+        Long authenticatedStudentId = resolveAuthenticatedStudentId(auth);
+        if (request.getStudentId() == null || !authenticatedStudentId.equals(request.getStudentId())) {
+            throw new ForbiddenException("You can only start your own exam attempt");
+        }
 
         return examAttemptService.startExam(
                 request.getStudentId(),
@@ -58,7 +67,14 @@ public class ExamAttemptController {
 
     // ✅ SAVE ANSWER
     @PostMapping("/submit-answer")
-    public String submitAnswer(@RequestBody SubmitAnswerRequest request) {
+    @PreAuthorize("hasRole('STUDENT')")
+    public String submitAnswer(@RequestBody SubmitAnswerRequest request, Authentication auth) {
+        Long authenticatedStudentId = resolveAuthenticatedStudentId(auth);
+        ExamAttempt attempt = attemptRepository.findById(request.getAttemptId())
+                .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
+        if (!authenticatedStudentId.equals(attempt.getStudentId())) {
+            throw new ForbiddenException("You can only submit answers for your own attempt");
+        }
 
         examAttemptService.submitAnswer(
                 request.getAttemptId(),
@@ -72,13 +88,24 @@ public class ExamAttemptController {
 
     // 🚀 FINAL SUBMIT
     @PostMapping("/submit/{attemptId}")
-    public String submitExam(@PathVariable Long attemptId) {
+    @PreAuthorize("hasRole('STUDENT')")
+    public String submitExam(@PathVariable Long attemptId, Authentication auth) {
+        Long authenticatedStudentId = resolveAuthenticatedStudentId(auth);
+        ExamAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
+        if (!authenticatedStudentId.equals(attempt.getStudentId())) {
+            throw new ForbiddenException("You can only submit your own attempt");
+        }
         return examService.submitExam(attemptId);
     }
 
     // ✅ GET RESULT
     @GetMapping("/result/{attemptId}")
-    public ExamResultResponse getResult(@PathVariable Long attemptId) {
+    @PreAuthorize("hasAnyRole('STUDENT','TEACHER','ADMIN')")
+    public ExamResultResponse getResult(@PathVariable Long attemptId, Authentication auth) {
+        ExamAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
+        ensureAttemptAccess(attempt, auth, true, true);
         return examAttemptService.generateResult(attemptId);
     }
 
@@ -104,21 +131,34 @@ public class ExamAttemptController {
 
     // 🔥 RESUME EXAM
     @GetMapping("/resume/{attemptId}")
-    public ExamAttempt resumeExam(@PathVariable Long attemptId) {
-        return examAttemptService.getAttempt(attemptId);
+    @PreAuthorize("hasAnyRole('STUDENT','TEACHER','ADMIN')")
+    public ExamAttempt resumeExam(@PathVariable Long attemptId, Authentication auth) {
+        ExamAttempt attempt = examAttemptService.getAttempt(attemptId);
+        ensureAttemptAccess(attempt, auth, true, true);
+        return attempt;
     }
 
     // 🔥 FORCE SUBMIT (TIMER / ADMIN)
     @PostMapping("/force-submit/{attemptId}")
-    public String forceSubmit(@PathVariable Long attemptId) {
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    public String forceSubmit(@PathVariable Long attemptId, Authentication auth) {
+        ExamAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
+        ensureAttemptAccess(attempt, auth, false, true);
         return examService.submitExam(attemptId);
     }
 
     // 🔥 CANCEL ATTEMPT
     @PostMapping("/cancel/{attemptId}")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public String cancelAttempt(
             @PathVariable Long attemptId,
-            @RequestParam(required = false, defaultValue = "Cancelled by teacher") String reason) {
+            @RequestParam(required = false, defaultValue = "Cancelled by teacher") String reason,
+            Authentication auth) {
+
+        ExamAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
+        ensureAttemptAccess(attempt, auth, false, true);
 
         examAttemptService.cancelAttempt(attemptId, reason);
         return "Attempt cancelled";
@@ -130,7 +170,13 @@ public class ExamAttemptController {
     @GetMapping("/attempts")
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public List<Map<String, Object>> getTeacherAttempts(Authentication auth) {
-        List<String> examCodes = examRepository.findByCreatedBy(auth.getName())
+        boolean admin = auth != null && auth.getAuthorities() != null && auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(role -> "ROLE_ADMIN".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role));
+
+        List<String> examCodes = (admin
+                ? examRepository.findAllActiveOrderByCreatedAtDesc()
+                : examRepository.findByCreatedByAndActiveTrueOrderByCreatedAtDesc(auth.getName()))
                 .stream()
                 .map(com.yashwanth.ai_exam_system.entity.Exam::getExamCode)
                 .collect(Collectors.toList());
@@ -147,7 +193,11 @@ public class ExamAttemptController {
 
     // 🔥 HEARTBEAT (ANTI CHEATING KEEP ALIVE)
     @PostMapping("/heartbeat/{attemptId}")
-    public String heartbeat(@PathVariable Long attemptId) {
+    @PreAuthorize("hasRole('STUDENT')")
+    public String heartbeat(@PathVariable Long attemptId, Authentication auth) {
+        ExamAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
+        ensureAttemptAccess(attempt, auth, true, false);
 
         examAttemptService.updateHeartbeat(attemptId);
         return "Heartbeat updated";
@@ -155,7 +205,11 @@ public class ExamAttemptController {
 
     // 🔥 MARK REVIEW ONLY
     @PostMapping("/mark-review")
-    public String markReview(@RequestBody SubmitAnswerRequest request) {
+    @PreAuthorize("hasRole('STUDENT')")
+    public String markReview(@RequestBody SubmitAnswerRequest request, Authentication auth) {
+        ExamAttempt attempt = attemptRepository.findById(request.getAttemptId())
+                .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
+        ensureAttemptAccess(attempt, auth, true, false);
 
         examAttemptService.markForReview(
                 request.getAttemptId(),
@@ -206,5 +260,72 @@ public class ExamAttemptController {
         if (value >= 65) return "HIGH";
         if (value >= 40) return "MEDIUM";
         return "LOW";
+    }
+
+    private void ensureAttemptAccess(ExamAttempt attempt,
+                                     Authentication auth,
+                                     boolean allowStudent,
+                                     boolean allowTeacherAdmin) {
+        User user = resolveAuthenticatedUser(auth);
+        if (user.getRole() == Role.ADMIN) {
+            return;
+        }
+
+        if (allowStudent && user.getRole() == Role.STUDENT) {
+            if (attempt.getStudentId() != null && attempt.getStudentId().equals(user.getId())) {
+                return;
+            }
+            throw new ForbiddenException("You can only access your own attempt");
+        }
+
+        if (allowTeacherAdmin && user.getRole() == Role.TEACHER) {
+            String examCode = attempt.getExamCode();
+            String owner = examCode == null ? "" : examRepository.findByExamCode(examCode)
+                    .map(com.yashwanth.ai_exam_system.entity.Exam::getCreatedBy)
+                    .orElse("");
+            String actor = auth == null || auth.getName() == null ? "" : auth.getName().trim();
+            if (!owner.isBlank() && owner.equalsIgnoreCase(actor)) {
+                return;
+            }
+            throw new ForbiddenException("You can only access attempts for your own exams");
+        }
+
+        throw new ForbiddenException("Insufficient permission for this attempt action");
+    }
+
+    private User resolveAuthenticatedUser(Authentication auth) {
+        String identifier = auth == null || auth.getName() == null ? "" : auth.getName().trim();
+        if (identifier.isBlank()) {
+            throw new ForbiddenException("Authentication required");
+        }
+        User user = userRepository.findByEmailIgnoreCase(identifier).orElse(null);
+        if (user == null && identifier.matches("\\d+")) {
+            user = userRepository.findById(Long.parseLong(identifier)).orElse(null);
+        }
+        if (user == null) {
+            throw new ResourceNotFoundException("Authenticated user not found");
+        }
+        return user;
+    }
+
+    private Long resolveAuthenticatedStudentId(Authentication auth) {
+        String identifier = auth == null || auth.getName() == null ? "" : auth.getName().trim();
+        if (identifier.isBlank()) {
+            throw new ForbiddenException("Student authentication is required");
+        }
+        User user = userRepository.findByEmailIgnoreCase(identifier).orElse(null);
+        if (user == null && identifier.matches("\\d+")) {
+            user = userRepository.findById(Long.parseLong(identifier)).orElse(null);
+        }
+        if (user == null) {
+            throw new ResourceNotFoundException("Authenticated student not found");
+        }
+        if (user.getRole() != Role.STUDENT) {
+            throw new ForbiddenException("Only students can access student attempt endpoints");
+        }
+        if (!user.isEnabled() || !user.isAccountNonLocked()) {
+            throw new ForbiddenException("Please verify your account before starting an exam");
+        }
+        return user.getId();
     }
 }

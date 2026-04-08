@@ -23,7 +23,7 @@ public class ForgotPasswordService {
 
     private static final int TOKEN_EXPIRY_MINUTES = 15;
 
-    @Value("${app.frontend.reset-url:http://localhost:8080/reset-password}")
+    @Value("${app.frontend.reset-url:http://localhost:8080/pages/reset-password.html}")
     private String resetBaseUrl;
 
     private final PasswordResetTokenRepository tokenRepository;
@@ -76,7 +76,8 @@ public class ForgotPasswordService {
 
         tokenRepository.save(resetToken);
 
-        String resetLink = resetBaseUrl + "?token=" + token;
+        String role = user.getRole() == null ? "" : user.getRole().name().toLowerCase();
+        String resetLink = resetBaseUrl + "?token=" + token + (role.isBlank() ? "" : "&role=" + role);
 
         emailService.sendPasswordResetEmail(email, resetLink);
 

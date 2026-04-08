@@ -115,7 +115,7 @@
           
           <div class="notification-trigger" onclick="switchSection('notifications-section')">
             <i class="fa-solid fa-bell"></i>
-            <span class="n-count">3</span>
+            <span class="n-count" id="admin-notif-badge">0</span>
           </div>
           
           <div class="profile-trigger" onclick="switchSection('profile-section')">
@@ -1606,8 +1606,15 @@
             <div class="form-section-title">Optional Media</div>
             <div class="form-grid">
               <div class="form-group full-span">
-                <label>Profile Image URL</label>
-                <input type="url" id="t-img" class="form-control" placeholder="https://...">
+                <label>Profile Image Upload</label>
+                <label for="t-img-file" class="upload-dropzone">
+                  <span class="upload-dropzone-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+                  <span class="upload-dropzone-title">Choose Profile Image</span>
+                  <span class="upload-dropzone-sub">PNG/JPG/WebP, max 5MB</span>
+                </label>
+                <input type="file" id="t-img-file" class="form-control upload-file-input" accept="image/*">
+                <div class="upload-file-name" id="t-img-file-name">No file selected</div>
+                <span class="error-msg">Please select a valid image file (max 5MB).</span>
               </div>
             </div>
 
@@ -1746,7 +1753,7 @@
                 <span class="error-msg">Must be >= 0.</span>
               </div>
               <div class="form-group full-span">
-                <label>Difficult Count</label>
+                <label>Hard Count</label>
                 <input type="number" id="ex-diff" class="form-control" value="0" min="0">
                 <span class="error-msg">Must be >= 0.</span>
               </div>
@@ -2203,7 +2210,10 @@
   <!-- Dependencies -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="../assets/core/js/theme.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
   <script src="../assets/pages/admin/js/dashboard.js?v=20240404100"></script>
-  <script src="../assets/pages/admin/js/admin-live.js?v=20240405100"></script>
+  <script src="../assets/pages/admin/js/admin-live.js?v=20260408d"></script>
+  <script src="../assets/pages/admin/js/notifications.js?v=20240406100"></script>
 </body>
 </html>

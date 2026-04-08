@@ -1,6 +1,35 @@
 (function () {
   const apiBase = /^https?:/i.test(window.location.origin) ? window.location.origin : "http://localhost:8080";
-  const token = () => localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("jwt") || "";
+  const TOKEN_KEYS = ["token", "accessToken", "jwt", "authToken", "access_token"];
+  const normalizeToken = (raw) => {
+    if (!raw) return "";
+    let value = String(raw).trim();
+    if (!value) return "";
+    if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1).trim();
+    }
+    if (/^bearer\s+/i.test(value)) {
+      value = value.replace(/^bearer\s+/i, "").trim();
+    }
+    return value;
+  };
+  const token = () => {
+    for (const key of TOKEN_KEYS) {
+      const localValue = normalizeToken(localStorage.getItem(key));
+      if (localValue) return localValue;
+      const sessionValue = normalizeToken(sessionStorage.getItem(key));
+      if (sessionValue) return sessionValue;
+    }
+    return "";
+  };
+  const clearSession = () => {
+    TOKEN_KEYS.forEach((key) => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
+    localStorage.removeItem("role");
+    sessionStorage.removeItem("role");
+  };
   const txt = (v, d = "") => (v == null ? d : String(v));
   const num = (v, d = 0) => {
     const n = Number(v);
@@ -191,10 +220,7 @@
     }
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("jwt");
-        localStorage.removeItem("role");
+        clearSession();
         window.location.href = "admin-login.html";
       }
       const message = (data && typeof data === "object")
@@ -258,16 +284,51 @@
 
   function mapExam(exam, stats) {
     const code = txt(exam.examCode || exam.id);
+    const statusRaw = txt(exam.status).toUpperCase();
+    const status = exam.active === false
+      ? "Inactive"
+      : (statusRaw === "PUBLISHED" ? "Published" : "Draft");
     return {
       id: code,
+      examCode: code,
       title: txt(exam.title || code),
       creator: txt(exam.createdBy || "Admin"),
       duration: num(exam.durationMinutes),
-      status: exam.active === false ? "Inactive" : (txt(exam.status).toUpperCase() === "PUBLISHED" ? "Published" : "Draft"),
+      status,
       questionsUploaded: Boolean(exam.questionsUploaded),
       subject: txt(exam.subject || ""),
       raw: exam,
       liveActiveAttempts: stats?.active || 0
+    };
+  }
+
+  function normalizeExamRecord(exam) {
+    const code = txt(exam?.examCode || exam?.id).trim();
+    const fallbackCode = txt(exam?.id).trim();
+    return {
+      ...exam,
+      id: code || fallbackCode,
+      examCode: code || fallbackCode,
+      title: txt(exam?.title || code || fallbackCode || "Exam"),
+      description: txt(exam?.description || ""),
+      subject: txt(exam?.subject || ""),
+      durationMinutes: num(exam?.durationMinutes ?? exam?.duration, 0),
+      totalMarks: num(exam?.totalMarks, 0),
+      passingMarks: num(exam?.passingMarks, 0),
+      maxAttempts: num(exam?.maxAttempts, 1),
+      marksPerQuestion: num(exam?.marksPerQuestion, 1),
+      negativeMarks: num(exam?.negativeMarks, 0),
+      easyQuestionCount: num(exam?.easyQuestionCount ?? exam?.easyCount, 0),
+      mediumQuestionCount: num(exam?.mediumQuestionCount ?? exam?.mediumCount, 0),
+      difficultQuestionCount: num(exam?.difficultQuestionCount ?? exam?.hardCount, 0),
+      shuffleQuestions: exam?.shuffleQuestions !== false,
+      shuffleOptions: exam?.shuffleOptions !== false,
+      questionsUploaded: Boolean(exam?.questionsUploaded),
+      createdBy: txt(exam?.createdBy || "Admin"),
+      active: exam?.active !== false,
+      status: txt(exam?.status || ""),
+      createdAt: exam?.createdAt || exam?.updatedAt || null,
+      updatedAt: exam?.updatedAt || exam?.createdAt || null
     };
   }
 
@@ -309,6 +370,7 @@
       roll: txt(cert.rollNumber || "-"),
       section: txt(cert.section || "-"),
       exam: txt(cert.examTitle || cert.examCode || "Exam"),
+      examCode: txt(cert.examCode || ""),
       score: num(cert.score),
       grade: txt(cert.grade || "NA"),
       active: !cert.revoked,
@@ -410,7 +472,7 @@
     }
 
     live.dashboard = payload.dashboard || {};
-    live.exams = arr(payload.exams);
+    live.exams = arr(payload.exams).map(normalizeExamRecord);
     live.users = arr(payload.users);
     live.students = arr(payload.students);
     live.teachers = arr(payload.teachers);
@@ -419,7 +481,7 @@
     live.certificates = arr(payload.certs).map(mapCert);
     live.leaderboard = arr(payload.leaderboard);
 
-    live.byExam = new Map(live.exams.map((e) => [txt(e.examCode || e.id), e]));
+    live.byExam = new Map(live.exams.map((e) => [txt(e.examCode), e]));
     live.byUser = new Map(live.users.map((u) => [txt(u.id), u]));
     live.questionCounts = live.questions.reduce((acc, q) => {
       const key = txt(q.examCode);
@@ -461,19 +523,20 @@
         .filter(Boolean)
         .map(norm)
         .filter(Boolean);
-      const created = live.exams.filter((e) => {
-        const createdBy = norm(e.raw?.createdBy || e.creator);
+      const created = window.examsData.filter((e) => {
+        const createdBy = norm(e.creator);
         if (!createdBy) return false;
         return teacherKeys.some((needle) => createdBy.includes(needle) || needle.includes(createdBy));
       });
       const attemptsTotal = created.reduce((acc, ex) => acc + (summary.byExam.get(ex.id)?.total || 0), 0);
       const completed = created.reduce((acc, ex) => acc + (summary.byExam.get(ex.id)?.completed || 0), 0);
-      const certCount = live.certificates.filter((c) => created.some((e) => e.id === c.exam)).length;
+      const certCount = live.certificates.filter((c) => created.some((e) => e.id === c.examCode)).length;
       return {
         id: txt(u.id),
         fullName: txt(u.name),
         email: txt(u.email),
         phone: txt(u.phone),
+        profileImage: txt(u.profileImage || ""),
         department: txt(u.department || "N/A"),
         designation: txt(u.designation || "N/A"),
         experienceYears: num(u.experienceYears),
@@ -714,53 +777,224 @@
     event.preventDefault();
     const v = (id) => document.getElementById(id)?.value.trim() || "";
     const id = v("t-id");
+    const profileImageFileInput = document.getElementById("t-img-file");
+    const profileImageFile = profileImageFileInput?.files?.[0] || null;
+    if (profileImageFile) {
+      const isImage = String(profileImageFile.type || "").toLowerCase().startsWith("image/");
+      const isAllowedSize = profileImageFile.size <= 5 * 1024 * 1024;
+      setError("t-img-file", !isImage || !isAllowedSize);
+      if (!isImage) {
+        window.showToast?.("Profile image must be an image file", "error");
+        return;
+      }
+      if (!isAllowedSize) {
+        window.showToast?.("Profile image must be 5MB or less", "error");
+        return;
+      }
+    } else {
+      setError("t-img-file", false);
+    }
+
     const payload = {
       fullName: v("t-name"),
       email: v("t-email"),
       password: v("t-pwd"),
       phone: v("t-phone"),
-      profileImage: v("t-profile-image"),
+      profileImage: "",
       department: v("t-dept"),
       designation: v("t-designation"),
       experienceYears: v("t-exp") ? parseInt(v("t-exp"), 10) : null,
       qualification: v("t-qual"),
       employeeId: v("t-empid")
     };
+
+    const uniqueState = await checkTeacherUniqueFields({ silent: false });
+    if (uniqueState.emailExists || uniqueState.phoneExists || uniqueState.employeeIdExists) {
+      window.showToast?.("Resolve duplicate email/mobile number/ID before saving", "error");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("request", new Blob([JSON.stringify(payload)], { type: "application/json" }));
+    if (profileImageFile) {
+      formData.append("profileImage", profileImageFile);
+    }
+
+    let savedResponse = null;
     try {
       await handleActionBtn(btn, id ? "Save Changes" : "Create Teacher", id ? "Saving..." : "Creating...", id ? "Saved" : "Teacher Created", async () => {
         if (id) {
-          await api(`/api/admin/teachers/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(payload) });
+          savedResponse = await api(`/api/admin/teachers/${encodeURIComponent(id)}`, { method: "PUT", body: formData });
         } else {
-          await api("/api/admin/teachers", { method: "POST", body: JSON.stringify(payload) });
+          savedResponse = await api("/api/admin/teachers", { method: "POST", body: formData });
         }
         await loadAll();
+        document.getElementById("createTeacherForm")?.reset();
+        resetTeacherFilePreview();
         closeModal("addTeacherModal");
         return true;
       });
+      if (savedResponse && !id) {
+        const liveForSeconds = Number(savedResponse.liveFor) || 0;
+        const createdId = savedResponse.id ?? "-";
+        const createdEmail = savedResponse.email || payload.email;
+        const createdMobile = savedResponse.mobileNo || savedResponse.phone || payload.phone || "-";
+        window.showToast?.(`Teacher live created: ${createdEmail} | ${createdMobile} (${createdId}) ${liveForSeconds ? `for ${liveForSeconds}s` : ""}`.trim(), "success");
+      }
     } catch (error) {
       console.error(error);
       window.showToast?.(error.message || "Failed to save teacher", "error");
     }
   }
 
+  function setTeacherFieldError(fieldId, message, isInvalid) {
+    const input = document.getElementById(fieldId);
+    if (!input) return;
+    const errorLabel = input.closest(".form-group")?.querySelector(".error-msg");
+    if (errorLabel) {
+      errorLabel.textContent = message;
+    }
+    setError(fieldId, Boolean(isInvalid));
+  }
+
+  let teacherUniqueDebounceTimer = null;
+
+  async function checkTeacherUniqueFields(options = {}) {
+    const silent = Boolean(options.silent);
+    const email = (document.getElementById("t-email")?.value || "").trim();
+    const employeeId = (document.getElementById("t-empid")?.value || "").trim();
+    const phone = (document.getElementById("t-phone")?.value || "").trim();
+    const userIdRaw = (document.getElementById("t-id")?.value || "").trim();
+    const excludeUserId = userIdRaw && /^\d+$/.test(userIdRaw) ? userIdRaw : "";
+    const emailSyntaxValid = email === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    const phoneSyntaxValid = phone === "" || /^\d{10}$/.test(phone);
+    if (!emailSyntaxValid) {
+      setTeacherFieldError("t-email", "Valid email required.", true);
+      return { emailExists: false, employeeIdExists: false, phoneExists: false };
+    }
+    if (!phoneSyntaxValid) {
+      setTeacherFieldError("t-phone", "Must be exactly 10 digits if provided.", true);
+      return { emailExists: false, employeeIdExists: false, phoneExists: false };
+    }
+
+    const query = new URLSearchParams();
+    if (email) query.set("email", email);
+    if (employeeId) query.set("employeeId", employeeId);
+    if (phone) query.set("phone", phone);
+    if (excludeUserId) query.set("excludeUserId", excludeUserId);
+
+    if (!email && !employeeId && !phone) {
+      setTeacherFieldError("t-email", "Valid email required.", false);
+      setTeacherFieldError("t-empid", "Employee ID is invalid.", false);
+      setTeacherFieldError("t-phone", "Must be exactly 10 digits if provided.", false);
+      return { emailExists: false, employeeIdExists: false, phoneExists: false };
+    }
+
+    try {
+      const data = await api(`/api/admin/teachers/unique-check?${query.toString()}`);
+      const emailExists = Boolean(data?.emailExists);
+      const employeeIdExists = Boolean(data?.employeeIdExists);
+      const phoneExists = Boolean(data?.phoneExists || data?.mobileNoExists);
+
+      setTeacherFieldError(
+        "t-email",
+        emailExists ? "Email already exists." : "Valid email required.",
+        emailExists
+      );
+      setTeacherFieldError(
+        "t-empid",
+        employeeIdExists ? "Employee ID already exists." : "Employee ID is invalid.",
+        employeeIdExists
+      );
+      setTeacherFieldError(
+        "t-phone",
+        phoneExists ? "Mobile number already exists." : "Must be exactly 10 digits if provided.",
+        phoneExists
+      );
+
+      if (!silent && (emailExists || employeeIdExists || phoneExists)) {
+        window.showToast?.("This email / ID / mobile number already exists", "error");
+      }
+
+      return { emailExists, employeeIdExists, phoneExists };
+    } catch (error) {
+      if (!silent) {
+        window.showToast?.(error.message || "Failed to validate ID/mobile", "error");
+      }
+      return { emailExists: false, employeeIdExists: false, phoneExists: false };
+    }
+  }
+
+  function queueTeacherUniqueCheck() {
+    if (teacherUniqueDebounceTimer) {
+      clearTimeout(teacherUniqueDebounceTimer);
+    }
+    teacherUniqueDebounceTimer = setTimeout(() => {
+      checkTeacherUniqueFields({ silent: true }).catch(() => {});
+    }, 280);
+  }
+
+  function resetTeacherFilePreview() {
+    const fileNameLabel = document.getElementById("t-img-file-name");
+    if (fileNameLabel) fileNameLabel.textContent = "No file selected";
+  }
+
+  function initTeacherCreateEnhancements() {
+    const employeeIdInput = document.getElementById("t-empid");
+    const phoneInput = document.getElementById("t-phone");
+    const emailInput = document.getElementById("t-email");
+    const fileInput = document.getElementById("t-img-file");
+    const fileNameLabel = document.getElementById("t-img-file-name");
+    const form = document.getElementById("createTeacherForm");
+
+    emailInput?.addEventListener("input", queueTeacherUniqueCheck);
+    emailInput?.addEventListener("blur", () => checkTeacherUniqueFields({ silent: true }));
+    employeeIdInput?.addEventListener("input", queueTeacherUniqueCheck);
+    employeeIdInput?.addEventListener("blur", () => checkTeacherUniqueFields({ silent: true }));
+    phoneInput?.addEventListener("input", queueTeacherUniqueCheck);
+    phoneInput?.addEventListener("blur", () => checkTeacherUniqueFields({ silent: true }));
+
+    fileInput?.addEventListener("change", () => {
+      const file = fileInput.files?.[0];
+      if (!file) {
+        if (fileNameLabel) fileNameLabel.textContent = "No file selected";
+        return;
+      }
+      if (fileNameLabel) fileNameLabel.textContent = `${file.name} (${Math.ceil(file.size / 1024)} KB)`;
+    });
+
+    form?.addEventListener("reset", () => {
+      setTimeout(() => {
+        setTeacherFieldError("t-empid", "Employee ID is invalid.", false);
+        setTeacherFieldError("t-phone", "Must be exactly 10 digits if provided.", false);
+        resetTeacherFilePreview();
+      }, 0);
+    });
+  }
+
   async function submitCreateExam(event, btn) {
     event.preventDefault();
     const v = (id) => document.getElementById(id)?.value.trim() || "";
-    const n = (id) => parseFloat(v(id)) || 0;
+    const ni = (id) => parseInt(v(id), 10) || 0;
+    const nf = (id) => parseFloat(v(id)) || 0;
     const payload = {
       title: v("ex-title"),
+      description: "",
       subject: v("ex-subj"),
-      durationMinutes: n("ex-dur"),
-      startTime: v("ex-start") ? new Date(v("ex-start")).toISOString() : null,
-      endTime: v("ex-end") ? new Date(v("ex-end")).toISOString() : null,
-      totalMarks: n("ex-total"),
-      passingMarks: n("ex-pass"),
-      marksPerQuestion: n("ex-perq"),
-      negativeMarks: n("ex-neg"),
-      maxAttempts: n("ex-attempts"),
-      easyQuestionCount: n("ex-easy"),
-      mediumQuestionCount: n("ex-med"),
-      difficultQuestionCount: n("ex-diff")
+      durationMinutes: ni("ex-dur"),
+      startTime: v("ex-start") ? `${v("ex-start")}:00` : null,
+      endTime: v("ex-end") ? `${v("ex-end")}:00` : null,
+      totalMarks: ni("ex-total"),
+      passingMarks: ni("ex-pass"),
+      marksPerQuestion: nf("ex-perq"),
+      negativeMarks: nf("ex-neg"),
+      maxAttempts: ni("ex-attempts"),
+      easyQuestionCount: ni("ex-easy"),
+      mediumQuestionCount: ni("ex-med"),
+      difficultQuestionCount: ni("ex-diff"),
+      shuffleQuestions: true,
+      shuffleOptions: true
     };
     try {
       await handleActionBtn(btn, "Create Exam", "Creating...", "Created", async () => {
@@ -961,11 +1195,25 @@
     try {
       const cert = live.certificates.find((item) => item.id === id);
       if (!cert) return;
-      const result = await api(`/api/certificate/verify/${encodeURIComponent(id)}`);
+      const res = await fetch(`${apiBase}/api/certificate/verify/${encodeURIComponent(id)}`, {
+        credentials: "same-origin",
+        headers: { Accept: "application/json,text/plain,*/*", ...(token() ? { Authorization: `Bearer ${token()}` } : {}) }
+      });
+      if (res.status === 401 || res.status === 403) {
+        clearSession();
+        window.location.href = "admin-login.html";
+        return;
+      }
+      let result = null;
+      try { result = await res.json(); } catch (_e) { result = null; }
+      if (!res.ok && res.status !== 410) {
+        throw new Error((result && (result.message || result.error)) || `Verify failed (${res.status})`);
+      }
+      const revoked = res.status === 410 || Boolean(result?.revoked);
       document.getElementById("certVerifyTitle") && (document.getElementById("certVerifyTitle").textContent = `Verifying ID: ${id}`);
-      document.getElementById("certVerifyDesc") && (document.getElementById("certVerifyDesc").textContent = result?.revoked ? "Certificate has been revoked" : "Verification successful");
+      document.getElementById("certVerifyDesc") && (document.getElementById("certVerifyDesc").textContent = revoked ? "Certificate has been revoked" : "Verification successful");
       if (document.getElementById("certVerifyStatus")) {
-        document.getElementById("certVerifyStatus").innerHTML = result?.revoked
+        document.getElementById("certVerifyStatus").innerHTML = revoked
           ? '<i class="fa-solid fa-circle-xmark" style="color:var(--accent-pink)"></i>'
           : '<i class="fa-solid fa-circle-check" style="color:var(--accent-green)"></i>';
       }
@@ -982,8 +1230,23 @@
         credentials: "same-origin",
         headers: { ...(token() ? { Authorization: `Bearer ${token()}` } : {}) }
       });
+      if (res.status === 401 || res.status === 403) {
+        clearSession();
+        window.location.href = "admin-login.html";
+        return;
+      }
+      if (res.status === 410) throw new Error("Certificate has been revoked");
       if (!res.ok) throw new Error(`Download failed (${res.status})`);
-      window.showToast?.(`Certificate ${id} download started`, "success");
+      const blob = await res.blob();
+      if (!blob || !blob.size) throw new Error("Download failed");
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `certificate-${id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(link.href);
+      window.showToast?.(`Certificate ${id} downloaded`, "success");
     } catch (error) {
       console.error(error);
       window.showToast?.(error.message || "Failed to download certificate", "error");
@@ -1025,7 +1288,14 @@
     }
     document.getElementById("certModalID").textContent = cert.id;
     document.getElementById("certModalDate").textContent = cert.date;
-    document.getElementById("certModalQR").src = cert.qrCodeData;
+    const qrValue = txt(cert.qrCodeData).trim();
+    const qrSrc = qrValue && (
+      qrValue.startsWith("data:image/")
+      || /\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i.test(qrValue)
+    )
+      ? qrValue
+      : `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qrValue || `${apiBase}/api/certificate/verify/${id}`)}`;
+    document.getElementById("certModalQR").src = qrSrc;
     if (document.getElementById("certModalDownloadBtn")) {
       document.getElementById("certModalDownloadBtn").onclick = () => downloadCert(cert.id);
     }
@@ -1128,4 +1398,6 @@
   window.downloadCert = downloadCert;
   window.revokeCert = revokeCert;
   window.openCertView = openCertView;
+
+  initTeacherCreateEnhancements();
 })();

@@ -33,6 +33,7 @@ public class StudentDashboardResponse {
     private List<Double> performanceTrend = new ArrayList<>();
 
     private LocalDateTime lastAttemptTime;
+    private Long latestAttemptId;
 
     public StudentDashboardResponse() {}
 
@@ -94,6 +95,10 @@ public class StudentDashboardResponse {
         return lastAttemptTime;
     }
 
+    public Long getLatestAttemptId() {
+        return latestAttemptId;
+    }
+
     // ================= SETTERS =================
 
     public void setAttempted(List<StudentExamSummary> attempted) {
@@ -150,5 +155,9 @@ public class StudentDashboardResponse {
 
     public void setLastAttemptTime(LocalDateTime lastAttemptTime) {
         this.lastAttemptTime = lastAttemptTime;
+    }
+
+    public void setLatestAttemptId(Long latestAttemptId) {
+        this.latestAttemptId = latestAttemptId;
     }
 }

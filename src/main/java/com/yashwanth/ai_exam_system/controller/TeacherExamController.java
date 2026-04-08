@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/teacher/exams")
-@PreAuthorize("hasRole('TEACHER')")
+@PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
 public class TeacherExamController {
 
     private static final Logger logger =
@@ -83,9 +83,10 @@ public class TeacherExamController {
     // =========================================================
     @GetMapping("/{examCode}")
     public ResponseEntity<Map<String, Object>> getExamByCode(
-            @PathVariable String examCode) {
+            @PathVariable String examCode,
+            Authentication auth) {
 
-        Exam exam = examService.getExamByCode(examCode);
+        Exam exam = examService.getExamByCodeForActor(examCode, auth);
 
         return success("Exam fetched successfully", exam);
     }
@@ -96,12 +97,13 @@ public class TeacherExamController {
     @PutMapping("/{examCode}")
     public ResponseEntity<Map<String, Object>> updateExam(
             @PathVariable String examCode,
-            @Valid @RequestBody ExamRequest request) {
+            @Valid @RequestBody ExamRequest request,
+            Authentication auth) {
 
         logger.info("Updating exam {}", examCode);
 
         Exam updatedExam =
-                examService.updateExam(examCode, request);
+                examService.updateExam(examCode, request, auth);
 
         return success("Exam updated successfully", updatedExam);
     }
@@ -111,18 +113,20 @@ public class TeacherExamController {
     // =========================================================
     @PutMapping("/{examCode}/publish")
     public ResponseEntity<Map<String, Object>> publishExam(
-            @PathVariable String examCode) {
+            @PathVariable String examCode,
+            Authentication auth) {
 
-        Exam exam = examService.publishExam(examCode);
+        Exam exam = examService.publishExam(examCode, auth);
 
         return success("Exam published successfully", exam);
     }
 
     @PostMapping("/{examCode}/publish")
     public ResponseEntity<Map<String, Object>> publishExamViaPost(
-            @PathVariable String examCode) {
+            @PathVariable String examCode,
+            Authentication auth) {
 
-        Exam exam = examService.publishExam(examCode);
+        Exam exam = examService.publishExam(examCode, auth);
 
         return success("Exam published successfully", exam);
     }
@@ -132,7 +136,10 @@ public class TeacherExamController {
     // =========================================================
     @GetMapping("/{examCode}/questions")
     public ResponseEntity<Map<String, Object>> getQuestions(
-            @PathVariable String examCode) {
+            @PathVariable String examCode,
+            Authentication auth) {
+
+        examService.getExamByCodeForActor(examCode, auth);
 
         List<QuestionResponse> questions =
                 questionRepository.findByExamCode(examCode)
@@ -147,9 +154,10 @@ public class TeacherExamController {
     @PostMapping("/{examCode}/questions")
     public ResponseEntity<Map<String, Object>> createQuestion(
             @PathVariable String examCode,
-            @RequestBody Question question) {
+            @RequestBody Question question,
+            Authentication auth) {
 
-        Question saved = upsertQuestion(examCode, question, null);
+        Question saved = upsertQuestion(examCode, question, null, auth);
         return success("Question created successfully", toQuestionResponse(saved));
     }
 
@@ -157,18 +165,16 @@ public class TeacherExamController {
     @Transactional
     public ResponseEntity<Map<String, Object>> bulkUploadQuestions(
             @PathVariable String examCode,
-            @RequestBody List<Map<String, Object>> questions) {
+            @RequestBody List<Map<String, Object>> questions,
+            Authentication auth) {
 
         if (questions == null || questions.isEmpty()) {
             throw new IllegalArgumentException("No questions were provided for upload");
         }
 
-        Exam exam = examService.getExamByCode(examCode);
+        Exam exam = examService.getExamByCodeForActor(examCode, auth);
         if (exam.isPublished()) {
             throw new IllegalArgumentException("Published exams cannot be edited");
-        }
-        if (Boolean.TRUE.equals(exam.getQuestionsUploaded())) {
-            throw new IllegalArgumentException("Questions already uploaded for this exam");
         }
 
         validateQuestionExamCodes(examCode, questions);
@@ -206,16 +212,20 @@ public class TeacherExamController {
     public ResponseEntity<Map<String, Object>> updateQuestion(
             @PathVariable String examCode,
             @PathVariable Long questionId,
-            @RequestBody Question question) {
+            @RequestBody Question question,
+            Authentication auth) {
 
-        Question saved = upsertQuestion(examCode, question, questionId);
+        Question saved = upsertQuestion(examCode, question, questionId, auth);
         return success("Question updated successfully", toQuestionResponse(saved));
     }
 
     @DeleteMapping("/{examCode}/questions/{questionId}")
     public ResponseEntity<Map<String, Object>> deleteQuestion(
             @PathVariable String examCode,
-            @PathVariable Long questionId) {
+            @PathVariable Long questionId,
+            Authentication auth) {
+
+        examService.getExamByCodeForActor(examCode, auth);
 
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new RuntimeException("Question not found"));
@@ -230,7 +240,7 @@ public class TeacherExamController {
         boolean hasActiveQuestions = questionRepository.findByExamCode(examCode)
                 .stream()
                 .anyMatch(q -> !Boolean.FALSE.equals(q.getActive()));
-        Exam exam = examService.getExamByCode(examCode);
+        Exam exam = examService.getExamByCodeForActor(examCode, auth);
         exam.setQuestionsUploaded(hasActiveQuestions);
         examRepository.save(exam);
 
@@ -242,9 +252,10 @@ public class TeacherExamController {
     // =========================================================
     @DeleteMapping("/{examCode}")
     public ResponseEntity<Map<String, Object>> deleteExam(
-            @PathVariable String examCode) {
+            @PathVariable String examCode,
+            Authentication auth) {
 
-        examService.deleteExamByTeacher(examCode);
+        examService.deleteExamByTeacher(examCode, auth);
 
         return success("Exam deleted successfully", null);
     }
@@ -254,10 +265,11 @@ public class TeacherExamController {
     // =========================================================
     @GetMapping("/{examCode}/attempts")
     public ResponseEntity<Map<String, Object>> getExamAttempts(
-            @PathVariable String examCode) {
+            @PathVariable String examCode,
+            Authentication auth) {
 
         List<ExamAttempt> attempts =
-                examService.getAttemptsByExamCode(examCode);
+                examService.getAttemptsByExamCode(examCode, auth);
 
         return success("Exam attempts fetched", attempts);
     }
@@ -267,10 +279,11 @@ public class TeacherExamController {
     // =========================================================
     @GetMapping("/{examCode}/analytics")
     public ResponseEntity<Map<String, Object>> getExamAnalytics(
-            @PathVariable String examCode) {
+            @PathVariable String examCode,
+            Authentication auth) {
 
         Map<String, Object> analytics =
-                examService.getExamAnalytics(examCode);
+                examService.getExamAnalytics(examCode, auth);
 
         return success("Exam analytics fetched", analytics);
     }
@@ -290,17 +303,27 @@ public class TeacherExamController {
         return ResponseEntity.ok(response);
     }
 
-    private Question upsertQuestion(String examCode, Question question, Long questionId) {
-        Exam exam = examService.getExamByCode(examCode);
+    private Question upsertQuestion(String examCode, Question question, Long questionId, Authentication auth) {
+        Exam exam = examService.getExamByCodeForActor(examCode, auth);
 
         Question target = questionId == null
                 ? new Question()
                 : questionRepository.findById(questionId)
                         .orElseThrow(() -> new RuntimeException("Question not found"));
 
+        if (question.getQuestionType() == null) {
+            throw new IllegalArgumentException("Question type is required");
+        }
+        if (question.getQuestionText() == null || question.getQuestionText().trim().isEmpty()) {
+            throw new IllegalArgumentException("Question text is required");
+        }
+        if (question.getMarks() == null || question.getMarks() <= 0) {
+            throw new IllegalArgumentException("Marks must be greater than zero");
+        }
+
         target.setExamCode(exam.getExamCode());
         target.setQuestionType(question.getQuestionType());
-        target.setDifficulty(question.getDifficulty());
+        target.setDifficulty(normalizeDifficulty(question.getDifficulty()));
         target.setTopic(question.getTopic());
         target.setQuestionText(question.getQuestionText());
         target.setOptionA(question.getOptionA());
@@ -340,7 +363,7 @@ public class TeacherExamController {
         r.setOptionF(q.getOptionF());
         r.setQuestionType(q.getQuestionType() != null ? q.getQuestionType().name() : null);
         r.setMarks(q.getMarks());
-        r.setDifficulty(q.getDifficulty());
+        r.setDifficulty(normalizeDifficultyLabel(q.getDifficulty()));
         r.setTopic(q.getTopic());
         r.setShuffleOptions(q.getShuffleOptions());
         r.setDisplayOrder(q.getDisplayOrder());
@@ -370,7 +393,7 @@ public class TeacherExamController {
         question.setTopic(topic.isBlank() ? "general" : topic);
 
         String difficulty = stringValue(payload.get("difficulty"));
-        question.setDifficulty(difficulty.isBlank() ? "Easy" : difficulty);
+        question.setDifficulty(normalizeDifficulty(difficulty.isBlank() ? "Easy" : difficulty));
 
         Integer marks = integerValue(payload.get("marks"));
         if (marks == null || marks <= 0) {
@@ -395,14 +418,35 @@ public class TeacherExamController {
     }
 
     private QuestionType parseQuestionType(String value, int rowNumber) {
-        String normalized = value.trim().toUpperCase(Locale.ROOT);
-        if (normalized.equals("SHORT ANSWER") || normalized.equals("SHORT_ANSWER") || normalized.equals("DESCRIPTIVE")) {
-            normalized = "DESCRIPTIVE";
+        String normalized = normalizeForMatch(value);
+        if (normalized.equals("shortanswer") || normalized.equals("descriptive")) {
+            return QuestionType.DESCRIPTIVE;
         }
-        if (normalized.equals("CODING") || normalized.equals("MCQ") || normalized.equals("DESCRIPTIVE")) {
-            return QuestionType.valueOf(normalized);
+        if (normalized.equals("coding")) {
+            return QuestionType.CODING;
+        }
+        if (normalized.equals("mcq") || normalized.equals("multiplechoice")) {
+            return QuestionType.MCQ;
         }
         throw new IllegalArgumentException("Row " + rowNumber + ": invalid question type '" + value + "'");
+    }
+
+    private String normalizeDifficulty(String value) {
+        String raw = value == null ? "" : value.trim();
+        if (raw.isBlank()) return "Easy";
+        String normalized = raw.toUpperCase(Locale.ROOT);
+        if (normalized.equals("EASY")) return "Easy";
+        if (normalized.equals("MEDIUM")) return "Medium";
+        if (normalized.equals("DIFFICULT") || normalized.equals("HARD")) return "Hard";
+        throw new IllegalArgumentException("Invalid difficulty '" + value + "'. Allowed: Easy, Medium, Hard");
+    }
+
+    private String normalizeDifficultyLabel(String value) {
+        try {
+            return normalizeDifficulty(value);
+        } catch (IllegalArgumentException ex) {
+            return value;
+        }
     }
 
     private String stringValue(Object value) {
@@ -433,6 +477,7 @@ public class TeacherExamController {
 
     private void validateQuestionExamCodes(String examCode, List<Map<String, Object>> questions) {
         String selected = stringValue(examCode);
+        String normalizedSelected = normalizeForMatch(selected);
         Set<String> seen = new LinkedHashSet<>();
         for (Map<String, Object> question : questions) {
             String fileCode = stringValue(firstNonNull(
@@ -445,9 +490,10 @@ public class TeacherExamController {
             if (fileCode.isBlank()) {
                 continue;
             }
-            seen.add(fileCode);
-            if (!fileCode.equals(selected)) {
-                throw new IllegalArgumentException("Exam code mismatch. Selected " + examCode + ", but the file contains " + fileCode);
+            String normalizedFileCode = normalizeForMatch(fileCode);
+            seen.add(fileCode.trim());
+            if (!normalizedFileCode.equals(normalizedSelected)) {
+                throw new IllegalArgumentException("Exam code mismatch. Selected " + selected + ", but the file contains " + fileCode);
             }
         }
         if (seen.size() > 1) {
@@ -462,5 +508,10 @@ public class TeacherExamController {
             }
         }
         return null;
+    }
+
+    private String normalizeForMatch(String value) {
+        if (value == null) return "";
+        return value.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "");
     }
 }

@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -33,21 +34,40 @@ public class AdminController {
     // ================= TEACHERS =================
     // =====================================================
 
-    @PostMapping("/teachers")
-    public ResponseEntity<String> createTeacher(
+    @PostMapping(value = "/teachers", consumes = "application/json")
+    public ResponseEntity<Map<String, Object>> createTeacher(
             @Valid @RequestBody CreateTeacherRequest request) {
 
         return ResponseEntity.ok(
-                adminService.createTeacher(request));
+                adminService.createTeacher(request, null));
     }
 
-    @PutMapping("/teachers/{userId}")
-    public ResponseEntity<String> updateTeacher(
+    @PostMapping(value = "/teachers", consumes = "multipart/form-data")
+    public ResponseEntity<Map<String, Object>> createTeacherWithProfileImage(
+            @Valid @RequestPart("request") CreateTeacherRequest request,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage) {
+
+        return ResponseEntity.ok(
+                adminService.createTeacher(request, profileImage));
+    }
+
+    @PutMapping(value = "/teachers/{userId}", consumes = "application/json")
+    public ResponseEntity<Map<String, Object>> updateTeacher(
             @PathVariable Long userId,
             @RequestBody CreateTeacherRequest request) {
 
         return ResponseEntity.ok(
-                adminService.updateTeacher(userId, request));
+                adminService.updateTeacher(userId, request, null));
+    }
+
+    @PutMapping(value = "/teachers/{userId}", consumes = "multipart/form-data")
+    public ResponseEntity<Map<String, Object>> updateTeacherWithProfileImage(
+            @PathVariable Long userId,
+            @RequestPart("request") CreateTeacherRequest request,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage) {
+
+        return ResponseEntity.ok(
+                adminService.updateTeacher(userId, request, profileImage));
     }
 
     @GetMapping("/users")
@@ -69,6 +89,17 @@ public class AdminController {
     public ResponseEntity<Map<String, Object>> getTeacherActivity(
             @PathVariable Long userId) {
         return ResponseEntity.ok(adminService.getTeacherActivity(userId));
+    }
+
+    @GetMapping("/teachers/unique-check")
+    public ResponseEntity<Map<String, Object>> checkTeacherUniqueFields(
+            @RequestParam(value = "email", required = false) String email,
+            @RequestParam(value = "employeeId", required = false) String employeeId,
+            @RequestParam(value = "phone", required = false) String phone,
+            @RequestParam(value = "excludeUserId", required = false) Long excludeUserId) {
+
+        return ResponseEntity.ok(
+                adminService.checkTeacherUniqueness(email, employeeId, phone, excludeUserId));
     }
 
     @PostMapping("/users/{userId}/toggle-enabled")

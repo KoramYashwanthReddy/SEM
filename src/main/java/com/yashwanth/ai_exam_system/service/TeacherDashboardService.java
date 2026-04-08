@@ -3,10 +3,12 @@ package com.yashwanth.ai_exam_system.service;
 import com.yashwanth.ai_exam_system.dto.TeacherDashboardResponse;
 import com.yashwanth.ai_exam_system.entity.Exam;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
+import com.yashwanth.ai_exam_system.exception.ForbiddenException;
 import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRepository;
 
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -28,10 +30,15 @@ public class TeacherDashboardService {
 
     public TeacherDashboardResponse getDashboard(Authentication auth) {
 
+        if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
+            throw new ForbiddenException("Authenticated teacher/admin is required");
+        }
         String teacherEmail = auth.getName();
 
         List<Exam> exams =
-                examRepository.findByCreatedBy(teacherEmail);
+                isAdmin(auth)
+                        ? examRepository.findAllActiveOrderByCreatedAtDesc()
+                        : examRepository.findByCreatedByAndActiveTrueOrderByCreatedAtDesc(teacherEmail);
 
         List<String> examCodes =
                 exams.stream().map(Exam::getExamCode).toList();
@@ -69,7 +76,7 @@ public class TeacherDashboardService {
 
         for (ExamAttempt attempt : attempts) {
 
-            if (attempt.getTotalMarks() == null) continue;
+            if (attempt.getTotalMarks() == null || attempt.getTotalMarks() <= 0 || attempt.getObtainedMarks() == null) continue;
 
             double percent =
                     (attempt.getObtainedMarks() * 100.0)
@@ -87,7 +94,7 @@ public class TeacherDashboardService {
 
         response.setCheatingFlags(
                 attempts.stream()
-                        .filter(ExamAttempt::getCheatingFlag)
+                        .filter(attempt -> Boolean.TRUE.equals(attempt.getCheatingFlag()))
                         .count()
         );
 
@@ -100,5 +107,16 @@ public class TeacherDashboardService {
         );
 
         return response;
+    }
+
+    private boolean isAdmin(Authentication auth) {
+        if (auth == null || auth.getAuthorities() == null) return false;
+        for (GrantedAuthority authority : auth.getAuthorities()) {
+            String role = authority == null ? "" : String.valueOf(authority.getAuthority());
+            if ("ROLE_ADMIN".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

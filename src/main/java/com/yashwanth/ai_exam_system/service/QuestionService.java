@@ -58,7 +58,7 @@ public class QuestionService {
                 .collect(Collectors.toList());
 
         List<Question> hardQ = questions.stream()
-                .filter(q -> "HARD".equalsIgnoreCase(q.getDifficulty()))
+                .filter(q -> isHardDifficulty(q.getDifficulty()))
                 .collect(Collectors.toList());
 
         Collections.shuffle(easyQ);
@@ -90,7 +90,7 @@ public class QuestionService {
         response.setQuestionText(q.getQuestionText());
         response.setQuestionType(q.getQuestionType().name());
         response.setMarks(q.getMarks());
-        response.setDifficulty(q.getDifficulty());
+        response.setDifficulty(normalizeDifficultyLabel(q.getDifficulty()));
         response.setTopic(q.getTopic());
 
         response.setSampleInput(q.getSampleInput());
@@ -136,5 +136,30 @@ public class QuestionService {
         response.setOptionD(finalOptions.get(3));
 
         return response;
+    }
+
+    private boolean isHardDifficulty(String difficulty) {
+        if (difficulty == null) {
+            return false;
+        }
+        String normalized = difficulty.trim().toUpperCase(Locale.ROOT);
+        return "HARD".equals(normalized) || "DIFFICULT".equals(normalized);
+    }
+
+    private String normalizeDifficultyLabel(String difficulty) {
+        if (difficulty == null || difficulty.isBlank()) {
+            return "Easy";
+        }
+        String normalized = difficulty.trim().toUpperCase(Locale.ROOT);
+        if ("EASY".equals(normalized)) {
+            return "Easy";
+        }
+        if ("MEDIUM".equals(normalized)) {
+            return "Medium";
+        }
+        if ("HARD".equals(normalized) || "DIFFICULT".equals(normalized)) {
+            return "Hard";
+        }
+        return difficulty;
     }
 }

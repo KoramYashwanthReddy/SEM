@@ -9,6 +9,37 @@ const AdminLogin = (() => {
   const btnText = submitBtn?.querySelector('.btn-text');
   const card = document.querySelector('.card');
 
+  function sanitizeUserForStorage(raw) {
+    const user = raw && typeof raw === "object" ? { ...raw } : {};
+    const heavyImage = String(user.profileImage || "").trim();
+    if (heavyImage.startsWith("data:")) {
+      user.profileImage = "";
+    }
+    return {
+      id: user.userId || user.id || null,
+      userId: user.userId || user.id || null,
+      name: user.name || "",
+      email: user.email || "",
+      role: user.role || "ADMIN",
+      phone: user.phone || "",
+      department: user.department || "",
+      designation: user.designation || "",
+      qualification: user.qualification || "",
+      employeeId: user.employeeId || "",
+      profileImage: user.profileImage || ""
+    };
+  }
+
+  function safeSetStorage(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      console.warn(`Skipping localStorage key '${key}' due to quota/storage error`, error);
+      return false;
+    }
+  }
+
   async function readErrorMessage(response) {
     const fallback = response?.statusText || `Request failed (${response?.status || "unknown"})`;
     try {
@@ -101,10 +132,10 @@ const AdminLogin = (() => {
         throw new Error("Invalid authentication response");
       }
 
-      localStorage.setItem("token", token);
-      localStorage.setItem("accessToken", token);
-      localStorage.setItem("role", data.role);
-      localStorage.setItem("user", JSON.stringify(data));
+      safeSetStorage("token", token);
+      safeSetStorage("accessToken", token);
+      safeSetStorage("role", data.role);
+      safeSetStorage("user", JSON.stringify(sanitizeUserForStorage(data)));
 
       setSuccess();
 

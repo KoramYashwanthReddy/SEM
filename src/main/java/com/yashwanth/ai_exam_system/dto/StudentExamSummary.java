@@ -2,6 +2,7 @@ package com.yashwanth.ai_exam_system.dto;
 
 public class StudentExamSummary {
 
+    private Long attemptId;
     private String examCode;
     private Integer obtainedMarks;
     private Integer totalMarks;
@@ -19,12 +20,14 @@ public class StudentExamSummary {
         this.badge = badge;
     }
 
+    public Long getAttemptId() { return attemptId; }
     public String getExamCode() { return examCode; }
     public Integer getObtainedMarks() { return obtainedMarks; }
     public Integer getTotalMarks() { return totalMarks; }
     public Double getPercentage() { return percentage; }
     public String getBadge() { return badge; }
 
+    public void setAttemptId(Long attemptId) { this.attemptId = attemptId; }
     public void setExamCode(String examCode) { this.examCode = examCode; }
     public void setObtainedMarks(Integer obtainedMarks) { this.obtainedMarks = obtainedMarks; }
     public void setTotalMarks(Integer totalMarks) { this.totalMarks = totalMarks; }

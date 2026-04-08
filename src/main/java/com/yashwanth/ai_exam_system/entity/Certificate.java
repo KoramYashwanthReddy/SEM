@@ -1,5 +1,6 @@
 package com.yashwanth.ai_exam_system.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -59,6 +60,7 @@ public class Certificate {
     // ================= PDF STORAGE =================
 
     @Lob
+    @JsonIgnore
     @Column(name = "pdf_data", columnDefinition = "LONGBLOB")
     private byte[] pdfData;
 

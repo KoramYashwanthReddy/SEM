@@ -98,6 +98,8 @@ public class ProctoringService {
                         studentId,
                         "Warning: Suspicious activity detected"
                 );
+
+                notifyTeacher(attempt, "WARNING", "Student warning issued", "A suspicious activity warning was sent");
             }
         }
 
@@ -105,10 +107,16 @@ public class ProctoringService {
         if (score >= ALERT_THRESHOLD && score < CANCEL_THRESHOLD) {
 
             notificationService.notifyAdmin(
+                    "CHEATING",
+                    "High Risk Attempt",
                     "High cheating risk | attempt="
                             + attempt.getId()
-                            + " score=" + score
+                            + " score=" + score,
+                    "Proctoring Engine",
+                    "high"
             );
+
+            notifyTeacher(attempt, "CHEATING", "High Risk Attempt", "High cheating risk detected for attempt " + attempt.getId());
         }
 
         // CANCEL
@@ -124,6 +132,8 @@ public class ProctoringService {
                         studentId,
                         "Exam cancelled due to cheating detection"
                 );
+
+                notifyTeacher(attempt, "CHEATING", "Attempt Cancelled", "Attempt " + attempt.getId() + " was cancelled for cheating");
 
                 logger.warn("Exam auto cancelled | attempt={}", attempt.getId());
             }
@@ -228,5 +238,20 @@ public class ProctoringService {
         summary.setCancelled(score >= CANCEL_THRESHOLD);
 
         return summary;
+    }
+
+    private void notifyTeacher(ExamAttempt attempt, String category, String title, String message) {
+        String teacherKey = attempt.getExam() != null ? attempt.getExam().getCreatedBy() : null;
+        if (teacherKey == null || teacherKey.isBlank()) {
+            return;
+        }
+        notificationService.notifyTeacher(
+                teacherKey,
+                category,
+                title,
+                message,
+                "Proctoring Engine",
+                "high"
+        );
     }
 }

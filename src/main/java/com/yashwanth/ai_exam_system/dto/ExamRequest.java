@@ -1,26 +1,49 @@
 package com.yashwanth.ai_exam_system.dto;
 
-import java.time.LocalDateTime;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.DecimalMin;
 
 public class ExamRequest {
 
+    @NotBlank(message = "Exam title is required")
     private String title;
     private String description;
+    @NotBlank(message = "Subject is required")
     private String subject;
+    @NotNull(message = "Duration is required")
+    @Min(value = 1, message = "Duration must be at least 1 minute")
     private Integer durationMinutes;
+    @NotNull(message = "Total marks are required")
+    @Min(value = 1, message = "Total marks must be at least 1")
     private Integer totalMarks;
+    @NotNull(message = "Passing marks are required")
+    @Min(value = 0, message = "Passing marks cannot be negative")
     private Integer passingMarks;
+    @NotNull(message = "Max attempts are required")
+    @Min(value = 1, message = "Max attempts must be at least 1")
     private Integer maxAttempts;
+    @NotNull(message = "Marks per question is required")
+    @DecimalMin(value = "0.0", message = "Marks per question cannot be negative")
     private Double marksPerQuestion;
+    @NotNull(message = "Negative marks value is required")
+    @DecimalMin(value = "0.0", message = "Negative marks cannot be negative")
     private Double negativeMarks;
     private Boolean shuffleQuestions;
     private Boolean shuffleOptions;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
+    private String startTime;
+    private String endTime;
 
     // ✅ NEW — Difficulty Distribution
+    @NotNull(message = "Easy question count is required")
+    @Min(value = 0, message = "Easy question count cannot be negative")
     private Integer easyQuestionCount = 0;
+    @NotNull(message = "Medium question count is required")
+    @Min(value = 0, message = "Medium question count cannot be negative")
     private Integer mediumQuestionCount = 0;
+    @NotNull(message = "Difficult question count is required")
+    @Min(value = 0, message = "Difficult question count cannot be negative")
     private Integer difficultQuestionCount = 0;
 
     public ExamRequest() {}
@@ -113,19 +136,19 @@ public class ExamRequest {
         this.shuffleOptions = shuffleOptions;
     }
 
-    public LocalDateTime getStartTime() {
+    public String getStartTime() {
         return startTime;
     }
 
-    public void setStartTime(LocalDateTime startTime) {
+    public void setStartTime(String startTime) {
         this.startTime = startTime;
     }
 
-    public LocalDateTime getEndTime() {
+    public String getEndTime() {
         return endTime;
     }
 
-    public void setEndTime(LocalDateTime endTime) {
+    public void setEndTime(String endTime) {
         this.endTime = endTime;
     }
 

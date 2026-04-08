@@ -3,7 +3,8 @@ const OTP = (() => {
   const resendBtn = document.getElementById('resend-btn');
   const resendTimer = document.getElementById('resend-timer');
   const otpMessage = document.querySelector('[data-for="otp"]');
-  let timer = 300;
+  let timer = 600;
+  let activeDuration = 600;
   let intervalId;
 
   function formatTime(t) {
@@ -12,8 +13,9 @@ const OTP = (() => {
     return `${mins}:${secs}`;
   }
 
-  function startTimer() {
-    timer = 300;
+  function startTimer(duration = activeDuration) {
+    activeDuration = Number(duration) > 0 ? Number(duration) : activeDuration;
+    timer = activeDuration;
     resendBtn.disabled = true;
     resendTimer.textContent = formatTime(timer);
     clearInterval(intervalId);
@@ -46,21 +48,29 @@ const OTP = (() => {
     return inputs.map(i => i.value).join('');
   }
 
+  function getCode() {
+    return getOTP();
+  }
+
+  function setMessage(message) {
+    otpMessage.textContent = message || '';
+  }
+
   function validateOTP() {
     const value = getOTP();
     if (value.length !== 6) {
-      otpMessage.textContent = 'Enter the 6-digit OTP to continue.';
+      setMessage('Enter the 6-digit OTP to continue.');
       return false;
     }
-    otpMessage.textContent = '';
+    setMessage('');
     return true;
   }
 
-  function activate() {
+  function activate(duration = 600) {
     if (!inputs.length) return;
     inputs.forEach(i => (i.value = ''));
-    otpMessage.textContent = '';
-    startTimer();
+    setMessage('');
+    startTimer(duration);
     inputs[0].focus();
   }
 
@@ -68,16 +78,32 @@ const OTP = (() => {
     if (!inputs.length) return;
     initInputs();
     resendBtn.addEventListener('click', () => {
+      if (window.SignupOtpBridge?.resend) {
+        resendBtn.disabled = true;
+        resendBtn.textContent = 'Resending...';
+        Promise.resolve(window.SignupOtpBridge.resend())
+          .then((duration) => {
+            resendBtn.textContent = 'Resend Code';
+            startTimer(duration || activeDuration);
+          })
+          .catch((err) => {
+            setMessage(err?.message || 'Unable to resend code.');
+            resendBtn.disabled = false;
+            resendBtn.textContent = 'Resend Code';
+          });
+        return;
+      }
+
       resendBtn.disabled = true;
       resendBtn.textContent = 'Resending...';
       setTimeout(() => {
         resendBtn.textContent = 'Resend Code';
-        startTimer();
+        startTimer(activeDuration);
       }, 800);
     });
   }
 
-  return { init, validateOTP, activate };
+  return { init, validateOTP, activate, getCode, setMessage };
 })();
 
 document.addEventListener('DOMContentLoaded', OTP.init);

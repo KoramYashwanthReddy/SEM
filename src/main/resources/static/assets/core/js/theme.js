@@ -5,7 +5,10 @@
 const ThemeController = (() => {
   const STORAGE_KEY = 'nexam_theme';
   const MODES = ['dark', 'light', 'system'];
-  let currentMode = 'dark';
+  const DEFAULT_MODE = 'system';
+  let currentMode = DEFAULT_MODE;
+  let systemMedia = null;
+  let initialized = false;
 
   function getSystemTheme() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -14,15 +17,18 @@ const ThemeController = (() => {
   function applyTheme(theme) {
     const resolvedTheme = theme === 'system' ? getSystemTheme() : theme;
     document.documentElement.setAttribute('data-theme', resolvedTheme);
+    document.documentElement.setAttribute('data-theme-mode', theme);
+    document.documentElement.style.colorScheme = resolvedTheme;
+    return resolvedTheme;
   }
 
   function setMode(mode) {
     if (!MODES.includes(mode)) return;
     currentMode = mode;
     localStorage.setItem(STORAGE_KEY, mode);
-    applyTheme(mode);
+    const resolved = applyTheme(mode);
     updateToggleUI();
-    dispatchEvent(new CustomEvent('themechange', { detail: { mode, resolved: mode === 'system' ? getSystemTheme() : mode } }));
+    window.dispatchEvent(new CustomEvent('themechange', { detail: { mode, resolved } }));
   }
 
   function updateToggleUI() {
@@ -32,14 +38,29 @@ const ThemeController = (() => {
   }
 
   function init() {
-    const saved = localStorage.getItem(STORAGE_KEY) || 'dark';
-    currentMode = MODES.includes(saved) ? saved : 'dark';
+    if (initialized) {
+      updateToggleUI();
+      return;
+    }
+    initialized = true;
+
+    const saved = localStorage.getItem(STORAGE_KEY) || DEFAULT_MODE;
+    currentMode = MODES.includes(saved) ? saved : DEFAULT_MODE;
     applyTheme(currentMode);
 
     // System theme watcher
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-      if (currentMode === 'system') applyTheme('system');
-    });
+    systemMedia = window.matchMedia('(prefers-color-scheme: dark)');
+    const onSystemThemeChange = () => {
+      if (currentMode === 'system') {
+        const resolved = applyTheme('system');
+        window.dispatchEvent(new CustomEvent('themechange', { detail: { mode: 'system', resolved } }));
+      }
+    };
+    if (typeof systemMedia.addEventListener === 'function') {
+      systemMedia.addEventListener('change', onSystemThemeChange);
+    } else if (typeof systemMedia.addListener === 'function') {
+      systemMedia.addListener(onSystemThemeChange);
+    }
 
     document.querySelectorAll('.theme-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -67,3 +88,9 @@ const ThemeController = (() => {
 
   return { init, setMode, getMode: () => currentMode };
 })();
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => ThemeController.init(), { once: true });
+} else {
+  ThemeController.init();
+}

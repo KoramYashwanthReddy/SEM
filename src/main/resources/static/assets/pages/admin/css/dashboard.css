@@ -570,6 +570,19 @@
   .form-control.is-invalid { border-color: var(--accent-pink) !important; background: rgba(236,72,153,0.05) !important; }
   .error-msg { color: var(--accent-pink); font-size: 11px; margin-top: 6px; display: block; opacity: 0; height: 0; transition: 0.2s; overflow: hidden; }
   .error-msg.show { opacity: 1; height: auto; margin-bottom: 4px; }
+  .upload-file-input { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .upload-dropzone {
+    min-height: 84px; border: 1.5px dashed var(--border-subtle); border-radius: 12px; background: rgba(59,130,246,0.06);
+    display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; cursor: pointer;
+    text-align: center; padding: 14px 16px;
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  }
+  .upload-dropzone:hover {
+    border-color: var(--accent-blue); background: rgba(59,130,246,0.12); transform: translateY(-1px);
+  }
+  .upload-dropzone-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .upload-dropzone-sub { font-size: 11px; color: var(--text-tertiary); }
+  .upload-file-name { margin-top: 8px; font-size: 11px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; }
 
   /* Toggle Switch */
   .toggle-wrap { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-subtle); }
@@ -2299,3 +2312,14 @@ body.admin-page #dashboard-section { padding: 0 !important; }
     color: var(--text-tertiary);
     text-align: left;
 }
+  .upload-dropzone-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(59, 130, 246, 0.14);
+    color: var(--accent-blue);
+    font-size: 14px;
+  }

@@ -1,5 +1,6 @@
 // ================= AUTH GUARD =================
 const AUTH_TOKEN_KEY = "token";
+const AUTH_TOKEN_KEYS = ["token", "accessToken", "jwt", "authToken", "access_token"];
 const LOGIN_REDIRECT_PAGE = "teacher-login.html";
 
 function redirectToLogin() {
@@ -20,7 +21,22 @@ function normalizeStoredToken(raw) {
 }
 
 function getAuthToken() {
-  return normalizeStoredToken(localStorage.getItem(AUTH_TOKEN_KEY));
+  for (const key of AUTH_TOKEN_KEYS) {
+    const localValue = normalizeStoredToken(localStorage.getItem(key));
+    if (localValue) return localValue;
+    const sessionValue = normalizeStoredToken(sessionStorage.getItem(key));
+    if (sessionValue) return sessionValue;
+  }
+  return "";
+}
+
+function clearAuthStorage() {
+  AUTH_TOKEN_KEYS.forEach((key) => {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+  });
+  localStorage.removeItem("role");
+  sessionStorage.removeItem("role");
 }
 
 function isLikelyJwt(token) {
@@ -31,7 +47,7 @@ function isLikelyJwt(token) {
 function ensureAuthGuard() {
   const token = getAuthToken();
   if (!token || !isLikelyJwt(token)) {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
+    clearAuthStorage();
     redirectToLogin();
     return false;
   }
@@ -44,7 +60,7 @@ ensureAuthGuard();
 (() => {
   "use strict";
 
-  const API_BASE = "http://localhost:8080";
+  const API_BASE = /^https?:/i.test(window.location.origin) ? window.location.origin : "http://localhost:8080";
 
   const state = {
     teacher: {
@@ -448,7 +464,7 @@ ensureAuthGuard();
     const { useBase = true, includeAuth = true, silent = false, throwOnError = true } = meta;
     const token = getAuthToken();
     if (includeAuth && (!token || !isLikelyJwt(token))) {
-      localStorage.removeItem(AUTH_TOKEN_KEY);
+      clearAuthStorage();
       redirectToLogin();
       throw new Error("Missing authentication token");
     }
@@ -465,7 +481,7 @@ ensureAuthGuard();
 
     let response;
     try {
-      response = await fetch(useBase ? apiUrl(path) : String(path), reqOptions);
+      response = await fetch(useBase ? apiUrl(path) : String(path), { credentials: "same-origin", ...reqOptions });
     } catch (err) {
       if (!silent) toast("Unable to connect to API server.", "error");
       throw err;
@@ -473,7 +489,7 @@ ensureAuthGuard();
 
     if (response.status === 401 || response.status === 403) {
       if (!silent) toast("Session expired. Please login again.", "error");
-      localStorage.clear();
+      clearAuthStorage();
       redirectToLogin();
       const authErr = new Error(`Auth ${response.status}`);
       authErr.status = response.status;
@@ -844,6 +860,7 @@ ensureAuthGuard();
     state.data.notifications.unshift({ id: uid("n"), text });
     state.data.notifications = state.data.notifications.slice(0, 25);
     renderNotifications();
+    window.TeacherNotificationHub?.push?.(text)?.catch?.(() => {});
   }
 
   function openModal(contentHtml) {
@@ -863,28 +880,71 @@ ensureAuthGuard();
     dom.modalContainer.innerHTML = "";
   }
 
-  function confirmTextDialog({ title, message, expectedText, actionLabel = "Confirm" }) {
+  function confirmDialog({ title, message, actionLabel = "Confirm" }) {
     return new Promise((resolve) => {
       openModal(`
         <div class="confirm-dialog">
           <h3 class="confirm-title">${title}</h3>
           <p class="confirm-message">${message}</p>
-          <label class="confirm-input-wrap" for="confirmTextInput">
-            <input id="confirmTextInput" class="form-control-like confirm-input" placeholder="Type: ${expectedText}" autocomplete="off">
-          </label>
           <div class="actions confirm-actions">
             <button id="confirmCancelBtn" class="btn ghost">Cancel</button>
-            <button id="confirmOkBtn" class="btn primary" disabled>${actionLabel}</button>
+            <button id="confirmOkBtn" class="btn primary">${actionLabel}</button>
+          </div>
+        </div>
+      `);
+      const ok = document.getElementById("confirmOkBtn");
+      const cancel = document.getElementById("confirmCancelBtn");
+      ok.addEventListener("click", () => { closeModal(); resolve(true); });
+      cancel.addEventListener("click", () => { closeModal(); resolve(false); });
+    });
+  }
+
+  function confirmTextDialog({ title, message, expectedText, actionLabel = "Confirm" }) {
+    return new Promise((resolve) => {
+      const expected = String(expectedText || "").trim();
+      openModal(`
+        <div class="confirm-dialog">
+          <h3 class="confirm-title">${title}</h3>
+          <p class="confirm-message">${message}</p>
+          <label class="form-label" for="confirmTextInput" style="display:block; margin-top:10px;">Type <strong>${expected}</strong> to continue</label>
+          <input id="confirmTextInput" class="form-control-like" type="text" autocomplete="off" spellcheck="false" />
+          <p id="confirmTextError" style="display:none; margin-top:8px; color:var(--accent-pink); font-size:12px;">Confirmation text does not match.</p>
+          <div class="actions confirm-actions">
+            <button id="confirmTextCancelBtn" class="btn ghost">Cancel</button>
+            <button id="confirmTextOkBtn" class="btn primary">${actionLabel}</button>
           </div>
         </div>
       `);
       const input = document.getElementById("confirmTextInput");
-      const ok = document.getElementById("confirmOkBtn");
-      const cancel = document.getElementById("confirmCancelBtn");
-      const check = () => { ok.disabled = input.value.trim() !== expectedText; };
-      input.addEventListener("input", check);
-      ok.addEventListener("click", () => { closeModal(); resolve(true); });
-      cancel.addEventListener("click", () => { closeModal(); resolve(false); });
+      const error = document.getElementById("confirmTextError");
+      const ok = document.getElementById("confirmTextOkBtn");
+      const cancel = document.getElementById("confirmTextCancelBtn");
+      if (input) input.focus();
+
+      const validate = () => String(input?.value || "").trim() === expected;
+      const submit = () => {
+        if (!validate()) {
+          if (error) error.style.display = "block";
+          input?.classList?.add("is-invalid");
+          input?.focus();
+          return;
+        }
+        closeModal();
+        resolve(true);
+      };
+
+      ok?.addEventListener("click", submit);
+      cancel?.addEventListener("click", () => { closeModal(); resolve(false); });
+      input?.addEventListener("input", () => {
+        if (error) error.style.display = "none";
+        input.classList.remove("is-invalid");
+      });
+      input?.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          submit();
+        }
+      });
     });
   }
 
@@ -1007,6 +1067,58 @@ ensureAuthGuard();
     return (query || "").trim().toLowerCase();
   }
 
+  function normalizeIdentity(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  function decodeJwtPayload(token) {
+    try {
+      const parts = String(token || "").split(".");
+      if (parts.length !== 3) return {};
+      const base64Raw = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+      const padding = "=".repeat((4 - (base64Raw.length % 4)) % 4);
+      const base64 = `${base64Raw}${padding}`;
+      const json = atob(base64);
+      return JSON.parse(json);
+    } catch (_e) {
+      return {};
+    }
+  }
+
+  function teacherIdentityCandidates() {
+    const token = getAuthToken();
+    const jwt = decodeJwtPayload(token);
+    const candidates = new Set();
+    [
+      state.teacher?.email,
+      state.teacher?.name,
+      state.teacher?.employeeId,
+      jwt?.sub,
+      jwt?.email,
+      jwt?.username,
+      jwt?.preferred_username,
+      jwt?.upn,
+      jwt?.unique_name,
+      jwt?.name
+    ].forEach((value) => {
+      const normalized = normalizeIdentity(value);
+      if (normalized) candidates.add(normalized);
+    });
+    return candidates;
+  }
+
+  function examOwnedByCurrentTeacher(exam) {
+    const identities = teacherIdentityCandidates();
+    if (!identities.size) return true;
+    const owner = normalizeIdentity(exam?.ownerKey || exam?.createdBy);
+    if (!owner) return true;
+    return identities.has(owner);
+  }
+
+  function filterOwnedExams(exams) {
+    return (Array.isArray(exams) ? exams : []).filter((exam) => examOwnedByCurrentTeacher(exam));
+  }
+
   function getDashboardAttempts() {
     const nowDt = new Date();
     const range = dom.dashDateRange?.value || state.ui.dashDateRange;
@@ -1120,13 +1232,13 @@ ensureAuthGuard();
             ? rows.items
             : [];
       if (arr.length) {
-        state.data.exams = arr.map((row, idx) => normalizeExam(row, idx));
+        state.data.exams = filterOwnedExams(arr.map((row, idx) => normalizeExam(row, idx)));
       } else if (!state.data.exams.length) {
         state.data.exams = [];
       }
     } catch (_e) {
       if (!state.data.exams.length) {
-        state.data.exams = state.data.exams.map((row, idx) => normalizeExam(row, idx));
+        state.data.exams = filterOwnedExams(state.data.exams.map((row, idx) => normalizeExam(row, idx)));
       }
     }
     renderExamSelectors();
@@ -1222,6 +1334,7 @@ ensureAuthGuard();
     const createdAt = source.createdAt || source.createdDate || source.updatedAt || new Date().toISOString();
     const status = String(source.status || (source.active === false ? "Draft" : "Published")).toUpperCase();
     const rawCreator = String(source.createdBy || "").trim();
+    const ownerKey = normalizeIdentity(rawCreator);
     const creator = rawCreator && rawCreator.toLowerCase() !== String(state.teacher.email || "").toLowerCase()
       ? rawCreator
       : state.teacher.name || rawCreator || "Teacher";
@@ -1247,6 +1360,7 @@ ensureAuthGuard();
       active: source.active !== false,
       questionsUploaded: Boolean(source.questionsUploaded),
       createdBy: creator,
+      ownerKey,
       startTime: source.startTime || null,
       endTime: source.endTime || null,
       createdDate: createdAt,
@@ -1689,11 +1803,11 @@ ensureAuthGuard();
       maxAttempts: Number(document.getElementById("mxMaxAttempts").value),
       marksPerQuestion: Number(document.getElementById("mxMarksPerQuestion").value),
       negativeMarks: Number(document.getElementById("mxNegativeMarks").value),
-      easyCount: Number(document.getElementById("mxEasyCount").value || 0),
-      mediumCount: Number(document.getElementById("mxMediumCount").value || 0),
-      hardCount: Number(document.getElementById("mxHardCount").value || 0),
-      startTime: new Date(document.getElementById("mxStartTime").value).toISOString(),
-      endTime: new Date(document.getElementById("mxEndTime").value).toISOString(),
+      easyQuestionCount: Number(document.getElementById("mxEasyCount").value || 0),
+      mediumQuestionCount: Number(document.getElementById("mxMediumCount").value || 0),
+      difficultQuestionCount: Number(document.getElementById("mxHardCount").value || 0),
+      startTime: `${document.getElementById("mxStartTime").value}:00`,
+      endTime: `${document.getElementById("mxEndTime").value}:00`,
       shuffleQuestions: document.getElementById("mxShuffleQuestions").checked,
       shuffleOptions: document.getElementById("mxShuffleOptions").checked,
       status
@@ -1714,8 +1828,21 @@ ensureAuthGuard();
           toast("Publish blocked: upload questions first.", "error");
           return;
         }
-        try { await api.updateExam(exam.examCode || examId, payload); } catch (_e) {}
-        Object.assign(exam, payload, { duration: payload.durationMinutes, active: payload.status === "Published" });
+        const apiUpdated = await api.updateExam(exam.examCode || examId, payload);
+        const updatedData = apiUpdated?.data || apiUpdated?.exam || apiUpdated || {};
+        Object.assign(exam, payload, {
+          id: updatedData.id != null ? String(updatedData.id) : exam.id,
+          examCode: updatedData.examCode || exam.examCode,
+          status: String(updatedData.status || payload.status || exam.status || "").toLowerCase() === "published" ? "Published" : "Draft",
+          questionsUploaded: updatedData.questionsUploaded != null ? Boolean(updatedData.questionsUploaded) : Boolean(exam.questionsUploaded),
+          createdBy: updatedData.createdBy || exam.createdBy,
+          createdDate: updatedData.createdAt || exam.createdDate,
+          duration: payload.durationMinutes,
+          active: payload.status === "Published",
+          easyCount: payload.easyQuestionCount,
+          mediumCount: payload.mediumQuestionCount,
+          hardCount: payload.difficultQuestionCount
+        });
         toast("Exam updated.");
       } else {
         const created = {
@@ -1725,19 +1852,25 @@ ensureAuthGuard();
           createdDate: new Date().toISOString(),
           active: status === "Published",
           duration: payload.durationMinutes,
+          easyCount: payload.easyQuestionCount,
+          mediumCount: payload.mediumQuestionCount,
+          hardCount: payload.difficultQuestionCount,
           ...payload
         };
         if (status === "Published") {
           created.status = "Draft";
           toast("Exam created as draft. Upload questions before publish.", "error");
         }
-        try {
-          const apiCreated = await api.createExam(created);
-          const createdData = apiCreated?.data || apiCreated?.exam || apiCreated || {};
-          if (createdData && createdData.id) created.id = String(createdData.id);
-          if (createdData && createdData.examCode) created.examCode = createdData.examCode;
-        } catch (_e) {}
-        state.data.exams.unshift(created);
+        const apiCreated = await api.createExam(created);
+        const createdData = apiCreated?.data || apiCreated?.exam || apiCreated || {};
+        if (!createdData || !createdData.id) {
+          throw new Error("Exam create API did not return a persisted exam id");
+        }
+        const persistedExam = normalizeExam({
+          ...created,
+          ...createdData
+        });
+        state.data.exams.unshift(persistedExam);
         toast("Exam created.");
       }
       closeModal();
@@ -1809,7 +1942,7 @@ ensureAuthGuard();
     const fileNameEl = document.getElementById("uqFileName");
     const uploadBtn = document.getElementById("uqUpload");
     const alreadyUploaded = Boolean(exam.questionsUploaded);
-    fileInput.dataset.uploaded = alreadyUploaded ? "true" : "false";
+    fileInput.dataset.uploaded = "false";
     helpBtn.addEventListener("click", () => {
       instructionsPanel.classList.toggle("hidden");
       helpBtn.innerHTML = instructionsPanel.classList.contains("hidden")
@@ -1818,40 +1951,27 @@ ensureAuthGuard();
     });
     const syncFileState = () => {
       const file = fileInput.files && fileInput.files[0];
-      const uploaded = fileInput.dataset.uploaded === "true";
       fileNameEl.textContent = file ? `${file.name}` : "No file selected";
-      uploadBtn.disabled = !file || uploaded;
-      removeBtn.disabled = !file || uploaded;
-      if (uploaded) {
-        uploadBtn.textContent = "Uploaded";
-      } else {
-        uploadBtn.textContent = "Upload File";
-      }
+      uploadBtn.disabled = !file;
+      removeBtn.disabled = !file;
+      uploadBtn.textContent = "Upload File";
     };
     browseBtn.addEventListener("click", () => fileInput.click());
     removeBtn.addEventListener("click", () => {
       fileInput.value = "";
-      fileInput.dataset.uploaded = "false";
       syncFileState();
     });
     fileInput.addEventListener("change", () => {
-      fileInput.dataset.uploaded = alreadyUploaded ? "true" : "false";
       syncFileState();
     });
     syncFileState();
     if (alreadyUploaded) {
-      toast("Questions are already uploaded for this exam. Upload is blocked.", "error");
+      toast("Questions already exist for this exam. Upload will replace existing questions.", "info");
     }
     document.getElementById("uqUpload").addEventListener("click", async () => {
       const file = fileInput.files && fileInput.files[0];
       if (!file) {
         toast("Please choose a CSV/Excel file first.", "error");
-        return;
-      }
-      if (alreadyUploaded) {
-        toast("Questions are already uploaded for this exam. Upload is blocked.", "error");
-        uploadBtn.disabled = true;
-        uploadBtn.textContent = "Uploaded";
         return;
       }
       uploadBtn.disabled = true;
@@ -1938,10 +2058,9 @@ ensureAuthGuard();
         };
         state.data.questions = state.data.questions.filter((q) => q.examId !== examId);
         state.data.questions.push(...backendQuestions.map((q, idx) => mapUploadedQuestionToLocal(examId, q, idx)));
-        fileInput.dataset.uploaded = "true";
         exam.questionsUploaded = true;
-        uploadBtn.disabled = true;
-        uploadBtn.textContent = "Uploaded";
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = "Upload File";
         closeModal();
         renderAll();
         addNotification(`Questions uploaded for ${exam.examCode}: ${file.name}`);
@@ -2725,7 +2844,7 @@ ensureAuthGuard();
   function exportAnalyticsCsv() {
     const rows = state.data.analytics.rows || [];
     if (!rows.length) return toast("No analytics data to export.", "error");
-    const headers = ["Student Name", "Score", "Percentage", "Submitted At", "Passed", "Flagged", "Easy Correct", "Medium Correct", "Difficult Correct"];
+    const headers = ["Student Name", "Score", "Percentage", "Submitted At", "Passed", "Flagged", "Easy Correct", "Medium Correct", "Hard Correct"];
     const body = rows.map((r) => [
       r.studentName,
       r.score,
@@ -2782,11 +2901,11 @@ ensureAuthGuard();
       drawBarChart(dom.accuracyChart, [], ["#06b6d4"], { emptyText: "No analytics data available" });
       drawPieChart(dom.analyticsPassFailChart, [0, 0], ["rgba(16,185,129,.8)", "rgba(239,68,68,.8)"], { showPercentLabels: true });
       drawBarChart(dom.analyticsCheatingChart, [0, 0], ["#10b981", "#f59e0b"], { labels: ["Safe", "Flagged"], showValues: true, emptyText: "No analytics data available" });
-      drawStackedBarChart(dom.analyticsDifficultyChart, [0, 0, 0], ["#60a5fa", "#f59e0b", "#ef4444"], ["Easy", "Medium", "Difficult"]);
+      drawStackedBarChart(dom.analyticsDifficultyChart, [0, 0, 0], ["#60a5fa", "#f59e0b", "#ef4444"], ["Easy", "Medium", "Hard"]);
       setLegend(dom.analyticsScoreLegend, [{ label: "0-20", color: "#93c5fd" }, { label: "21-40", color: "#60a5fa" }, { label: "41-60", color: "#3b82f6" }, { label: "61-80", color: "#2563eb" }, { label: "81-100", color: "#1d4ed8" }]);
       setLegend(dom.analyticsPassLegend, [{ label: "Passed", color: "#10b981" }, { label: "Failed", color: "#ef4444" }]);
       setLegend(dom.analyticsCheatLegend, [{ label: "Safe", color: "#10b981" }, { label: "Flagged", color: "#f59e0b" }]);
-      setLegend(dom.analyticsDifficultyLegend, [{ label: "Easy", color: "#60a5fa" }, { label: "Medium", color: "#f59e0b" }, { label: "Difficult", color: "#ef4444" }]);
+      setLegend(dom.analyticsDifficultyLegend, [{ label: "Easy", color: "#60a5fa" }, { label: "Medium", color: "#f59e0b" }, { label: "Hard", color: "#ef4444" }]);
       return;
     }
     dom.analyticsCards.innerHTML = [
@@ -2806,17 +2925,17 @@ ensureAuthGuard();
     drawBarChart(dom.accuracyChart, summary.accuracy.map((x) => x.value), ["#06b6d4"], { showValues: true });
     drawPieChart(dom.analyticsPassFailChart, [summary.passCount, summary.failCount], ["rgba(16,185,129,.9)", "rgba(239,68,68,.9)"], { showPercentLabels: true });
     drawBarChart(dom.analyticsCheatingChart, [summary.safeCount, summary.flaggedCount], ["#10b981", "#f59e0b"], { labels: ["Safe", "Flagged"], showValues: true });
-    drawStackedBarChart(dom.analyticsDifficultyChart, summary.difficulty, ["#60a5fa", "#f59e0b", "#ef4444"], ["Easy", "Medium", "Difficult"]);
+    drawStackedBarChart(dom.analyticsDifficultyChart, summary.difficulty, ["#60a5fa", "#f59e0b", "#ef4444"], ["Easy", "Medium", "Hard"]);
     setLegend(dom.analyticsScoreLegend, [{ label: "0-20", color: "#93c5fd" }, { label: "21-40", color: "#60a5fa" }, { label: "41-60", color: "#3b82f6" }, { label: "61-80", color: "#2563eb" }, { label: "81-100", color: "#1d4ed8" }]);
     setLegend(dom.analyticsPassLegend, [{ label: "Passed", color: "#10b981" }, { label: "Failed", color: "#ef4444" }]);
     setLegend(dom.analyticsCheatLegend, [{ label: "Safe", color: "#10b981" }, { label: "Flagged", color: "#f59e0b" }]);
-    setLegend(dom.analyticsDifficultyLegend, [{ label: "Easy", color: "#60a5fa" }, { label: "Medium", color: "#f59e0b" }, { label: "Difficult", color: "#ef4444" }]);
+    setLegend(dom.analyticsDifficultyLegend, [{ label: "Easy", color: "#60a5fa" }, { label: "Medium", color: "#f59e0b" }, { label: "Hard", color: "#ef4444" }]);
     attachCanvasTooltip(dom.scoreDistChart, [`0-20: ${summary.distribution[0]}`, `21-40: ${summary.distribution[1]}`, `41-60: ${summary.distribution[2]}`, `61-80: ${summary.distribution[3]}`, `81-100: ${summary.distribution[4]}`]);
     attachCanvasTooltip(dom.perfTrendChart, summary.trendLabels);
     attachCanvasTooltip(dom.accuracyChart, summary.accuracy.map((s) => `${s.name}: ${s.value}%`));
     attachCanvasTooltip(dom.analyticsCheatingChart, [`Safe: ${summary.safeCount}`, `Flagged: ${summary.flaggedCount}`]);
     attachCanvasTooltip(dom.analyticsPassFailChart, [`Pass: ${summary.passCount}`, `Fail: ${summary.failCount}`]);
-    attachCanvasTooltip(dom.analyticsDifficultyChart, [`Easy Correct: ${summary.difficulty[0]}`, `Medium Correct: ${summary.difficulty[1]}`, `Difficult Correct: ${summary.difficulty[2]}`]);
+    attachCanvasTooltip(dom.analyticsDifficultyChart, [`Easy Correct: ${summary.difficulty[0]}`, `Medium Correct: ${summary.difficulty[1]}`, `Hard Correct: ${summary.difficulty[2]}`]);
   }
 
   function leaderboardFallbackRows() {
@@ -3416,6 +3535,20 @@ ensureAuthGuard();
     dom.notifCount.textContent = String(state.data.notifications.length);
   }
 
+  window.TeacherDashboardBridge = {
+    getNotifications() {
+      return state.data.notifications.slice();
+    },
+    setNotifications(items) {
+      state.data.notifications = Array.isArray(items) ? items.slice(0, 25) : [];
+      renderNotifications();
+    },
+    clearNotifications() {
+      state.data.notifications = [];
+      renderNotifications();
+    }
+  };
+
   function drawLineChart(canvas, values, color) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -3683,7 +3816,7 @@ ensureAuthGuard();
       });
       if (!ok) return;
       await withLoading(async () => {
-        try { await api.deleteExam(exam.examCode || exam.id); } catch (_e) {}
+        await api.deleteExam(exam.examCode || exam.id);
         state.data.exams = state.data.exams.filter((e) => e.id !== exam.id);
         state.data.questions = state.data.questions.filter((q) => q.examId !== exam.id);
         state.data.attempts = state.data.attempts.filter((a) => a.examId !== exam.id);
@@ -4012,7 +4145,18 @@ ensureAuthGuard();
       dom.notificationPanel.classList.toggle("open", state.ui.notificationsOpen);
     });
     on(dom.clearNotifications, "click", () => {
+      if (window.TeacherNotificationHub?.clear) {
+        window.TeacherNotificationHub.clear()?.catch?.(() => {});
+        return;
+      }
       state.data.notifications = [];
+      renderNotifications();
+    });
+    on(dom.markAllNotificationsRead, "click", () => {
+      if (window.TeacherNotificationHub?.markAllRead) {
+        window.TeacherNotificationHub.markAllRead()?.catch?.(() => {});
+        return;
+      }
       renderNotifications();
     });
     on(dom.profileMenuBtn, "click", () => {
@@ -4493,16 +4637,15 @@ ensureAuthGuard();
 
     [dom.logoutBtn, dom.profileLogout].forEach((btn) => {
       btn.addEventListener("click", async () => {
-        const ok = await confirmTextDialog({
+        const ok = await confirmDialog({
           title: "Logout",
-          message: "Type LOGOUT to exit your teacher dashboard.",
-          expectedText: "LOGOUT",
+          message: "Do you want to exit your teacher dashboard?",
           actionLabel: "Logout"
         });
         if (ok) {
           toast("Logged out.");
           localStorage.clear();
-          window.location.href = "index.html";
+          window.location.href = "role-selection.html";
         }
       });
     });

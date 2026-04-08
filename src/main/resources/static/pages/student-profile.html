@@ -1,143 +1,366 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Profile | SEM AI Exam System</title>
-  <meta name="description" content="Manage your student profile in the SEM AI Exam System." />
-
+  <title>Setup Profile | AI Exam System</title>
+  
+  <!-- Global Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS Global -->
   <link rel="stylesheet" href="../assets/core/css/themes.css">
-  <link rel="stylesheet" href="../assets/pages/profile/css/profile.css">
+  <link rel="stylesheet" href="../assets/pages/home/css/main.css">
+  <link rel="stylesheet" href="../assets/pages/home/css/animations.css">
+  <link rel="stylesheet" href="../assets/pages/home/css/components.css">
+  
+  <!-- CSS Page Specific -->
+  <link rel="stylesheet" href="../assets/pages/profile/css/profile.css?v=20260408n">
 </head>
-<body class="student-profile-page">
+<body class="profile-page">
+
+  <!-- ─── ATMOSPHERE ─── -->
   <div class="noise-overlay"></div>
   <div class="bg-orb orb-1"></div>
   <div class="bg-orb orb-2"></div>
-  <div class="bg-grid"></div>
+  <div class="stardust"></div>
+  <div class="hud-glimmer"></div>
+  
+  <div class="bg-glyph glyph-1">PROTO_V3.0_AUTH</div>
+  <div class="bg-glyph glyph-2">SECURE_INIT_84X</div>
+  <div class="bg-glyph glyph-3">AI_MONITOR_ACTIVE</div>
 
-  <header class="profile-topbar">
-    <div>
-      <div class="eyebrow">Student Identity</div>
-      <h1>Profile Management</h1>
+  <!-- ─── NAVIGATION ─── -->
+  <nav class="onboard-nav">
+    <div class="logo-group">
+      <span class="logo-badge">SEM</span>
+      <span class="logo-text">Academic Identity</span>
     </div>
-    <div class="topbar-actions">
-      <div id="profile-status-chip" class="status-pill">Loading...</div>
-      <a href="student-dashboard.html" class="btn btn-ghost">Back to Dashboard</a>
+    <div class="theme-controls">
+      <button class="theme-btn" data-theme="light">Light</button>
+      <button class="theme-btn" data-theme="system">System</button>
+      <button class="theme-btn" data-theme="dark">Dark</button>
     </div>
-  </header>
+  </nav>
 
-  <main class="profile-shell">
-    <aside class="summary-panel">
-      <div class="summary-card">
-        <img id="profile-photo-preview" alt="Profile avatar" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" />
-        <div>
-          <div class="eyebrow">Current Student</div>
-          <h2 id="summary-name">Student</h2>
-          <p id="summary-email">-</p>
+  <!-- ─── CONSOLE ─── -->
+  <main class="profile-container">
+    
+    <!-- LEFT: SYSTEM BRIEFING -->
+    <aside class="profile-briefing">
+      <div class="briefing-header">
+        <span class="briefing-badge">System Protocol v3.0</span>
+        <h1 class="briefing-title">Identity <span class="text-gradient">Briefing.</span></h1>
+        <p class="briefing-desc">
+          Your credentials will be used for AI proctoring, certificate generation, and performance ranking.
+        </p>
+      </div>
+
+      <div class="step-list">
+        <div class="step-item active" id="badge-1">
+          <div class="step-number">01</div>
+          <div class="step-text">Personal Details</div>
+        </div>
+        <div class="step-item" id="badge-2">
+          <div class="step-number">02</div>
+          <div class="step-text">Institution</div>
+        </div>
+        <div class="step-item" id="badge-3">
+          <div class="step-number">03</div>
+          <div class="step-text">Verification</div>
         </div>
       </div>
 
-      <div class="summary-stats">
-        <div>
-          <span>Completion</span>
-          <strong id="summary-completion">0%</strong>
-        </div>
-        <div>
-          <span>Profile ID</span>
-          <strong id="summary-id">-</strong>
-        </div>
-        <div>
-          <span>Updated</span>
-          <strong id="summary-updated">-</strong>
-        </div>
+      <div class="briefing-footer">
+        <div class="status-item"><span class="status-check"></span> AI Monitoring Active</div>
       </div>
-
-      <p class="summary-copy">
-        Keep your academic identity accurate for certificates, leaderboard entries, and verified student records.
-      </p>
     </aside>
 
-    <section class="editor-panel">
-      <form id="student-profile-form" novalidate>
-        <div class="editor-grid">
-          <div class="field full">
-            <label for="fullName">Full name</label>
-            <input id="fullName" name="fullName" type="text" placeholder="Enter full name" required>
+    <!-- RIGHT: MAIN CONSOLE AREA -->
+    <div class="profile-main">
+      <form id="profile-multi-step-form" novalidate>
+        
+        <input type="hidden" name="userId" id="userId" value="STUDENT_67890">
+
+        <div class="form-step-container">
+          
+          <!-- STAGE 1: PERSONAL -->
+          <section class="step-content active" id="step-1">
+            <h2 class="step-title">Personal Details</h2>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label for="fullName">Full Name <span class="required">*</span></label>
+                <input type="text" id="fullName" name="fullName" placeholder="John Doe" required>
+              </div>
+              <div class="form-group">
+                <label for="email">Email <span class="required">*</span></label>
+                <input type="email" id="email" name="email" placeholder="john@example.com" required>
+              </div>
+              <div class="form-group">
+                <label for="phone">Phone</label>
+                <input type="tel" id="phone" name="phone" placeholder="+1 (234) 567-890">
+              </div>
+              <div class="form-group">
+                <label for="gender">Gender</label>
+                <select id="gender" name="gender">
+                  <option value="" disabled selected>Select</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="dateOfBirth">Date of Birth</label>
+                <input type="date" id="dateOfBirth" name="dateOfBirth">
+              </div>
+            </div>
+          </section>
+
+          <!-- STAGE 2: INSTITUTION -->
+          <section class="step-content" id="step-2">
+            <h2 class="step-title">Institution Profile</h2>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label for="collegeName">College / University <span class="required">*</span></label>
+                <input type="text" id="collegeName" name="collegeName" placeholder="Tech Institute of Science" required>
+              </div>
+              <div class="form-group">
+                <label for="department">Department <span class="required">*</span></label>
+                <input type="text" id="department" name="department" placeholder="Computer Science" required>
+              </div>
+              <div class="form-group">
+                <label for="year">Year of Study</label>
+                <select id="year" name="year">
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="rollNumber">Roll Number <span class="required">*</span></label>
+                <input type="text" id="rollNumber" name="rollNumber" placeholder="ID-2024-001" required>
+              </div>
+              <div class="form-group">
+                <label for="section">Section</label>
+                <input type="text" id="section" name="section" placeholder="e.g. A2">
+              </div>
+            </div>
+          </section>
+
+          <!-- STAGE 3: PHOTO -->
+          <section class="step-content" id="step-3">
+            <h2 class="step-title">Verification Photo</h2>
+            <div class="photo-zone">
+              <div class="photo-preview-circle">
+                <img id="photo-preview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232563eb'/%3E%3Cstop offset='1' stop-color='%230891b2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='160' height='160' rx='28' fill='%23e2e8f0'/%3E%3Ccircle cx='80' cy='62' r='26' fill='url(%23g)' opacity='0.9'/%3E%3Cpath d='M34 131c7-22 26-34 46-34s39 12 46 34' fill='none' stroke='%23475569' stroke-width='10' stroke-linecap='round'/%3E%3C/svg%3E" alt="Profile">
+              </div>
+              <div class="photo-info">
+                <input type="file" id="photoInput" name="photoInput" accept="image/*" hidden>
+                <button type="button" class="btn btn-primary" id="trigger-upload">Upload Portrait</button>
+                <p class="briefing-desc" style="margin-top: 16px; font-size: 13px;">Upload a clear facial portrait for AI proctoring identity checks.</p>
+              </div>
+            </div>
+          </section>
+
+        </div>
+
+        <!-- FOOTER: STAGE-SPECIFIC ACTIONS -->
+        <footer class="profile-footer">
+          <div class="action-left">
+            <button type="button" class="btn btn-ghost" id="prev-step" style="visibility: hidden;">Previous</button>
           </div>
-          <div class="field">
-            <label for="email">Email</label>
-            <input id="email" name="email" type="email" readonly>
+          
+          <div class="action-group">
+            <button type="button" class="btn btn-ghost" id="clear-step">Clear Stage</button>
           </div>
-          <div class="field">
-            <label for="phone">Phone</label>
-            <input id="phone" name="phone" type="tel" placeholder="+1 555 000 0000">
+
+          <div class="action-right">
+            <button type="button" class="btn btn-primary" id="next-step">
+              <span>Next Stage</span>
+            </button>
+            <button type="submit" class="btn btn-primary" id="submit-step" style="display: none;">
+              <span>Submit Briefing</span>
+            </button>
           </div>
-          <div class="field">
-            <label for="gender">Gender</label>
-            <select id="gender" name="gender">
-              <option value="">Select gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="dateOfBirth">Date of birth</label>
-            <input id="dateOfBirth" name="dateOfBirth" type="date">
-          </div>
-          <div class="field full">
-            <label for="collegeName">College / University</label>
-            <input id="collegeName" name="collegeName" type="text" placeholder="Institution name" required>
-          </div>
-          <div class="field">
-            <label for="department">Department</label>
-            <input id="department" name="department" type="text" placeholder="Department" required>
-          </div>
-          <div class="field">
-            <label for="year">Year</label>
-            <select id="year" name="year">
-              <option value="">Select year</option>
-              <option value="1st Year">1st Year</option>
-              <option value="2nd Year">2nd Year</option>
-              <option value="3rd Year">3rd Year</option>
-              <option value="4th Year">4th Year</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="rollNumber">Roll number</label>
-            <input id="rollNumber" name="rollNumber" type="text" placeholder="Roll number" required>
-          </div>
-          <div class="field">
-            <label for="section">Section</label>
-            <input id="section" name="section" type="text" placeholder="Section">
-          </div>
-          <div class="field full">
-            <label for="profilePhotoFile">Profile photo</label>
-            <div class="photo-row">
-              <input id="profilePhotoFile" type="file" accept="image/*">
-              <button type="button" id="profile-photo-btn" class="btn btn-ghost">Choose image</button>
-              <span id="photo-name" class="file-label">No file selected</span>
+        </footer>
+
+        <!-- CONFIRMATION OVERLAY -->
+        <div class="confirm-overlay" id="confirm-overlay">
+          <div class="confirm-card">
+            <h2 class="step-title">Confirm Credentials</h2>
+            <p class="briefing-desc">Please verify your academic data before finalizing your session initialization.</p>
+            
+            <div class="review-grid" id="review-summary">
+              <!-- Dynamically Populated -->
+            </div>
+
+            <div class="form-actions" id="confirm-actions">
+              <button type="button" class="btn btn-ghost" id="cancel-confirm">Edit Details</button>
+              <button type="button" class="btn btn-primary" id="final-confirm">
+                <span>Finalize & Enter Student UI</span>
+              </button>
             </div>
           </div>
         </div>
 
-        <input type="hidden" id="profilePhotoData" value="">
-
-        <div class="form-actions">
-          <button type="button" id="profile-reset-btn" class="btn btn-ghost">Reset</button>
-          <button type="submit" id="profile-save-btn" class="btn btn-primary">Save Profile</button>
-        </div>
       </form>
-    </section>
+    </div>
+
   </main>
 
-  <div id="toast-root" class="toast-root"></div>
+  <!-- Interaction Logic -->
+  <script src="../assets/core/js/theme.js?v=20260408a"></script>
+  <script src="../assets/pages/profile/js/profile.js?v=20260408t"></script>
+  <script>
+    (function () {
+      function readJson(key) {
+        try {
+          const v = localStorage.getItem(key);
+          if (!v) return null;
+          const p = JSON.parse(v);
+          if (p && typeof p === "object" && p.data && typeof p.data === "object") return p.data;
+          return p && typeof p === "object" ? p : null;
+        } catch (_e) {
+          return null;
+        }
+      }
 
-  <script src="../assets/core/js/theme.js"></script>
-  <script src="../assets/pages/profile/js/profile.js"></script>
+      function token() {
+        return localStorage.getItem("token")
+          || localStorage.getItem("accessToken")
+          || localStorage.getItem("jwt")
+          || localStorage.getItem("authToken")
+          || localStorage.getItem("access_token")
+          || "";
+      }
+
+      function tokenEmail() {
+        try {
+          const t = token();
+          if (!t) return "";
+          const parts = t.split(".");
+          if (parts.length < 2) return "";
+          const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
+          const data = JSON.parse(atob(payload));
+          return String((data && (data.email || data.sub || data.username)) || "").trim();
+        } catch (_e) {
+          return "";
+        }
+      }
+
+      function prefillEmail() {
+        const emailEl = document.getElementById("email");
+        if (!emailEl) return;
+        const u = readJson("user") || {};
+        const email = tokenEmail() || String(u.email || "").trim() || String(sessionStorage.getItem("signup.pendingEmail") || "").trim();
+        if (email) {
+          emailEl.value = email;
+          emailEl.readOnly = true;
+          emailEl.title = "Auto-filled from verified account";
+        }
+      }
+
+      function bindFallbackSteps() {
+        if (window.__PROFILE_MAIN_READY) return;
+        const body = document.body;
+        if (body && body.dataset.profileBound === "1") return;
+
+        const steps = Array.from(document.querySelectorAll(".step-content"));
+        const badges = Array.from(document.querySelectorAll(".step-item"));
+        const prev = document.getElementById("prev-step");
+        const next = document.getElementById("next-step");
+        const submit = document.getElementById("submit-step");
+        if (!steps.length || !next) return;
+
+        let idx = Math.max(0, steps.findIndex((s) => s.classList.contains("active")));
+        if (idx < 0) idx = 0;
+
+        function render() {
+          steps.forEach((s, i) => s.classList.toggle("active", i === idx));
+          badges.forEach((b, i) => {
+            b.classList.toggle("active", i === idx);
+            b.classList.toggle("completed", i < idx);
+          });
+          if (prev) prev.style.visibility = idx > 0 ? "visible" : "hidden";
+          if (next) next.style.display = idx < steps.length - 1 ? "block" : "none";
+          if (submit) submit.style.display = idx < steps.length - 1 ? "none" : "block";
+        }
+
+        function validCurrent() {
+          const section = steps[idx];
+          const req = Array.from(section.querySelectorAll("[required]"));
+          for (const el of req) {
+            if (!String(el.value || "").trim()) {
+              el.focus();
+              el.style.borderColor = "var(--accent-pink)";
+              return false;
+            }
+            el.style.borderColor = "var(--border-subtle)";
+          }
+          return true;
+        }
+
+        next.addEventListener("click", function () {
+          prefillEmail();
+          if (!validCurrent()) return;
+          idx = Math.min(steps.length - 1, idx + 1);
+          render();
+        });
+
+        if (prev) {
+          prev.addEventListener("click", function () {
+            idx = Math.max(0, idx - 1);
+            render();
+          });
+        }
+
+        render();
+      }
+
+      function bindFallbackUpload() {
+        if (window.__PROFILE_MAIN_READY) return;
+        const body = document.body;
+        if (body && body.dataset.profileBound === "1") return;
+        const trigger = document.getElementById("trigger-upload");
+        const input = document.getElementById("photoInput");
+        const preview = document.getElementById("photo-preview");
+        if (!trigger || !input || !preview) return;
+
+        trigger.addEventListener("click", function () {
+          input.click();
+        });
+
+        input.addEventListener("change", function (event) {
+          const file = event.target.files && event.target.files[0];
+          if (!file) return;
+          if (!String(file.type || "").startsWith("image/")) {
+            alert("Please select a valid image file.");
+            input.value = "";
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            const dataUrl = String((e && e.target && e.target.result) || "");
+            if (!dataUrl) return;
+            preview.src = dataUrl;
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        prefillEmail();
+        setTimeout(function () {
+          prefillEmail();
+          bindFallbackSteps();
+          bindFallbackUpload();
+        }, 1200);
+      });
+    })();
+  </script>
 </body>
 </html>
+

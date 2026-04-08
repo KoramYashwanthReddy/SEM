@@ -330,6 +330,26 @@
 }
 
 .otp-sub { color: var(--text-secondary); margin: 0; }
+.otp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 2px;
+}
+.otp-meta-chip {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 999px;
+  padding: 5px 10px;
+}
+.otp-meta-chip strong {
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.74rem;
+}
 
 .otp-link {
   font-size: 0.85rem;

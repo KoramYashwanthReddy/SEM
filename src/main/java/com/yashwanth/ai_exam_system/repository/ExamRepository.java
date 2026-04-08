@@ -44,6 +44,7 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     // ================= TEACHER =================
 
     List<Exam> findByCreatedByAndActiveTrue(String createdBy);
+    List<Exam> findByCreatedByAndActiveTrueOrderByCreatedAtDesc(String createdBy);
 
     List<Exam> findByCreatedByAndStatus(String createdBy, String status);
 

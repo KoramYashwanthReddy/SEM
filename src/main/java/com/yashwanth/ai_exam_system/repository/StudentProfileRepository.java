@@ -27,6 +27,8 @@ public interface StudentProfileRepository extends JpaRepository<StudentProfile, 
     // 🔹 Optional: unique roll number validation
     Optional<StudentProfile> findByRollNumber(String rollNumber);
 
+    Optional<StudentProfile> findByPhone(String phone);
+
     boolean existsByRollNumber(String rollNumber);
 
     // 🔹 Optional: search by name (for admin panel)

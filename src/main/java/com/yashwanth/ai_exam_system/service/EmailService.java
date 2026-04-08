@@ -134,4 +134,34 @@ public class EmailService {
 
         sendEmail(toEmail, subject, content);
     }
+
+    /*
+     * ================================
+     * SIGNUP OTP EMAIL
+     * ================================
+     */
+    @Async
+    public void sendSignupOtpEmail(
+            String toEmail,
+            String recipientName,
+            String otp,
+            int expiryMinutes
+    ) {
+
+        String subject = "Your SEM Signup Verification Code";
+        String safeName = recipientName == null || recipientName.isBlank() ? "Student" : recipientName;
+
+        String content =
+                "<div style='font-family:Arial,sans-serif;padding:20px'>" +
+                "<h2>Welcome to SEM, " + safeName + "</h2>" +
+                "<p>Your verification code is:</p>" +
+                "<div style='font-size:28px;font-weight:bold;letter-spacing:6px;margin:20px 0'>" + otp + "</div>" +
+                "<p>This code expires in " + expiryMinutes + " minutes.</p>" +
+                "<p>If you did not request this signup, you can safely ignore this email.</p>" +
+                "<br>" +
+                "<p>Regards,<br><b>AI Exam System</b></p>" +
+                "</div>";
+
+        sendEmail(toEmail, subject, content);
+    }
 }

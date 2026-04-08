@@ -3,6 +3,7 @@ package com.yashwanth.ai_exam_system.service;
 import com.yashwanth.ai_exam_system.dto.*;
 import com.yashwanth.ai_exam_system.entity.*;
 import com.yashwanth.ai_exam_system.enums.AttemptStatus;
+import com.yashwanth.ai_exam_system.exception.BadRequestException;
 import com.yashwanth.ai_exam_system.repository.*;
 
 import org.springframework.stereotype.Service;
@@ -21,19 +22,22 @@ public class ExamAttemptService {
     private final QuestionRepository questionRepository;
     private final ExamEvaluationService evaluationService;
     private final ExamRepository examRepository;
+    private final ExamRegistrationRepository examRegistrationRepository;
 
     public ExamAttemptService(
             ExamAttemptRepository attemptRepository,
             StudentAnswerRepository answerRepository,
             QuestionRepository questionRepository,
             ExamEvaluationService evaluationService,
-            ExamRepository examRepository) {
+            ExamRepository examRepository,
+            ExamRegistrationRepository examRegistrationRepository) {
 
         this.attemptRepository = attemptRepository;
         this.answerRepository = answerRepository;
         this.questionRepository = questionRepository;
         this.evaluationService = evaluationService;
         this.examRepository = examRepository;
+        this.examRegistrationRepository = examRegistrationRepository;
     }
 
     // ================= START EXAM =================
@@ -41,6 +45,26 @@ public class ExamAttemptService {
 
         Exam exam = examRepository.findByExamCode(examCode)
                 .orElseThrow(() -> new RuntimeException("Exam not found"));
+        if (!exam.isPublished() || !exam.isActive()) {
+            throw new BadRequestException("Exam is not available for attempts");
+        }
+        boolean registered = examRegistrationRepository.findByStudentIdAndExamCode(studentId, examCode)
+                .map(ExamRegistration::getActive)
+                .orElse(false);
+        if (!registered) {
+            throw new BadRequestException("Please register for the exam first");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (exam.getStartTime() != null) {
+            LocalDateTime verificationWindowStart = exam.getStartTime().minusMinutes(10);
+            if (now.isBefore(verificationWindowStart)) {
+                throw new BadRequestException("Exam can be started only in the last 10 minutes before start time");
+            }
+        }
+        if (exam.getEndTime() != null && now.isAfter(exam.getEndTime())) {
+            throw new BadRequestException("Exam window is closed");
+        }
 
         Optional<ExamAttempt> active =
                 attemptRepository.findActiveAttempt(
@@ -52,8 +76,6 @@ public class ExamAttemptService {
         if (active.isPresent()) {
             return active.get();
         }
-
-        LocalDateTime now = LocalDateTime.now();
 
         ExamAttempt attempt = new ExamAttempt();
         attempt.setStudentId(studentId);

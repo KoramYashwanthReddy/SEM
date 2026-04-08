@@ -523,7 +523,10 @@
   <aside id="notificationPanel" class="notification-panel">
     <div class="panel-head">
       <h3>Notifications</h3>
-      <button id="clearNotifications" class="btn ghost small">Clear</button>
+      <div style="display:flex; gap:8px">
+        <button id="markAllNotificationsRead" class="btn ghost small">Mark Read</button>
+        <button id="clearNotifications" class="btn ghost small">Clear</button>
+      </div>
     </div>
     <ul id="notificationList"></ul>
   </aside>
@@ -535,7 +538,10 @@
   <div id="chartTooltip" class="chart-tooltip hidden"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="../assets/pages/teacher/js/teacher-dashboard.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <script src="../assets/pages/teacher/js/teacher-dashboard.js?v=20260408e"></script>
+  <script src="../assets/pages/teacher/js/teacher-notifications.js"></script>
 </body>
 </html>
 
