@@ -1,0 +1,159 @@
+/* Overall App Container */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* Header */
+.exam-header {
+  height: 64px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  z-index: 10;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+/* Main Layout: 3 Columns */
+.exam-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - 64px - 64px); /* Subtract Header and Footer */
+}
+
+/* Left Panel - Question Palette */
+.left-panel {
+  width: 280px;
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+/* Center Main Area */
+.main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Main Content Padding */
+.content-wrapper {
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+  padding-bottom: 4rem;
+  position: relative; /* Ensure it's above watermark */
+  z-index: 5;
+}
+
+.progress-container {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background-color: var(--bg-tertiary);
+  z-index: 10;
+}
+
+/* Right Panel - Info & Procter (Optional) */
+.right-panel {
+  width: 250px;
+  background-color: var(--bg-secondary);
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+/* Footer Controls */
+.exam-footer {
+  height: 64px;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  z-index: 10;
+  box-shadow: 0 -0.125rem 0.25rem rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+}
+
+/* Header Elements Positioning */
+.header-left, .header-center, .header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-center {
+  flex: 1;
+  justify-content: center;
+}
+
+.header-right {
+  justify-content: flex-end;
+}
+
+/* Background Watermark Scrolling (Question Area Limited) */
+.watermark-container {
+  position: absolute; /* Changed: Stay relative to main-area */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0; /* Background layer of parent */
+  pointer-events: none;
+  opacity: 0.055;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  user-select: none;
+  background-color: transparent;
+}
+
+.watermark-row {
+  white-space: nowrap;
+  font-size: clamp(3rem, 10vw, 6rem);
+  font-weight: 900;
+  color: var(--primary-color); /* Changed: Use primary color for better contrast on dark theme */
+  display: flex;
+  gap: 10rem;
+}
+
+.watermark-row:nth-child(even) {
+  animation: watermarkScrollLeft 80s linear infinite;
+}
+
+.watermark-row:nth-child(odd) {
+  animation: watermarkScrollRight 80s linear infinite;
+}
+
+@keyframes watermarkScrollLeft {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes watermarkScrollRight {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}

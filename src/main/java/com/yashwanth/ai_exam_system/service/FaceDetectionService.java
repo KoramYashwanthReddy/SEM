@@ -6,8 +6,6 @@ import org.opencv.objdetect.CascadeClassifier;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
-
 @Service
 public class FaceDetectionService {
 

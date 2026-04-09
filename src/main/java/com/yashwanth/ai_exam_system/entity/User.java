@@ -70,7 +70,7 @@ public class User {
     // ================= AUDIT =================
 
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private final LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
 

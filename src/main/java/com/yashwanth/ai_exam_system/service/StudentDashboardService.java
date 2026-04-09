@@ -1,5 +1,18 @@
 package com.yashwanth.ai_exam_system.service;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
 import com.yashwanth.ai_exam_system.dto.ExamSuggestionResponse;
 import com.yashwanth.ai_exam_system.dto.LeaderboardDTO;
 import com.yashwanth.ai_exam_system.dto.StudentDashboardResponse;
@@ -17,21 +30,10 @@ import com.yashwanth.ai_exam_system.exception.ForbiddenException;
 import com.yashwanth.ai_exam_system.exception.ResourceNotFoundException;
 import com.yashwanth.ai_exam_system.repository.CertificateRepository;
 import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
-import com.yashwanth.ai_exam_system.repository.ExamRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRegistrationRepository;
+import com.yashwanth.ai_exam_system.repository.ExamRepository;
 import com.yashwanth.ai_exam_system.repository.StudentProfileRepository;
 import com.yashwanth.ai_exam_system.repository.UserRepository;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 public class StudentDashboardService {
@@ -214,14 +216,21 @@ public class StudentDashboardService {
                         }
                 ));
 
+        List<ExamRegistration> registrations =
+                examRegistrationRepository.findByStudentIdAndActiveTrue(student.getId());
+        Set<String> registeredExamCodeSet = registrations.stream()
+                .map(ExamRegistration::getExamCode)
+                .filter(code -> code != null && !code.isBlank())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
         List<Map<String, Object>> examCards = examRepository.findAllActiveOrderByCreatedAtDesc()
                 .stream()
                 .filter(Exam::isPublished)
-                .map(exam -> toExamCard(exam, activeAttemptByExamCode.get(exam.getExamCode())))
+                .map(exam -> toExamCard(
+                        exam,
+                        activeAttemptByExamCode.get(exam.getExamCode()),
+                        registeredExamCodeSet.contains(exam.getExamCode())))
                 .toList();
 
-        List<ExamRegistration> registrations =
-                examRegistrationRepository.findByStudentIdAndActiveTrue(student.getId());
         List<String> registeredExamCodes = registrations.stream()
                 .map(ExamRegistration::getExamCode)
                 .filter(code -> code != null && !code.isBlank())
@@ -355,7 +364,7 @@ public class StudentDashboardService {
         return map;
     }
 
-    private Map<String, Object> toExamCard(Exam exam, ExamAttempt resumeAttempt) {
+    private Map<String, Object> toExamCard(Exam exam, ExamAttempt resumeAttempt, boolean registered) {
         Map<String, Object> map = new LinkedHashMap<>();
         LocalDateTime now = LocalDateTime.now();
 
@@ -391,6 +400,16 @@ public class StudentDashboardService {
         map.put("resumeAttemptId", resumeAttempt != null ? resumeAttempt.getId() : null);
         map.put("published", exam.isPublished());
         map.put("active", exam.isActive());
+
+        // Add registration phase information
+        map.put("registrationOpen", exam.isRegistrationOpen());
+        map.put("currentRegistrationPhase", exam.getCurrentRegistrationPhase().name());
+        map.put("registrationStartTime", exam.getRegistrationStartTime());
+        map.put("phase1EndTime", exam.getPhase1EndTime());
+        map.put("phase2StartTime", exam.getPhase2StartTime());
+        map.put("requiresPhase2Verification", exam.requiresPhase2Verification());
+        map.put("registered", registered);
+
         return map;
     }
 

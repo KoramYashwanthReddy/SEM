@@ -603,17 +603,31 @@
         instructions: Array.isArray(exam.instructions) ? exam.instructions : [],
         attemptsUsed,
         resumeAttemptId,
-        status: examStatus
+        status: examStatus,
+        registered: Boolean(exam?.registered)
       };
     }) : st.data.exams;
+    const registeredFromBackend = new Set();
+    st.data.exams.forEach((exam) => {
+      const code = String(exam?.examCode || '').trim();
+      if (!code) return;
+      if (Boolean(exam?.registered)) {
+        registeredFromBackend.add(code);
+      }
+    });
     if (Array.isArray(payload.registeredExamCodes)) {
-      const registeredSet = new Set(payload.registeredExamCodes.map((code) => String(code || '').trim()).filter(Boolean));
-      st.data.exams.forEach((exam) => {
-        const code = String(exam?.examCode || '').trim();
-        if (!code) return;
-        st.examRegistration[code] = registeredSet.has(code);
-      });
+      payload.registeredExamCodes
+        .map((code) => String(code || '').trim())
+        .filter(Boolean)
+        .forEach((code) => registeredFromBackend.add(code));
     }
+    const nextRegistrationMap = {};
+    st.data.exams.forEach((exam) => {
+      const code = String(exam?.examCode || '').trim();
+      if (!code) return;
+      nextRegistrationMap[code] = registeredFromBackend.has(code);
+    });
+    st.examRegistration = nextRegistrationMap;
     st.data.exams.forEach((exam) => {
       if (exam?.examCode && exam?.resumeAttemptId) {
         st.examAttemptIds[exam.examCode] = exam.resumeAttemptId;
@@ -768,10 +782,20 @@
     const failed = !!(result && !result.passed);
     const attemptsRemaining = calculateAttemptsRemaining(exam);
     const reexamEligible = failed && attemptsRemaining > 0;
-    const registrationDeadline = startAt.getTime() - (30 * 60000);
-    const verificationOpenAt = startAt.getTime() - (10 * 60000);
-    const registrationOpen = now < registrationDeadline;
-    const preStartLock = now >= registrationDeadline && now < verificationOpenAt;
+
+    // Use backend-provided registration phase times
+    const registrationStartTime = exam.registrationStartTime ? new Date(exam.registrationStartTime) : null;
+    const phase1EndTime = exam.phase1EndTime ? new Date(exam.phase1EndTime) : null;
+    const phase2StartTime = exam.phase2StartTime ? new Date(exam.phase2StartTime) : null;
+
+    // Fallback to legacy calculation if backend times not provided
+    const registrationDeadline = phase2StartTime || phase1EndTime || (startAt.getTime() - (30 * 60000));
+    const verificationOpenAt = registrationDeadline;
+
+    const registrationOpen = !!exam.registrationOpen
+      && (!registrationStartTime || now >= registrationStartTime.getTime())
+      && now < registrationDeadline;
+    const preStartLock = false;
     const verificationOpen = now >= verificationOpenAt && now < startAt.getTime();
     const live = now >= startAt.getTime() && now <= endAt.getTime();
     const upcoming = now < startAt.getTime();
@@ -779,6 +803,7 @@
     const expired = now > endAt.getTime() || String(exam?.status || '').toLowerCase() === 'closed';
     const minutesUntilVerification = Math.ceil((verificationOpenAt - now) / 60000);
     const minutesUntilRegistrationClose = Math.ceil((registrationDeadline - now) / 60000);
+
     return {
       registered,
       sessionStarted,
@@ -798,7 +823,9 @@
       startAt,
       endAt,
       registrationDeadline: new Date(registrationDeadline),
-      verificationOpenAt: new Date(verificationOpenAt)
+      verificationOpenAt: new Date(verificationOpenAt),
+      currentPhase: exam.currentRegistrationPhase || 'CLOSED',
+      requiresPhase2Verification: !!exam.requiresPhase2Verification
     };
   }
   const icoExt = {
@@ -825,7 +852,7 @@
         return { label: 'Expired', action: 'exam-detail', tone: 'ghost', hint: 'Session closed.', disabled: true };
       }
       if (state.verificationOpen) {
-        return { label: 'Start Exam', action: 'exam-start', tone: 'primary', hint: 'Verification is available now.', disabled: false };
+        return { label: 'Enter Exam', action: 'exam-start', tone: 'primary', hint: 'Verification is available now.', disabled: false };
       }
       if (state.preStartLock) {
         return {
@@ -841,11 +868,20 @@
 
     if (!state.registered) {
       if (state.registrationOpen) {
+        if (state.currentPhase === 'PHASE2' || state.requiresPhase2Verification) {
+          return {
+            label: 'Register (Phase 2)',
+            action: 'exam-register-phase2',
+            tone: 'warning',
+            hint: `Additional verification required. Closes in ${Math.max(state.minutesUntilRegistrationClose, 0)} min.`,
+            disabled: false
+          };
+        }
         return {
-          label: 'Register',
+          label: 'Register (Phase 1)',
           action: 'exam-register',
           tone: 'primary',
-          hint: `Registration open (${Math.max(state.minutesUntilRegistrationClose, 0)} min left).`,
+          hint: `Registration open. Closes in ${Math.max(state.minutesUntilRegistrationClose, 0)} min.`,
           disabled: false
         };
       }
@@ -855,7 +891,7 @@
           action: 'exam-detail',
           tone: 'ghost',
           hint: state.preStartLock
-            ? `Closed. Verification opens in ${Math.max(state.minutesUntilVerification, 0)} min.`
+            ? `Registration closed. Verification opens in ${Math.max(state.minutesUntilVerification, 0)} min.`
             : 'Registration closed for this exam window.',
           disabled: true
         };
@@ -884,11 +920,11 @@
   }
   function examCatalogGroup(exam) {
     const state = examRuntimeState(exam);
+    if (state.registered) return null;
     if (state.expired || state.result) return 'closed';
-    if (!state.registered) return state.registrationOpen ? 'unregistered' : 'closed';
-    if (state.verificationOpen || state.live || state.sessionStarted || state.reexamEligible) return null;
+    if (state.registrationOpen) return 'unregistered';
     if (state.upcoming) return 'upcoming';
-    return 'upcoming';
+    return 'closed';
   }
   function myExamGroup(exam) {
     const state = examRuntimeState(exam);
@@ -1038,11 +1074,11 @@
     const sessionStarted = !!st.examSessions[exam.examCode];
     const started = sessionStarted || now >= startAt.getTime();
     const minutesUntil = Math.ceil((startAt.getTime() - now) / 60000);
-    const registrationDeadline = startAt.getTime() - (30 * 60000);
-    const verificationOpenAt = startAt.getTime() - (10 * 60000);
+    const registrationDeadline = startAt.getTime() - (10 * 60000);
+    const verificationOpenAt = registrationDeadline;
     const registrationOpen = now < registrationDeadline;
     const verificationOpen = now >= verificationOpenAt && now < startAt.getTime();
-    const preStartLock = now >= registrationDeadline && now < verificationOpenAt;
+    const preStartLock = false;
 
     if (!registered) {
       if (!registrationOpen) {
@@ -1153,7 +1189,9 @@
       rulesAccepted: false,
       termsAccepted: false,
       declarationAccepted: false,
-      registrationConfirmed: false
+      registrationConfirmed: false,
+      phase2VerificationCode: '',
+      phase2Confirmed: false
     };
   }
   const activeLeaderboardRows = () => st.data.leaderboard[st.leaderboard.mode] || [];
@@ -1207,7 +1245,7 @@
     if (btn?.dataset.loadingText) return btn.dataset.loadingText;
     return busyCopy[type] || 'Please wait...';
   }
-  function bind() { Object.assign(el, { sidebar:$('sidebar'), toggle:$('toggle-sidebar'), logout:$('logoutBtn'), sideNav:$('sideNav'), sidebarAvatar:$('sidebarAvatar'), sidebarName:$('sidebarName'), sidebarRole:$('sidebarRole'), topAvatar:$('topAvatar'), topName:$('topName'), topSearch:$('top-nav-search'), notifBtn:$('notifBtn'), notifCount:$('notifCount'), notifNavCount:$('notifNavCount'), notifyDrop:$('notifyDrop'), notifyDropCount:$('notifyDropCount'), notifyList:$('notifyList'), notificationTypeFilter:$('notificationTypeFilter'), markAllReadBtn:$('markAllReadBtn'), clearNotificationsBtn:$('clearNotificationsBtn'), unreadNotificationCount:$('unreadNotificationCount'), notificationStream:$('notificationStream'), scheduleDateFilter:$('scheduleDateFilter'), scheduleList:$('scheduleList'), scheduleTimeline:$('scheduleTimeline'), scheduleTodayLabel:$('scheduleTodayLabel'), proctoringStatusGrid:$('proctoringStatusGrid'), proctoringSummaryPanel:$('proctoringSummaryPanel'), faqAccordion:$('faqAccordion'), contactSupportForm:$('contactSupportForm'), reportIssueForm:$('reportIssueForm'), supportTabs:$$('[data-support-tab]'), supportPanels:$$('[data-support-panel]'), profileDd:$('profileDd'), profileMenuBtn:$('profileMenuBtn'), profileMenu:$('profileMenu'), profileLogout:$('profileLogout'), themeToggle:$('themeToggle'), themeButtons:$$('[data-theme-mode]', $('themeToggle')), dashStatsGrid:$('dashStatsGrid'), recentAttemptsBody:$('recentAttemptsBody'), performanceTrendChart:$('performanceTrendChart'), chartPlaceholder:$('chartPlaceholder'), refreshDashboard:$('refreshDashboard'), dashboardActionBtn:$('dashboardActionBtn'), attemptsResetBtn:$('attemptsResetBtn'), examSearch:$('examSearch'), examFilter:$('examFilter'), examTabs:$$('[data-tab]'), summaryPill:$('summaryPill'), examStatusLegend:$('examStatusLegend'), unregisteredGrid:$('unregisteredGrid'), upcomingGrid:$('upcomingGrid'), closedGrid:$('closedGrid'), unregisteredCount:$('unregisteredCount'), upcomingCount:$('upcomingCount'), closedCount:$('closedCount'), myExamSearch:$('myExamSearch'), myExamFilter:$('myExamFilter'), myExamTabs:$$('[data-my-tab]'), myExamSummaryPill:$('myExamSummaryPill'), registeredGrid:$('registeredGrid'), resumeMyGrid:$('resumeMyGrid'), reexamGrid:$('reexamGrid'), registeredCount:$('registeredCount'), resumeMyCount:$('resumeMyCount'), reexamCount:$('reexamCount'), resultsSummaryGrid:$('resultsSummaryGrid'), resultsFilter:$('resultsFilter'), resultsSearch:$('resultsSearch'), resultsResetBtn:$('resultsResetBtn'), resultsBody:$('resultsBody'), certificatesSummaryGrid:$('certificatesSummaryGrid'), certificatesFilter:$('certificatesFilter'), certificatesSearch:$('certificatesSearch'), certificatesResetBtn:$('certificatesResetBtn'), certificatesGrid:$('certificatesGrid'), leaderboardModeToggle:$('leaderboardModeToggle'), leaderboardModeButtons:$$('[data-leaderboard-mode]', $('leaderboardModeToggle')), leaderboardSearch:$('leaderboardSearch'), leaderboardSort:$('leaderboardSort'), leaderboardRefresh:$('leaderboardRefresh'), leaderboardSummaryGrid:$('leaderboardSummaryGrid'), yourRankCard:$('yourRankCard'), podiumGrid:$('podiumGrid'), leaderboardBody:$('leaderboardBody'), analyticsCards:$('analyticsCards'), analyticsLineChart:$('analyticsLineChart'), analyticsBarChart:$('analyticsBarChart'), analyticsDonutChart:$('analyticsDonutChart'), editProfileBtn:$('editProfileBtn'), saveProfileBtn:$('saveProfileBtn'), profileForm:$('profileForm'), detailModal:$('detailModal'), detailModalKicker:$('detailModalKicker'), detailModalTitle:$('detailModalTitle'), detailModalBody:$('detailModalBody'), detailModalFoot:$('detailModalFoot'), detailModalClose:$('detailModalClose'), examVerificationModal:$('examVerificationModal'), examVerificationClose:$('examVerificationClose'), examVerificationTitle:$('examVerificationTitle'), examVerificationSubtitle:$('examVerificationSubtitle'), examVerificationBody:$('examVerificationBody'), examVerificationFoot:$('examVerificationFoot'), examStepper:$('examStepper'), examSecurityIndicators:$('examSecurityIndicators'), toastStack:$('toastStack'), liveClock:$('liveClock') }); }
+  function bind() { Object.assign(el, { sidebar:$('sidebar'), toggle:$('toggle-sidebar'), logout:$('logoutBtn'), sideNav:$('sideNav'), sidebarAvatar:$('sidebarAvatar'), sidebarName:$('sidebarName'), sidebarRole:$('sidebarRole'), topAvatar:$('topAvatar'), topName:$('topName'), topSearch:$('top-nav-search'), notifBtn:$('notifBtn'), notifCount:$('notifCount'), notifNavCount:$('notifNavCount'), notifyDrop:$('notifyDrop'), notifyDropCount:$('notifyDropCount'), notifyList:$('notifyList'), notificationTypeFilter:$('notificationTypeFilter'), markAllReadBtn:$('markAllReadBtn'), clearNotificationsBtn:$('clearNotificationsBtn'), unreadNotificationCount:$('unreadNotificationCount'), notificationStream:$('notificationStream'), scheduleDateFilter:$('scheduleDateFilter'), scheduleList:$('scheduleList'), scheduleTimeline:$('scheduleTimeline'), scheduleTodayLabel:$('scheduleTodayLabel'), proctoringStatusGrid:$('proctoringStatusGrid'), proctoringSummaryPanel:$('proctoringSummaryPanel'), faqAccordion:$('faqAccordion'), contactSupportForm:$('contactSupportForm'), reportIssueForm:$('reportIssueForm'), supportTabs:$$('[data-support-tab]'), supportPanels:$$('[data-support-panel]'), profileDd:$('profileDd'), profileMenuBtn:$('profileMenuBtn'), profileMenu:$('profileMenu'), profileLogout:$('profileLogout'), themeToggle:$('themeToggle'), themeButtons:$$('[data-theme-mode]', $('themeToggle')), dashStatsGrid:$('dashStatsGrid'), recentAttemptsBody:$('recentAttemptsBody'), performanceTrendChart:$('performanceTrendChart'), chartPlaceholder:$('chartPlaceholder'), refreshDashboard:$('refreshDashboard'), dashboardActionBtn:$('dashboardActionBtn'), attemptsResetBtn:$('attemptsResetBtn'), examSearch:$('examSearch'), examFilter:$('examFilter'), refreshExamsBtn:$('refreshExamsBtn'), examTabs:$$('[data-tab]'), summaryPill:$('summaryPill'), examStatusLegend:$('examStatusLegend'), unregisteredGrid:$('unregisteredGrid'), upcomingGrid:$('upcomingGrid'), closedGrid:$('closedGrid'), unregisteredCount:$('unregisteredCount'), upcomingCount:$('upcomingCount'), closedCount:$('closedCount'), myExamSearch:$('myExamSearch'), myExamFilter:$('myExamFilter'), myExamTabs:$$('[data-my-tab]'), myExamSummaryPill:$('myExamSummaryPill'), registeredGrid:$('registeredGrid'), resumeMyGrid:$('resumeMyGrid'), reexamGrid:$('reexamGrid'), registeredCount:$('registeredCount'), resumeMyCount:$('resumeMyCount'), reexamCount:$('reexamCount'), resultsSummaryGrid:$('resultsSummaryGrid'), resultsFilter:$('resultsFilter'), resultsSearch:$('resultsSearch'), resultsResetBtn:$('resultsResetBtn'), resultsBody:$('resultsBody'), certificatesSummaryGrid:$('certificatesSummaryGrid'), certificatesFilter:$('certificatesFilter'), certificatesSearch:$('certificatesSearch'), certificatesResetBtn:$('certificatesResetBtn'), certificatesGrid:$('certificatesGrid'), leaderboardModeToggle:$('leaderboardModeToggle'), leaderboardModeButtons:$$('[data-leaderboard-mode]', $('leaderboardModeToggle')), leaderboardSearch:$('leaderboardSearch'), leaderboardSort:$('leaderboardSort'), leaderboardRefresh:$('leaderboardRefresh'), leaderboardSummaryGrid:$('leaderboardSummaryGrid'), yourRankCard:$('yourRankCard'), podiumGrid:$('podiumGrid'), leaderboardBody:$('leaderboardBody'), analyticsCards:$('analyticsCards'), analyticsLineChart:$('analyticsLineChart'), analyticsBarChart:$('analyticsBarChart'), analyticsDonutChart:$('analyticsDonutChart'), editProfileBtn:$('editProfileBtn'), saveProfileBtn:$('saveProfileBtn'), profileForm:$('profileForm'), detailModal:$('detailModal'), detailModalKicker:$('detailModalKicker'), detailModalTitle:$('detailModalTitle'), detailModalBody:$('detailModalBody'), detailModalFoot:$('detailModalFoot'), detailModalClose:$('detailModalClose'), examVerificationModal:$('examVerificationModal'), examVerificationClose:$('examVerificationClose'), examVerificationTitle:$('examVerificationTitle'), examVerificationSubtitle:$('examVerificationSubtitle'), examVerificationBody:$('examVerificationBody'), examVerificationFoot:$('examVerificationFoot'), examStepper:$('examStepper'), examSecurityIndicators:$('examSecurityIndicators'), toastStack:$('toastStack'), liveClock:$('liveClock') }); }
   function hydrateIcons(root = document) {
     $$('[data-icon]', root).forEach((node) => {
       const name = node.dataset.icon;
@@ -1261,8 +1299,11 @@
     st.examUi.form = createDefaultExamForm(exam);
     if (el.examVerificationTitle) el.examVerificationTitle.textContent = `${exam.examCode} - ${exam.title}`;
     if (el.examVerificationSubtitle) {
+      const isPhase2 = mode === 'register-phase2';
       el.examVerificationSubtitle.textContent = mode === 'register'
         ? `Secure registration verification for ${exam.subject} opens at ${formatExamDateTime(exam)}.`
+        : isPhase2
+        ? `Phase 2 registration with enhanced verification for ${exam.subject} starts at ${formatExamDateTime(exam)}.`
         : `Secure verification for ${exam.subject} starts at ${formatExamDateTime(exam)}.`;
     }
     el.examVerificationModal.classList.remove('hidden');
@@ -1291,8 +1332,19 @@
   function isStep6Valid() {
     return !!st.examUi.form.registrationConfirmed;
   }
+  function isStep7Valid() {
+    return !!st.examUi.form.phase2VerificationCode;
+  }
+  function isStep8Valid() {
+    return !!st.examUi.form.phase2Confirmed;
+  }
   function canStartExam() {
-    return isStep1Valid() && isStep2Valid() && isStep3Valid() && isStep4Valid() && isStep5Valid();
+    const isPhase2 = (st.examUi.mode || 'start') === 'register-phase2';
+    const baseValid = isStep1Valid() && isStep2Valid() && isStep3Valid() && isStep4Valid() && isStep5Valid();
+    if (isPhase2) {
+      return baseValid && isStep6Valid() && isStep7Valid() && isStep8Valid();
+    }
+    return baseValid;
   }
   function renderExamStepper() {
     if (!el.examStepper) return;
@@ -1303,7 +1355,12 @@
       'Terms & Conditions',
       'Declaration'
     ];
-    if ((st.examUi.mode || 'start') === 'register') steps.push('Registration Review', 'Final Confirmation');
+    const isPhase2 = (st.examUi.mode || 'start') === 'register-phase2';
+    if ((st.examUi.mode || 'start') === 'register' || isPhase2) {
+      steps.push('Registration Review');
+      if (isPhase2) steps.push('Phase 2 Verification', 'Final Confirmation');
+      else steps.push('Final Confirmation');
+    }
     el.examStepper.innerHTML = steps.map((label, index) => {
       const step = index + 1;
       const active = st.examUi.step === step;
@@ -1449,7 +1506,7 @@
         </div>
       </div>`;
   }
-  function renderVerificationStep7(exam) {
+  function renderVerificationStep7Regular(exam) {
     const form = st.examUi.form || createDefaultExamForm(exam);
     return `
       <div class="exam-step-panel">
@@ -1479,6 +1536,63 @@
         </label>
       </div>`;
   }
+  function renderVerificationStep7Phase2(exam) {
+    const form = st.examUi.form || createDefaultExamForm(exam);
+    return `
+      <div class="exam-step-panel">
+        <div class="registration-review-panel phase2-panel">
+          <strong>Phase 2 Verification Required</strong>
+          <p>This is the final registration window with enhanced security verification. Please enter the verification code sent to your registered email/mobile.</p>
+        </div>
+        <div class="verification-summary phase2-summary">
+          <label class="verification-field ${form.phase2VerificationCode ? 'valid' : ''}">
+            <span>Verification Code</span>
+            <input id="examPhase2Code" type="text" value="${escapeHtml(form.phase2VerificationCode || '')}" placeholder="Enter 6-digit verification code" maxlength="6" required>
+            <small id="examPhase2CodeError" class="field-error">Valid verification code is required for phase 2 registration.</small>
+          </label>
+          <div class="phase2-info">
+            <p><strong>Why Phase 2 verification?</strong></p>
+            <ul>
+              <li>Enhanced security for last-minute registrations</li>
+              <li>Additional identity confirmation</li>
+              <li>Prevents unauthorized access</li>
+            </ul>
+          </div>
+        </div>
+      </div>`;
+  }
+  function renderVerificationStep8Phase2(exam) {
+    const form = st.examUi.form || createDefaultExamForm(exam);
+    return `
+      <div class="exam-step-panel">
+        <div class="registration-review-panel phase2-final">
+          <strong>Phase 2 Registration Confirmation</strong>
+          <p>Please review all details and confirm your phase 2 registration. This final step completes the enhanced verification process.</p>
+        </div>
+        <div class="verification-summary registration-summary phase2-confirmation">
+          <div class="detail-grid">
+            <div class="detail-item"><span>Full Name</span><strong>${escapeHtml(form.fullName)}</strong></div>
+            <div class="detail-item"><span>Registration Number</span><strong>${escapeHtml(form.registrationNumber)}</strong></div>
+            <div class="detail-item"><span>Email</span><strong>${escapeHtml(form.email)}</strong></div>
+            <div class="detail-item"><span>Department</span><strong>${escapeHtml(form.department)}</strong></div>
+            <div class="detail-item"><span>Verification Code</span><strong>${escapeHtml(form.phase2VerificationCode || '-')}</strong></div>
+            <div class="detail-item"><span>Registration Phase</span><strong>Phase 2 (Enhanced)</strong></div>
+          </div>
+          <div class="phase2-confirmation-notice">
+            <p><strong>Phase 2 Registration Notice:</strong></p>
+            <ul>
+              <li>This registration uses enhanced verification</li>
+              <li>Additional security measures are in place</li>
+              <li>Registration is time-sensitive</li>
+            </ul>
+          </div>
+          <label class="verification-check verification-check-strong">
+            <input id="examPhase2Confirmed" type="checkbox" ${st.examUi.form.phase2Confirmed ? 'checked' : ''}>
+            <span>I confirm phase 2 registration with enhanced verification</span>
+          </label>
+        </div>
+      </div>`;
+  }
   function renderExamVerificationBody() {
     const exam = getActiveVerificationExam();
     if (!exam || !el.examVerificationBody) return;
@@ -1490,7 +1604,8 @@
       4: renderVerificationStep4(),
       5: renderVerificationStep5(exam),
       6: renderVerificationStep6(exam),
-      7: renderVerificationStep7(exam)
+      7: (st.examUi.mode === 'register-phase2' ? renderVerificationStep7Phase2(exam) : renderVerificationStep7Regular(exam)),
+      8: renderVerificationStep8Phase2(exam)
     };
     el.examVerificationBody.innerHTML = map[step] || map[1];
   }
@@ -1499,18 +1614,22 @@
     const step = st.examUi.step;
     const mode = st.examUi.mode || 'start';
     const prevDisabled = step === 1;
+    const isPhase2 = mode === 'register-phase2';
     const nextDisabled = (step === 1 && !isStep1Valid())
       || (step === 2 && !isStep2Valid())
       || (step === 3 && !isStep3Valid())
       || (step === 4 && !isStep4Valid())
       || (step === 5 && !canStartExam())
-      || (step === 7 && !isStep6Valid());
+      || (step === 7 && isPhase2 && !isStep7Valid())
+      || (step === 8 && isPhase2 && !isStep8Valid());
     const primaryLabel = step === 5
       ? (mode === 'register' ? 'Review Registration' : 'Start Exam')
       : step === 6
         ? 'Continue to Confirmation'
         : step === 7
-          ? 'Confirm Registration'
+          ? (isPhase2 ? 'Enter Verification Code' : 'Confirm Registration')
+        : step === 8
+          ? 'Complete Phase 2 Registration'
         : 'Next Step';
     el.examVerificationFoot.innerHTML = `
       <button class="btn ghost" type="button" data-verification-nav="close">Close</button>
@@ -1529,7 +1648,8 @@
       ['examMobileNumber', 'mobileNumber'],
       ['examEmergencyContact', 'emergencyContact'],
       ['examCurrentLocation', 'currentLocation'],
-      ['examIdConfirmationNumber', 'idConfirmationNumber']
+      ['examIdConfirmationNumber', 'idConfirmationNumber'],
+      ['examPhase2Code', 'phase2VerificationCode']
     ];
     map.forEach(([id, key]) => {
       const input = $(id);
@@ -1551,10 +1671,12 @@
     if (target.id === 'examEmergencyContact') setVerificationField('emergencyContact', target.value);
     if (target.id === 'examCurrentLocation') setVerificationField('currentLocation', target.value);
     if (target.id === 'examIdConfirmationNumber') setVerificationField('idConfirmationNumber', target.value);
+    if (target.id === 'examPhase2Code') setVerificationField('phase2VerificationCode', target.value);
     if (target.id === 'examRulesAccepted') setVerificationField('rulesAccepted', target.checked);
     if (target.id === 'examTermsAccepted') setVerificationField('termsAccepted', target.checked);
     if (target.id === 'examDeclarationAccepted') setVerificationField('declarationAccepted', target.checked);
     if (target.id === 'examRegistrationConfirmed') setVerificationField('registrationConfirmed', target.checked);
+    if (target.id === 'examPhase2Confirmed') setVerificationField('phase2Confirmed', target.checked);
     if (target.id === 'examImageUploadInput' || target.id === 'examImageCaptureInput') {
       const file = target.files?.[0];
       if (file) {
@@ -1574,7 +1696,8 @@
     syncVerificationFieldStyles();
   }
   function moveVerificationStep(nextStep) {
-    const maxStep = (st.examUi.mode || 'start') === 'register' ? 7 : 5;
+    const mode = st.examUi.mode || 'start';
+    const maxStep = mode === 'register-phase2' ? 8 : (mode === 'register' ? 7 : 5);
     st.examUi.step = clamp(nextStep, 1, maxStep);
     updateExamVerificationUi();
   }
@@ -1588,8 +1711,19 @@
   }
   async function completeExamRegistration(code) {
     if (!code) return;
+    const isPhase2 = (st.examUi.mode || 'start') === 'register-phase2';
     try {
-      await apiRequest(`/student/exam/register/${encodeURIComponent(code)}`, { method: 'POST' });
+      if (isPhase2) {
+        const verificationData = {
+          verificationCode: st.examUi.form.phase2VerificationCode
+        };
+        await apiRequest(`/student/exam/register-phase2/${encodeURIComponent(code)}`, {
+          method: 'POST',
+          body: JSON.stringify(verificationData)
+        });
+      } else {
+        await apiRequest(`/student/exam/register/${encodeURIComponent(code)}`, { method: 'POST' });
+      }
     } catch (error) {
       console.error('Failed to register exam in backend:', error);
       toast('Registration failed', error?.message || 'Unable to register exam right now.', 'warn');
@@ -1600,7 +1734,8 @@
     closeExamVerification();
     renderExamCatalog();
     renderMyExams();
-    toast('Registration verified', 'The exam has been added to My Exams.', 'success');
+    const phaseText = isPhase2 ? 'Phase 2 ' : '';
+    toast(`${phaseText}Registration verified`, `The exam has been added to My Exams.`, 'success');
   }
   async function startVerifiedExam(code) {
     if (!code) return;
@@ -1617,9 +1752,14 @@
         st.examAttemptIds[code] = started.id;
         save(K.ea, st.examAttemptIds);
       }
+      if (!attemptId) {
+        toast('Unable to enter exam', 'Exam session could not be created. Please try again.', 'warn');
+        return;
+      }
     } catch (error) {
-      console.warn('Unable to sync exam start with backend. Continuing local flow.', error);
-      toast('Live sync warning', 'Exam start could not be fully synced. Continuing in local mode.', 'warn');
+      console.warn('Unable to start exam with backend.', error);
+      toast('Unable to enter exam', error?.message || 'Exam start failed. Please try again.', 'warn');
+      return;
     }
     st.examSessions[code] = Date.now();
     save(K.es, st.examSessions);
@@ -1631,6 +1771,18 @@
     renderExamCatalog();
     renderMyExams();
     if (exam) openExamAccess(exam);
+  }
+  function navigateToExamPage(code) {
+    if (!code) {
+      toast('Navigation failed', 'Exam code is missing. Please try again.', 'warn');
+      return;
+    }
+    const attemptId = st.examAttemptIds[code] || null;
+    if (!attemptId) {
+      toast('Navigation failed', 'No active exam attempt found. Please verify and retry.', 'warn');
+      return;
+    }
+    window.location.href = `exam/exam.html?code=${encodeURIComponent(code)}&attemptId=${encodeURIComponent(attemptId)}`;
   }
   function setSection(sec) { st.sec = sec; localStorage.setItem(K.sec, sec); $$('.section').forEach(s => s.classList.toggle('active', s.id === sec)); $$('.nav-link[data-section]').forEach(b => b.classList.toggle('active', b.dataset.section === sec)); updateTopPlaceholder(); if (isMobile()) closeSidebar(); if (!booting) refresh(); }
   function openSidebar() { el.sidebar.classList.add('open'); document.body.classList.add('sidebar-open'); }
@@ -2525,6 +2677,13 @@
       toast('Registration verification started', 'Complete the secure checks to unlock this exam.', 'info');
       return;
     }
+    if (type === 'exam-register-phase2') {
+      const e = st.data.exams.find((x) => x.examCode === code);
+      if (!e) return;
+      openExamVerification(e, 'register-phase2');
+      toast('Phase 2 registration started', 'Additional verification required. Complete the secure checks.', 'warning');
+      return;
+    }
     if (type === 'exam-enter') {
       const e = st.data.exams.find((x) => x.examCode === code);
       if (!e) return;
@@ -2533,7 +2692,7 @@
     }
     if (type === 'exam-enter-confirm') {
       closeModal();
-      toast('Exam entry opened', 'You can now proceed to the exam workspace.', 'success');
+      navigateToExamPage(code);
       return;
     }
     if (type === 'result-view') {
@@ -2729,6 +2888,7 @@
     el.topSearch.addEventListener('input', (e) => { st.q = e.target.value; localStorage.setItem(K.q, st.q); refresh(); });
     el.examFilter.addEventListener('change', renderExamCatalog);
     el.examSearch.addEventListener('input', renderExamCatalog);
+    el.refreshExamsBtn.addEventListener('click', () => runButtonFeedback(el.refreshExamsBtn, 'Refreshing exams...', renderExamCatalog, 420));
     el.examTabs.forEach((btn) => btn.addEventListener('click', () => {
       el.examTabs.forEach((tab) => tab.classList.toggle('active', tab === btn));
       renderExamCatalog();

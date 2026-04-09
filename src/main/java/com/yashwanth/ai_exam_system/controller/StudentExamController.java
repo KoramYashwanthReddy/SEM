@@ -1,5 +1,27 @@
 package com.yashwanth.ai_exam_system.controller;
 
+import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.yashwanth.ai_exam_system.dto.QuestionResponse;
 import com.yashwanth.ai_exam_system.dto.SaveAnswerRequest;
 import com.yashwanth.ai_exam_system.entity.Exam;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
@@ -20,17 +42,6 @@ import com.yashwanth.ai_exam_system.repository.StudentAnswerRepository;
 import com.yashwanth.ai_exam_system.repository.UserRepository;
 import com.yashwanth.ai_exam_system.service.ExamAttemptService;
 import com.yashwanth.ai_exam_system.service.ExamEvaluationService;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/student/exam")
@@ -86,29 +97,39 @@ public class StudentExamController {
         Long studentId = getAuthenticatedStudentId(auth);
         Exam exam = examRepository.findByExamCode(examCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+
         if (!exam.isPublished() || !exam.isActive()) {
             throw new ForbiddenException("Only active published exams can be registered");
         }
-        LocalDateTime now = LocalDateTime.now();
-        if (exam.getStartTime() != null) {
-            LocalDateTime registrationDeadline = exam.getStartTime().minusMinutes(30);
-            if (!now.isBefore(registrationDeadline)) {
-                throw new ForbiddenException("Registration closes 30 minutes before exam start time");
-            }
+
+        if (!exam.isRegistrationOpen()) {
+            throw new ForbiddenException("Registration is not open for this exam");
         }
+        if (exam.requiresPhase2Verification()) {
+            throw new ForbiddenException("Phase 2 is active. Complete additional verification to register.");
+        }
+
         if (exam.getEndTime() != null && LocalDateTime.now().isAfter(exam.getEndTime())) {
             throw new ForbiddenException("Exam window is closed");
         }
 
-        ExamRegistration registration = examRegistrationRepository
+        // Check if already registered
+        boolean alreadyRegistered = examRegistrationRepository
                 .findByStudentIdAndExamCode(studentId, examCode)
-                .orElseGet(ExamRegistration::new);
+                .isPresent();
 
+        if (alreadyRegistered) {
+            throw new ForbiddenException("You are already registered for this exam");
+        }
+
+        ExamRegistration registration = new ExamRegistration();
         registration.setStudentId(studentId);
         registration.setExamId(exam.getId());
         registration.setExamCode(examCode);
         registration.setActive(true);
         registration.setSource("STUDENT_UI");
+        registration.setRegistrationPhase("PHASE1");
+        registration.setPhase2Verified(false);
         registration.setRegisteredAt(LocalDateTime.now());
         examRegistrationRepository.save(registration);
 
@@ -118,9 +139,106 @@ public class StudentExamController {
         response.put("examCode", examCode);
         response.put("registrationId", registration.getId());
         response.put("registeredAt", registration.getRegisteredAt());
+        response.put("registrationPhase", exam.getCurrentRegistrationPhase().name());
+
         if (exam.getStartTime() != null) {
-            response.put("registrationDeadline", exam.getStartTime().minusMinutes(30));
-            response.put("verificationStartsAt", exam.getStartTime().minusMinutes(10));
+            response.put("registrationStartTime", exam.getRegistrationStartTime());
+            response.put("phase1EndTime", exam.getPhase1EndTime());
+            response.put("phase2StartTime", exam.getPhase2StartTime());
+            response.put("examStartsAt", exam.getStartTime());
+            response.put("requiresPhase2Verification", exam.requiresPhase2Verification());
+        }
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/registration-status/{examCode}")
+    public ResponseEntity<?> getRegistrationStatus(@PathVariable String examCode, Authentication auth) {
+        Long studentId = getAuthenticatedStudentId(auth);
+        Exam exam = examRepository.findByExamCode(examCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+
+        boolean isRegistered = examRegistrationRepository
+                .findByStudentIdAndExamCode(studentId, examCode)
+                .isPresent();
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("examCode", examCode);
+        response.put("studentId", studentId);
+        response.put("isRegistered", isRegistered);
+        response.put("examPublished", exam.isPublished());
+        response.put("examActive", exam.isActive());
+        response.put("registrationOpen", exam.isRegistrationOpen());
+        response.put("currentPhase", exam.getCurrentRegistrationPhase().name());
+
+        if (exam.getStartTime() != null) {
+            response.put("examStartTime", exam.getStartTime());
+            response.put("registrationStartTime", exam.getRegistrationStartTime());
+            response.put("phase1EndTime", exam.getPhase1EndTime());
+            response.put("phase2StartTime", exam.getPhase2StartTime());
+            response.put("requiresPhase2Verification", exam.requiresPhase2Verification());
+        }
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/register-phase2/{examCode}")
+    public ResponseEntity<?> registerExamPhase2(@PathVariable String examCode,
+                                               @RequestBody Map<String, Object> verificationData,
+                                               Authentication auth) {
+        Long studentId = getAuthenticatedStudentId(auth);
+        Exam exam = examRepository.findByExamCode(examCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+
+        if (!exam.isPublished() || !exam.isActive()) {
+            throw new ForbiddenException("Only active published exams can be registered");
+        }
+        if (!exam.isRegistrationOpen() || !exam.isInPhase2()) {
+            throw new ForbiddenException("Phase 2 registration is not available at this time");
+        }
+        if (!exam.requiresPhase2Verification()) {
+            throw new ForbiddenException("Phase 2 verification is not enabled for this exam");
+        }
+
+        boolean alreadyRegistered = examRegistrationRepository
+                .findByStudentIdAndExamCode(studentId, examCode)
+                .isPresent();
+        if (alreadyRegistered) {
+            throw new ForbiddenException("You are already registered for this exam");
+        }
+
+        String verificationCode = String.valueOf(verificationData.getOrDefault("verificationCode", "")).trim();
+        if (verificationCode.isBlank()) {
+            throw new ForbiddenException("Verification code is required for Phase 2 registration");
+        }
+        if (verificationCode.length() < 6) {
+            throw new ForbiddenException("Verification code must be at least 6 characters");
+        }
+
+        ExamRegistration registration = new ExamRegistration();
+        registration.setStudentId(studentId);
+        registration.setExamId(exam.getId());
+        registration.setExamCode(examCode);
+        registration.setActive(true);
+        registration.setSource("STUDENT_UI_PHASE2");
+        registration.setRegistrationPhase("PHASE2");
+        registration.setPhase2Verified(true);
+        registration.setPhase2VerificationMethod("CODE");
+        registration.setPhase2VerificationCodeHash(hashVerificationCode(verificationCode));
+        registration.setPhase2VerifiedAt(LocalDateTime.now());
+        registration.setRegisteredAt(LocalDateTime.now());
+        examRegistrationRepository.save(registration);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("registered", true);
+        response.put("studentId", studentId);
+        response.put("examCode", examCode);
+        response.put("registrationId", registration.getId());
+        response.put("registeredAt", registration.getRegisteredAt());
+        response.put("registrationPhase", registration.getRegistrationPhase());
+        response.put("phase2Verified", registration.getPhase2Verified());
+        response.put("phase2VerifiedAt", registration.getPhase2VerifiedAt());
+        if (exam.getStartTime() != null) {
             response.put("examStartsAt", exam.getStartTime());
         }
         return ResponseEntity.ok(response);
@@ -141,10 +259,22 @@ public class StudentExamController {
 
     @GetMapping("/{examCode}/questions")
     public ResponseEntity<?> loadQuestions(@PathVariable String examCode, Authentication auth) {
-        getAuthenticatedStudentId(auth);
+        Long studentId = getAuthenticatedStudentId(auth);
+        boolean isRegistered = examRegistrationRepository
+                .findByStudentIdAndExamCode(studentId, examCode)
+                .map(ExamRegistration::getActive)
+                .orElse(false);
+        if (!isRegistered) {
+            throw new ForbiddenException("Please register for the exam before loading questions");
+        }
 
-        List<Question> questions = questionRepository.findByExamCode(examCode);
-        return ResponseEntity.ok(questions);
+        List<Question> questions = questionRepository.findByExamCodeAndActiveTrue(examCode);
+        questions.sort(Comparator.comparing((Question question) -> Optional.ofNullable(question.getDisplayOrder()).orElse(Integer.MAX_VALUE))
+                .thenComparing(Question::getId));
+        List<QuestionResponse> response = questions.stream()
+                .map(this::toStudentQuestionResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
     }
 
     // ================= SAVE ANSWER =================
@@ -250,4 +380,40 @@ public class StudentExamController {
         }
         return user.getId();
     }
+
+    private QuestionResponse toStudentQuestionResponse(Question q) {
+        QuestionResponse response = new QuestionResponse();
+        response.setId(q.getId());
+        response.setQuestionText(q.getQuestionText());
+        response.setOptionA(q.getOptionA());
+        response.setOptionB(q.getOptionB());
+        response.setOptionC(q.getOptionC());
+        response.setOptionD(q.getOptionD());
+        response.setOptionE(q.getOptionE());
+        response.setOptionF(q.getOptionF());
+        response.setQuestionType(q.getQuestionType() != null ? q.getQuestionType().name() : null);
+        response.setMarks(q.getMarks());
+        response.setDifficulty(q.getDifficulty());
+        response.setTopic(q.getTopic());
+        response.setShuffleOptions(q.getShuffleOptions());
+        response.setDisplayOrder(q.getDisplayOrder());
+        response.setSampleInput(q.getSampleInput());
+        response.setSampleOutput(q.getSampleOutput());
+        return response;
+    }
+
+    private String hashVerificationCode(String verificationCode) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(verificationCode.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException ex) {
+            throw new ForbiddenException("Unable to process verification code at this time");
+        }
+    }
+
 }

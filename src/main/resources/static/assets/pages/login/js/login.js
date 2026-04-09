@@ -10,8 +10,11 @@ const Login = (() => {
   const btnText = submitBtn?.querySelector('.btn-text');
   const emailInput = document.getElementById('email');
   const passwordInput = document.getElementById('password');
+  const rememberCheckbox = document.getElementById('remember-me');
+  const loginErrorBox = document.getElementById('student-login-error');
+  const loginErrorMessage = document.getElementById('student-login-error-message');
   const card = document.querySelector('.card');
-  const ROLE = 'STUDENT';
+  const REMEMBER_KEY = 'remember.student.identifier';
   let speedTimeout;
 
   function sanitizeUserForStorage(raw) {
@@ -54,6 +57,7 @@ const Login = (() => {
     }
     setupListeners();
     setup3DCardTilt();
+    hydrateRememberedIdentifier();
     console.log('Student Login Module Initialized');
   }
 
@@ -74,6 +78,8 @@ const Login = (() => {
 
     form?.addEventListener('submit', handleLogin);
     submitBtn?.addEventListener('click', speedMarquee);
+    emailInput?.addEventListener('input', clearError);
+    passwordInput?.addEventListener('input', clearError);
   }
 
   /**
@@ -95,12 +101,14 @@ const Login = (() => {
    */
   async function handleLogin(e) {
     e.preventDefault();
+    clearError();
 
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
+    const remember = Boolean(rememberCheckbox?.checked);
 
     if (!email || !password) {
-      showError('Please fill in all fields');
+      showError('Please enter your email and password.');
       return;
     }
 
@@ -136,10 +144,13 @@ const Login = (() => {
       if (data.role !== 'STUDENT') {
         throw new Error('Access denied. Student only.');
       }
-      safeSetStorage('token', token);
-      safeSetStorage('accessToken', token);
-      safeSetStorage('role', data.role);
-      safeSetStorage('user', JSON.stringify(sanitizeUserForStorage(data)));
+      persistAuthData({
+        role: data.role,
+        token,
+        user: sanitizeUserForStorage(data),
+        remember
+      });
+      persistRememberedIdentifier(email, remember);
 
       setSuccess();
 
@@ -175,8 +186,52 @@ const Login = (() => {
   }
 
   function showError(msg) {
-    console.warn('Login Error:', msg);
-    alert(msg); // you can replace with toast UI
+    const finalMessage = normalizeLoginErrorMessage(msg);
+    console.warn('Login Error:', finalMessage);
+    if (loginErrorMessage) loginErrorMessage.textContent = finalMessage;
+    loginErrorBox?.removeAttribute('hidden');
+  }
+
+  function clearError() {
+    if (loginErrorMessage) loginErrorMessage.textContent = '';
+    loginErrorBox?.setAttribute('hidden', 'hidden');
+  }
+
+  function normalizeLoginErrorMessage(message) {
+    const text = String(message || '').toLowerCase();
+    if (text.includes('invalid credentials')) {
+      return 'Invalid credentials. Please verify your email and password.';
+    }
+    return message || 'Unable to connect to server. Please try again.';
+  }
+
+  function persistRememberedIdentifier(identifier, remember) {
+    if (remember) {
+      safeSetStorage(REMEMBER_KEY, identifier);
+      return;
+    }
+    localStorage.removeItem(REMEMBER_KEY);
+  }
+
+  function hydrateRememberedIdentifier() {
+    const remembered = String(localStorage.getItem(REMEMBER_KEY) || '').trim();
+    if (!remembered || !emailInput) return;
+    emailInput.value = remembered;
+    if (rememberCheckbox) rememberCheckbox.checked = true;
+  }
+
+  function persistAuthData({ role, token, user, remember }) {
+    const primary = remember ? localStorage : sessionStorage;
+    const secondary = remember ? sessionStorage : localStorage;
+
+    ['token', 'accessToken', 'role', 'user', 'teacher'].forEach((key) => {
+      secondary.removeItem(key);
+    });
+
+    primary.setItem('token', token);
+    primary.setItem('accessToken', token);
+    primary.setItem('role', role);
+    primary.setItem('user', JSON.stringify(user));
   }
 
   /**

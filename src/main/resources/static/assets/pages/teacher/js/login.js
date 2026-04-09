@@ -11,6 +11,12 @@ const TeacherLogin = (() => {
   const form = document.getElementById('teacher-login-form');
   const submitBtn = document.getElementById('submit-btn');
   const btnText = submitBtn?.querySelector('.btn-text');
+  const teacherIdInput = document.getElementById('teacher-id');
+  const passwordInput = document.getElementById('password');
+  const rememberCheckbox = document.getElementById('remember-teacher');
+  const loginErrorBox = document.getElementById('teacher-login-error');
+  const loginErrorMessage = document.getElementById('teacher-login-error-message');
+  const REMEMBER_KEY = 'remember.teacher.identifier';
   let speedTimeout;
 
   function sanitizeUserForStorage(raw) {
@@ -34,16 +40,6 @@ const TeacherLogin = (() => {
     };
   }
 
-  function safeSetStorage(key, value) {
-    try {
-      localStorage.setItem(key, value);
-      return true;
-    } catch (error) {
-      console.warn(`Skipping localStorage key '${key}' due to quota/storage error`, error);
-      return false;
-    }
-  }
-
   async function readErrorMessage(response) {
     const fallback = response?.statusText || `Request failed (${response?.status || "unknown"})`;
     try {
@@ -65,6 +61,7 @@ const TeacherLogin = (() => {
       ThemeController.init();
     }
     setupListeners();
+    hydrateRememberedIdentifier();
     console.log('Teacher Login Console Active');
   }
 
@@ -81,6 +78,8 @@ const TeacherLogin = (() => {
 
     form?.addEventListener('submit', handleLogin);
     submitBtn?.addEventListener('click', speedMarquee);
+    teacherIdInput?.addEventListener('input', clearError);
+    passwordInput?.addEventListener('input', clearError);
   }
 
   function speedMarquee() {
@@ -96,12 +95,14 @@ const TeacherLogin = (() => {
 
   async function handleLogin(e) {
     e.preventDefault();
+    clearError();
 
-    const email = document.getElementById('teacher-id')?.value.trim();
-    const password = document.getElementById('password')?.value.trim();
+    const email = teacherIdInput?.value.trim();
+    const password = passwordInput?.value.trim();
+    const remember = Boolean(rememberCheckbox?.checked);
 
     if (!email || !password) {
-      alert("Please enter teacher credentials");
+      showError("Please enter your email/employee ID and password.");
       return;
     }
 
@@ -139,12 +140,11 @@ const TeacherLogin = (() => {
       }
 
       // ================= SAVE TOKEN =================
-      safeSetStorage("token", token);
-      safeSetStorage("accessToken", token);
-      safeSetStorage("role", data.role);
-
-      // ================= SAVE TEACHER DATA =================
-      safeSetStorage("teacher", JSON.stringify({
+      persistAuthData({
+        token,
+        role: data.role,
+        user: sanitizeUserForStorage(data),
+        teacher: {
         id: data.id,
         name: data.name,
         email: data.email,
@@ -152,10 +152,10 @@ const TeacherLogin = (() => {
         designation: data.designation,
         qualification: data.qualification,
         employeeId: data.employeeId
-      }));
-
-      // Save full response
-      safeSetStorage("user", JSON.stringify(sanitizeUserForStorage(data)));
+        },
+        remember
+      });
+      persistRememberedIdentifier(email, remember);
 
       setSuccess();
 
@@ -166,7 +166,7 @@ const TeacherLogin = (() => {
     } catch (error) {
       console.error("Teacher Login Error:", error);
       setLoading(false);
-      alert(error.message);
+      showError(error.message);
     }
   }
 
@@ -188,6 +188,55 @@ const TeacherLogin = (() => {
     if (btnText) {
       btnText.textContent = 'Gateway Established';
     }
+  }
+
+  function showError(msg) {
+    const finalMessage = normalizeLoginErrorMessage(msg);
+    if (loginErrorMessage) loginErrorMessage.textContent = finalMessage;
+    loginErrorBox?.removeAttribute('hidden');
+  }
+
+  function clearError() {
+    if (loginErrorMessage) loginErrorMessage.textContent = '';
+    loginErrorBox?.setAttribute('hidden', 'hidden');
+  }
+
+  function normalizeLoginErrorMessage(message) {
+    const text = String(message || '').toLowerCase();
+    if (text.includes('invalid credentials')) {
+      return 'Invalid credentials. Please verify your email and password.';
+    }
+    return message || 'Unable to connect to server. Please try again.';
+  }
+
+  function persistRememberedIdentifier(identifier, remember) {
+    if (remember) {
+      localStorage.setItem(REMEMBER_KEY, identifier);
+      return;
+    }
+    localStorage.removeItem(REMEMBER_KEY);
+  }
+
+  function hydrateRememberedIdentifier() {
+    const remembered = String(localStorage.getItem(REMEMBER_KEY) || '').trim();
+    if (!remembered || !teacherIdInput) return;
+    teacherIdInput.value = remembered;
+    if (rememberCheckbox) rememberCheckbox.checked = true;
+  }
+
+  function persistAuthData({ token, role, user, teacher, remember }) {
+    const primary = remember ? localStorage : sessionStorage;
+    const secondary = remember ? sessionStorage : localStorage;
+
+    ['token', 'accessToken', 'role', 'user', 'teacher'].forEach((key) => {
+      secondary.removeItem(key);
+    });
+
+    primary.setItem('token', token);
+    primary.setItem('accessToken', token);
+    primary.setItem('role', role);
+    primary.setItem('teacher', JSON.stringify(teacher));
+    primary.setItem('user', JSON.stringify(user));
   }
 
   return { init };

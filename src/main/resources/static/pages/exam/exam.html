@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enterprise AI Exam System</title>
+  
+  <link rel="stylesheet" href="../../assets/pages/exam/css/themes.css">
+  <link rel="stylesheet" href="../../assets/pages/exam/css/base.css">
+  <link rel="stylesheet" href="../../assets/pages/exam/css/layout.css">
+  <link rel="stylesheet" href="../../assets/pages/exam/css/components.css">
+  <link rel="stylesheet" href="../../assets/pages/exam/css/responsive.css">
+  
+  <!-- Fallback icons using SVG directly in markup to prevent blocking/missing icons -->
+</head>
+<body>
+ 
+<div class="app-container">
+  
+  <!-- Proctoring Setup Overlay -->
+  <div class="proctoring-overlay active" id="proctoring-setup-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; background: radial-gradient(circle at center, var(--bg-secondary) 0%, var(--bg-primary) 100%); display:flex; align-items:center; justify-content:center; flex-direction:column; padding:2rem; text-align:center;">
+    <div style="background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); padding:2.5rem; border-radius:1.5rem; box-shadow:var(--shadow-lg); max-width:850px; width:100%; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; text-align: left;">
+      
+      <div class="setup-left">
+        <h2 style="margin-bottom:0.5rem; color: var(--primary-color);">Security Verification</h2>
+        <p style="color:var(--text-secondary); margin-bottom:1.5rem; font-size: 0.875rem;">Ensure your environment is quiet and well-lit. Review your orientation below.</p>
+        
+        <!-- Large Camera Preview for Setup -->
+        <div id="setup-camera-preview" style="width: 100%; aspect-ratio: 16/9; background:#000; border-radius: 12px; margin-bottom: 1.5rem; position:relative; overflow:hidden; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: var(--shadow-sm);">
+            <div style="display:flex; height:100%; width:100%; align-items:center; justify-content:center; color:#555; text-align:center; padding:10px; font-size: 0.875rem;">
+               Initializing camera...
+            </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.5rem;">
+          <div id="setup-status-cam" style="display:flex; justify-content:space-between; padding:0.75rem; background: rgba(0,0,0,0.2); border-radius:8px; font-size: 0.85rem;">
+            <span>Webcam Detection</span>
+            <span style="opacity:0.6;">Waiting...</span>
+          </div>
+          <div id="setup-status-mic" style="display:flex; justify-content:space-between; padding:0.75rem; background: rgba(0,0,0,0.2); border-radius:8px; font-size: 0.85rem;">
+            <span>Microphone Detection</span>
+            <span style="opacity:0.6;">Waiting...</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="setup-right">
+        <h3 style="margin-bottom:1rem; font-size: 1.1rem; color: var(--primary-color);">Detailed Examination Protocol</h3>
+        <div style="max-height: 280px; overflow-y: auto; padding-right: 10px; font-size: 0.825rem; color: var(--text-secondary);">
+          
+          <div style="margin-bottom: 1.25rem;">
+            <strong style="color: var(--primary-color); display: block; margin-bottom: 4px;">🚀 1. SYSTEM REQUIREMENTS</strong>
+            <ul style="padding-left: 1.25rem; margin: 0; display: flex; flex-direction: column; gap: 4px;">
+              <li><strong>Desktop Only:</strong> For optimal performance, UI rendering, and proctoring stability, please use a <strong>Desktop or Laptop</strong>.</li>
+              <li>Mobile devices or tablets may lack the screen real estate required for the coding terminal.</li>
+            </ul>
+          </div>
+
+          <div style="margin-bottom: 1.25rem;">
+            <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">2. STRUCTURE & FULLSCREEN MODE</strong>
+            <ul style="padding-left: 1.25rem; margin: 0; display: flex; flex-direction: column; gap: 4px;">
+              <li><strong>Mandatory Fullscreen:</strong> The exam takes over the full-screen upon start.</li>
+              <li>Total 15 Questions across 3 difficulty levels: Easy, Medium, and Hard.</li>
+              <li><strong>Mandatory Review:</strong> For manual finishers, use the 'Review Answers' feature to verify all responses before the final submission.</li>
+            </ul>
+          </div>
+
+          <div style="margin-bottom: 1.25rem;">
+            <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">2. MARK FOR REVIEW POLICY</strong>
+            <ul style="padding-left: 1.25rem; margin: 0; display: flex; flex-direction: column; gap: 4px;">
+              <li>Strict Limit: You can only mark <strong>5 questions per difficulty level</strong> for later review.</li>
+              <li>Marked questions are highlighted in the Question Palette for easy access.</li>
+              <li>You can see a full summary of your marks before final submission.</li>
+            </ul>
+          </div>
+
+          <div style="margin-bottom: 1.25rem;">
+            <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">4. AI PROCTORING & SECURITY</strong>
+            <ul style="padding-left: 1.25rem; margin: 0; display: flex; flex-direction: column; gap: 4px;">
+              <li><strong>Mandatory Fullscreen:</strong> On start, the exam will automatically enter fullscreen mode and stay locked there.</li>
+              <li><strong>Restricted Actions:</strong> Using <strong>Ctrl</strong>, <strong>Cmd</strong>, or any other keyboard shortcuts (Copy, Cut, Paste, F12) will lead to an immediate <strong>Proctoring Violation</strong>.</li>
+              <li><strong>System (5 strikes):</strong> Tab switching, focal loss, browser minimizing, or using restricted shortcuts/keys.</li>
+              <li><strong>Audio (10 strikes):</strong> Integrated voice detection monitors for background sounds.</li>
+            </ul>
+          </div>
+
+          <div style="margin-bottom: 1.25rem;">
+            <strong style="color: var(--text-primary); display: block; margin-bottom: 4px;">4. NAVIGATION & SHORTCUTS</strong>
+            <ul style="padding-left: 1.25rem; margin: 0; display: flex; flex-direction: column; gap: 4px;">
+              <li>Use <strong>Arrow Keys</strong> (Left/Right) for fast question navigation.</li>
+              <li>Press '<strong>M</strong>' key to instantly toggle 'Mark for Review'.</li>
+              <li>The <strong>Clear Response</strong> button removes your current answer and resets status.</li>
+            </ul>
+          </div>
+
+          <div style="margin-bottom: 0.5rem; background: rgba(220, 53, 69, 0.05); padding: 10px; border-radius: 6px; border: 1px solid rgba(220, 53, 69, 0.2);">
+            <strong style="color: var(--danger-color); display: block; margin-bottom: 4px;">SECTION V: ZERO TOLERANCE POLICY</strong>
+            <p style="margin: 0; font-style: italic;">The system is strictly monitored by AI. We are not responsible for any type of cheating or misconduct. Any attempt to circumvent the security protocols will result in immediate disqualification and a permanent ban.</p>
+          </div>
+
+        </div>
+
+        <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-color);">
+           <label class="checkbox-label" style="font-size: 0.85rem; cursor: pointer; display: flex; align-items: flex-start; gap: 10px;">
+              <input type="checkbox" id="setup-consent-chk" style="width: 18px; height: 18px; margin-top: 2px;">
+              <span>I have read and understood all the instructions, including the proctoring rules and cheating policy. I agree to stay in fullscreen mode for the entire duration.</span>
+           </label>
+        </div>
+
+        <button class="btn btn-primary" id="start-exam-btn" style="width:100%; margin-top: 2rem; padding: 1rem; font-weight: 600;" disabled>Begin Examination</button>
+        <div id="setup-error-msg" style="color:var(--danger-color); margin-top:1rem; font-size:0.875rem; display:none; text-align: center;">
+           Permissions denied. Access required to proceed.
+        </div>
+      </div>
+      
+    </div>
+  </div>
+  
+  <header class="exam-header">
+    <div class="header-left">
+      <div class="exam-title">AI Certification Exam 2026</div>
+      <div class="exam-badge" id="section-name">Section: Core Concepts</div>
+    </div>
+    
+    <div class="header-center">
+      <div class="proctoring-status" id="proctor-status">
+        <div class="indicator success" id="status-camera">
+          <div class="indicator-dot"></div>
+          <span>Camera Active</span>
+        </div>
+        <div class="indicator success" id="status-mic">
+          <div class="indicator-dot"></div>
+          <span>Mic Active</span>
+        </div>
+        <div class="ai-badge">AI Monitoring</div>
+      </div>
+    </div>
+    
+    <div class="header-right">
+      <div class="timer-container" id="exam-timer">00:05:00</div>
+      <button class="btn btn-icon btn-outline" id="theme-toggle" aria-label="Toggle Theme">
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/></svg>
+      </button>
+      <button class="btn btn-icon btn-outline" id="fullscreen-btn" aria-label="Fullscreen">
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/></svg>
+      </button>
+      <button class="btn btn-primary" id="header-submit-btn">Submit Exam</button>
+    </div>
+  </header>
+  
+  <div class="exam-layout">
+    
+    <!-- Left panel (Palette) -->
+    <aside class="left-panel">
+      <div class="panel-header">
+        Question Palette (<span id="q-progress">0/15</span>)
+      </div>
+      <div class="palette-container">
+        <div class="accordion-wrapper" id="question-palette">
+          <!-- Palette accordions populated by JS -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Question area -->
+    <main class="main-area">
+      <!-- Background Watermark (Relative to Question Area) -->
+      <div class="watermark-container">
+        <div class="watermark-row"><span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span></div>
+        <div class="watermark-row"><span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span></div>
+        <div class="watermark-row"><span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span></div>
+        <div class="watermark-row"><span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span></div>
+        <div class="watermark-row"><span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span></div>
+        <div class="watermark-row"><span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span> <span>SMART EXAMINATION MONITOR</span></div>
+      </div>
+      <!-- absolute progress bar line at top -->
+      <div class="progress-container">
+        <div class="progress-bar" id="exam-progress-bar"></div>
+      </div>
+      
+      <div class="content-wrapper fade-in" id="question-wrapper">
+        <div class="question-header">
+          <div class="question-number">Question <span id="current-q-num">1</span></div>
+          <div class="question-meta">
+            <span class="exam-badge" id="q-type-badge">Single Choice</span>
+            <span class="exam-badge" id="q-points">+4 / -1 Marks</span>
+            <span class="exam-badge" id="q-difficulty">Easy</span>
+          </div>
+        </div>
+        
+        <div class="question-text" id="question-text">
+          <!-- Question content goes here -->
+        </div>
+        
+        <div class="options-container" id="options-container">
+          <!-- Options dynamically rendered here -->
+        </div>
+        
+        <div class="question-actions">
+          <label class="checkbox-label text-warning">
+            <input type="checkbox" id="mark-review-chk">
+            Mark for Review <span id="mark-review-count" style="font-size:0.75rem; opacity:0.7; margin-left:8px;">(0/5)</span>
+          </label>
+          <button class="btn btn-outline btn-sm hide" id="clear-response-btn" style="margin-left: auto;">Clear Response</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Panel (Info & Proctoring) -->
+    <aside class="right-panel">
+      <!-- Instructions Tooltip Button -->
+      <div class="instructions-wrapper" style="margin-bottom: 2rem; position: relative;">
+        <button class="btn btn-outline" id="instructions-btn" style="width: 100%; justify-content: space-between;">
+           <span>View Instructions</span>
+           <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg>
+        </button>
+        
+        <div class="instructions-card" id="instructions-card" style="width: 380px;">
+           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+               <h4 style="color: var(--primary-color); margin: 0;">Comprehensive Candidate Guide</h4>
+               <button id="close-instructions-btn" style="background:none; border:none; cursor:pointer; color:var(--text-secondary); font-size:1rem; padding: 4px;">&#10006;</button>
+           </div>
+            <div style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
+               <section style="margin-bottom: 1.25rem;">
+                 <h5 style="font-size: 0.85rem; margin: 0 0 8px 0; color: var(--primary-color);">🚀 1. NAVIGATION CONTROL</h5>
+                 <p style="font-size: 0.75rem; margin: 0 0 5px 0; color: var(--text-secondary);">Use the <strong>Question Palette</strong> on the left to jump between questions. The grid uses color-coding for status:</p>
+                 <ul style="padding-left: 1rem; margin: 0; font-size: 0.75rem; color: var(--text-secondary); display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                    <li><span style="color:var(--success-color); font-weight:600;">Green</span>: Answered</li>
+                    <li><span style="color:var(--danger-color); font-weight:600;">Red</span>: Visited & Skipped</li>
+                    <li><span style="color:var(--focus-color); font-weight:600;">Amber</span>: Marked for Review</li>
+                    <li><span style="color:var(--text-tertiary); font-weight:600;">Grey</span>: Not Visited</li>
+                 </ul>
+                 <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px;"><strong>Progression Check:</strong> You must complete (Answer or Mark) all Easy questions to unlock Medium, and all Medium to unlock Hard.</p>
+               </section>
+
+               <section style="margin-bottom: 1.25rem;">
+                 <h5 style="font-size: 0.85rem; margin: 0 0 8px 0; color: var(--primary-color);">⭐ 2. MARK FOR REVIEW POLICY</h5>
+                 <p style="font-size: 0.75rem; margin: 0; color: var(--text-secondary);">You can mark up to <strong>5 questions per difficulty level</strong>. The counter (X/5) shows your progress. If you reach the limit, you must unmark a question to mark a new one.</p>
+               </section>
+
+               <section style="margin-bottom: 1.25rem;">
+                 <h5 style="font-size: 0.85rem; margin: 0 0 8px 0; color: var(--primary-color);">🛡️ 3. PROCTORING & SECURITY</h5>
+                 <p style="font-size: 0.75rem; margin: 0; color: var(--text-secondary);">Your session is live-monitored. <strong>Mandatory Fullscreen</strong> mode is active. Manual exit triggers an incident strike.</p>
+                 <ul style="padding-left: 1rem; margin: 5px 0 0 0; font-size: 0.75rem; color: var(--text-secondary);">
+                    <li><strong>Restricted Keys:</strong> Use of <strong>Ctrl</strong>, <strong>Cmd</strong>, or any system shortcuts (Copy, Cut, Paste, F12) will lead to an immediate <strong>Violation Strike</strong>.</li>
+                    <li><strong>System (Max 5):</strong> Tab switching, focal loss, or minimizing browser.</li>
+                    <li><strong>Audio (Max 10):</strong> Multiple voices or background speaking detection.</li>
+                    <li><strong>Cheating Policy:</strong> Immediate disqualification for unauthorized aids or person swaps.</li>
+                 </ul>
+               </section>
+
+               <section style="margin-bottom: 1.25rem;">
+                 <h5 style="font-size: 0.85rem; margin: 0 0 8px 0; color: var(--primary-color);">⌨️ 4. KEYBOARD SHORTCUTS</h5>
+                 <div style="display: grid; grid-template-columns: 80px 1fr; gap: 8px; font-size: 0.75rem; color: var(--text-secondary);">
+                    <div style="background:var(--bg-tertiary); padding:2px 4px; border-radius:4px; text-align:center;">Arrow L/R</div><div>Navigate Questions</div>
+                    <div style="background:var(--bg-tertiary); padding:2px 4px; border-radius:4px; text-align:center;">M Key</div><div>Toggle Mark for Review</div>
+                 </div>
+               </section>
+
+               <section style="margin-bottom: 0.5rem;">
+                 <h5 style="font-size: 0.85rem; margin: 0 0 8px 0; color: var(--primary-color);">📝 5. SUBMISSION WORKFLOW</h5>
+                 <p style="font-size: 0.75rem; margin: 0; color: var(--text-secondary);">Before final submit, click <strong>"Review Answers"</strong> to verify all 15 questions. If the 5-minute timer hits zero, the exam is <strong>automatically submitted</strong>.</p>
+               </section>
+            </div>
+        </div>
+      </div>
+
+      <!-- Legend Content -->
+      <div style="margin-bottom: 2rem;">
+        <div style="font-size: 0.875rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-secondary);">Status Legend</div>
+        <div class="legend-container" style="padding:0; border:none; gap: 1rem;">
+          <div class="legend-item"><div class="legend-box answered"></div> Answered</div>
+          <div class="legend-item"><div class="legend-box not-answered"></div> Not Answered</div>
+          <div class="legend-item"><div class="legend-box marked"></div> Marked</div>
+          <div class="legend-item"><div class="legend-box not-visited"></div> Not Visited</div>
+        </div>
+      </div>
+      
+      <!-- Proctoring Activity -->
+      <div style="margin-bottom: 2rem;">
+        <div style="font-size: 0.875rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center;">
+          <span>Proctoring Incidents</span>
+          <span style="font-size: 0.75rem; font-weight: normal; opacity: 0.7;">Strikes & Logs</span>
+        </div>
+        <div class="proctoring-log-container" id="proctoring-log-container" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 250px; overflow-y: auto; padding-right: 5px;">
+           <!-- Dynamic logs appear here -->
+           <div class="empty-log-msg" style="font-size: 0.8rem; color: var(--text-tertiary); text-align: center; border: 1px dashed var(--border-color); padding: 1rem; border-radius: 8px;">
+              No incidents recorded. Stay focused.
+           </div>
+        </div>
+        
+        <div style="margin-top: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          <div style="background: var(--bg-tertiary); padding: 0.5rem; border-radius: 6px; text-align: center;">
+            <div style="font-size: 0.7rem; color: var(--text-tertiary); text-transform: uppercase;">System</div>
+            <div style="font-weight: 600;" id="log-count-general">0 / 5</div>
+          </div>
+          <div style="background: var(--bg-tertiary); padding: 0.5rem; border-radius: 6px; text-align: center;">
+            <div style="font-size: 0.7rem; color: var(--text-tertiary); text-transform: uppercase;">Audio</div>
+            <div style="font-weight: 600;" id="log-count-voice">0 / 10</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Camera Feed Content -->
+      <div style="margin-top: auto;">
+        <div style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-secondary);">Live Monitoring</div>
+        <div id="camera-feed-placeholder" style="width: 100%; aspect-ratio: 16/9; background:#000; border-radius: var(--radius-md); position:relative; overflow:hidden; box-shadow: var(--shadow-sm);">
+             <div style="position:absolute; bottom:5px; left:5px; color:white; font-size:10px; background:rgba(0,0,0,0.5); padding:2px 4px; border-radius:2px;">• REC</div>
+             <div style="display:flex; height:100%; width:100%; align-items:center; justify-content:center; color:#555; text-align:center; padding:10px; font-size: 0.875rem;">
+                System Proxy Mode
+             </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <footer class="exam-footer">
+    <div class="footer-left">
+      <button class="btn btn-outline" id="prev-btn">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/></svg> 
+        Previous
+      </button>
+    </div>
+    
+    <div class="footer-right" style="display:flex; gap:1rem;">
+      <button class="btn btn-outline" id="save-next-btn">Save & Next</button>
+      <button class="btn btn-primary" id="next-btn">
+        Next 
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/></svg>
+      </button>
+    </div>
+  </footer>
+
+</div>
+
+<!-- Submit Confirmation Modal -->
+<div class="modal-overlay" id="submit-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Confirm Final Submission</h3>
+    </div>
+    <div class="modal-body">
+      <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); padding: 0.75rem; border-radius: 8px; margin-bottom: 1.5rem; color: #ffc107; font-size: 0.85rem; text-align: center;">
+         <strong>⚠️ ATTENTION:</strong> Before submitting the exam, review your answers and then proceed to final submission.
+      </div>
+      <p>Are you sure you want to submit the exam? Once submitted, you cannot modify your answers.</p>
+      <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top:1.5rem; background:var(--bg-tertiary); padding:1rem; border-radius:8px;">
+        <div style="text-align:center;">
+          <div style="font-size:1.25rem; font-weight:600; color:var(--success-color);" id="summary-answered">0</div>
+          <div style="font-size:0.75rem; text-transform:uppercase; margin-top:4px; opacity:0.7;">Answered</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:1.25rem; font-weight:600; color:var(--danger-color);" id="summary-not-answered">0</div>
+          <div style="font-size:0.75rem; text-transform:uppercase; margin-top:4px; opacity:0.7;">Unanswered</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:1.25rem; font-weight:600; color:var(--focus-color);" id="summary-marked">0</div>
+          <div style="font-size:0.75rem; text-transform:uppercase; margin-top:4px; opacity:0.7;">Marked</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:1.25rem; font-weight:600; color:var(--text-tertiary);" id="summary-not-visited">0</div>
+          <div style="font-size:0.75rem; text-transform:uppercase; margin-top:4px; opacity:0.7;">Not Visited</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cancel-submit-btn">Return to Exam</button>
+      <button class="btn btn-outline" id="review-answers-btn">Review Answers</button>
+      <button class="btn btn-success" id="confirm-submit-btn">Final Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Warning Modal -->
+<div class="modal-overlay warning-modal" id="warning-modal">
+  <div class="modal-content">
+    <div class="modal-header" style="text-align: center;">
+      <div class="warning-icon">⚠️</div>
+      <h3 class="modal-title text-danger">Proctoring Warning</h3>
+    </div>
+    <div class="modal-body" style="text-align: center;">
+      <p id="warning-text">You have switched tabs or lost focus on the exam window. This action has been recorded.</p>
+      <p>Continuous violation may lead to automatic disqualification.</p>
+    </div>
+    <div class="modal-footer" style="justify-content: center;">
+      <button class="btn btn-primary" id="dismiss-warning-btn">Acknowledge</button>
+    </div>
+  </div>
+</div>
+
+<!-- Review Answers Modal -->
+<div class="modal-overlay" id="review-modal">
+  <div class="modal-content" style="max-width: 800px; width: 90%; max-height: 85vh; display: flex; flex-direction: column;">
+    <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 class="modal-title">Review Your Answers</h3>
+      <button class="btn btn-icon" id="close-review-btn" style="padding: 0; background: none; border: none; font-size: 1.5rem; color: var(--text-secondary);">&times;</button>
+    </div>
+    <div class="modal-body" id="review-answers-list" style="overflow-y: auto; flex: 1; padding-right: 10px;">
+      <!-- Populated by JS -->
+    </div>
+    <div class="modal-footer" style="padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+      <button class="btn btn-primary" id="back-to-submit-btn">Back to Submission</button>
+    </div>
+  </div>
+</div>
+
+<!-- Time Up Modal -->
+<div class="modal-overlay" id="time-up-modal">
+  <div class="modal-content" style="text-align: center;">
+    <div style="font-size: 4rem; color: var(--warning-color); margin-bottom: 1rem;">⌛</div>
+    <h3 class="modal-title">Time Limit Reached!</h3>
+    <div class="modal-body">
+      <p>You have reached the maximum time allowed for this examination.</p>
+      <p style="color: var(--text-primary); font-weight: 600; margin-top: 10px;">Your answers have been automatically recorded and the exam is now submitted.</p>
+    </div>
+    <div class="modal-footer" style="justify-content: center;">
+      <button class="btn btn-primary" id="time-up-ok-btn" style="padding: 0.75rem 2rem;">Confirm & View Result</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Scripts -->
+<script src="../../assets/pages/exam/js/theme.js?v=20260409c"></script>
+<script src="../../assets/pages/exam/js/proctoring.js?v=20260409c"></script>
+<script src="../../assets/pages/exam/js/timer.js?v=20260409c"></script>
+<script src="../../assets/pages/exam/js/palette.js?v=20260409c"></script>
+<script src="../../assets/pages/exam/js/navigation.js?v=20260409c"></script>
+<script src="../../assets/pages/exam/js/exam.js?v=20260409c"></script>
+
+</body>
+</html>

@@ -344,6 +344,7 @@ public class TeacherExamController {
         } else if (questionId == null) {
             target.setActive(true);
         }
+        validateQuestionIntegrity(target, "Question payload");
 
         Question saved = questionRepository.save(target);
         exam.setQuestionsUploaded(true);
@@ -377,42 +378,67 @@ public class TeacherExamController {
         question.setExamCode(examCode);
         question.setActive(true);
 
-        String questionText = stringValue(payload.get("questionText"));
+        String questionText = payloadText(payload, "questionText", "question", "Question", "Question Text", "question_text", "prompt");
         if (questionText.isBlank()) {
             throw new IllegalArgumentException("Row " + rowNumber + ": question text is required");
         }
         question.setQuestionText(questionText);
 
-        String typeValue = stringValue(payload.get("questionType"));
+        String typeValue = payloadText(payload, "questionType", "question_type", "Question Type", "Type");
         if (typeValue.isBlank()) {
             throw new IllegalArgumentException("Row " + rowNumber + ": question type is required");
         }
         question.setQuestionType(parseQuestionType(typeValue, rowNumber));
 
-        String topic = stringValue(payload.get("topic"));
+        String topic = payloadText(payload, "topic", "Topic", "section", "Section", "subject", "Subject");
         question.setTopic(topic.isBlank() ? "general" : topic);
 
-        String difficulty = stringValue(payload.get("difficulty"));
+        String difficulty = payloadText(payload, "difficulty", "Difficulty", "level", "Level");
         question.setDifficulty(normalizeDifficulty(difficulty.isBlank() ? "Easy" : difficulty));
 
-        Integer marks = integerValue(payload.get("marks"));
+        Integer marks = integerValue(firstNonNull(
+                payload.get("marks"),
+                payload.get("Marks"),
+                payload.get("score"),
+                payload.get("Score"),
+                payload.get("points"),
+                payload.get("Points")
+        ));
         if (marks == null || marks <= 0) {
             throw new IllegalArgumentException("Row " + rowNumber + ": marks must be greater than zero");
         }
         question.setMarks(marks);
 
-        question.setOptionA(stringValue(payload.get("optionA")));
-        question.setOptionB(stringValue(payload.get("optionB")));
-        question.setOptionC(stringValue(payload.get("optionC")));
-        question.setOptionD(stringValue(payload.get("optionD")));
-        question.setOptionE(stringValue(payload.get("optionE")));
-        question.setOptionF(stringValue(payload.get("optionF")));
-        question.setCorrectAnswer(stringValue(payload.get("correctAnswer")));
-        question.setSampleInput(stringValue(payload.get("sampleInput")));
-        question.setSampleOutput(stringValue(payload.get("sampleOutput")));
+        question.setOptionA(payloadText(payload, "optionA", "Option A", "OptionA", "Choice A", "ChoiceA", "A", "Option 1", "Option1", "opt_a"));
+        question.setOptionB(payloadText(payload, "optionB", "Option B", "OptionB", "Choice B", "ChoiceB", "B", "Option 2", "Option2", "opt_b"));
+        question.setOptionC(payloadText(payload, "optionC", "Option C", "OptionC", "Choice C", "ChoiceC", "C", "Option 3", "Option3", "opt_c"));
+        question.setOptionD(payloadText(payload, "optionD", "Option D", "OptionD", "Choice D", "ChoiceD", "D", "Option 4", "Option4", "opt_d"));
+        question.setOptionE(payloadText(payload, "optionE", "Option E", "OptionE", "Choice E", "ChoiceE", "E", "Option 5", "Option5", "opt_e"));
+        question.setOptionF(payloadText(payload, "optionF", "Option F", "OptionF", "Choice F", "ChoiceF", "F", "Option 6", "Option6", "opt_f"));
+        if (nonBlankCount(
+                question.getOptionA(),
+                question.getOptionB(),
+                question.getOptionC(),
+                question.getOptionD(),
+                question.getOptionE(),
+                question.getOptionF()) == 0) {
+            List<String> options = optionsFromPayload(payload);
+            if (!options.isEmpty()) {
+                question.setOptionA(optionAt(options, 0));
+                question.setOptionB(optionAt(options, 1));
+                question.setOptionC(optionAt(options, 2));
+                question.setOptionD(optionAt(options, 3));
+                question.setOptionE(optionAt(options, 4));
+                question.setOptionF(optionAt(options, 5));
+            }
+        }
+        question.setCorrectAnswer(payloadText(payload, "correctAnswer", "Correct Answer", "CorrectAnswer", "answer", "Answer", "correct", "Correct"));
+        question.setSampleInput(payloadText(payload, "sampleInput", "Sample Input", "SampleInput", "input", "Input"));
+        question.setSampleOutput(payloadText(payload, "sampleOutput", "Sample Output", "SampleOutput", "output", "Output"));
         question.setShuffleOptions(booleanValue(payload.get("shuffleOptions"), false));
         question.setDisplayOrder(integerValue(payload.get("displayOrder")));
         question.setShuffleGroup(stringValue(payload.get("shuffleGroup")));
+        validateQuestionIntegrity(question, "Row " + rowNumber);
 
         return question;
     }
@@ -453,6 +479,14 @@ public class TeacherExamController {
         return value == null ? "" : String.valueOf(value).trim();
     }
 
+    private String payloadText(Map<String, Object> payload, String... keys) {
+        Object[] values = new Object[keys.length];
+        for (int i = 0; i < keys.length; i++) {
+            values[i] = payload.get(keys[i]);
+        }
+        return stringValue(firstNonNull(values));
+    }
+
     private Integer integerValue(Object value) {
         if (value == null) return null;
         if (value instanceof Number number) {
@@ -461,7 +495,7 @@ public class TeacherExamController {
         String text = String.valueOf(value).trim();
         if (text.isBlank()) return null;
         try {
-            return Integer.parseInt(text);
+            return Integer.valueOf(text);
         } catch (NumberFormatException ex) {
             return null;
         }
@@ -513,5 +547,57 @@ public class TeacherExamController {
     private String normalizeForMatch(String value) {
         if (value == null) return "";
         return value.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "");
+    }
+
+    private void validateQuestionIntegrity(Question question, String context) {
+        if (question == null || question.getQuestionType() == null) {
+            return;
+        }
+        if (question.getQuestionType() != QuestionType.MCQ) {
+            return;
+        }
+        int mcqOptionCount = nonBlankCount(
+                question.getOptionA(),
+                question.getOptionB(),
+                question.getOptionC(),
+                question.getOptionD(),
+                question.getOptionE(),
+                question.getOptionF()
+        );
+        if (mcqOptionCount < 2) {
+            throw new IllegalArgumentException(context + ": MCQ must have at least 2 options");
+        }
+        if (stringValue(question.getCorrectAnswer()).isBlank()) {
+            throw new IllegalArgumentException(context + ": MCQ correct answer is required");
+        }
+    }
+
+    private int nonBlankCount(String... values) {
+        int count = 0;
+        for (String value : values) {
+            if (!stringValue(value).isBlank()) {
+                count += 1;
+            }
+        }
+        return count;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> optionsFromPayload(Map<String, Object> payload) {
+        Object raw = firstNonNull(payload.get("options"), payload.get("allOptions"));
+        if (!(raw instanceof List<?> list)) {
+            return List.of();
+        }
+        return list.stream()
+                .map(this::stringValue)
+                .filter(value -> !value.isBlank())
+                .collect(Collectors.toList());
+    }
+
+    private String optionAt(List<String> options, int index) {
+        if (options == null || index < 0 || index >= options.size()) {
+            return "";
+        }
+        return stringValue(options.get(index));
     }
 }

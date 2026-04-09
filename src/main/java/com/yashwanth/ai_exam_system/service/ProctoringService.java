@@ -50,12 +50,16 @@ public class ProctoringService {
             return;
         }
 
+        String normalizedType = normalizeEventType(request.getEventType());
+
         ProctoringEvent event = new ProctoringEvent();
         event.setAttemptId(request.getAttemptId());
-        event.setEventType(request.getEventType());
+        event.setEventType(normalizedType);
         event.setDetails(request.getDetails());
         event.setEvidenceUrl(request.getEvidenceUrl());
         event.setMetadata(request.getMetadata());
+        event.setSeverity(resolveSeverity(normalizedType));
+        event.setScore(resolveScore(normalizedType));
         event.setTimestamp(LocalDateTime.now());
 
         eventRepository.save(event);
@@ -77,7 +81,7 @@ public class ProctoringService {
         logger.info(
                 "AI Event | attempt={} | type={} | score={}",
                 attempt.getId(),
-                request.getEventType(),
+                normalizedType,
                 newScore
         );
     }
@@ -253,5 +257,30 @@ public class ProctoringService {
                 "Proctoring Engine",
                 "high"
         );
+    }
+
+    private String normalizeEventType(String eventType) {
+        String normalized = eventType == null ? "" : eventType.trim().toUpperCase();
+        return normalized.isBlank() ? "ACTION_UNKNOWN" : normalized;
+    }
+
+    private int resolveSeverity(String eventType) {
+        return switch (eventType) {
+            case "TAB_SWITCH", "WINDOW_BLUR" -> 5;
+            case "EXIT_FULLSCREEN", "COPY_PASTE", "FORBIDDEN_SHORTCUT" -> 7;
+            case "NO_FACE", "MIC_LOST" -> 8;
+            case "MULTIPLE_FACES", "MULTIPLE_VOICES", "CAMERA_LOST" -> 9;
+            default -> 1;
+        };
+    }
+
+    private int resolveScore(String eventType) {
+        return switch (eventType) {
+            case "TAB_SWITCH", "WINDOW_BLUR" -> 20;
+            case "EXIT_FULLSCREEN", "COPY_PASTE", "FORBIDDEN_SHORTCUT" -> 25;
+            case "NO_FACE", "MIC_LOST" -> 30;
+            case "MULTIPLE_FACES", "MULTIPLE_VOICES", "CAMERA_LOST" -> 40;
+            default -> 0;
+        };
     }
 }

@@ -307,10 +307,6 @@ public class AdminService {
                 .filter(c -> examCodes.contains(c.getExamCode()))
                 .collect(Collectors.toList());
 
-        long completedAttempts = attempts.stream()
-                .filter(a -> a.getStatus() == AttemptStatus.COMPLETED || Boolean.TRUE.equals(a.getAutoSubmitted()))
-                .count();
-
         double avgScore = attempts.stream()
                 .filter(a -> a.getPercentage() != null)
                 .mapToDouble(ExamAttempt::getPercentage)

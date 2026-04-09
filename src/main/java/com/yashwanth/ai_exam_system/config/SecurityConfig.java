@@ -1,25 +1,20 @@
 package com.yashwanth.ai_exam_system.config;
 
-import com.yashwanth.ai_exam_system.security.CustomUserDetailsService;
-import com.yashwanth.ai_exam_system.security.JwtAuthenticationFilter;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-
 import org.springframework.security.config.http.SessionCreationPolicy;
-
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.yashwanth.ai_exam_system.security.CustomUserDetailsService;
+import com.yashwanth.ai_exam_system.security.JwtAuthenticationFilter;
 
 @Configuration
 @EnableMethodSecurity
@@ -68,6 +63,10 @@ public class SecurityConfig {
                     .requestMatchers("/api/teacher/**")
                     .hasAnyRole("TEACHER", "ADMIN")
 
+                    // Question management (for teachers)
+                    .requestMatchers("/api/questions/**")
+                    .hasAnyRole("TEACHER", "ADMIN")
+
                     // Student APIs
                     .requestMatchers("/api/student/**").hasRole("STUDENT")
 
@@ -85,9 +84,8 @@ public class SecurityConfig {
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
 
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(passwordEncoder());
         provider.setUserDetailsService(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder());
 
         return provider;
     }

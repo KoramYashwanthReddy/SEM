@@ -2,15 +2,21 @@ package com.yashwanth.ai_exam_system.controller;
 
 import com.yashwanth.ai_exam_system.dto.ProctoringEventRequest;
 import com.yashwanth.ai_exam_system.dto.ProctoringSummary;
+import com.yashwanth.ai_exam_system.entity.ExamAttempt;
 import com.yashwanth.ai_exam_system.entity.ProctoringEvent;
+import com.yashwanth.ai_exam_system.entity.Role;
+import com.yashwanth.ai_exam_system.entity.User;
+import com.yashwanth.ai_exam_system.exception.ForbiddenException;
+import com.yashwanth.ai_exam_system.exception.ResourceNotFoundException;
+import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
+import com.yashwanth.ai_exam_system.repository.UserRepository;
 import com.yashwanth.ai_exam_system.service.ProctoringService;
 
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
@@ -23,13 +29,16 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/proctoring")
 public class ProctoringController {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(ProctoringController.class);
-
     private final ProctoringService proctoringService;
+    private final ExamAttemptRepository attemptRepository;
+    private final UserRepository userRepository;
 
-    public ProctoringController(ProctoringService proctoringService) {
+    public ProctoringController(ProctoringService proctoringService,
+                                ExamAttemptRepository attemptRepository,
+                                UserRepository userRepository) {
         this.proctoringService = proctoringService;
+        this.attemptRepository = attemptRepository;
+        this.userRepository = userRepository;
     }
 
     // =========================================================
@@ -38,7 +47,15 @@ public class ProctoringController {
     @PostMapping("/event")
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<Map<String, Object>> recordEvent(
-            @Valid @RequestBody ProctoringEventRequest request) {
+            @Valid @RequestBody ProctoringEventRequest request,
+            Authentication auth) {
+
+        Long studentId = resolveAuthenticatedStudentId(auth);
+        ExamAttempt attempt = attemptRepository.findById(request.getAttemptId())
+                .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
+        if (!studentId.equals(attempt.getStudentId())) {
+            throw new ForbiddenException("You can only record events for your own attempt");
+        }
 
         proctoringService.recordEvent(request);
 
@@ -277,7 +294,18 @@ public class ProctoringController {
             case "webcam" -> type.contains("face") || type.contains("camera") || type.contains("webcam") || type.contains("video");
             case "audio" -> type.contains("audio") || type.contains("noise") || details.contains("noise");
             case "analysis" -> type.contains("analysis") || safeScore(event) >= 30;
-            case "logs" -> type.contains("log");
+            case "logs" -> type.contains("log")
+                    || type.startsWith("action_")
+                    || type.startsWith("exam_")
+                    || type.startsWith("system_")
+                    || type.contains("tab_switch")
+                    || type.contains("window_blur")
+                    || type.contains("fullscreen")
+                    || type.contains("copy_paste")
+                    || type.contains("shortcut")
+                    || type.contains("submit")
+                    || type.contains("navigate")
+                    || type.contains("answer");
             default -> true;
         };
     }
@@ -310,5 +338,23 @@ public class ProctoringController {
                     .append("\n");
         }
         return report.toString();
+    }
+
+    private Long resolveAuthenticatedStudentId(Authentication auth) {
+        String identifier = auth == null || auth.getName() == null ? "" : auth.getName().trim();
+        if (identifier.isBlank()) {
+            throw new ForbiddenException("Authentication required");
+        }
+        User user = userRepository.findByEmailIgnoreCase(identifier).orElse(null);
+        if (user == null && identifier.matches("\\d+")) {
+            user = userRepository.findById(Long.valueOf(identifier)).orElse(null);
+        }
+        if (user == null) {
+            throw new ResourceNotFoundException("Authenticated student not found");
+        }
+        if (user.getRole() != Role.STUDENT) {
+            throw new ForbiddenException("Only students can record proctoring events");
+        }
+        return user.getId();
     }
 }

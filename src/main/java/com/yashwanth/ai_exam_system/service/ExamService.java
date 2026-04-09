@@ -1,10 +1,28 @@
 package com.yashwanth.ai_exam_system.service;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.yashwanth.ai_exam_system.dto.ExamRequest;
 import com.yashwanth.ai_exam_system.entity.Exam;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
-import com.yashwanth.ai_exam_system.enums.AttemptStatus;
 import com.yashwanth.ai_exam_system.entity.ExamStatus;
+import com.yashwanth.ai_exam_system.enums.AttemptStatus;
 import com.yashwanth.ai_exam_system.exception.BadRequestException;
 import com.yashwanth.ai_exam_system.exception.ConflictException;
 import com.yashwanth.ai_exam_system.exception.ForbiddenException;
@@ -12,22 +30,6 @@ import com.yashwanth.ai_exam_system.exception.ResourceNotFoundException;
 import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRepository;
 import com.yashwanth.ai_exam_system.repository.QuestionRepository;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.*;
 
 @Service
 @Transactional
@@ -171,6 +173,15 @@ public class ExamService {
 
         exam.setQuestionsUploaded(true);
         exam.setStatus(ExamStatus.PUBLISHED);
+        exam.setRegistrationOpen(true); // Open registration when exam is published
+
+        // Ensure registration times are calculated
+        if (exam.getStartTime() != null) {
+            exam.setRegistrationStartTime(exam.getStartTime().minusHours(25));
+            exam.setPhase1EndTime(exam.getStartTime().minusMinutes(30));
+            exam.setPhase2StartTime(exam.getStartTime().minusMinutes(30));
+            exam.setPhase2VerificationRequired(true);
+        }
         Exam saved;
         try {
             saved = examRepository.saveAndFlush(exam);
@@ -367,8 +378,8 @@ public class ExamService {
         exam.setMaxAttempts(request.getMaxAttempts());
         exam.setMarksPerQuestion(request.getMarksPerQuestion());
         exam.setNegativeMarks(request.getNegativeMarks());
-        exam.setShuffleQuestions(request.getShuffleQuestions() == null ? true : request.getShuffleQuestions());
-        exam.setShuffleOptions(request.getShuffleOptions() == null ? true : request.getShuffleOptions());
+        exam.setShuffleQuestions(Boolean.TRUE.equals(request.getShuffleQuestions()));
+        exam.setShuffleOptions(Boolean.TRUE.equals(request.getShuffleOptions()));
         exam.setStartTime(parseDateTime(request.getStartTime()));
         exam.setEndTime(parseDateTime(request.getEndTime()));
         exam.setEasyQuestionCount(request.getEasyQuestionCount());

@@ -1,11 +1,20 @@
 package com.yashwanth.ai_exam_system.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
-
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PositiveOrZero;
 
 @Entity
 @Table(
@@ -79,6 +88,13 @@ public class Exam {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 
+    // ================= REGISTRATION PHASES =================
+    private Boolean registrationOpen = false;
+    private LocalDateTime registrationStartTime; // 25 hours before startTime
+    private LocalDateTime phase1EndTime; // 30 minutes before startTime
+    private LocalDateTime phase2StartTime; // 30 minutes before startTime
+    private Boolean phase2VerificationRequired = true;
+
     // ================= AUDIT =================
     @NotBlank
     @Column(nullable = false)
@@ -103,6 +119,21 @@ public class Exam {
         if (shuffleQuestions == null) shuffleQuestions = true;
         if (shuffleOptions == null) shuffleOptions = true;
         if (questionsUploaded == null) questionsUploaded = false;
+        if (registrationOpen == null) registrationOpen = false;
+        if (phase2VerificationRequired == null) phase2VerificationRequired = true;
+
+        // Auto-calculate registration phase times when startTime is set
+        if (startTime != null) {
+            if (registrationStartTime == null) {
+                registrationStartTime = startTime.minusHours(25);
+            }
+            if (phase1EndTime == null) {
+                phase1EndTime = startTime.minusMinutes(30);
+            }
+            if (phase2StartTime == null) {
+                phase2StartTime = startTime.minusMinutes(30);
+            }
+        }
     }
 
     @PreUpdate
@@ -143,6 +174,58 @@ public class Exam {
 
     public boolean canAttempt() {
         return isActive() && isRunning();
+    }
+
+    // ================= REGISTRATION PHASE HELPERS =================
+
+    public boolean isRegistrationOpen() {
+        if (!Boolean.TRUE.equals(registrationOpen) || !isPublished() || !isActive()) {
+            return false;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime registrationOpenAt = registrationStartTime != null
+                ? registrationStartTime
+                : (startTime != null ? startTime.minusHours(25) : createdAt);
+        LocalDateTime registrationCloseAt = startTime;
+        if (registrationOpenAt == null || registrationCloseAt == null) {
+            return false;
+        }
+        return !now.isBefore(registrationOpenAt) && now.isBefore(registrationCloseAt);
+    }
+
+    public boolean isInPhase1() {
+        if (!isRegistrationOpen()) return false;
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime phase1CloseAt = phase1EndTime != null
+                ? phase1EndTime
+                : (startTime != null ? startTime.minusMinutes(30) : null);
+        return phase1CloseAt != null && now.isBefore(phase1CloseAt);
+    }
+
+    public boolean isInPhase2() {
+        if (!isRegistrationOpen()) return false;
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime phase2OpenAt = phase2StartTime != null
+                ? phase2StartTime
+                : (startTime != null ? startTime.minusMinutes(30) : null);
+        return phase2OpenAt != null
+                && startTime != null
+                && !now.isBefore(phase2OpenAt)
+                && now.isBefore(startTime);
+    }
+
+    public boolean requiresPhase2Verification() {
+        return Boolean.TRUE.equals(phase2VerificationRequired) && isInPhase2();
+    }
+
+    public enum RegistrationPhase {
+        CLOSED, PHASE1, PHASE2
+    }
+
+    public RegistrationPhase getCurrentRegistrationPhase() {
+        if (!isRegistrationOpen()) return RegistrationPhase.CLOSED;
+        if (isInPhase2()) return RegistrationPhase.PHASE2;
+        return RegistrationPhase.PHASE1;
     }
 
     // ================= GETTERS & SETTERS =================
@@ -224,4 +307,20 @@ public class Exam {
 
     public Boolean getActive() { return active; }
     public void setActive(Boolean active) { this.active = active; }
+
+    // ================= REGISTRATION PHASE GETTERS & SETTERS =================
+    public Boolean getRegistrationOpen() { return registrationOpen; }
+    public void setRegistrationOpen(Boolean registrationOpen) { this.registrationOpen = registrationOpen; }
+
+    public LocalDateTime getRegistrationStartTime() { return registrationStartTime; }
+    public void setRegistrationStartTime(LocalDateTime registrationStartTime) { this.registrationStartTime = registrationStartTime; }
+
+    public LocalDateTime getPhase1EndTime() { return phase1EndTime; }
+    public void setPhase1EndTime(LocalDateTime phase1EndTime) { this.phase1EndTime = phase1EndTime; }
+
+    public LocalDateTime getPhase2StartTime() { return phase2StartTime; }
+    public void setPhase2StartTime(LocalDateTime phase2StartTime) { this.phase2StartTime = phase2StartTime; }
+
+    public Boolean getPhase2VerificationRequired() { return phase2VerificationRequired; }
+    public void setPhase2VerificationRequired(Boolean phase2VerificationRequired) { this.phase2VerificationRequired = phase2VerificationRequired; }
 }

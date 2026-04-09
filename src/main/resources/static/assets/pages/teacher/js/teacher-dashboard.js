@@ -2009,25 +2009,41 @@ ensureAuthGuard();
         return;
       }
       const imported = (parsed.rows || []).map((row, idx) => ({
-        examCode: String(rowValue(row, ["Exam Code", "ExamCode", "exam_code", "Code"]) || selectedExamCode),
-        questionText: String(rowValue(row, ["Question", "Question Text", "question_text", "Q", "Prompt"]) || `Question ${idx + 1}`),
-        questionType: normalizeUploadQuestionType(rowValue(row, ["Question Type", "Type", "question_type"])),
-        marks: Number(rowValue(row, ["Marks", "Mark", "Score"]) || 1),
-        difficulty: String(rowValue(row, ["Difficulty", "Level"]) || "Easy"),
-        topic: String(rowValue(row, ["Topic", "Section", "Subject"]) || "Imported"),
-        optionA: String(rowValue(row, ["Option A", "A", "opt_a"]) || ""),
-        optionB: String(rowValue(row, ["Option B", "B", "opt_b"]) || ""),
-        optionC: String(rowValue(row, ["Option C", "C", "opt_c"]) || ""),
-        optionD: String(rowValue(row, ["Option D", "D", "opt_d"]) || ""),
-        optionE: String(rowValue(row, ["Option E", "E", "opt_e"]) || ""),
-        optionF: String(rowValue(row, ["Option F", "F", "opt_f"]) || ""),
-        sampleInput: String(rowValue(row, ["Sample Input", "Input"]) || ""),
-        sampleOutput: String(rowValue(row, ["Sample Output", "Output"]) || ""),
-        correctAnswer: String(rowValue(row, ["Correct Answer", "Answer", "Correct"]) || ""),
+        examCode: String(rowValue(row, ["Exam Code", "ExamCode", "exam_code", "Code", "Exam"]) || selectedExamCode).trim(),
+        questionText: String(rowValue(row, ["Question", "Questions", "Question Text", "QuestionText", "question_text", "Q", "Prompt", "Title"]) || "").trim(),
+        questionType: normalizeUploadQuestionType(rowValue(row, ["Question Type", "QuestionType", "Type", "question_type"])),
+        marks: Number(rowValue(row, ["Marks", "Mark", "Score", "Points"]) || 1),
+        difficulty: String(rowValue(row, ["Difficulty", "Level"]) || "Easy").trim(),
+        topic: String(rowValue(row, ["Topic", "Section", "Subject", "Category"]) || "Imported").trim(),
+        optionA: String(rowValue(row, ["Option A", "OptionA", "Choice A", "ChoiceA", "A", "Option 1", "Option1", "opt_a"]) || "").trim(),
+        optionB: String(rowValue(row, ["Option B", "OptionB", "Choice B", "ChoiceB", "B", "Option 2", "Option2", "opt_b"]) || "").trim(),
+        optionC: String(rowValue(row, ["Option C", "OptionC", "Choice C", "ChoiceC", "C", "Option 3", "Option3", "opt_c"]) || "").trim(),
+        optionD: String(rowValue(row, ["Option D", "OptionD", "Choice D", "ChoiceD", "D", "Option 4", "Option4", "opt_d"]) || "").trim(),
+        optionE: String(rowValue(row, ["Option E", "OptionE", "Choice E", "ChoiceE", "E", "Option 5", "Option5", "opt_e"]) || "").trim(),
+        optionF: String(rowValue(row, ["Option F", "OptionF", "Choice F", "ChoiceF", "F", "Option 6", "Option6", "opt_f"]) || "").trim(),
+        sampleInput: String(rowValue(row, ["Sample Input", "SampleInput", "Input"]) || "").trim(),
+        sampleOutput: String(rowValue(row, ["Sample Output", "SampleOutput", "Output"]) || "").trim(),
+        correctAnswer: String(rowValue(row, ["Correct Answer", "CorrectAnswer", "Answer", "Correct", "Key"]) || "").trim(),
         shuffleOptions: false,
         displayOrder: idx + 1,
         shuffleGroup: ""
-      })).filter((q) => q.questionText && q.questionText.trim() !== "");
+      })).filter((q) => q.questionText);
+
+      const invalidRows = imported
+        .map((q, idx) => {
+          const rowNo = idx + 2;
+          const optionCount = [q.optionA, q.optionB, q.optionC, q.optionD, q.optionE, q.optionF].filter((v) => v).length;
+          if (!q.questionText) return `Row ${rowNo}: missing question text`;
+          if (q.questionType === "MCQ" && optionCount < 2) return `Row ${rowNo}: MCQ needs at least 2 options`;
+          return "";
+        })
+        .filter(Boolean);
+      if (invalidRows.length) {
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = "Upload File";
+        toast(`Invalid question rows. ${invalidRows[0]}`, "error");
+        return;
+      }
 
       const fileExamCodes = [...new Set(imported.map((q) => String(q.examCode || "").trim()).filter(Boolean))];
       if (fileExamCodes.length && (fileExamCodes.length > 1 || fileExamCodes[0] !== selectedExamCode)) {
@@ -4379,11 +4395,19 @@ ensureAuthGuard();
       if (state.ui.selectedExams.size === 0) return;
       const ok = await confirmTextDialog({ title: "Bulk Delete", message: "Type BULK DELETE to remove selected exams.", expectedText: "BULK DELETE", actionLabel: "Delete" });
       if (!ok) return;
-      state.data.exams = state.data.exams.filter((e) => !state.ui.selectedExams.has(e.id));
-      state.data.questions = state.data.questions.filter((q) => !state.ui.selectedExams.has(q.examId));
-      state.ui.selectedExams.clear();
-      renderAll();
-      toast("Selected exams deleted.");
+      await withLoading(async () => {
+        const examsToDelete = state.data.exams.filter((e) => state.ui.selectedExams.has(e.id));
+        for (const exam of examsToDelete) {
+          await api.deleteExam(exam.examCode || exam.id);
+        }
+        state.data.exams = state.data.exams.filter((e) => !state.ui.selectedExams.has(e.id));
+        state.data.questions = state.data.questions.filter((q) => !state.ui.selectedExams.has(q.examId));
+        state.data.attempts = state.data.attempts.filter((a) => !state.ui.selectedExams.has(a.examId));
+        state.data.certificates = state.data.certificates.filter((c) => !state.ui.selectedExams.has(c.examId));
+        state.ui.selectedExams.clear();
+        renderAll();
+        addNotification(`Deleted ${examsToDelete.length} selected exams.`);
+      });
     });
     on(dom.bulkExportBtn, "click", () => {
       const selectedRows = state.data.exams.filter((e) => state.ui.selectedExams.has(e.id));

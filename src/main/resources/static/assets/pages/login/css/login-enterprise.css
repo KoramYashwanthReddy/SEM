@@ -1,0 +1,68 @@
+/* Shared enterprise-grade consistency for all role login cards */
+.card {
+  width: min(1180px, 95vw);
+  max-width: 1180px;
+  border-radius: 34px;
+}
+
+.card-columns {
+  min-height: 580px;
+}
+
+.card-left {
+  padding: 52px 50px;
+}
+
+.card-right {
+  padding: 68px 56px;
+}
+
+.card-right form {
+  width: 100%;
+}
+
+.card-header-slim {
+  margin-bottom: 34px;
+}
+
+.card-header-slim p {
+  max-width: 34ch;
+}
+
+.form-options {
+  margin: 8px 0 14px;
+}
+
+.btn-lg {
+  min-height: 58px;
+}
+
+.form-footer {
+  margin-top: 10px;
+}
+
+@media (max-width: 1200px) {
+  .card {
+    width: min(1120px, 95vw);
+  }
+
+  .card-left,
+  .card-right {
+    padding: 56px 44px;
+  }
+}
+
+@media (max-width: 900px) {
+  .card {
+    width: min(96vw, 760px);
+  }
+
+  .card-columns {
+    min-height: auto;
+  }
+
+  .card-left,
+  .card-right {
+    padding: 42px 28px;
+  }
+}

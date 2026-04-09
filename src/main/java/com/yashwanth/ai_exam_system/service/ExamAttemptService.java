@@ -1,17 +1,33 @@
 package com.yashwanth.ai_exam_system.service;
 
-import com.yashwanth.ai_exam_system.dto.*;
-import com.yashwanth.ai_exam_system.entity.*;
-import com.yashwanth.ai_exam_system.enums.AttemptStatus;
-import com.yashwanth.ai_exam_system.exception.BadRequestException;
-import com.yashwanth.ai_exam_system.repository.*;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.*;
+import com.yashwanth.ai_exam_system.dto.ExamResultResponse;
+import com.yashwanth.ai_exam_system.dto.ExamTimerResponse;
+import com.yashwanth.ai_exam_system.dto.QuestionPaletteResponse;
+import com.yashwanth.ai_exam_system.dto.StudentAnswerResponse;
+import com.yashwanth.ai_exam_system.entity.Exam;
+import com.yashwanth.ai_exam_system.entity.ExamAttempt;
+import com.yashwanth.ai_exam_system.entity.ExamRegistration;
+import com.yashwanth.ai_exam_system.entity.ExamResult;
+import com.yashwanth.ai_exam_system.entity.Question;
+import com.yashwanth.ai_exam_system.entity.StudentAnswer;
+import com.yashwanth.ai_exam_system.enums.AttemptStatus;
+import com.yashwanth.ai_exam_system.exception.BadRequestException;
+import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
+import com.yashwanth.ai_exam_system.repository.ExamRegistrationRepository;
+import com.yashwanth.ai_exam_system.repository.ExamRepository;
+import com.yashwanth.ai_exam_system.repository.QuestionRepository;
+import com.yashwanth.ai_exam_system.repository.StudentAnswerRepository;
 
 @Service
 @Transactional
@@ -53,6 +69,10 @@ public class ExamAttemptService {
                 .orElse(false);
         if (!registered) {
             throw new BadRequestException("Please register for the exam first");
+        }
+        List<Question> activeQuestions = questionRepository.findByExamCodeAndActiveTrue(examCode);
+        if (activeQuestions.isEmpty()) {
+            throw new BadRequestException("No active questions found for this exam");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -137,7 +157,7 @@ public class ExamAttemptService {
         );
 
         List<Question> questions =
-                questionRepository.findByExamCode(attempt.getExamCode());
+                questionRepository.findByExamCodeAndActiveTrue(attempt.getExamCode());
 
         int totalMarks = questions.stream()
                 .mapToInt(q -> q.getMarks() == null ? 0 : q.getMarks())
@@ -175,7 +195,7 @@ public class ExamAttemptService {
         ExamAttempt attempt = getAttempt(attemptId);
 
         List<Question> questions =
-                questionRepository.findByExamCode(attempt.getExamCode());
+                questionRepository.findByExamCodeAndActiveTrue(attempt.getExamCode());
 
         List<StudentAnswer> answers =
                 answerRepository.findByAttemptId(attemptId);
@@ -197,6 +217,19 @@ public class ExamAttemptService {
         }
 
         return palette;
+    }
+
+    public List<StudentAnswerResponse> getAnswers(Long attemptId) {
+        ExamAttempt attempt = getAttempt(attemptId);
+
+        return answerRepository.findByAttemptId(attemptId).stream()
+                .map(answer -> new StudentAnswerResponse(
+                        answer.getQuestionId(),
+                        answer.getAnswer(),
+                        answer.getStatus(),
+                        answer.getReviewMarked()
+                ))
+                .toList();
     }
 
     // ================= TIMER =================

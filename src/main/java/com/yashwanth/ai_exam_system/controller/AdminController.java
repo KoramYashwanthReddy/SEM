@@ -3,7 +3,6 @@ package com.yashwanth.ai_exam_system.controller;
 import com.yashwanth.ai_exam_system.dto.CreateTeacherRequest;
 import com.yashwanth.ai_exam_system.entity.CheatingEvidence;
 import com.yashwanth.ai_exam_system.entity.Exam;
-import com.yashwanth.ai_exam_system.entity.ExamAttempt;
 import com.yashwanth.ai_exam_system.entity.ProctoringEvent;
 import com.yashwanth.ai_exam_system.entity.Question;
 import com.yashwanth.ai_exam_system.entity.Role;

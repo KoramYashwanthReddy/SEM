@@ -10,6 +10,7 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     // Get all questions for an exam
     List<Question> findByExamCode(String examCode);
+    List<Question> findByExamCodeAndActiveTrue(String examCode);
 
     // Get questions by exam and type
     List<Question> findByExamCodeAndQuestionType(String examCode, QuestionType questionType);

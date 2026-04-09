@@ -1,6 +1,29 @@
 package com.yashwanth.ai_exam_system.controller;
 
-import com.yashwanth.ai_exam_system.dto.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.yashwanth.ai_exam_system.dto.ExamNavigationStatusDTO;
+import com.yashwanth.ai_exam_system.dto.ExamResultResponse;
+import com.yashwanth.ai_exam_system.dto.ExamTimerResponse;
+import com.yashwanth.ai_exam_system.dto.QuestionPaletteResponse;
+import com.yashwanth.ai_exam_system.dto.StartExamRequest;
+import com.yashwanth.ai_exam_system.dto.StudentAnswerResponse;
+import com.yashwanth.ai_exam_system.dto.SubmitAnswerRequest;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
 import com.yashwanth.ai_exam_system.entity.Role;
 import com.yashwanth.ai_exam_system.entity.User;
@@ -10,18 +33,8 @@ import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRepository;
 import com.yashwanth.ai_exam_system.repository.UserRepository;
 import com.yashwanth.ai_exam_system.service.ExamAttemptService;
-import com.yashwanth.ai_exam_system.service.ExamService;
 import com.yashwanth.ai_exam_system.service.ExamNavigationService;
-
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import com.yashwanth.ai_exam_system.service.ExamService;
 
 @RestController
 @RequestMapping("/api/exam")
@@ -55,12 +68,12 @@ public class ExamAttemptController {
     @PreAuthorize("hasRole('STUDENT')")
     public ExamAttempt startExam(@RequestBody StartExamRequest request, Authentication auth) {
         Long authenticatedStudentId = resolveAuthenticatedStudentId(auth);
-        if (request.getStudentId() == null || !authenticatedStudentId.equals(request.getStudentId())) {
+        if (request.getStudentId() != null && !authenticatedStudentId.equals(request.getStudentId())) {
             throw new ForbiddenException("You can only start your own exam attempt");
         }
 
         return examAttemptService.startExam(
-                request.getStudentId(),
+                authenticatedStudentId,
                 request.getExamCode()
         );
     }
@@ -176,7 +189,7 @@ public class ExamAttemptController {
 
         List<String> examCodes = (admin
                 ? examRepository.findAllActiveOrderByCreatedAtDesc()
-                : examRepository.findByCreatedByAndActiveTrueOrderByCreatedAtDesc(auth.getName()))
+                : examRepository.findByCreatedByAndActiveTrueOrderByCreatedAtDesc(auth.getName() != null ? auth.getName() : ""))
                 .stream()
                 .map(com.yashwanth.ai_exam_system.entity.Exam::getExamCode)
                 .collect(Collectors.toList());
@@ -201,6 +214,19 @@ public class ExamAttemptController {
 
         examAttemptService.updateHeartbeat(attemptId);
         return "Heartbeat updated";
+    }
+
+    // ✅ LOAD SAVED ANSWERS
+    @GetMapping("/answers/{attemptId}")
+    @PreAuthorize("hasRole('STUDENT')")
+    public List<StudentAnswerResponse> getAnswers(@PathVariable Long attemptId, Authentication auth) {
+        Long authenticatedStudentId = resolveAuthenticatedStudentId(auth);
+        ExamAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
+        if (!authenticatedStudentId.equals(attempt.getStudentId())) {
+            throw new ForbiddenException("You can only view answers for your own attempt");
+        }
+        return examAttemptService.getAnswers(attemptId);
     }
 
     // 🔥 MARK REVIEW ONLY
@@ -233,9 +259,12 @@ public class ExamAttemptController {
         map.put("examTitle", examTitle);
         map.put("studentId", attempt.getStudentId());
 
-        String studentName = userRepository.findById(attempt.getStudentId() == null ? -1L : attempt.getStudentId())
+        String studentName = Optional.ofNullable(attempt.getStudentId())
+                .flatMap(userRepository::findById)
                 .map(User::getName)
-                .orElse("Student " + (attempt.getStudentId() != null ? attempt.getStudentId() : attempt.getId()));
+                .orElse("Student " + Optional.ofNullable(attempt.getStudentId())
+                        .map(String::valueOf)
+                        .orElse(String.valueOf(attempt.getId())));
         map.put("studentName", studentName);
         map.put("score", attempt.getScore());
         map.put("percentage", attempt.getPercentage());
@@ -300,7 +329,7 @@ public class ExamAttemptController {
         }
         User user = userRepository.findByEmailIgnoreCase(identifier).orElse(null);
         if (user == null && identifier.matches("\\d+")) {
-            user = userRepository.findById(Long.parseLong(identifier)).orElse(null);
+            user = userRepository.findById(Long.valueOf(identifier)).orElse(null);
         }
         if (user == null) {
             throw new ResourceNotFoundException("Authenticated user not found");
@@ -315,7 +344,7 @@ public class ExamAttemptController {
         }
         User user = userRepository.findByEmailIgnoreCase(identifier).orElse(null);
         if (user == null && identifier.matches("\\d+")) {
-            user = userRepository.findById(Long.parseLong(identifier)).orElse(null);
+            user = userRepository.findById(Long.valueOf(identifier)).orElse(null);
         }
         if (user == null) {
             throw new ResourceNotFoundException("Authenticated student not found");

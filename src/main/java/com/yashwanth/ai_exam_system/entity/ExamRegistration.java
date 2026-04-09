@@ -45,6 +45,19 @@ public class ExamRegistration {
     @Column(length = 50)
     private String source = "STUDENT_UI";
 
+    @Column(length = 20)
+    private String registrationPhase = "PHASE1";
+
+    private Boolean phase2Verified = false;
+
+    @Column(length = 128)
+    private String phase2VerificationCodeHash;
+
+    @Column(length = 32)
+    private String phase2VerificationMethod;
+
+    private LocalDateTime phase2VerifiedAt;
+
     private LocalDateTime registeredAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -59,6 +72,12 @@ public class ExamRegistration {
         }
         if (this.active == null) {
             this.active = true;
+        }
+        if (this.registrationPhase == null || this.registrationPhase.isBlank()) {
+            this.registrationPhase = "PHASE1";
+        }
+        if (this.phase2Verified == null) {
+            this.phase2Verified = false;
         }
     }
 
@@ -78,6 +97,16 @@ public class ExamRegistration {
     public void setActive(Boolean active) { this.active = active; }
     public String getSource() { return source; }
     public void setSource(String source) { this.source = source; }
+    public String getRegistrationPhase() { return registrationPhase; }
+    public void setRegistrationPhase(String registrationPhase) { this.registrationPhase = registrationPhase; }
+    public Boolean getPhase2Verified() { return phase2Verified; }
+    public void setPhase2Verified(Boolean phase2Verified) { this.phase2Verified = phase2Verified; }
+    public String getPhase2VerificationCodeHash() { return phase2VerificationCodeHash; }
+    public void setPhase2VerificationCodeHash(String phase2VerificationCodeHash) { this.phase2VerificationCodeHash = phase2VerificationCodeHash; }
+    public String getPhase2VerificationMethod() { return phase2VerificationMethod; }
+    public void setPhase2VerificationMethod(String phase2VerificationMethod) { this.phase2VerificationMethod = phase2VerificationMethod; }
+    public LocalDateTime getPhase2VerifiedAt() { return phase2VerifiedAt; }
+    public void setPhase2VerifiedAt(LocalDateTime phase2VerifiedAt) { this.phase2VerifiedAt = phase2VerifiedAt; }
     public LocalDateTime getRegisteredAt() { return registeredAt; }
     public void setRegisteredAt(LocalDateTime registeredAt) { this.registeredAt = registeredAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }

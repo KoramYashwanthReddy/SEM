@@ -157,10 +157,15 @@
 
 .card-right {
   flex: 1;
-  padding: 32px 40px;
+  padding: 38px 44px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+.card-right form {
+  display: grid;
+  gap: 18px;
 }
 
 .card-left .branding h1 {
@@ -215,18 +220,19 @@
 }
 
 .card-header-slim {
-  margin-bottom: 24px;
+  margin-bottom: 30px;
 }
 
 .card-header-slim h2 {
   font-family: var(--font-display);
   font-size: 1.6rem;
-  margin: 0 0 4px;
+  margin: 0 0 10px;
 }
 
 .card-header-slim p {
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
   margin: 0;
 }
 
@@ -309,9 +315,9 @@
 
 .form-footer {
   display: grid;
-  gap: 4px;
-  margin-top: 10px;
-  font-size: 0.8rem;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 0.85rem;
   color: var(--text-secondary);
 }
 
@@ -353,7 +359,7 @@
 
 .form-grid {
   display: grid;
-  gap: 12px;
+  gap: 16px;
 }
 
 .divider {

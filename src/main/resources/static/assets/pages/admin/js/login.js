@@ -8,6 +8,12 @@ const AdminLogin = (() => {
   const submitBtn = document.getElementById('submit-btn');
   const btnText = submitBtn?.querySelector('.btn-text');
   const card = document.querySelector('.card');
+  const adminKeyInput = document.getElementById('admin-key');
+  const passwordInput = document.getElementById('password');
+  const rememberCheckbox = document.getElementById('remember-admin');
+  const loginErrorBox = document.getElementById('admin-login-error');
+  const loginErrorMessage = document.getElementById('admin-login-error-message');
+  const REMEMBER_KEY = 'remember.admin.identifier';
 
   function sanitizeUserForStorage(raw) {
     const user = raw && typeof raw === "object" ? { ...raw } : {};
@@ -28,16 +34,6 @@ const AdminLogin = (() => {
       employeeId: user.employeeId || "",
       profileImage: user.profileImage || ""
     };
-  }
-
-  function safeSetStorage(key, value) {
-    try {
-      localStorage.setItem(key, value);
-      return true;
-    } catch (error) {
-      console.warn(`Skipping localStorage key '${key}' due to quota/storage error`, error);
-      return false;
-    }
   }
 
   async function readErrorMessage(response) {
@@ -62,6 +58,7 @@ const AdminLogin = (() => {
     }
     setupListeners();
     setup3DCardTilt();
+    hydrateRememberedIdentifier();
     console.log('Admin Security Protocol Engaged');
   }
 
@@ -77,6 +74,8 @@ const AdminLogin = (() => {
     });
 
     form?.addEventListener('submit', handleLogin);
+    adminKeyInput?.addEventListener('input', clearError);
+    passwordInput?.addEventListener('input', clearError);
 
     card?.addEventListener('mousemove', e => {
       const rect = card.getBoundingClientRect();
@@ -89,13 +88,15 @@ const AdminLogin = (() => {
 
   async function handleLogin(e) {
     e.preventDefault();
+    clearError();
 
     // IMPORTANT: match HTML IDs
-    const email = document.getElementById('admin-key').value.trim();
-    const password = document.getElementById('password').value.trim();
+    const email = adminKeyInput?.value.trim();
+    const password = passwordInput?.value.trim();
+    const remember = Boolean(rememberCheckbox?.checked);
 
     if (!email || !password) {
-      alert("Please enter admin key and password");
+      showError("Please enter your admin key and password.");
       return;
     }
 
@@ -132,10 +133,13 @@ const AdminLogin = (() => {
         throw new Error("Invalid authentication response");
       }
 
-      safeSetStorage("token", token);
-      safeSetStorage("accessToken", token);
-      safeSetStorage("role", data.role);
-      safeSetStorage("user", JSON.stringify(sanitizeUserForStorage(data)));
+      persistAuthData({
+        token,
+        role: data.role,
+        user: sanitizeUserForStorage(data),
+        remember
+      });
+      persistRememberedIdentifier(email, remember);
 
       setSuccess();
 
@@ -146,7 +150,7 @@ const AdminLogin = (() => {
     } catch (error) {
       console.error("Admin Login Error:", error);
       setLoading(false);
-      alert(error.message);
+      showError(error.message);
     }
   }
 
@@ -163,6 +167,54 @@ const AdminLogin = (() => {
     submitBtn.classList.remove('loading');
     submitBtn.classList.add('success');
     if (btnText) btnText.textContent = 'ACCESS GRANTED';
+  }
+
+  function showError(msg) {
+    const finalMessage = normalizeLoginErrorMessage(msg);
+    if (loginErrorMessage) loginErrorMessage.textContent = finalMessage;
+    loginErrorBox?.removeAttribute('hidden');
+  }
+
+  function clearError() {
+    if (loginErrorMessage) loginErrorMessage.textContent = '';
+    loginErrorBox?.setAttribute('hidden', 'hidden');
+  }
+
+  function normalizeLoginErrorMessage(message) {
+    const text = String(message || '').toLowerCase();
+    if (text.includes('invalid credentials')) {
+      return 'Invalid credentials. Please verify your email and password.';
+    }
+    return message || 'Unable to connect to server. Please try again.';
+  }
+
+  function persistRememberedIdentifier(identifier, remember) {
+    if (remember) {
+      localStorage.setItem(REMEMBER_KEY, identifier);
+      return;
+    }
+    localStorage.removeItem(REMEMBER_KEY);
+  }
+
+  function hydrateRememberedIdentifier() {
+    const remembered = String(localStorage.getItem(REMEMBER_KEY) || '').trim();
+    if (!remembered || !adminKeyInput) return;
+    adminKeyInput.value = remembered;
+    if (rememberCheckbox) rememberCheckbox.checked = true;
+  }
+
+  function persistAuthData({ token, role, user, remember }) {
+    const primary = remember ? localStorage : sessionStorage;
+    const secondary = remember ? sessionStorage : localStorage;
+
+    ['token', 'accessToken', 'role', 'user', 'teacher'].forEach((key) => {
+      secondary.removeItem(key);
+    });
+
+    primary.setItem('token', token);
+    primary.setItem('accessToken', token);
+    primary.setItem('role', role);
+    primary.setItem('user', JSON.stringify(user));
   }
 
   function setup3DCardTilt() {
