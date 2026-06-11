@@ -122,7 +122,8 @@ const AdminLogin = (() => {
         throw new Error(await readErrorMessage(response));
       }
 
-      const data = await response.json();
+      const raw = await response.json();
+      const data = raw?.data ?? raw;
 
       if (data.role !== "ADMIN") {
         throw new Error("Access denied. Admin only.");
@@ -184,6 +185,9 @@ const AdminLogin = (() => {
     const text = String(message || '').toLowerCase();
     if (text.includes('invalid credentials')) {
       return 'Invalid credentials. Please verify your email and password.';
+    }
+    if (text.includes('user not found')) {
+      return 'No admin account matched that email or employee ID. Use a provisioned account or the seeded demo credentials.';
     }
     return message || 'Unable to connect to server. Please try again.';
   }

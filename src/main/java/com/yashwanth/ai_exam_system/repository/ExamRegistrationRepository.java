@@ -11,4 +11,6 @@ public interface ExamRegistrationRepository extends JpaRepository<ExamRegistrati
     Optional<ExamRegistration> findByStudentIdAndExamCode(Long studentId, String examCode);
 
     List<ExamRegistration> findByStudentIdAndActiveTrue(Long studentId);
+
+    List<ExamRegistration> findByExamCodeAndActiveTrue(String examCode);
 }

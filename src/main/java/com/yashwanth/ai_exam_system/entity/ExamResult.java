@@ -4,14 +4,11 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-        name = "exam_results",
-        indexes = {
-                @Index(name = "idx_exam_code", columnList = "examCode"),
-                @Index(name = "idx_student_id", columnList = "studentId"),
-                @Index(name = "idx_attempt_id", columnList = "attemptId")
-        }
-)
+@Table(name = "exam_results", indexes = {
+        @Index(name = "idx_exam_result_exam_code", columnList = "examCode"),
+        @Index(name = "idx_exam_result_student_id", columnList = "studentId"),
+        @Index(name = "idx_exam_result_attempt_id", columnList = "attemptId")
+})
 public class ExamResult {
 
     @Id
@@ -64,8 +61,10 @@ public class ExamResult {
 
     private LocalDateTime submittedAt;
     private LocalDateTime evaluatedAt;
+    private String grade;
 
-    public ExamResult() {}
+    public ExamResult() {
+    }
 
     @PrePersist
     public void prePersist() {
@@ -80,77 +79,201 @@ public class ExamResult {
         }
     }
 
-    public Long getId() { return id; }
+    public Long getId() {
+        return id;
+    }
 
-    public Long getAttemptId() { return attemptId; }
-    public void setAttemptId(Long attemptId) { this.attemptId = attemptId; }
+    public Long getAttemptId() {
+        return attemptId;
+    }
 
-    public Long getStudentId() { return studentId; }
-    public void setStudentId(Long studentId) { this.studentId = studentId; }
+    public void setAttemptId(Long attemptId) {
+        this.attemptId = attemptId;
+    }
 
-    public String getExamCode() { return examCode; }
-    public void setExamCode(String examCode) { this.examCode = examCode; }
+    public Long getStudentId() {
+        return studentId;
+    }
 
-    public int getTotalQuestions() { return totalQuestions; }
-    public void setTotalQuestions(int totalQuestions) { this.totalQuestions = totalQuestions; }
+    public void setStudentId(Long studentId) {
+        this.studentId = studentId;
+    }
 
-    public int getCorrectAnswers() { return correctAnswers; }
-    public void setCorrectAnswers(int correctAnswers) { this.correctAnswers = correctAnswers; }
+    public String getExamCode() {
+        return examCode;
+    }
 
-    public int getWrongAnswers() { return wrongAnswers; }
-    public void setWrongAnswers(int wrongAnswers) { this.wrongAnswers = wrongAnswers; }
+    public void setExamCode(String examCode) {
+        this.examCode = examCode;
+    }
 
-    public int getUnansweredQuestions() { return unansweredQuestions; }
-    public void setUnansweredQuestions(int unansweredQuestions) { this.unansweredQuestions = unansweredQuestions; }
+    public int getTotalQuestions() {
+        return totalQuestions;
+    }
 
-    public double getScore() { return score; }
-    public void setScore(double score) { this.score = score; }
+    public void setTotalQuestions(int totalQuestions) {
+        this.totalQuestions = totalQuestions;
+    }
 
-    public double getPercentage() { return percentage; }
-    public void setPercentage(double percentage) { this.percentage = percentage; }
+    public int getCorrectAnswers() {
+        return correctAnswers;
+    }
 
-    public String getResultStatus() { return resultStatus; }
-    public void setResultStatus(String resultStatus) { this.resultStatus = resultStatus; }
+    public void setCorrectAnswers(int correctAnswers) {
+        this.correctAnswers = correctAnswers;
+    }
 
-    public Boolean getPassed() { return passed; }
-    public void setPassed(Boolean passed) { this.passed = passed; }
+    public int getWrongAnswers() {
+        return wrongAnswers;
+    }
 
-    public Integer getEasyQuestions() { return easyQuestions; }
-    public void setEasyQuestions(Integer easyQuestions) { this.easyQuestions = easyQuestions; }
+    public void setWrongAnswers(int wrongAnswers) {
+        this.wrongAnswers = wrongAnswers;
+    }
 
-    public Integer getMediumQuestions() { return mediumQuestions; }
-    public void setMediumQuestions(Integer mediumQuestions) { this.mediumQuestions = mediumQuestions; }
+    public int getUnansweredQuestions() {
+        return unansweredQuestions;
+    }
 
-    public Integer getDifficultQuestions() { return difficultQuestions; }
-    public void setDifficultQuestions(Integer difficultQuestions) { this.difficultQuestions = difficultQuestions; }
+    public void setUnansweredQuestions(int unansweredQuestions) {
+        this.unansweredQuestions = unansweredQuestions;
+    }
 
-    public Integer getEasyCorrect() { return easyCorrect; }
-    public void setEasyCorrect(Integer easyCorrect) { this.easyCorrect = easyCorrect; }
+    public double getScore() {
+        return score;
+    }
 
-    public Integer getMediumCorrect() { return mediumCorrect; }
-    public void setMediumCorrect(Integer mediumCorrect) { this.mediumCorrect = mediumCorrect; }
+    public void setScore(double score) {
+        this.score = score;
+    }
 
-    public Integer getDifficultCorrect() { return difficultCorrect; }
-    public void setDifficultCorrect(Integer difficultCorrect) { this.difficultCorrect = difficultCorrect; }
+    public double getPercentage() {
+        return percentage;
+    }
 
-    public Integer getEasyWrong() { return easyWrong; }
-    public void setEasyWrong(Integer easyWrong) { this.easyWrong = easyWrong; }
+    public void setPercentage(double percentage) {
+        this.percentage = percentage;
+    }
 
-    public Integer getMediumWrong() { return mediumWrong; }
-    public void setMediumWrong(Integer mediumWrong) { this.mediumWrong = mediumWrong; }
+    public String getResultStatus() {
+        return resultStatus;
+    }
 
-    public Integer getDifficultWrong() { return difficultWrong; }
-    public void setDifficultWrong(Integer difficultWrong) { this.difficultWrong = difficultWrong; }
+    public void setResultStatus(String resultStatus) {
+        this.resultStatus = resultStatus;
+    }
 
-    public Boolean getFlaggedForCheating() { return flaggedForCheating; }
-    public void setFlaggedForCheating(Boolean flaggedForCheating) { this.flaggedForCheating = flaggedForCheating; }
+    public Boolean getPassed() {
+        return passed;
+    }
 
-    public Long getTimeTakenSeconds() { return timeTakenSeconds; }
-    public void setTimeTakenSeconds(Long timeTakenSeconds) { this.timeTakenSeconds = timeTakenSeconds; }
+    public void setPassed(Boolean passed) {
+        this.passed = passed;
+    }
 
-    public LocalDateTime getSubmittedAt() { return submittedAt; }
-    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
+    public Integer getEasyQuestions() {
+        return easyQuestions;
+    }
 
-    public LocalDateTime getEvaluatedAt() { return evaluatedAt; }
-    public void setEvaluatedAt(LocalDateTime evaluatedAt) { this.evaluatedAt = evaluatedAt; }
+    public void setEasyQuestions(Integer easyQuestions) {
+        this.easyQuestions = easyQuestions;
+    }
+
+    public Integer getMediumQuestions() {
+        return mediumQuestions;
+    }
+
+    public void setMediumQuestions(Integer mediumQuestions) {
+        this.mediumQuestions = mediumQuestions;
+    }
+
+    public Integer getDifficultQuestions() {
+        return difficultQuestions;
+    }
+
+    public void setDifficultQuestions(Integer difficultQuestions) {
+        this.difficultQuestions = difficultQuestions;
+    }
+
+    public Integer getEasyCorrect() {
+        return easyCorrect;
+    }
+
+    public void setEasyCorrect(Integer easyCorrect) {
+        this.easyCorrect = easyCorrect;
+    }
+
+    public Integer getMediumCorrect() {
+        return mediumCorrect;
+    }
+
+    public void setMediumCorrect(Integer mediumCorrect) {
+        this.mediumCorrect = mediumCorrect;
+    }
+
+    public Integer getDifficultCorrect() {
+        return difficultCorrect;
+    }
+
+    public void setDifficultCorrect(Integer difficultCorrect) {
+        this.difficultCorrect = difficultCorrect;
+    }
+
+    public Integer getEasyWrong() {
+        return easyWrong;
+    }
+
+    public void setEasyWrong(Integer easyWrong) {
+        this.easyWrong = easyWrong;
+    }
+
+    public Integer getMediumWrong() {
+        return mediumWrong;
+    }
+
+    public void setMediumWrong(Integer mediumWrong) {
+        this.mediumWrong = mediumWrong;
+    }
+
+    public Integer getDifficultWrong() {
+        return difficultWrong;
+    }
+
+    public void setDifficultWrong(Integer difficultWrong) {
+        this.difficultWrong = difficultWrong;
+    }
+
+    public Boolean getFlaggedForCheating() {
+        return flaggedForCheating;
+    }
+
+    public void setFlaggedForCheating(Boolean flaggedForCheating) {
+        this.flaggedForCheating = flaggedForCheating;
+    }
+
+    public Long getTimeTakenSeconds() {
+        return timeTakenSeconds;
+    }
+
+    public void setTimeTakenSeconds(Long timeTakenSeconds) {
+        this.timeTakenSeconds = timeTakenSeconds;
+    }
+
+    public LocalDateTime getSubmittedAt() {
+        return submittedAt;
+    }
+
+    public void setSubmittedAt(LocalDateTime submittedAt) {
+        this.submittedAt = submittedAt;
+    }
+
+    public LocalDateTime getEvaluatedAt() {
+        return evaluatedAt;
+    }
+
+    public void setEvaluatedAt(LocalDateTime evaluatedAt) {
+        this.evaluatedAt = evaluatedAt;
+    }
+    public String getGrade() { return grade; }
+    public void setGrade(String grade) { this.grade = grade; }
 }

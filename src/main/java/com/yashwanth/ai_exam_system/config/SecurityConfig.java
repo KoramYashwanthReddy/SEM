@@ -48,7 +48,8 @@ public class SecurityConfig {
                             "/pages/**",
                             "/assets/**",
                             "/*.html",
-                            "/favicon.ico"
+                            "/favicon.ico",
+                            "/ws/**"
                     ).permitAll()
 
                     // ✅ Public APIs

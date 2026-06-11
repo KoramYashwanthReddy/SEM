@@ -22,6 +22,7 @@ import com.yashwanth.ai_exam_system.dto.ExamRequest;
 import com.yashwanth.ai_exam_system.entity.Exam;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
 import com.yashwanth.ai_exam_system.entity.ExamStatus;
+import com.yashwanth.ai_exam_system.entity.User;
 import com.yashwanth.ai_exam_system.enums.AttemptStatus;
 import com.yashwanth.ai_exam_system.exception.BadRequestException;
 import com.yashwanth.ai_exam_system.exception.ConflictException;
@@ -30,6 +31,7 @@ import com.yashwanth.ai_exam_system.exception.ResourceNotFoundException;
 import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRepository;
 import com.yashwanth.ai_exam_system.repository.QuestionRepository;
+import com.yashwanth.ai_exam_system.repository.UserRepository;
 
 @Service
 @Transactional
@@ -41,21 +43,27 @@ public class ExamService {
     private final ExamRepository examRepository;
     private final ExamAttemptRepository attemptRepository;
     private final QuestionRepository questionRepository;
+    private final UserRepository userRepository;
     private final CheatingDetectionService cheatingDetectionService;
     private final NotificationService notificationService;
+    private final EmailNotificationOrchestrator emailNotificationOrchestrator;
 
     public ExamService(
             ExamRepository examRepository,
             ExamAttemptRepository attemptRepository,
             QuestionRepository questionRepository,
+            UserRepository userRepository,
             CheatingDetectionService cheatingDetectionService,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            EmailNotificationOrchestrator emailNotificationOrchestrator) {
 
         this.examRepository = examRepository;
         this.attemptRepository = attemptRepository;
         this.questionRepository = questionRepository;
+        this.userRepository = userRepository;
         this.cheatingDetectionService = cheatingDetectionService;
         this.notificationService = notificationService;
+        this.emailNotificationOrchestrator = emailNotificationOrchestrator;
     }
 
     // ================= CREATE =================
@@ -92,6 +100,7 @@ public class ExamService {
                 "Teacher Console",
                 "info"
         );
+        emailNotificationOrchestrator.notifyExamCreated(saved);
 
         return saved;
     }
@@ -115,7 +124,10 @@ public class ExamService {
         if (isAdmin(auth)) {
             return examRepository.findAllActiveOrderByCreatedAtDesc();
         }
-        return examRepository.findByCreatedByAndActiveTrueOrderByCreatedAtDesc(auth.getName());
+        List<Exam> activeExams = examRepository.findAllActiveOrderByCreatedAtDesc();
+        return activeExams.stream()
+                .filter(exam -> isOwnerMatch(auth, exam.getCreatedBy()))
+                .toList();
     }
 
     // ================= UPDATE =================
@@ -138,6 +150,7 @@ public class ExamService {
                 "Teacher Console",
                 "info"
         );
+        emailNotificationOrchestrator.notifyExamUpdated(exam);
 
         try {
             return examRepository.saveAndFlush(exam);
@@ -160,6 +173,7 @@ public class ExamService {
                 "Teacher Console",
                 "warning"
         );
+        emailNotificationOrchestrator.notifyExamDeleted(exam);
     }
 
     // ================= PUBLISH =================
@@ -197,6 +211,7 @@ public class ExamService {
                 "Teacher Console",
                 "success"
         );
+        emailNotificationOrchestrator.notifyExamPublished(saved);
 
         return saved;
     }
@@ -277,6 +292,7 @@ public class ExamService {
         }
 
         attemptRepository.save(attempt);
+        emailNotificationOrchestrator.notifyAttemptAction(attempt, "ATTEMPT_SUBMITTED");
 
         cheatingDetectionService.analyzeAttempt(attemptId);
 
@@ -295,6 +311,7 @@ public class ExamService {
         attempt.setEndTime(LocalDateTime.now());
 
         attemptRepository.save(attempt);
+        emailNotificationOrchestrator.notifyAttemptAction(attempt, "ATTEMPT_CANCELLED");
 
         String teacherKey = attempt.getExam() != null ? attempt.getExam().getCreatedBy() : null;
         if (teacherKey != null && !teacherKey.isBlank()) {
@@ -453,11 +470,59 @@ public class ExamService {
         if (isAdmin(auth)) {
             return;
         }
-        String actor = auth.getName().trim();
         String owner = exam.getCreatedBy() == null ? "" : exam.getCreatedBy().trim();
-        if (!owner.equalsIgnoreCase(actor)) {
+        if (!isOwnerMatch(auth, owner)) {
             throw new ForbiddenException("You cannot access exams created by another user");
         }
+    }
+
+    private boolean isOwnerMatch(Authentication auth, String createdByRaw) {
+        String owner = createdByRaw == null ? "" : createdByRaw.trim();
+        if (owner.isBlank()) {
+            return false;
+        }
+
+        String actor = auth == null || auth.getName() == null ? "" : auth.getName().trim();
+        if (!actor.isBlank() && owner.equalsIgnoreCase(actor)) {
+            return true;
+        }
+
+        User actorUser = resolveUserByIdentifier(actor);
+        if (actorUser == null) {
+            return false;
+        }
+
+        return matchesTeacher(owner, actorUser);
+    }
+
+    private User resolveUserByIdentifier(String identifier) {
+        String value = identifier == null ? "" : identifier.trim();
+        if (value.isBlank()) {
+            return null;
+        }
+        return userRepository.findByEmailIgnoreCase(value)
+                .or(() -> userRepository.findByEmployeeIdIgnoreCase(value))
+                .orElse(null);
+    }
+
+    private boolean matchesTeacher(String createdBy, User actorUser) {
+        String owner = normalizeForMatch(createdBy);
+        if (owner.isBlank() || actorUser == null) {
+            return false;
+        }
+
+        return normalizeForMatch(actorUser.getEmail()).equals(owner)
+                || normalizeForMatch(actorUser.getName()).equals(owner)
+                || normalizeForMatch(actorUser.getEmployeeId()).equals(owner)
+                || normalizeForMatch(actorUser.getDepartment()).equals(owner)
+                || normalizeForMatch(actorUser.getDesignation()).equals(owner);
+    }
+
+    private String normalizeForMatch(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().toLowerCase().replaceAll("\\s+", " ");
     }
 
     private boolean isAdmin(Authentication auth) {

@@ -64,19 +64,19 @@ ensureAuthGuard();
 
   const state = {
     teacher: {
-      name: "Dr. Aria Morgan",
-      email: "aria.morgan@sem.edu",
-      phone: "+1 415 555 1099",
-      department: "Computer Science",
-      designation: "Associate Professor",
-      experienceYears: 11,
-      qualification: "PhD in AI",
-      employeeId: "EMP-TR-2048",
-      profileImage: "https://api.dicebear.com/8.x/initials/svg?seed=AM",
-      enabled: true,
+      name: "",
+      email: "",
+      phone: "",
+      department: "",
+      designation: "",
+      experienceYears: 0,
+      qualification: "",
+      employeeId: "",
+      profileImage: "",
+      enabled: false,
       accountNonLocked: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: null,
+      updatedAt: null
     },
     settings: {
       notifications: true,
@@ -461,68 +461,38 @@ ensureAuthGuard();
   };
 
   async function authFetch(path, options = {}, meta = {}) {
-    const { useBase = true, includeAuth = true, silent = false, throwOnError = true } = meta;
-    const token = getAuthToken();
-    if (includeAuth && (!token || !isLikelyJwt(token))) {
-      clearAuthStorage();
-      redirectToLogin();
-      throw new Error("Missing authentication token");
-    }
-
-    const reqOptions = { ...options };
-    const headers = new Headers(reqOptions.headers || {});
-    if (!headers.has("Accept")) headers.set("Accept", "application/json,text/plain,*/*");
-    if (includeAuth && token) headers.set("Authorization", `Bearer ${token}`);
-    if (isBodySerializable(reqOptions.body) && !headers.has("Content-Type")) {
-      headers.set("Content-Type", "application/json");
-      reqOptions.body = JSON.stringify(reqOptions.body);
-    }
-    reqOptions.headers = headers;
-
-    let response;
+    const { silent = false } = meta;
+    
     try {
-      response = await fetch(useBase ? apiUrl(path) : String(path), { credentials: "same-origin", ...reqOptions });
+      // Use the centralized API utility
+      // Some calls might expect the raw Response object (like for blob/text)
+      const useRaw = meta.responseType && meta.responseType !== "auto" && meta.responseType !== "json";
+      
+      const config = {
+        ...options,
+        raw: useRaw,
+        silent: silent
+      };
+
+      return await API.request(path, config);
     } catch (err) {
-      if (!silent) toast("Unable to connect to API server.", "error");
+      if (!silent) {
+        // toast is a global function in teacher-dashboard.js
+        if (typeof toast === 'function') toast(err.message, "error");
+      }
       throw err;
     }
-
-    if (response.status === 401 || response.status === 403) {
-      if (!silent) toast("Session expired. Please login again.", "error");
-      clearAuthStorage();
-      redirectToLogin();
-      const authErr = new Error(`Auth ${response.status}`);
-      authErr.status = response.status;
-      throw authErr;
-    }
-
-    if (!response.ok && throwOnError) {
-      const message = await extractErrorMessage(response);
-      if (response.status >= 500) {
-        try {
-          const errorBody = await response.clone().text();
-          const bodySnippet = String(errorBody || "").slice(0, 500);
-          console.error("[Teacher API 5xx]", {
-            url: useBase ? apiUrl(path) : String(path),
-            status: response.status,
-            body: bodySnippet
-          });
-        } catch (_e) {}
-      }
-      if (!silent) toast(message, "error");
-      const apiErr = new Error(message);
-      apiErr.status = response.status;
-      apiErr.details = message;
-      throw apiErr;
-    }
-
-    return response;
   }
+
 
   const api = {
     async request(path, options = {}, meta = {}) {
       const res = await authFetch(path, options, meta);
-      return parseResponse(res, meta.responseType || "auto");
+      const responseType = meta.responseType || "auto";
+      if (responseType === "auto" || responseType === "json") {
+        return res;
+      }
+      return parseResponse(res, responseType);
     },
     async ping() {
       try {
@@ -1990,7 +1960,7 @@ ensureAuthGuard();
         toast("Invalid exam code. Please reopen the upload modal from a valid exam.", "error");
         return;
       }
-      let dataUrl = "";
+      const token = getAuthToken();
       try {
         dataUrl = await readFileAsDataUrl(file);
       } catch (_e) {
@@ -4708,7 +4678,7 @@ ensureAuthGuard();
     try {
       Object.assign(dom, ids());
       applyTheme(state.ui.themeMode);
-      seedData();
+
       populateTeacher();
       setProfileEditMode(false);
 

@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import jakarta.validation.Valid;
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -66,7 +68,7 @@ public class ExamAttemptController {
     // ✅ START EXAM
     @PostMapping("/start")
     @PreAuthorize("hasRole('STUDENT')")
-    public ExamAttempt startExam(@RequestBody StartExamRequest request, Authentication auth) {
+    public ExamAttempt startExam(@Valid @RequestBody StartExamRequest request, Authentication auth) {
         Long authenticatedStudentId = resolveAuthenticatedStudentId(auth);
         if (request.getStudentId() != null && !authenticatedStudentId.equals(request.getStudentId())) {
             throw new ForbiddenException("You can only start your own exam attempt");
@@ -74,14 +76,13 @@ public class ExamAttemptController {
 
         return examAttemptService.startExam(
                 authenticatedStudentId,
-                request.getExamCode()
-        );
+                request.getExamCode());
     }
 
     // ✅ SAVE ANSWER
     @PostMapping("/submit-answer")
     @PreAuthorize("hasRole('STUDENT')")
-    public String submitAnswer(@RequestBody SubmitAnswerRequest request, Authentication auth) {
+    public String submitAnswer(@Valid @RequestBody SubmitAnswerRequest request, Authentication auth) {
         Long authenticatedStudentId = resolveAuthenticatedStudentId(auth);
         ExamAttempt attempt = attemptRepository.findById(request.getAttemptId())
                 .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
@@ -93,8 +94,7 @@ public class ExamAttemptController {
                 request.getAttemptId(),
                 request.getQuestionId(),
                 request.getAnswer(),
-                request.getMarkForReview()
-        );
+                request.getMarkForReview());
 
         return "Answer saved successfully";
     }
@@ -124,13 +124,21 @@ public class ExamAttemptController {
 
     // ✅ QUESTION PALETTE
     @GetMapping("/palette/{attemptId}")
-    public List<QuestionPaletteResponse> getPalette(@PathVariable Long attemptId) {
+    @PreAuthorize("hasAnyRole('STUDENT','TEACHER','ADMIN')")
+    public List<QuestionPaletteResponse> getPalette(@PathVariable Long attemptId, Authentication auth) {
+        ExamAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
+        ensureAttemptAccess(attempt, auth, true, true);
         return examAttemptService.getPalette(attemptId);
     }
 
     // ✅ EXAM TIMER
     @GetMapping("/timer/{attemptId}")
-    public ExamTimerResponse getTimer(@PathVariable Long attemptId) {
+    @PreAuthorize("hasAnyRole('STUDENT','TEACHER','ADMIN')")
+    public ExamTimerResponse getTimer(@PathVariable Long attemptId, Authentication auth) {
+        ExamAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
+        ensureAttemptAccess(attempt, auth, true, true);
         return examAttemptService.getTimer(attemptId);
     }
 
@@ -138,7 +146,11 @@ public class ExamAttemptController {
 
     // 🔥 NAVIGATION STATUS
     @GetMapping("/navigation/{attemptId}")
-    public ExamNavigationStatusDTO getNavigation(@PathVariable Long attemptId) {
+    @PreAuthorize("hasAnyRole('STUDENT','TEACHER','ADMIN')")
+    public ExamNavigationStatusDTO getNavigation(@PathVariable Long attemptId, Authentication auth) {
+        ExamAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
+        ensureAttemptAccess(attempt, auth, true, true);
         return navigationService.getNavigationStatus(attemptId);
     }
 
@@ -189,7 +201,8 @@ public class ExamAttemptController {
 
         List<String> examCodes = (admin
                 ? examRepository.findAllActiveOrderByCreatedAtDesc()
-                : examRepository.findByCreatedByAndActiveTrueOrderByCreatedAtDesc(auth.getName() != null ? auth.getName() : ""))
+                : examRepository
+                        .findByCreatedByAndActiveTrueOrderByCreatedAtDesc(auth.getName() != null ? auth.getName() : ""))
                 .stream()
                 .map(com.yashwanth.ai_exam_system.entity.Exam::getExamCode)
                 .collect(Collectors.toList());
@@ -232,15 +245,14 @@ public class ExamAttemptController {
     // 🔥 MARK REVIEW ONLY
     @PostMapping("/mark-review")
     @PreAuthorize("hasRole('STUDENT')")
-    public String markReview(@RequestBody SubmitAnswerRequest request, Authentication auth) {
+    public String markReview(@Valid @RequestBody SubmitAnswerRequest request, Authentication auth) {
         ExamAttempt attempt = attemptRepository.findById(request.getAttemptId())
                 .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
         ensureAttemptAccess(attempt, auth, true, false);
 
         examAttemptService.markForReview(
                 request.getAttemptId(),
-                request.getQuestionId()
-        );
+                request.getQuestionId());
 
         return "Marked for review";
     }
@@ -253,8 +265,8 @@ public class ExamAttemptController {
         map.put("examCode", attempt.getExamCode());
         String examTitle = attempt.getExamCode() != null
                 ? examRepository.findByExamCode(attempt.getExamCode())
-                    .map(com.yashwanth.ai_exam_system.entity.Exam::getTitle)
-                    .orElse(attempt.getExamCode())
+                        .map(com.yashwanth.ai_exam_system.entity.Exam::getTitle)
+                        .orElse(attempt.getExamCode())
                 : "-";
         map.put("examTitle", examTitle);
         map.put("studentId", attempt.getStudentId());
@@ -285,16 +297,19 @@ public class ExamAttemptController {
 
     private String riskLevel(Integer score) {
         int value = score != null ? score : 0;
-        if (value >= 85) return "CRITICAL";
-        if (value >= 65) return "HIGH";
-        if (value >= 40) return "MEDIUM";
+        if (value >= 85)
+            return "CRITICAL";
+        if (value >= 65)
+            return "HIGH";
+        if (value >= 40)
+            return "MEDIUM";
         return "LOW";
     }
 
     private void ensureAttemptAccess(ExamAttempt attempt,
-                                     Authentication auth,
-                                     boolean allowStudent,
-                                     boolean allowTeacherAdmin) {
+            Authentication auth,
+            boolean allowStudent,
+            boolean allowTeacherAdmin) {
         User user = resolveAuthenticatedUser(auth);
         if (user.getRole() == Role.ADMIN) {
             return;
@@ -309,9 +324,10 @@ public class ExamAttemptController {
 
         if (allowTeacherAdmin && user.getRole() == Role.TEACHER) {
             String examCode = attempt.getExamCode();
-            String owner = examCode == null ? "" : examRepository.findByExamCode(examCode)
-                    .map(com.yashwanth.ai_exam_system.entity.Exam::getCreatedBy)
-                    .orElse("");
+            String owner = examCode == null ? ""
+                    : examRepository.findByExamCode(examCode)
+                            .map(com.yashwanth.ai_exam_system.entity.Exam::getCreatedBy)
+                            .orElse("");
             String actor = auth == null || auth.getName() == null ? "" : auth.getName().trim();
             if (!owner.isBlank() && owner.equalsIgnoreCase(actor)) {
                 return;
@@ -358,3 +374,5 @@ public class ExamAttemptController {
         return user.getId();
     }
 }
+
+

@@ -93,6 +93,9 @@ const Signup = (() => {
       throw new Error(message || `Request failed (${response.status})`);
     }
 
+    if (data && typeof data === "object" && Object.prototype.hasOwnProperty.call(data, "data")) {
+      return data.data;
+    }
     return data;
   }
 
@@ -117,6 +120,9 @@ const Signup = (() => {
         ? data.message || data.error || data.cause || data.detail
         : (typeof data === "string" && data.trim() ? data.trim() : "");
       throw new Error(message || `Request failed (${response.status})`);
+    }
+    if (data && typeof data === "object" && Object.prototype.hasOwnProperty.call(data, "data")) {
+      return data.data;
     }
     return data;
   }

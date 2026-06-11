@@ -60,9 +60,12 @@ public class ExamEvaluationService {
             DifficultyLevel level = question.getDifficultyLevel();
 
             // count totals
-            if (level == DifficultyLevel.EASY) easyTotal++;
-            else if (level == DifficultyLevel.MEDIUM) mediumTotal++;
-            else if (level == DifficultyLevel.DIFFICULT) difficultTotal++;
+            if (level == DifficultyLevel.EASY)
+                easyTotal++;
+            else if (level == DifficultyLevel.MEDIUM)
+                mediumTotal++;
+            else if (level == DifficultyLevel.DIFFICULT)
+                difficultTotal++;
 
             // unanswered check
             if (studentAnswerValue == null || studentAnswerValue.trim().isEmpty()) {
@@ -83,9 +86,12 @@ public class ExamEvaluationService {
                 obtainedMarks += questionMarks;
                 correct++;
 
-                if (level == DifficultyLevel.EASY) easyCorrect++;
-                else if (level == DifficultyLevel.MEDIUM) mediumCorrect++;
-                else difficultCorrect++;
+                if (level == DifficultyLevel.EASY)
+                    easyCorrect++;
+                else if (level == DifficultyLevel.MEDIUM)
+                    mediumCorrect++;
+                else
+                    difficultCorrect++;
 
             } else {
 
@@ -94,16 +100,18 @@ public class ExamEvaluationService {
 
                 wrong++;
 
-                if (level == DifficultyLevel.EASY) easyWrong++;
-                else if (level == DifficultyLevel.MEDIUM) mediumWrong++;
-                else difficultWrong++;
+                if (level == DifficultyLevel.EASY)
+                    easyWrong++;
+                else if (level == DifficultyLevel.MEDIUM)
+                    mediumWrong++;
+                else
+                    difficultWrong++;
             }
         }
 
         answerRepository.saveAll(answers);
 
-        double percentage = totalMarks == 0 ? 0 :
-                (obtainedMarks * 100.0) / totalMarks;
+        double percentage = totalMarks == 0 ? 0 : (obtainedMarks * 100.0) / totalMarks;
 
         boolean passed = percentage >= 40;
 

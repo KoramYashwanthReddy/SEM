@@ -3,9 +3,11 @@ package com.yashwanth.ai_exam_system.service;
 import com.yashwanth.ai_exam_system.dto.TeacherDashboardResponse;
 import com.yashwanth.ai_exam_system.entity.Exam;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
+import com.yashwanth.ai_exam_system.entity.User;
 import com.yashwanth.ai_exam_system.exception.ForbiddenException;
 import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRepository;
+import com.yashwanth.ai_exam_system.repository.UserRepository;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -19,13 +21,16 @@ public class TeacherDashboardService {
 
     private final ExamRepository examRepository;
     private final ExamAttemptRepository attemptRepository;
+    private final UserRepository userRepository;
 
     public TeacherDashboardService(
             ExamRepository examRepository,
-            ExamAttemptRepository attemptRepository) {
+            ExamAttemptRepository attemptRepository,
+            UserRepository userRepository) {
 
         this.examRepository = examRepository;
         this.attemptRepository = attemptRepository;
+        this.userRepository = userRepository;
     }
 
     public TeacherDashboardResponse getDashboard(Authentication auth) {
@@ -33,12 +38,13 @@ public class TeacherDashboardService {
         if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
             throw new ForbiddenException("Authenticated teacher/admin is required");
         }
-        String teacherEmail = auth.getName();
-
         List<Exam> exams =
                 isAdmin(auth)
                         ? examRepository.findAllActiveOrderByCreatedAtDesc()
-                        : examRepository.findByCreatedByAndActiveTrueOrderByCreatedAtDesc(teacherEmail);
+                        : examRepository.findAllActiveOrderByCreatedAtDesc()
+                                .stream()
+                                .filter(exam -> isOwnerMatch(auth, exam.getCreatedBy()))
+                                .toList();
 
         List<String> examCodes =
                 exams.stream().map(Exam::getExamCode).toList();
@@ -118,5 +124,54 @@ public class TeacherDashboardService {
             }
         }
         return false;
+    }
+
+    private boolean isOwnerMatch(Authentication auth, String createdByRaw) {
+        String owner = createdByRaw == null ? "" : createdByRaw.trim();
+        if (owner.isBlank()) {
+            return false;
+        }
+
+        String actor = auth == null || auth.getName() == null ? "" : auth.getName().trim();
+        if (!actor.isBlank() && owner.equalsIgnoreCase(actor)) {
+            return true;
+        }
+
+        User actorUser = resolveUserByIdentifier(actor);
+        if (actorUser == null) {
+            return false;
+        }
+
+        return matchesTeacher(owner, actorUser);
+    }
+
+    private User resolveUserByIdentifier(String identifier) {
+        String value = identifier == null ? "" : identifier.trim();
+        if (value.isBlank()) {
+            return null;
+        }
+        return userRepository.findByEmailIgnoreCase(value)
+                .or(() -> userRepository.findByEmployeeIdIgnoreCase(value))
+                .orElse(null);
+    }
+
+    private boolean matchesTeacher(String createdBy, User actorUser) {
+        String owner = normalizeForMatch(createdBy);
+        if (owner.isBlank() || actorUser == null) {
+            return false;
+        }
+
+        return normalizeForMatch(actorUser.getEmail()).equals(owner)
+                || normalizeForMatch(actorUser.getName()).equals(owner)
+                || normalizeForMatch(actorUser.getEmployeeId()).equals(owner)
+                || normalizeForMatch(actorUser.getDepartment()).equals(owner)
+                || normalizeForMatch(actorUser.getDesignation()).equals(owner);
+    }
+
+    private String normalizeForMatch(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().toLowerCase().replaceAll("\\s+", " ");
     }
 }

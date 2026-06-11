@@ -1,8 +1,13 @@
 package com.yashwanth.ai_exam_system.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 public class StartExamRequest {
 
     private Long studentId;
+    @NotBlank(message = "Exam code is required")
+    @Size(max = 64, message = "Exam code cannot exceed 64 characters")
     private String examCode;
 
     // ================= NEW PRODUCTION FIELDS =================

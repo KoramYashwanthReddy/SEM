@@ -30,17 +30,20 @@ public class ForgotPasswordService {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
+    private final EmailNotificationOrchestrator emailNotificationOrchestrator;
 
     public ForgotPasswordService(
             PasswordResetTokenRepository tokenRepository,
             UserRepository userRepository,
             EmailService emailService,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            EmailNotificationOrchestrator emailNotificationOrchestrator
     ) {
         this.tokenRepository = tokenRepository;
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
+        this.emailNotificationOrchestrator = emailNotificationOrchestrator;
     }
 
     /*
@@ -118,6 +121,7 @@ public class ForgotPasswordService {
         userRepository.save(user);
 
         tokenRepository.delete(resetToken);
+        emailNotificationOrchestrator.notifyPasswordResetSuccess(user);
 
         log.info("Password reset successful for {}", user.getEmail());
     }

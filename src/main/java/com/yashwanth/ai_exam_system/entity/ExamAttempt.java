@@ -6,15 +6,12 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-        name = "exam_attempts",
-        indexes = {
-                @Index(name = "idx_student_id", columnList = "student_id"),
-                @Index(name = "idx_exam_id", columnList = "exam_id"),
-                @Index(name = "idx_status", columnList = "status"),
-                @Index(name = "idx_expiry", columnList = "expiry_time")
-        }
-)
+@Table(name = "exam_attempts", indexes = {
+        @Index(name = "idx_exam_attempt_student_id", columnList = "student_id"),
+        @Index(name = "idx_exam_attempt_exam_id", columnList = "exam_id"),
+        @Index(name = "idx_exam_attempt_status", columnList = "status"),
+        @Index(name = "idx_exam_attempt_expiry_time", columnList = "expiry_time")
+})
 public class ExamAttempt {
 
     @Id
@@ -81,6 +78,7 @@ public class ExamAttempt {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String grade;
 
     // ================= RELATIONSHIPS =================
 
@@ -101,12 +99,18 @@ public class ExamAttempt {
         this.createdAt = now;
         this.updatedAt = now;
 
-        if (status == null) status = AttemptStatus.STARTED;
-        if (active == null) active = true;
-        if (cancelled == null) cancelled = false;
-        if (autoSubmitted == null) autoSubmitted = false;
-        if (cheatingScore == null) cheatingScore = 0;
-        if (cheatingFlag == null) cheatingFlag = false;
+        if (status == null)
+            status = AttemptStatus.STARTED;
+        if (active == null)
+            active = true;
+        if (cancelled == null)
+            cancelled = false;
+        if (autoSubmitted == null)
+            autoSubmitted = false;
+        if (cheatingScore == null)
+            cheatingScore = 0;
+        if (cheatingFlag == null)
+            cheatingFlag = false;
     }
 
     @PreUpdate
@@ -141,93 +145,257 @@ public class ExamAttempt {
 
     // ================= GETTERS =================
 
-    public Long getId() { return id; }
-    public Long getExamId() { return examId; }
-    public String getExamCode() { return examCode; }
-    public Long getStudentId() { return studentId; }
+    public Long getId() {
+        return id;
+    }
 
-    public LocalDateTime getStartTime() { return startTime; }
-    public LocalDateTime getEndTime() { return endTime; }
+    public Long getExamId() {
+        return examId;
+    }
 
-    public Integer getDurationMinutes() { return durationMinutes; }
-    public LocalDateTime getExpiryTime() { return expiryTime; }
+    public String getExamCode() {
+        return examCode;
+    }
 
-    public Integer getTotalMarks() { return totalMarks; }
-    public Integer getObtainedMarks() { return obtainedMarks; }
-    public Double getScore() { return score; }
-    public Double getPercentage() { return percentage; }
+    public Long getStudentId() {
+        return studentId;
+    }
 
-    public AttemptStatus getStatus() { return status; }
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
 
-    public Integer getAttemptNumber() { return attemptNumber; }
-    public Boolean getAutoSubmitted() { return autoSubmitted; }
-    public Boolean getActive() { return active; }
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
 
-    public Long getTimeTakenSeconds() { return timeTakenSeconds; }
+    public Integer getDurationMinutes() {
+        return durationMinutes;
+    }
 
-    public Integer getCheatingScore() { return cheatingScore; }
-    public Boolean getCheatingFlag() { return cheatingFlag; }
-    public Boolean getCancelled() { return cancelled; }
+    public LocalDateTime getExpiryTime() {
+        return expiryTime;
+    }
 
-    public Integer getTabSwitchCount() { return tabSwitchCount; }
-    public Integer getFullscreenViolationCount() { return fullscreenViolationCount; }
+    public Integer getTotalMarks() {
+        return totalMarks;
+    }
 
-    public LocalDateTime getCancelledAt() { return cancelledAt; }
-    public String getRemarks() { return remarks; }
-    public LocalDateTime getLastAiCheckTime() { return lastAiCheckTime; }
+    public Integer getObtainedMarks() {
+        return obtainedMarks;
+    }
 
-    public String getIpAddress() { return ipAddress; }
-    public String getDeviceInfo() { return deviceInfo; }
-    public String getBrowserInfo() { return browserInfo; }
+    public Double getScore() {
+        return score;
+    }
 
-    public Double getNegativeMarksApplied() { return negativeMarksApplied; }
+    public Double getPercentage() {
+        return percentage;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public AttemptStatus getStatus() {
+        return status;
+    }
 
-    public User getStudent() { return student; }
-    public Exam getExam() { return exam; }
+    public Integer getAttemptNumber() {
+        return attemptNumber;
+    }
+
+    public Boolean getAutoSubmitted() {
+        return autoSubmitted;
+    }
+
+    public Boolean getActive() {
+        return active;
+    }
+
+    public Long getTimeTakenSeconds() {
+        return timeTakenSeconds;
+    }
+
+    public Integer getCheatingScore() {
+        return cheatingScore;
+    }
+
+    public Boolean getCheatingFlag() {
+        return cheatingFlag;
+    }
+
+    public Boolean getCancelled() {
+        return cancelled;
+    }
+
+    public Integer getTabSwitchCount() {
+        return tabSwitchCount;
+    }
+
+    public Integer getFullscreenViolationCount() {
+        return fullscreenViolationCount;
+    }
+
+    public LocalDateTime getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public String getRemarks() {
+        return remarks;
+    }
+
+    public LocalDateTime getLastAiCheckTime() {
+        return lastAiCheckTime;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
+    }
+
+    public String getDeviceInfo() {
+        return deviceInfo;
+    }
+
+    public String getBrowserInfo() {
+        return browserInfo;
+    }
+
+    public Double getNegativeMarksApplied() {
+        return negativeMarksApplied;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public User getStudent() {
+        return student;
+    }
+
+    public Exam getExam() {
+        return exam;
+    }
 
     // ================= SETTERS =================
 
-    public void setExamId(Long examId) { this.examId = examId; }
-    public void setExamCode(String examCode) { this.examCode = examCode; }
-    public void setStudentId(Long studentId) { this.studentId = studentId; }
+    public void setExamId(Long examId) {
+        this.examId = examId;
+    }
 
-    public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }
-    public void setEndTime(LocalDateTime endTime) { this.endTime = endTime; }
+    public void setExamCode(String examCode) {
+        this.examCode = examCode;
+    }
 
-    public void setDurationMinutes(Integer durationMinutes) { this.durationMinutes = durationMinutes; }
-    public void setExpiryTime(LocalDateTime expiryTime) { this.expiryTime = expiryTime; }
+    public void setStudentId(Long studentId) {
+        this.studentId = studentId;
+    }
 
-    public void setTotalMarks(Integer totalMarks) { this.totalMarks = totalMarks; }
-    public void setObtainedMarks(Integer obtainedMarks) { this.obtainedMarks = obtainedMarks; }
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
 
-    public void setScore(Double score) { this.score = score; }
-    public void setPercentage(Double percentage) { this.percentage = percentage; }
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
 
-    public void setStatus(AttemptStatus status) { this.status = status; }
+    public void setDurationMinutes(Integer durationMinutes) {
+        this.durationMinutes = durationMinutes;
+    }
 
-    public void setAttemptNumber(Integer attemptNumber) { this.attemptNumber = attemptNumber; }
-    public void setAutoSubmitted(Boolean autoSubmitted) { this.autoSubmitted = autoSubmitted; }
-    public void setActive(Boolean active) { this.active = active; }
+    public void setExpiryTime(LocalDateTime expiryTime) {
+        this.expiryTime = expiryTime;
+    }
 
-    public void setTimeTakenSeconds(Long timeTakenSeconds) { this.timeTakenSeconds = timeTakenSeconds; }
+    public void setTotalMarks(Integer totalMarks) {
+        this.totalMarks = totalMarks;
+    }
 
-    public void setCheatingScore(Integer cheatingScore) { this.cheatingScore = cheatingScore; }
-    public void setCheatingFlag(Boolean cheatingFlag) { this.cheatingFlag = cheatingFlag; }
-    public void setCancelled(Boolean cancelled) { this.cancelled = cancelled; }
+    public void setObtainedMarks(Integer obtainedMarks) {
+        this.obtainedMarks = obtainedMarks;
+    }
 
-    public void setTabSwitchCount(Integer tabSwitchCount) { this.tabSwitchCount = tabSwitchCount; }
-    public void setFullscreenViolationCount(Integer fullscreenViolationCount) { this.fullscreenViolationCount = fullscreenViolationCount; }
+    public void setScore(Double score) {
+        this.score = score;
+    }
 
-    public void setCancelledAt(LocalDateTime cancelledAt) { this.cancelledAt = cancelledAt; }
-    public void setRemarks(String remarks) { this.remarks = remarks; }
-    public void setLastAiCheckTime(LocalDateTime lastAiCheckTime) { this.lastAiCheckTime = lastAiCheckTime; }
+    public void setPercentage(Double percentage) {
+        this.percentage = percentage;
+    }
 
-    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
-    public void setDeviceInfo(String deviceInfo) { this.deviceInfo = deviceInfo; }
-    public void setBrowserInfo(String browserInfo) { this.browserInfo = browserInfo; }
+    public void setStatus(AttemptStatus status) {
+        this.status = status;
+    }
 
-    public void setNegativeMarksApplied(Double negativeMarksApplied) { this.negativeMarksApplied = negativeMarksApplied; }
+    public void setAttemptNumber(Integer attemptNumber) {
+        this.attemptNumber = attemptNumber;
+    }
+
+    public void setAutoSubmitted(Boolean autoSubmitted) {
+        this.autoSubmitted = autoSubmitted;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
+    }
+
+    public void setTimeTakenSeconds(Long timeTakenSeconds) {
+        this.timeTakenSeconds = timeTakenSeconds;
+    }
+
+    public void setCheatingScore(Integer cheatingScore) {
+        this.cheatingScore = cheatingScore;
+    }
+
+    public void setCheatingFlag(Boolean cheatingFlag) {
+        this.cheatingFlag = cheatingFlag;
+    }
+
+    public void setCancelled(Boolean cancelled) {
+        this.cancelled = cancelled;
+    }
+
+    public void setTabSwitchCount(Integer tabSwitchCount) {
+        this.tabSwitchCount = tabSwitchCount;
+    }
+
+    public void setFullscreenViolationCount(Integer fullscreenViolationCount) {
+        this.fullscreenViolationCount = fullscreenViolationCount;
+    }
+
+    public void setCancelledAt(LocalDateTime cancelledAt) {
+        this.cancelledAt = cancelledAt;
+    }
+
+    public void setRemarks(String remarks) {
+        this.remarks = remarks;
+    }
+
+    public void setLastAiCheckTime(LocalDateTime lastAiCheckTime) {
+        this.lastAiCheckTime = lastAiCheckTime;
+    }
+
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
+
+    public void setDeviceInfo(String deviceInfo) {
+        this.deviceInfo = deviceInfo;
+    }
+
+    public void setBrowserInfo(String browserInfo) {
+        this.browserInfo = browserInfo;
+    }
+
+    public void setNegativeMarksApplied(Double negativeMarksApplied) {
+        this.negativeMarksApplied = negativeMarksApplied;
+    }
+
+    public String getGrade() {
+        return grade;
+    }
+
+    public void setGrade(String grade) {
+        this.grade = grade;
+    }
 }

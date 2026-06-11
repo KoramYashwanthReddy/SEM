@@ -86,12 +86,10 @@ public class ExamAttemptService {
             throw new BadRequestException("Exam window is closed");
         }
 
-        Optional<ExamAttempt> active =
-                attemptRepository.findActiveAttempt(
-                        studentId,
-                        examCode,
-                        AttemptStatus.STARTED
-                );
+        Optional<ExamAttempt> active = attemptRepository.findActiveAttempt(
+                studentId,
+                examCode,
+                AttemptStatus.STARTED);
 
         if (active.isPresent()) {
             return active.get();
@@ -113,7 +111,7 @@ public class ExamAttemptService {
 
     // ================= SAVE ANSWER =================
     public void submitAnswer(Long attemptId, Long questionId,
-                             String answer, Boolean markForReview) {
+            String answer, Boolean markForReview) {
 
         ExamAttempt attempt = getAttempt(attemptId);
 
@@ -121,14 +119,13 @@ public class ExamAttemptService {
             throw new RuntimeException("Exam not active");
         }
 
-        StudentAnswer studentAnswer =
-                answerRepository.findByAttemptIdAndQuestionId(attemptId, questionId)
-                        .orElseGet(() -> {
-                            StudentAnswer sa = new StudentAnswer();
-                            sa.setAttemptId(attemptId);
-                            sa.setQuestionId(questionId);
-                            return sa;
-                        });
+        StudentAnswer studentAnswer = answerRepository.findByAttemptIdAndQuestionId(attemptId, questionId)
+                .orElseGet(() -> {
+                    StudentAnswer sa = new StudentAnswer();
+                    sa.setAttemptId(attemptId);
+                    sa.setQuestionId(questionId);
+                    return sa;
+                });
 
         studentAnswer.setAnswer(answer);
 
@@ -153,11 +150,9 @@ public class ExamAttemptService {
         ExamResult result = evaluationService.evaluateExam(
                 attemptId,
                 attempt.getStudentId(),
-                attempt.getExamCode()
-        );
+                attempt.getExamCode());
 
-        List<Question> questions =
-                questionRepository.findByExamCodeAndActiveTrue(attempt.getExamCode());
+        List<Question> questions = questionRepository.findByExamCodeAndActiveTrue(attempt.getExamCode());
 
         int totalMarks = questions.stream()
                 .mapToInt(q -> q.getMarks() == null ? 0 : q.getMarks())
@@ -167,8 +162,7 @@ public class ExamAttemptService {
 
         long timeTaken = Duration.between(
                 attempt.getStartTime(),
-                LocalDateTime.now()
-        ).getSeconds();
+                LocalDateTime.now()).getSeconds();
 
         attempt.setTimeTakenSeconds(timeTaken);
         attempt.setObtainedMarks(obtainedMarks);
@@ -194,11 +188,9 @@ public class ExamAttemptService {
 
         ExamAttempt attempt = getAttempt(attemptId);
 
-        List<Question> questions =
-                questionRepository.findByExamCodeAndActiveTrue(attempt.getExamCode());
+        List<Question> questions = questionRepository.findByExamCodeAndActiveTrue(attempt.getExamCode());
 
-        List<StudentAnswer> answers =
-                answerRepository.findByAttemptId(attemptId);
+        List<StudentAnswer> answers = answerRepository.findByAttemptId(attemptId);
 
         Map<Long, String> statusMap = new HashMap<>();
 
@@ -211,8 +203,7 @@ public class ExamAttemptService {
         for (Question q : questions) {
             String status = statusMap.getOrDefault(
                     q.getId(),
-                    "NOT_VISITED"
-            );
+                    "NOT_VISITED");
             palette.add(new QuestionPaletteResponse(q.getId(), status));
         }
 
@@ -227,8 +218,7 @@ public class ExamAttemptService {
                         answer.getQuestionId(),
                         answer.getAnswer(),
                         answer.getStatus(),
-                        answer.getReviewMarked()
-                ))
+                        answer.getReviewMarked()))
                 .toList();
     }
 
@@ -239,11 +229,11 @@ public class ExamAttemptService {
 
         long totalSeconds = attempt.getDurationMinutes() * 60;
 
-        long remainingSeconds =
-                Duration.between(LocalDateTime.now(), attempt.getExpiryTime())
-                        .getSeconds();
+        long remainingSeconds = Duration.between(LocalDateTime.now(), attempt.getExpiryTime())
+                .getSeconds();
 
-        if (remainingSeconds < 0) remainingSeconds = 0;
+        if (remainingSeconds < 0)
+            remainingSeconds = 0;
 
         long elapsed = totalSeconds - remainingSeconds;
 

@@ -1,5 +1,6 @@
 package com.yashwanth.ai_exam_system.controller;
 
+import com.yashwanth.ai_exam_system.dto.ApiResponse;
 import com.yashwanth.ai_exam_system.dto.TeacherDashboardResponse;
 import com.yashwanth.ai_exam_system.service.TeacherDashboardService;
 
@@ -7,9 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/teacher/dashboard")
@@ -24,16 +22,12 @@ public class TeacherDashboardController {
     }
 
     @GetMapping
-    public ResponseEntity<Map<String, Object>> getDashboard(
+    public ResponseEntity<ApiResponse<TeacherDashboardResponse>> getDashboard(
             Authentication auth) {
 
         TeacherDashboardResponse dashboard =
                 dashboardService.getDashboard(auth);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "SUCCESS");
-        response.put("data", dashboard);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("Teacher dashboard fetched", dashboard));
     }
 }

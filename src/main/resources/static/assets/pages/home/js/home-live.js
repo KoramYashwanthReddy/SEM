@@ -3,10 +3,6 @@
  */
 
 (function () {
-  const apiBase = /^https?:/i.test(window.location.origin)
-    ? window.location.origin
-    : "http://localhost:8080";
-
   const state = {
     summary: null
   };
@@ -121,13 +117,7 @@
   }
 
   async function load() {
-    const response = await fetch(`${apiBase}/api/home/summary`, {
-      headers: { "Accept": "application/json" }
-    });
-    if (!response.ok) {
-      throw new Error(`Home summary failed (${response.status})`);
-    }
-    return response.json();
+    return API.get('/api/home/summary');
   }
 
   function apply(summary) {

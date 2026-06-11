@@ -47,12 +47,12 @@ public class StudentDashboardService {
     private final LeaderboardService leaderboardService;
 
     public StudentDashboardService(ExamAttemptRepository attemptRepository,
-                                   ExamRepository examRepository,
-                                   UserRepository userRepository,
-                                   StudentProfileRepository studentProfileRepository,
-                                   ExamRegistrationRepository examRegistrationRepository,
-                                   CertificateRepository certificateRepository,
-                                   LeaderboardService leaderboardService) {
+            ExamRepository examRepository,
+            UserRepository userRepository,
+            StudentProfileRepository studentProfileRepository,
+            ExamRegistrationRepository examRegistrationRepository,
+            CertificateRepository certificateRepository,
+            LeaderboardService leaderboardService) {
         this.attemptRepository = attemptRepository;
         this.examRepository = examRepository;
         this.userRepository = userRepository;
@@ -76,14 +76,12 @@ public class StudentDashboardService {
                 .toList();
 
         attempts.sort(Comparator.comparing(
-                (ExamAttempt attempt) ->
-                        attempt.getEndTime() != null
-                                ? attempt.getEndTime()
-                                : attempt.getStartTime() != null
+                (ExamAttempt attempt) -> attempt.getEndTime() != null
+                        ? attempt.getEndTime()
+                        : attempt.getStartTime() != null
                                 ? attempt.getStartTime()
                                 : attempt.getCreatedAt(),
-                Comparator.nullsLast(Comparator.naturalOrder())
-        ).reversed());
+                Comparator.nullsLast(Comparator.naturalOrder())).reversed());
 
         List<StudentExamSummary> attempted = new ArrayList<>();
         List<Double> scores = new ArrayList<>();
@@ -121,8 +119,7 @@ public class StudentDashboardService {
                 certificates++;
             }
 
-            LocalDateTime attemptTime =
-                    attempt.getEndTime() != null ? attempt.getEndTime() : attempt.getStartTime();
+            LocalDateTime attemptTime = attempt.getEndTime() != null ? attempt.getEndTime() : attempt.getStartTime();
             if (lastAttempt == null ||
                     (attemptTime != null && attemptTime.isAfter(lastAttempt))) {
                 lastAttempt = attemptTime;
@@ -133,8 +130,7 @@ public class StudentDashboardService {
                     obtained,
                     total,
                     percentage,
-                    calculateBadge(percentage)
-            );
+                    calculateBadge(percentage));
             summary.setAttemptId(attempt.getId());
             attempted.add(summary);
         }
@@ -191,14 +187,12 @@ public class StudentDashboardService {
 
         List<ExamAttempt> attempts = attemptRepository.findByStudentId(student.getId());
         attempts.sort(Comparator.comparing(
-                (ExamAttempt attempt) ->
-                        attempt.getEndTime() != null
-                                ? attempt.getEndTime()
-                                : attempt.getStartTime() != null
+                (ExamAttempt attempt) -> attempt.getEndTime() != null
+                        ? attempt.getEndTime()
+                        : attempt.getStartTime() != null
                                 ? attempt.getStartTime()
                                 : attempt.getCreatedAt(),
-                Comparator.nullsLast(Comparator.naturalOrder())
-        ).reversed());
+                Comparator.nullsLast(Comparator.naturalOrder())).reversed());
 
         Map<String, ExamAttempt> activeAttemptByExamCode = attempts.stream()
                 .filter(attempt -> attempt.getExamCode() != null)
@@ -208,16 +202,18 @@ public class StudentDashboardService {
                         ExamAttempt::getExamCode,
                         attempt -> attempt,
                         (left, right) -> {
-                            LocalDateTime leftTime = left.getUpdatedAt() != null ? left.getUpdatedAt() : left.getCreatedAt();
-                            LocalDateTime rightTime = right.getUpdatedAt() != null ? right.getUpdatedAt() : right.getCreatedAt();
-                            if (leftTime == null) return right;
-                            if (rightTime == null) return left;
+                            LocalDateTime leftTime = left.getUpdatedAt() != null ? left.getUpdatedAt()
+                                    : left.getCreatedAt();
+                            LocalDateTime rightTime = right.getUpdatedAt() != null ? right.getUpdatedAt()
+                                    : right.getCreatedAt();
+                            if (leftTime == null)
+                                return right;
+                            if (rightTime == null)
+                                return left;
                             return rightTime.isAfter(leftTime) ? right : left;
-                        }
-                ));
+                        }));
 
-        List<ExamRegistration> registrations =
-                examRegistrationRepository.findByStudentIdAndActiveTrue(student.getId());
+        List<ExamRegistration> registrations = examRegistrationRepository.findByStudentIdAndActiveTrue(student.getId());
         Set<String> registeredExamCodeSet = registrations.stream()
                 .map(ExamRegistration::getExamCode)
                 .filter(code -> code != null && !code.isBlank())
@@ -258,10 +254,14 @@ public class StudentDashboardService {
 
     private String calculateBadge(double percentage) {
 
-        if (percentage >= 90) return "PLATINUM";
-        if (percentage >= 80) return "GOLD";
-        if (percentage >= 70) return "SILVER";
-        if (percentage >= 60) return "BRONZE";
+        if (percentage >= 90)
+            return "PLATINUM";
+        if (percentage >= 80)
+            return "GOLD";
+        if (percentage >= 70)
+            return "SILVER";
+        if (percentage >= 60)
+            return "BRONZE";
 
         return "PARTICIPANT";
     }
@@ -273,38 +273,31 @@ public class StudentDashboardService {
 
         Double avg = analytics.getAverageScore();
 
-        if (avg == null) return suggestions;
+        if (avg == null)
+            return suggestions;
 
         if (avg < 50) {
             suggestions.add(
                     new ExamSuggestionResponse(
-                            "Revise basics and attempt beginner exams"
-                    )
-            );
+                            "Revise basics and attempt beginner exams"));
         }
 
         if (avg >= 50 && avg < 70) {
             suggestions.add(
                     new ExamSuggestionResponse(
-                            "Practice medium difficulty exams"
-                    )
-            );
+                            "Practice medium difficulty exams"));
         }
 
         if (avg >= 70 && avg < 85) {
             suggestions.add(
                     new ExamSuggestionResponse(
-                            "Attempt advanced level exams"
-                    )
-            );
+                            "Attempt advanced level exams"));
         }
 
         if (avg >= 85) {
             suggestions.add(
                     new ExamSuggestionResponse(
-                            "You are doing great! Try competitive exams"
-                    )
-            );
+                            "You are doing great! Try competitive exams"));
         }
 
         return suggestions;
@@ -353,13 +346,15 @@ public class StudentDashboardService {
         map.put("email", profile != null && profile.getEmail() != null ? profile.getEmail() : user.getEmail());
         map.put("phone", profile != null ? profile.getPhone() : user.getPhone());
         map.put("collegeName", profile != null ? profile.getCollegeName() : null);
-        map.put("department", profile != null && profile.getDepartment() != null ? profile.getDepartment() : user.getDepartment());
+        map.put("department",
+                profile != null && profile.getDepartment() != null ? profile.getDepartment() : user.getDepartment());
         map.put("year", profile != null ? profile.getYear() : null);
         map.put("rollNumber", profile != null ? profile.getRollNumber() : null);
         map.put("section", profile != null ? profile.getSection() : null);
         map.put("gender", profile != null ? profile.getGender() : null);
         map.put("dateOfBirth", profile != null ? profile.getDateOfBirth() : null);
-        map.put("profilePhoto", profile != null && profile.getProfilePhoto() != null ? profile.getProfilePhoto() : user.getProfileImage());
+        map.put("profilePhoto", profile != null && profile.getProfilePhoto() != null ? profile.getProfilePhoto()
+                : user.getProfileImage());
         map.put("profileCompleted", profile != null && profile.isProfileCompleted());
         return map;
     }

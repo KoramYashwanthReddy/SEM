@@ -40,37 +40,20 @@
     return '';
   };
   const apiRequest = async (path, options = {}) => {
-    const token = getToken();
-    const headers = { Accept: 'application/json', ...(options.headers || {}) };
-    if (token) headers.Authorization = `Bearer ${token}`;
-    if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
-      headers['Content-Type'] = 'application/json';
+    try {
+      // Use the centralized API utility
+      // student-ui.js prepends /api manually, but API.js handles the base part
+      // So if path starts with /, we use it as is
+      return await API.request(`/api${path}`, options);
+    } catch (err) {
+      if (!options.silent) {
+        // toast is a global or accessible function in student-ui.js via toastStack
+        console.error('API Error:', err.message);
+        // showToast is defined later in student-ui.js
+        if (typeof showToast === 'function') showToast(err.message, 'danger');
+      }
+      throw err;
     }
-    const res = await fetch(`${API_BASE}/api${path}`, {
-      credentials: 'same-origin',
-      ...options,
-      headers
-    });
-    if (res.status === 401 || res.status === 403) {
-      clearAuthStorage();
-      redirectToLogin();
-      throw new Error('Session expired. Please login again.');
-    }
-    const raw = await res.text();
-    let data = null;
-    if (raw) {
-      try { data = JSON.parse(raw); } catch (_) { data = raw; }
-    }
-    if (!res.ok) {
-      const message = data && typeof data === 'object'
-        ? (data.message || data.error || data.cause || data.detail)
-        : (typeof data === 'string' ? data : '');
-      throw new Error(message || `Request failed (${res.status})`);
-    }
-    if (data && typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'data')) {
-      return data.data;
-    }
-    return data;
   };
   const toIsoOrEmpty = (value) => {
     if (!value) return '';
@@ -93,25 +76,15 @@
     sec: localStorage.getItem(K.sec) || 'dashboard',
     q: localStorage.getItem(K.q) || '',
     theme: localStorage.getItem(K.t) || 'system',
-    currentUserId: 'stu-aarav',
+    currentUserId: '',
     leaderboard: {
       mode: 'global',
       sort: 'rank',
       q: ''
     },
-    profile: load(K.p, { fullName:'Aarav Mehta', email:'aarav.mehta@college.edu', phone:'+91 98765 43210', collegeName:'Institute of Technology', department:'Computer Science', year:'3rd Year', rollNumber:'CS23-018', section:'A' }),
+    profile: load(K.p, { fullName:'', email:'', phone:'', collegeName:'', department:'', year:'', rollNumber:'', section:'' }),
     settings: load(K.s, { emailAlerts:true, examReminders:true, compactDensity:false, highContrast:false }),
-    examRegistration: load(K.er, {
-      'CS-201': false,
-      'CS-214': true,
-      'CS-225': true,
-      'CS-238': true,
-      'AI-301': true,
-      'SE-210': true,
-      'MA-109': true,
-      'CS-101': true,
-      'AI-302': true
-    }),
+    examRegistration: load(K.er, {}),
     examSessions: load(K.es, {}),
     examAttemptIds: load(K.ea, {}),
     examUi: {
@@ -127,373 +100,16 @@
       currentStepValid: false
     },
     data: {
-      dash: { totalExams:24, attemptedCount:17, averageScore:86.4, certificatesEarned:6, trend:[54,60,62,68,74,71,79,83,88,85,91,89], attempts:[
-        { examCode:'CS-201', obtainedMarks:86, totalMarks:100, percentage:86, badge:'GOLD', status:'Completed', date:'Today', duration:'54 min' },
-        { examCode:'MA-109', obtainedMarks:91, totalMarks:100, percentage:91, badge:'PLATINUM', status:'Completed', date:'Yesterday', duration:'48 min' },
-        { examCode:'EC-204', obtainedMarks:78, totalMarks:100, percentage:78, badge:'SILVER', status:'Completed', date:'3 days ago', duration:'61 min' },
-        { examCode:'PHY-115', obtainedMarks:69, totalMarks:100, percentage:69, badge:'BRONZE', status:'Completed', date:'5 days ago', duration:'57 min' }
-      ]},
-      exams: [
-        {
-          title:'Data Structures',
-          examCode:'CS-201',
-          subject:'Computer Science',
-          durationMinutes:60,
-          totalMarks:100,
-          passingMarks:35,
-          maxAttempts:2,
-          negativeMarks:0.25,
-          startTime:'10:00 AM',
-          endTime:'11:00 AM',
-          easyQuestionCount:14,
-          mediumQuestionCount:18,
-          difficultQuestionCount:8,
-          instructions:[
-            'Read all questions carefully before submitting an answer.',
-            'Negative marking is active for incorrect responses.',
-            'Use the full duration only if needed and keep your session active.'
-          ],
-          status:'available'
-        },
-        {
-          title:'Cloud Computing Essentials',
-          examCode:'CC-118',
-          subject:'Information Technology',
-          durationMinutes:75,
-          totalMarks:100,
-          passingMarks:40,
-          maxAttempts:2,
-          negativeMarks:0.25,
-          startTime:'11:15 AM',
-          endTime:'12:30 PM',
-          easyQuestionCount:11,
-          mediumQuestionCount:18,
-          difficultQuestionCount:11,
-          instructions:[
-            'Review architecture patterns and service models before starting.',
-            'Keep the exam window open once verification completes.',
-            'All responses are saved in real time for secure continuity.'
-          ],
-          status:'available'
-        },
-        {
-          title:'Cyber Security Foundations',
-          examCode:'CY-104',
-          subject:'Security',
-          durationMinutes:90,
-          totalMarks:100,
-          passingMarks:42,
-          maxAttempts:2,
-          negativeMarks:0.25,
-          startTime:'01:45 PM',
-          endTime:'03:15 PM',
-          easyQuestionCount:12,
-          mediumQuestionCount:18,
-          difficultQuestionCount:10,
-          instructions:[
-            'Complete the identity verification flow before starting.',
-            'Monitor network and browser stability during the session.',
-            'Questions are shuffled on every attempt to maintain integrity.'
-          ],
-          status:'available'
-        },
-        {
-          title:'Technical Communication',
-          examCode:'TC-107',
-          subject:'Communication',
-          durationMinutes:60,
-          totalMarks:100,
-          passingMarks:35,
-          maxAttempts:2,
-          negativeMarks:0.25,
-          startTime:'04:20 PM',
-          endTime:'05:20 PM',
-          easyQuestionCount:14,
-          mediumQuestionCount:16,
-          difficultQuestionCount:10,
-          instructions:[
-            'Read the prompt carefully and answer with professional precision.',
-            'Language clarity and structure matter across all responses.',
-            'Submit only when you are ready to finalize the verified attempt.'
-          ],
-          status:'available'
-        },
-        {
-          title:'Data Visualization Systems',
-          examCode:'DV-330',
-          subject:'Analytics',
-          durationMinutes:75,
-          totalMarks:100,
-          passingMarks:40,
-          maxAttempts:1,
-          negativeMarks:0.25,
-          startTime:'05:10 PM',
-          endTime:'06:25 PM',
-          easyQuestionCount:10,
-          mediumQuestionCount:20,
-          difficultQuestionCount:10,
-          instructions:[
-            'Inspect the dashboard prompt carefully before answering.',
-            'Charts, reports, and interpretation questions are mixed throughout.',
-            'Once verified, maintain focus for the duration of the attempt.'
-          ],
-          status:'available'
-        },
-        {
-          title:'Mobile App Development',
-          examCode:'MD-208',
-          subject:'Software Engineering',
-          durationMinutes:90,
-          totalMarks:100,
-          passingMarks:42,
-          maxAttempts:2,
-          negativeMarks:0.25,
-          startTime:'06:40 PM',
-          endTime:'08:10 PM',
-          easyQuestionCount:12,
-          mediumQuestionCount:18,
-          difficultQuestionCount:10,
-          instructions:[
-            'Expect scenario, architecture, and implementation questions.',
-            'Use the latest saved session only if resume mode is available.',
-            'Keep the browser in focus to avoid integrity warnings.'
-          ],
-          status:'available'
-        },
-        {
-          title:'Database Systems',
-          examCode:'CS-214',
-          subject:'Databases',
-          durationMinutes:90,
-          totalMarks:100,
-          passingMarks:40,
-          maxAttempts:1,
-          negativeMarks:0.25,
-          startTime:'01:30 PM',
-          endTime:'03:00 PM',
-          easyQuestionCount:10,
-          mediumQuestionCount:20,
-          difficultQuestionCount:10,
-          instructions:[
-            'This exam is timed and will auto-submit when time ends.',
-            'Attempt questions in the order that suits your strategy.',
-            'Review marked questions before the final submission.'
-          ],
-          status:'available'
-        },
-        {
-          title:'Operating Systems',
-          examCode:'CS-225',
-          subject:'Systems',
-          durationMinutes:75,
-          totalMarks:100,
-          passingMarks:38,
-          maxAttempts:2,
-          negativeMarks:0.25,
-          startTime:'04:00 PM',
-          endTime:'05:15 PM',
-          easyQuestionCount:12,
-          mediumQuestionCount:18,
-          difficultQuestionCount:10,
-          instructions:[
-            'Ensure your device stays connected during the attempt.',
-            'Any timeout will preserve the session for resume where allowed.',
-            'Navigation between questions is unrestricted during the exam.'
-          ],
-          status:'available'
-        },
-        {
-          title:'Advanced Algorithms',
-          examCode:'CS-238',
-          subject:'Computer Science',
-          durationMinutes:75,
-          totalMarks:100,
-          passingMarks:40,
-          maxAttempts:2,
-          negativeMarks:0.25,
-          startTime:'02:15 PM',
-          endTime:'03:30 PM',
-          easyQuestionCount:12,
-          mediumQuestionCount:18,
-          difficultQuestionCount:10,
-          instructions:[
-            'Focus on complexity analysis and optimal problem solving.',
-            'Use the question palette to track visited questions.',
-            'A final review screen appears before submission.'
-          ],
-          status:'available'
-        },
-        {
-          title:'Machine Learning Basics',
-          examCode:'AI-301',
-          subject:'Artificial Intelligence',
-          durationMinutes:120,
-          totalMarks:100,
-          passingMarks:45,
-          maxAttempts:1,
-          negativeMarks:0.25,
-          startTime:'Tomorrow 10:00 AM',
-          endTime:'Tomorrow 12:00 PM',
-          easyQuestionCount:8,
-          mediumQuestionCount:18,
-          difficultQuestionCount:14,
-          instructions:[
-            'This exam opens in a scheduled window and cannot be started early.',
-            'Check prerequisites and system readiness before the start time.',
-            'A countdown will be displayed when the exam is live.'
-          ],
-          status:'upcoming'
-        },
-        {
-          title:'Software Engineering',
-          examCode:'SE-210',
-          subject:'Engineering',
-          durationMinutes:80,
-          totalMarks:100,
-          passingMarks:42,
-          maxAttempts:1,
-          negativeMarks:0.25,
-          startTime:'Sat 09:30 AM',
-          endTime:'Sat 10:50 AM',
-          easyQuestionCount:14,
-          mediumQuestionCount:16,
-          difficultQuestionCount:10,
-          instructions:[
-            'Expect scenario-based questions and design trade-off choices.',
-            'The exam becomes available only during its allocated window.',
-            'Keep your browser tab in focus to avoid interruption warnings.'
-          ],
-          status:'upcoming'
-        },
-        {
-          title:'Discrete Mathematics',
-          examCode:'MA-109',
-          subject:'Mathematics',
-          durationMinutes:90,
-          totalMarks:100,
-          passingMarks:40,
-          maxAttempts:1,
-          negativeMarks:0.25,
-          startTime:'Fri 11:00 AM',
-          endTime:'Fri 12:30 PM',
-          easyQuestionCount:12,
-          mediumQuestionCount:18,
-          difficultQuestionCount:10,
-          instructions:[
-            'This paper is scheduled and will unlock at the stated time.',
-            'Work through proofs, sets, and logic carefully before answer submission.',
-            'Use the instruction preview to confirm rules before starting.'
-          ],
-          status:'upcoming'
-        },
-        {
-          title:'Programming Fundamentals',
-          examCode:'CS-101',
-          subject:'Computer Science',
-          durationMinutes:60,
-          totalMarks:100,
-          passingMarks:35,
-          maxAttempts:2,
-          negativeMarks:0.25,
-          startTime:'Resume Now',
-          endTime:'Saved Session',
-          easyQuestionCount:11,
-          mediumQuestionCount:16,
-          difficultQuestionCount:9,
-          status:'resume',
-          attemptNumber:2,
-          percentage:62,
-          obtainedMarks:62,
-          timeTakenSeconds:1840,
-          instructions:[
-            'Resume from your saved attempt and continue where you left off.',
-            'Your remaining time is preserved for this session.',
-            'Review flagged questions before final submission if time allows.'
-          ]
-        },
-        {
-          title:'Artificial Intelligence',
-          examCode:'AI-302',
-          subject:'Artificial Intelligence',
-          durationMinutes:110,
-          totalMarks:100,
-          passingMarks:45,
-          maxAttempts:1,
-          negativeMarks:0.25,
-          startTime:'Resume Now',
-          endTime:'Saved Session',
-          easyQuestionCount:10,
-          mediumQuestionCount:18,
-          difficultQuestionCount:12,
-          status:'resume',
-          attemptNumber:1,
-          percentage:74,
-          obtainedMarks:74,
-          timeTakenSeconds:2260,
-          instructions:[
-            'Resume mode restores your last saved progress.',
-            'Answer confidence-based questions first if you are short on time.',
-            'A final confirmation step is shown before submitting the attempt.'
-          ]
-        }
-      ],
-      results: [
-        { examCode:'CS-201', score:86, percentage:86, resultStatus:'Pass', passed:true, correctAnswers:43, wrongAnswers:5, unansweredQuestions:2, timeTakenSeconds:3240, submittedAt:'2026-03-22', totalQuestions:50, easyCorrect:18, mediumCorrect:16, hardCorrect:9, easyWrong:1, mediumWrong:2, hardWrong:2 },
-        { examCode:'MA-109', score:91, percentage:91, resultStatus:'Pass', passed:true, correctAnswers:46, wrongAnswers:3, unansweredQuestions:1, timeTakenSeconds:2860, submittedAt:'2026-03-24', totalQuestions:50, easyCorrect:20, mediumCorrect:17, hardCorrect:9, easyWrong:0, mediumWrong:1, hardWrong:2 },
-        { examCode:'EC-204', score:78, percentage:78, resultStatus:'Pass', passed:true, correctAnswers:39, wrongAnswers:8, unansweredQuestions:3, timeTakenSeconds:3660, submittedAt:'2026-03-25', totalQuestions:50, easyCorrect:16, mediumCorrect:14, hardCorrect:9, easyWrong:2, mediumWrong:3, hardWrong:3 },
-        { examCode:'PHY-115', score:69, percentage:69, resultStatus:'Pass', passed:true, correctAnswers:34, wrongAnswers:10, unansweredQuestions:6, timeTakenSeconds:3420, submittedAt:'2026-03-28', totalQuestions:50, easyCorrect:14, mediumCorrect:12, hardCorrect:8, easyWrong:3, mediumWrong:3, hardWrong:4 },
-        { examCode:'AI-301', score:52, percentage:52, resultStatus:'Fail', passed:false, correctAnswers:26, wrongAnswers:14, unansweredQuestions:10, timeTakenSeconds:3840, submittedAt:'2026-03-30', totalQuestions:50, easyCorrect:10, mediumCorrect:9, hardCorrect:7, easyWrong:4, mediumWrong:5, hardWrong:5 }
-      ],
-      certs: [
-        { certificateId:'CERT-2026-011', examCode:'MA-109', examTitle:'Discrete Mathematics', studentName:'Aarav Mehta', collegeName:'Institute of Technology', department:'Computer Science', rollNumber:'CS23-018', score:91, grade:'A+', issuedAt:'2026-03-12', revoked:false, qrCodeData:'CERT-2026-011|MA-109|A+|Verified' },
-        { certificateId:'CERT-2026-012', examCode:'CS-201', examTitle:'Data Structures', studentName:'Aarav Mehta', collegeName:'Institute of Technology', department:'Computer Science', rollNumber:'CS23-018', score:86, grade:'A', issuedAt:'2026-03-22', revoked:false, qrCodeData:'CERT-2026-012|CS-201|A|Verified' },
-        { certificateId:'CERT-2026-013', examCode:'EC-204', examTitle:'Electronics Fundamentals', studentName:'Aarav Mehta', collegeName:'Institute of Technology', department:'Computer Science', rollNumber:'CS23-018', score:78, grade:'B+', issuedAt:'2026-03-27', revoked:false, qrCodeData:'CERT-2026-013|EC-204|B+|Verified' },
-        { certificateId:'CERT-2026-014', examCode:'PHY-115', examTitle:'Applied Physics', studentName:'Aarav Mehta', collegeName:'Institute of Technology', department:'Computer Science', rollNumber:'CS23-018', score:69, grade:'B', issuedAt:'2026-03-29', revoked:true, qrCodeData:'CERT-2026-014|PHY-115|B|Revoked' },
-        { certificateId:'CERT-2026-015', examCode:'AI-302', examTitle:'Artificial Intelligence', studentName:'Aarav Mehta', collegeName:'Institute of Technology', department:'Computer Science', rollNumber:'CS23-018', score:96, grade:'A+', issuedAt:'2026-04-01', revoked:false, qrCodeData:'CERT-2026-015|AI-302|A+|Verified' }
-      ],
+      dash: { totalExams:0, attemptedCount:0, averageScore:0, certificatesEarned:0, trend:[], attempts:[] },
+      exams: [],
+      results: [],
+      certs: [],
       leaderboard: {
-        global: leaderboardRows([
-          ['stu-meera', 'Meera Shah', 98, 98, 1],
-          ['stu-aarav', 'Aarav Mehta', 96, 96, 2],
-          ['stu-rohan', 'Rohan Iyer', 95, 95, 3],
-          ['stu-tanya', 'Tanya Kapoor', 94, 94, 4],
-          ['stu-kabir', 'Kabir Singh', 92, 92, 5],
-          ['stu-ishita', 'Ishita Verma', 91, 91, 6],
-          ['stu-nikhil', 'Nikhil Rao', 90, 90, 7],
-          ['stu-pooja', 'Pooja Nair', 89, 89, 8],
-          ['stu-ananya', 'Ananya Das', 88, 88, 9],
-          ['stu-arjun', 'Arjun Patil', 87, 87, 10],
-          ['stu-simran', 'Simran Kaur', 85, 85, 11],
-          ['stu-vihaan', 'Vihaan Joshi', 83, 83, 12],
-          ['stu-neha', 'Neha Menon', 80, 80, 13],
-          ['stu-aditya', 'Aditya Rao', 77, 77, 14],
-          ['stu-sara', 'Sara Khan', 74, 74, 15]
-        ]),
-        exam: leaderboardRows([
-          ['stu-aarav', 'Aarav Mehta', 99, 99, 1],
-          ['stu-meera', 'Meera Shah', 97, 97, 2],
-          ['stu-rohan', 'Rohan Iyer', 94, 94, 3],
-          ['stu-kabir', 'Kabir Singh', 93, 93, 4],
-          ['stu-tanya', 'Tanya Kapoor', 91, 91, 5],
-          ['stu-ishita', 'Ishita Verma', 89, 89, 6],
-          ['stu-nikhil', 'Nikhil Rao', 88, 88, 7],
-          ['stu-pooja', 'Pooja Nair', 86, 86, 8],
-          ['stu-arjun', 'Arjun Patil', 84, 84, 9],
-          ['stu-ananya', 'Ananya Das', 82, 82, 10],
-          ['stu-vihaan', 'Vihaan Joshi', 80, 80, 11],
-          ['stu-simran', 'Simran Kaur', 78, 78, 12],
-          ['stu-neha', 'Neha Menon', 76, 76, 13],
-          ['stu-aditya', 'Aditya Rao', 73, 73, 14],
-          ['stu-sara', 'Sara Khan', 70, 70, 15]
-        ])
+        global: [],
+        exam: []
       },
-      analytics: { attemptedExams:17, averageScore:86.4, highestScore:98, lowestScore:52, passRate:88 },
-      notifications: loadArray(K.nn, [
-        { id:'n-1', title:'Results published', message:'Discrete Mathematics scores are now visible in My Results.', timestamp:'2026-04-07T09:10:00', type:'result', read:false },
-        { id:'n-2', title:'Exam reminder', message:'AI-301 begins later today at 1:00 PM with verification required.', timestamp:'2026-04-07T08:40:00', type:'exam', read:false },
-        { id:'n-3', title:'Certificate ready', message:'MA-109 certificate is ready for secure download.', timestamp:'2026-04-06T18:25:00', type:'certificate', read:true },
-        { id:'n-4', title:'Schedule updated', message:'Upcoming exam windows were refreshed for the week.', timestamp:'2026-04-06T15:45:00', type:'exam', read:true }
-      ]),
+      analytics: { attemptedExams:0, averageScore:0, highestScore:0, lowestScore:0, passRate:0 },
+      notifications: [],
       supportFaq: [
         { question:'How do I start an exam?', answer:'Open the Exam section, verify the access window, and complete pre-exam verification when prompted.' },
         { question:'Why is my exam locked?', answer:'Exams can be locked because registration is required, the window is closed, or the live timer has not started yet.' },
@@ -509,6 +125,7 @@
         aiMonitoringActive: true
       }
     }
+
   };
   async function hydrateFromBackend() {
     const token = getToken();
@@ -653,7 +270,7 @@
         correctAnswers,
         wrongAnswers,
         unansweredQuestions,
-        timeTakenSeconds: toNumber(attempt.timeTakenSeconds),
+        timeTakenSeconds: toNumber(attempt.timeTakenSeconds),grade: attempt.grade || (percentage >= 90 ? 'O' : percentage >= 80 ? 'A+' : percentage >= 70 ? 'A' : percentage >= 60 ? 'B+' : percentage >= 50 ? 'B' : 'F'),
         submittedAt: attempt.endTime || attempt.updatedAt || attempt.createdAt || null,
         totalQuestions,
         easyCorrect: toNumber(attempt.easyCorrect),
@@ -788,13 +405,16 @@
     const phase1EndTime = exam.phase1EndTime ? new Date(exam.phase1EndTime) : null;
     const phase2StartTime = exam.phase2StartTime ? new Date(exam.phase2StartTime) : null;
 
-    // Fallback to legacy calculation if backend times not provided
-    const registrationDeadline = phase2StartTime || phase1EndTime || (startAt.getTime() - (30 * 60000));
-    const verificationOpenAt = registrationDeadline;
+    // Registration closes when exam starts. Phase-2 opens before start.
+    const registrationCloseAt = startAt.getTime();
+    const verificationOpenAt = phase2StartTime
+      ? phase2StartTime.getTime()
+      : (phase1EndTime ? phase1EndTime.getTime() : (startAt.getTime() - (30 * 60000)));
+    const inPhase2Window = now >= verificationOpenAt && now < registrationCloseAt;
 
     const registrationOpen = !!exam.registrationOpen
       && (!registrationStartTime || now >= registrationStartTime.getTime())
-      && now < registrationDeadline;
+      && now < registrationCloseAt;
     const preStartLock = false;
     const verificationOpen = now >= verificationOpenAt && now < startAt.getTime();
     const live = now >= startAt.getTime() && now <= endAt.getTime();
@@ -802,7 +422,7 @@
     const minutesUntil = Math.ceil((startAt.getTime() - now) / 60000);
     const expired = now > endAt.getTime() || String(exam?.status || '').toLowerCase() === 'closed';
     const minutesUntilVerification = Math.ceil((verificationOpenAt - now) / 60000);
-    const minutesUntilRegistrationClose = Math.ceil((registrationDeadline - now) / 60000);
+    const minutesUntilRegistrationClose = Math.ceil((registrationCloseAt - now) / 60000);
 
     return {
       registered,
@@ -822,10 +442,10 @@
       minutesUntil,
       startAt,
       endAt,
-      registrationDeadline: new Date(registrationDeadline),
+      registrationDeadline: new Date(registrationCloseAt),
       verificationOpenAt: new Date(verificationOpenAt),
       currentPhase: exam.currentRegistrationPhase || 'CLOSED',
-      requiresPhase2Verification: !!exam.requiresPhase2Verification
+      requiresPhase2Verification: !!exam.requiresPhase2Verification || inPhase2Window
     };
   }
   const icoExt = {
@@ -1074,9 +694,9 @@
     const sessionStarted = !!st.examSessions[exam.examCode];
     const started = sessionStarted || now >= startAt.getTime();
     const minutesUntil = Math.ceil((startAt.getTime() - now) / 60000);
-    const registrationDeadline = startAt.getTime() - (10 * 60000);
-    const verificationOpenAt = registrationDeadline;
-    const registrationOpen = now < registrationDeadline;
+    const registrationCloseAt = startAt.getTime();
+    const verificationOpenAt = startAt.getTime() - (30 * 60000);
+    const registrationOpen = now < registrationCloseAt;
     const verificationOpen = now >= verificationOpenAt && now < startAt.getTime();
     const preStartLock = false;
 
@@ -2019,7 +1639,7 @@
         <td>${formatDuration(r.timeTakenSeconds)}</td>
         <td>${formatDate(r.submittedAt)}</td>
         <td>
-          <button class="btn ghost small result-action" type="button" data-action="result-view" data-code="${r.examCode}">View</button>
+          <button class="btn ghost small result-action" type="button" data-action="result-view" data-code="${r.examCode}">Intelligence</button>
         </td>
       </tr>`).join('') : `<tr class="empty-row"><td colspan="10" class="empty-state"><strong>No results match the selected filters.</strong><span>Try clearing the search or choose a different status.</span></td></tr>`;
   }
@@ -3060,7 +2680,7 @@
     renderHelpSupport();
     setInterval(updateClock, 1000);
     startCountdownTimer();
-    setTimeout(() => { booting = false; renderCards(); renderAllTables(); renderAnalyticsCharts(); toast('Student UI ready', 'Enterprise dashboard shell has loaded.', 'success'); refresh(); }, 450);
+    setTimeout(() => { booting = false; document.getElementById('loaderOverlay')?.classList.add('hidden'); setTimeout(() => document.getElementById('loaderOverlay')?.remove(), 600); renderCards(); renderAllTables(); renderAnalyticsCharts(); toast('Student UI ready', 'Enterprise dashboard shell has loaded.', 'success'); refresh(); document.getElementById('loaderOverlay')?.classList.remove('active'); }, 450);
   }
   document.addEventListener('DOMContentLoaded', () => { init().catch((error) => console.error('Student UI init failed:', error)); });
   window.studentUI = { renderCards, renderChart: renderAnalyticsCharts, renderTable: renderAllTables, renderLeaderboard };

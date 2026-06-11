@@ -8,6 +8,7 @@ import com.yashwanth.ai_exam_system.exception.ResourceNotFoundException;
 import com.yashwanth.ai_exam_system.exception.ValidationException;
 import com.yashwanth.ai_exam_system.repository.UserRepository;
 
+import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,7 +43,7 @@ public class UserController {
     @PutMapping("/update")
     public ResponseEntity<Map<String, Object>> update(
             org.springframework.security.core.Authentication auth,
-            @RequestBody TeacherProfileUpdateRequest request) {
+            @Valid @RequestBody TeacherProfileUpdateRequest request) {
 
         User user = getCurrentUser(auth.getName());
 
@@ -69,7 +70,7 @@ public class UserController {
     @PostMapping("/change-password")
     public ResponseEntity<Map<String, Object>> changePassword(
             org.springframework.security.core.Authentication auth,
-            @RequestBody ChangePasswordRequest request) {
+            @Valid @RequestBody ChangePasswordRequest request) {
 
         User user = getCurrentUser(auth.getName());
 

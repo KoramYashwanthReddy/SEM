@@ -45,4 +45,6 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
     List<Certificate> findByExamCode(String examCode);
 
     List<Certificate> findByExamCodeAndRevokedFalse(String examCode);
+
+    Optional<Certificate> findFirstByRevokedFalseOrderByIssuedAtDesc();
 }

@@ -115,26 +115,10 @@ const Login = (() => {
     setLoading(true);
 
     try {
-      const apiBase = /^https?:/i.test(window.location.origin)
-        ? window.location.origin
-        : "http://localhost:8080";
-
-      const response = await fetch(`${apiBase}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: email,
-          password: password
-        })
+      const data = await API.post('/api/auth/login', {
+        email: email,
+        password: password
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Login failed");
-      }
 
       // Save token
       const token = data.accessToken || data.token || data.jwt;
@@ -154,7 +138,7 @@ const Login = (() => {
 
       setSuccess();
 
-      // Redirect based on role
+      // Redirect
       setTimeout(() => {
         window.location.href = 'student-ui.html';
       }, 1000);
@@ -201,6 +185,9 @@ const Login = (() => {
     const text = String(message || '').toLowerCase();
     if (text.includes('invalid credentials')) {
       return 'Invalid credentials. Please verify your email and password.';
+    }
+    if (text.includes('user not found')) {
+      return 'No student account matched that email. Sign up first or use the seeded demo credentials.';
     }
     return message || 'Unable to connect to server. Please try again.';
   }
@@ -266,5 +253,4 @@ const Login = (() => {
 
 })();
 
-// Initialize
 document.addEventListener('DOMContentLoaded', Login.init);

@@ -58,6 +58,12 @@ public interface ExamResultRepository
 
     long countByExamCodeAndPassedFalse(String examCode);
 
+    long countByPassedTrue();
+
+    long countByPassedFalse();
+
+    List<ExamResult> findTop100ByOrderBySubmittedAtDesc();
+
     // ================= PERFORMANCE =================
 
     List<ExamResult> findTop10ByExamCodeOrderByScoreDesc(String examCode);
@@ -69,6 +75,8 @@ public interface ExamResultRepository
     // ================= CHEATING =================
 
     List<ExamResult> findByFlaggedForCheatingTrue();
+
+    long countByFlaggedForCheatingTrue();
 
     List<ExamResult> findByExamCodeAndFlaggedForCheatingTrue(String examCode);
 

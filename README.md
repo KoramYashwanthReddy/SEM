@@ -88,13 +88,27 @@ The application follows a layered architecture:
 - SMTP mail server for email workflows
 
 ### Local Run
-1. Update `src/main/resources/application.properties` with your environment details.
+1. Copy `.env.example` and set environment variables for your machine/secrets.
 2. Ensure MySQL is available and the JDBC URL is configured.
 3. Run the application:
    ```bash
    ./mvnw spring-boot:run
    ```
 4. Access the application at `http://localhost:8080`.
+
+### Default Local Login Credentials
+When `APP_BOOTSTRAP_DEMO_ENABLED=true` (enabled by default outside production), the app creates these local users on startup if they do not already exist:
+- Admin: `admin@ai-exam.local` / `Admin@123456`
+- Teacher: `teacher@ai-exam.local` or `TCH-1001` / `Teacher@123456`
+- Student: `student@ai-exam.local` / `Student@123456`
+
+Disable this bootstrap before production deployment.
+
+### Test Run
+```bash
+./mvnw clean test
+```
+Tests use the `test` profile with an in-memory H2 database (`src/test/resources/application-test.properties`), so local MySQL is not required for test execution.
 
 ### Recommended Production Hardening
 - Externalize all secrets and credentials using environment variables or a vault.
@@ -117,6 +131,7 @@ The application currently defines several runtime properties in `src/main/resour
 - Frontend reset URL
 
 > Note: For enterprise use, do not commit production secrets. Move all sensitive values to environment-specific configuration.
+> A starter template for this is provided in `.env.example`.
 
 ## Important Paths
 - `src/main/java/com/yashwanth/ai_exam_system/controller`

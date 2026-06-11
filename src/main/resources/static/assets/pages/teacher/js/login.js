@@ -125,7 +125,8 @@ const TeacherLogin = (() => {
         throw new Error(await readErrorMessage(response));
       }
 
-      const data = await response.json();
+      const raw = await response.json();
+      const data = raw?.data ?? raw;
       console.log("LOGIN RESPONSE:", data);
 
       // Support multiple token names
@@ -145,7 +146,7 @@ const TeacherLogin = (() => {
         role: data.role,
         user: sanitizeUserForStorage(data),
         teacher: {
-        id: data.id,
+        id: data.userId || data.id,
         name: data.name,
         email: data.email,
         department: data.department,
@@ -205,6 +206,9 @@ const TeacherLogin = (() => {
     const text = String(message || '').toLowerCase();
     if (text.includes('invalid credentials')) {
       return 'Invalid credentials. Please verify your email and password.';
+    }
+    if (text.includes('user not found')) {
+      return 'No account matched that email or employee ID. Use a registered account or the seeded demo credentials.';
     }
     return message || 'Unable to connect to server. Please try again.';
   }

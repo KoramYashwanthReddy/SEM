@@ -1,5 +1,6 @@
 package com.yashwanth.ai_exam_system.controller;
 
+import com.yashwanth.ai_exam_system.dto.ApiResponse;
 import com.yashwanth.ai_exam_system.service.HomeSummaryService;
 
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,7 @@ public class HomeController {
     }
 
     @GetMapping("/summary")
-    public ResponseEntity<Map<String, Object>> getSummary() {
-        return ResponseEntity.ok(homeSummaryService.getSummary());
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getSummary() {
+        return ResponseEntity.ok(ApiResponse.success("Home summary fetched", homeSummaryService.getSummary()));
     }
 }

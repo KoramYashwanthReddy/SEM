@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -42,6 +43,7 @@ import com.yashwanth.ai_exam_system.repository.StudentAnswerRepository;
 import com.yashwanth.ai_exam_system.repository.UserRepository;
 import com.yashwanth.ai_exam_system.service.ExamAttemptService;
 import com.yashwanth.ai_exam_system.service.ExamEvaluationService;
+import com.yashwanth.ai_exam_system.service.EmailNotificationOrchestrator;
 
 @RestController
 @RequestMapping("/api/student/exam")
@@ -56,6 +58,7 @@ public class StudentExamController {
     private final ExamRepository examRepository;
     private final ExamRegistrationRepository examRegistrationRepository;
     private final UserRepository userRepository;
+    private final EmailNotificationOrchestrator emailNotificationOrchestrator;
 
     public StudentExamController(
             ExamAttemptRepository examAttemptRepository,
@@ -65,7 +68,8 @@ public class StudentExamController {
             ExamEvaluationService examEvaluationService,
             ExamRepository examRepository,
             ExamRegistrationRepository examRegistrationRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            EmailNotificationOrchestrator emailNotificationOrchestrator) {
 
         this.examAttemptRepository = examAttemptRepository;
         this.questionRepository = questionRepository;
@@ -75,6 +79,7 @@ public class StudentExamController {
         this.examRepository = examRepository;
         this.examRegistrationRepository = examRegistrationRepository;
         this.userRepository = userRepository;
+        this.emailNotificationOrchestrator = emailNotificationOrchestrator;
     }
 
     // ================= START EXAM =================
@@ -89,7 +94,13 @@ public class StudentExamController {
         if (!authenticatedStudentId.equals(studentId)) {
             throw new ForbiddenException("You can only start your own exam attempt");
         }
-        return ResponseEntity.ok(examAttemptService.startExam(studentId, examCode));
+        ExamAttempt attempt = examAttemptService.startExam(studentId, examCode);
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+        Exam exam = examRepository.findByExamCode(examCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+        emailNotificationOrchestrator.notifyStudentExamStarted(student, exam, attempt);
+        return ResponseEntity.ok(attempt);
     }
 
     @PostMapping("/register/{examCode}")
@@ -132,6 +143,9 @@ public class StudentExamController {
         registration.setPhase2Verified(false);
         registration.setRegisteredAt(LocalDateTime.now());
         examRegistrationRepository.save(registration);
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+        emailNotificationOrchestrator.notifyStudentRegistered(student, exam, "PHASE1");
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("registered", true);
@@ -228,6 +242,9 @@ public class StudentExamController {
         registration.setPhase2VerifiedAt(LocalDateTime.now());
         registration.setRegisteredAt(LocalDateTime.now());
         examRegistrationRepository.save(registration);
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+        emailNotificationOrchestrator.notifyStudentRegistered(student, exam, "PHASE2");
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("registered", true);
@@ -280,11 +297,11 @@ public class StudentExamController {
     // ================= SAVE ANSWER =================
 
     @PostMapping("/save-answer")
-    public ResponseEntity<?> saveAnswer(@RequestBody SaveAnswerRequest request, Authentication auth) {
+    public ResponseEntity<?> saveAnswer(@Valid @RequestBody SaveAnswerRequest request, Authentication auth) {
 
         Long authenticatedStudentId = getAuthenticatedStudentId(auth);
         ExamAttempt attempt = examAttemptRepository.findById(request.getAttemptId())
-                .orElseThrow(() -> new RuntimeException("Exam attempt not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
         if (!authenticatedStudentId.equals(attempt.getStudentId())) {
             throw new ForbiddenException("You can only save answers for your own attempt");
         }
@@ -335,7 +352,7 @@ public class StudentExamController {
 
         Long authenticatedStudentId = getAuthenticatedStudentId(auth);
         ExamAttempt attempt = examAttemptRepository.findById(attemptId)
-                .orElseThrow(() -> new RuntimeException("Attempt not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Attempt not found"));
         if (!authenticatedStudentId.equals(attempt.getStudentId())) {
             throw new ForbiddenException("You can only submit your own attempt");
         }
@@ -356,6 +373,11 @@ public class StudentExamController {
         attempt.setTotalMarks(result.getTotalQuestions());
 
         examAttemptRepository.save(attempt);
+        User student = userRepository.findById(authenticatedStudentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+        Exam exam = examRepository.findByExamCode(attempt.getExamCode())
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+        emailNotificationOrchestrator.notifyExamSubmitted(student, exam, attempt, result);
 
         return ResponseEntity.ok(result);
     }

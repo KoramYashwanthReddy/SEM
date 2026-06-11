@@ -52,50 +52,48 @@ public class HomeSummaryService {
     }
 
     public Map<String, Object> getSummary() {
-        List<ExamResult> results = resultRepository.findAll();
-        List<ExamAttempt> attempts = attemptRepository.findAll();
-        List<Exam> exams = examRepository.findAll();
-        List<Certificate> certificates = certificateRepository.findAll();
-        List<com.yashwanth.ai_exam_system.entity.User> users = userRepository.findAll();
-
         LocalDateTime now = LocalDateTime.now();
         YearMonth currentMonth = YearMonth.from(now);
 
-        long totalUsers = users.size();
-        long totalStudents = users.stream().filter(u -> u.getRole() == Role.STUDENT).count();
-        long activeStudents = users.stream().filter(u -> u.getRole() == Role.STUDENT && u.isEnabled()).count();
-        long totalTeachers = users.stream().filter(u -> u.getRole() == Role.TEACHER).count();
-        long enabledTeachers = users.stream().filter(u -> u.getRole() == Role.TEACHER && u.isEnabled()).count();
+        // Optimized counts using repositories
+        long totalStudents = userRepository.countByRole(Role.STUDENT);
+        long activeStudents = userRepository.countByRoleAndEnabled(Role.STUDENT, true);
+        long totalTeachers = userRepository.countByRole(Role.TEACHER);
+        long enabledTeachers = userRepository.countByRoleAndEnabled(Role.TEACHER, true);
 
-        long totalExams = exams.size();
+        long totalExams = examRepository.count();
+        // Since we don't have countByCreatedAtAfter, we use a query or fetch all exams (exams are usually fewer than results)
+        List<Exam> exams = examRepository.findAll();
         long examsThisMonth = exams.stream()
                 .filter(e -> e.getCreatedAt() != null && YearMonth.from(e.getCreatedAt()).equals(currentMonth))
                 .count();
-        long activeExams = exams.stream().filter(Exam::isActive).count();
+        long activeExams = examRepository.countByActiveTrue();
 
-        long totalAttempts = attempts.size();
-        long liveSessions = attempts.stream()
-                .filter(a -> a.getActive() != null && a.getActive())
-                .filter(a -> a.getStatus() == AttemptStatus.STARTED)
-                .filter(a -> a.getCancelled() == null || !a.getCancelled())
-                .count();
+        long totalAttempts = attemptRepository.count();
+        long liveSessions = attemptRepository.countByStatus(AttemptStatus.STARTED);
 
-        long totalCertificates = certificates.size();
-        long activeCertificates = certificates.stream().filter(c -> !c.isRevoked()).count();
-
-        long completedResults = results.stream().filter(r -> Boolean.TRUE.equals(r.getPassed())).count();
-        double passRate = results.isEmpty() ? 0 : (completedResults * 100.0) / results.size();
-        double completionRate = attempts.isEmpty() ? 0 : (results.size() * 100.0) / attempts.size();
-        long riskyAttempts = attempts.stream()
-                .filter(a -> a.getCheatingScore() != null && a.getCheatingScore() > 0)
-                .count();
-        double violationRate = attempts.isEmpty() ? 0 : (riskyAttempts * 100.0) / attempts.size();
-        double avgScore = results.stream().mapToDouble(ExamResult::getScore).average().orElse(0);
+        long totalCertificates = certificateRepository.count();
+        
+        // Results analytics
+        Double avgScore = attemptRepository.getAverageScore();
+        if (avgScore == null) avgScore = 0.0;
+        
+        // For pass rate and completion rate, we use aggregated counts
+        long totalResults = resultRepository.count();
+        long passedResults = resultRepository.countByPassedTrue();
+        
+        double passRate = totalResults == 0 ? 0 : (passedResults * 100.0) / totalResults;
+        double completionRate = totalAttempts == 0 ? 0 : (totalResults * 100.0) / totalAttempts;
+        
+        List<ExamResult> results = resultRepository.findTop100ByOrderBySubmittedAtDesc();
+        
+        long riskyAttempts = attemptRepository.countByCheatingScoreGreaterThan(79);
+        double violationRate = totalAttempts == 0 ? 0 : (riskyAttempts * 100.0) / totalAttempts;
 
         Map<String, Object> hero = new LinkedHashMap<>();
         hero.put("examsConducted", totalAttempts);
         hero.put("passRate", round(passRate));
-        hero.put("certificatesIssued", activeCertificates);
+        hero.put("certificatesIssued", totalCertificates);
 
         Map<String, Object> analytics = new LinkedHashMap<>();
         analytics.put("examsThisMonth", examsThisMonth);
@@ -112,52 +110,37 @@ public class HomeSummaryService {
 
         Map<String, Object> violationTypes = new LinkedHashMap<>();
         violationTypes.put("labels", List.of("Tab Switch", "Fullscreen", "High Risk", "Auto Submitted", "Cancelled"));
+        
+        // Use optimized sum queries from repository
+        Long sumTabSwitches = attemptRepository.sumTabSwitchCount();
+        Long sumFullscreen = attemptRepository.sumFullscreenViolationCount();
+        long autoSubmittedCount = attemptRepository.countByAutoSubmittedTrue();
+        long cancelledCount = attemptRepository.countByCancelledTrue();
+
         violationTypes.put("data", List.of(
-                attempts.stream().mapToInt(a -> safeInt(a.getTabSwitchCount())).sum(),
-                attempts.stream().mapToInt(a -> safeInt(a.getFullscreenViolationCount())).sum(),
-                (int) attempts.stream().filter(a -> safeInt(a.getCheatingScore()) >= 80).count(),
-                (int) attempts.stream().filter(a -> Boolean.TRUE.equals(a.getAutoSubmitted())).count(),
-                (int) attempts.stream().filter(a -> Boolean.TRUE.equals(a.getCancelled())).count()
+                sumTabSwitches != null ? sumTabSwitches.intValue() : 0,
+                sumFullscreen != null ? sumFullscreen.intValue() : 0,
+                (int) riskyAttempts,
+                (int) autoSubmittedCount,
+                (int) cancelledCount
         ));
 
         Map<String, Object> trend = buildTrend(results);
 
-        Map<String, Object> latestCertificate = certificates.stream()
-                .filter(c -> !c.isRevoked())
-                .max(Comparator.comparing(c -> safeTime(c.getIssuedAt() != null ? c.getIssuedAt() : c.getCreatedAt())))
+        // Latest entities
+        Map<String, Object> latestCertificate = certificateRepository.findFirstByRevokedFalseOrderByIssuedAtDesc()
                 .map(this::toCertificateSummary)
-                .orElseGet(() -> Map.of(
-                        "studentName", "No certificates yet",
-                        "examTitle", "-",
-                        "score", 0,
-                        "certificateId", "-",
-                        "issuedAt", "-"
-                ));
+                .orElseGet(() -> {
+                    Map<String, Object> fallback = new LinkedHashMap<>();
+                    fallback.put("studentName", "No certificates yet");
+                    fallback.put("examTitle", "-");
+                    fallback.put("score", 0);
+                    fallback.put("certificateId", "-");
+                    fallback.put("issuedAt", "-");
+                    return fallback;
+                });
 
-        Map<String, Object> latestTeacher = users.stream()
-                .filter(u -> u.getRole() == Role.TEACHER)
-                .max(Comparator.comparing(u -> safeTime(u.getUpdatedAt() != null ? u.getUpdatedAt() : u.getCreatedAt())))
-                .map(this::toUserSummary)
-                .orElseGet(() -> Map.of(
-                        "name", "No teachers yet",
-                        "department", "-",
-                        "designation", "-",
-                        "employeeId", "-"
-                ));
-
-        Map<String, Object> latestExam = exams.stream()
-                .max(Comparator.comparing(e -> safeTime(e.getUpdatedAt() != null ? e.getUpdatedAt() : e.getCreatedAt())))
-                .map(this::toExamSummary)
-                .orElseGet(() -> Map.of(
-                        "title", "No exams yet",
-                        "subject", "-",
-                        "status", "DRAFT",
-                        "studentCount", 0,
-                        "averageScore", 0
-                ));
-
-        List<Map<String, Object>> adminExamRows = exams.stream()
-                .sorted(Comparator.comparing((Exam e) -> safeTime(e.getCreatedAt())).reversed())
+        List<Map<String, Object>> adminExamRows = examRepository.findTop10ByOrderByCreatedAtDesc().stream()
                 .limit(4)
                 .map(this::toExamSummary)
                 .toList();
@@ -176,8 +159,6 @@ public class HomeSummaryService {
         certificatePreview.put("issuedAt", latestCertificate.get("issuedAt"));
         certificatePreview.put("authority", "SEM Platform - Examinations");
 
-        Map<String, Object> heroTeacher = latestTeacher;
-
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("hero", hero);
         summary.put("analytics", analytics);
@@ -186,10 +167,7 @@ public class HomeSummaryService {
         summary.put("trend", trend);
         summary.put("certificatePreview", certificatePreview);
         summary.put("adminPreview", adminPreview);
-        summary.put("latestExam", latestExam);
-        summary.put("latestTeacher", heroTeacher);
         summary.put("meta", Map.of(
-                "totalUsers", totalUsers,
                 "totalStudents", totalStudents,
                 "totalTeachers", totalTeachers,
                 "totalExams", totalExams,

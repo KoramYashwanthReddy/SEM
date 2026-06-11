@@ -17,7 +17,7 @@ public class QuestionUploadController {
     }
 
     @PostMapping("/upload")
-    @PreAuthorize("hasRole('TEACHER')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public String uploadQuestions(@RequestParam("file") MultipartFile file) {
 
         try {

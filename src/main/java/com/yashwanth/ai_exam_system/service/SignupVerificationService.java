@@ -35,19 +35,22 @@ public class SignupVerificationService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final JwtService jwtService;
+    private final EmailNotificationOrchestrator emailNotificationOrchestrator;
 
     public SignupVerificationService(
             SignupOtpTokenRepository otpTokenRepository,
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             EmailService emailService,
-            JwtService jwtService
+            JwtService jwtService,
+            EmailNotificationOrchestrator emailNotificationOrchestrator
     ) {
         this.otpTokenRepository = otpTokenRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.jwtService = jwtService;
+        this.emailNotificationOrchestrator = emailNotificationOrchestrator;
     }
 
     @Transactional
@@ -122,6 +125,7 @@ public class SignupVerificationService {
         user.setAccountNonLocked(true);
         userRepository.save(user);
         otpTokenRepository.delete(pending);
+        emailNotificationOrchestrator.notifySignupVerified(user);
 
         log.info("Student signup verified for {}", email);
         return buildAuthResponse(user);

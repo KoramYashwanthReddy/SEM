@@ -107,12 +107,12 @@
         this.setupNavigation();
         this.setupSidebarToggle();
         this.initCharts();
-        this.populateMockData();
         this.setupUserTabs();
         this.setupSearchFilters();
         
         // Initialize Dashboard Module
         this.initDashboardEngine();
+        this.populateRealData();
 
         // Listen for global theme changes to refresh charts
         window.addEventListener('themechange', () => {
@@ -735,6 +735,7 @@
 
     // ─── MOCK DATA & RENDERERS ───
     populateMockData() {
+        // Fallback or old mock data
         this.renderExams();
         this.renderStudents();
         this.renderTeachers();
@@ -747,38 +748,94 @@
         if(window.initLeaderboardEngine) window.initLeaderboardEngine();
     },
 
-    renderExams() {
-        if(!window.examsData) {
-            window.examsData = [
-                { id: 'EXAM-JS24XX', title: 'Advanced JavaScript (ES2024)', creator: 'Dr. John Smith', duration: 90, status: 'Published', questionsUploaded: true },
-                { id: 'EXAM-AWS123', title: 'Cloud Infrastructure with AWS', creator: 'Eng. Sarah Connor', duration: 120, status: 'Published', questionsUploaded: true },
-                { id: 'EXAM-ML0001', title: 'Machine Learning Basics', creator: 'Prof. Xavier', duration: 60, status: 'Draft', questionsUploaded: false }
-            ];
+    async populateRealData() {
+        try {
+            // Fetch Exams
+            const exams = await API.get('/api/admin/exams');
+            window.examsData = (Array.isArray(exams) ? exams : []).map(e => ({
+                id: e.examCode,
+                title: e.title,
+                creator: e.createdBy || 'Admin',
+                duration: e.durationMinutes || 0,
+                status: e.status || 'Published',
+                questionsUploaded: e.questionsUploaded || false
+            }));
+
+            // Fetch Students
+            const students = await API.get('/api/admin/users/students');
+            window.studentsData = (Array.isArray(students) ? students : []).map(s => ({
+                id: s.id, name: s.name, email: s.email, institution: s.department || 'Student', status: s.enabled ? 'Active' : 'Disabled',
+                examsAttempted: 0, avgScore: 0, passRate: 0, lastLogin: s.updatedAt || 'N/A', attempts: 0, highestScore: 0, lowestScore: 0
+            }));
+
+            // Fetch Teachers
+            const teachers = await API.get('/api/admin/users/teachers');
+            window.teachersData = (Array.isArray(teachers) ? teachers : []).map(t => ({
+                id: t.id, fullName: t.name, email: t.email, phone: t.phone || 'N/A', department: t.department || 'N/A',
+                designation: t.designation || 'N/A', experienceYears: t.experienceYears || 0, qualification: t.qualification || 'N/A', employeeId: t.employeeId || 'N/A', status: t.enabled ? 'Active' : 'Disabled',
+                examsCreated: [], questionsUploaded: [], attemptsHandled: { total: 0, avgScore: 0, passRate: 0 },
+                cheatingReports: { suspicious: 0, flags: 0 }, analytics: { exams: 0, students: 0, certs: 0 }
+            }));
+
+            // Fetch Dashboard Stats
+            const stats = await API.get('/api/admin/dashboard');
+            if (stats) {
+                this.updateMetricCards(stats);
+            }
+
+            // Initial Renders with real data
+            this.renderExams();
+            this.renderStudents();
+            this.renderTeachers();
+            this.renderViolations();
+            this.renderCertificates();
+            this.renderAttempts();
+            this.appendAnalyticsProgressBars();
+            
+            if(window.initLeaderboardEngine) window.initLeaderboardEngine();
+        } catch(e) {
+            console.error("Failed to fetch real admin data:", e);
+            // In production, we don't fall back to massive mock datasets
+            window.examsData = window.examsData || [];
+            window.studentsData = window.studentsData || [];
+            window.teachersData = window.teachersData || [];
+            
+            this.renderExams();
+            this.renderStudents();
+            this.renderTeachers();
         }
+    },
+
+    updateMetricCards(stats) {
+        if (!stats) return;
+        const mapping = {
+            'totalUsers': stats.totalUsers,
+            'totalExams': stats.totalExams,
+            'totalAttempts': stats.totalAttempts,
+            'totalCertificates': stats.totalCertificates
+        };
+
+        const cards = document.querySelectorAll('.stat-card');
+        cards.forEach(card => {
+            const label = card.querySelector('.s-label')?.textContent;
+            const valEl = card.querySelector('.s-value');
+            if (label && valEl) {
+                if (label.includes('Users')) valEl.textContent = stats.totalUsers || 0;
+                if (label.includes('Exams')) valEl.textContent = stats.totalExams || 0;
+                if (label.includes('Attempts')) valEl.textContent = stats.totalAttempts || 0;
+                if (label.includes('Certs')) valEl.textContent = stats.totalCertificates || 0;
+            }
+        });
+    },
+
+
+    renderExams() {
+        if(!window.examsData) window.examsData = [];
         window.renderGlobalExams();
     },
 
     renderStudents() {
-        if(!window.studentsData) {
-            window.studentsData = [
-                { 
-                  id: 'S-101', name: 'Alice Vane', email: 'alice@example.com', institution: 'Stanford University', status: 'Active',
-                  examsAttempted: 12, avgScore: 88, passRate: 92, lastLogin: '2024-04-02 10:30 AM', attempts: 15, highestScore: 98, lowestScore: 72
-                },
-                { 
-                  id: 'S-102', name: 'Bob Marley', email: 'bob@example.com', institution: 'Stanford University', status: 'Active',
-                  examsAttempted: 8, avgScore: 74, passRate: 75, lastLogin: '2024-04-01 04:15 PM', attempts: 9, highestScore: 88, lowestScore: 60
-                },
-                { 
-                  id: 'S-103', name: 'Charlie Day', email: 'charlie@example.com', institution: 'Stanford University', status: 'Disabled',
-                  examsAttempted: 5, avgScore: 62, passRate: 40, lastLogin: '2024-03-25 09:00 AM', attempts: 6, highestScore: 75, lowestScore: 45
-                },
-                { 
-                  id: 'S-104', name: 'Diana Ross', email: 'diana@example.com', institution: 'Stanford University', status: 'Active',
-                  examsAttempted: 20, avgScore: 92, passRate: 100, lastLogin: '2024-04-03 11:20 AM', attempts: 22, highestScore: 100, lowestScore: 85
-                }
-            ];
-        }
+        if(!window.studentsData) window.studentsData = [];
         window.renderGlobalStudents();
     },
 
@@ -1439,31 +1496,63 @@ window.openUploadQuestions = function(id) {
     openModal('uploadQuestionsModal');
 };
 
-window.submitUploadQuestions = function(btn) {
+window.submitUploadQuestions = async function(btn) {
     const fileInput = document.getElementById('uq-file');
     const file = fileInput?.files?.[0];
     const code = document.getElementById('uq-code').value;
     const exam = window.examsData.find(x => x.id === code || x.examCode === code);
+    
     if(exam?.questionsUploaded) {
         showToast('Questions are already uploaded for this exam. Upload is blocked.', 'warning');
         btn.disabled = true;
         btn.textContent = 'Uploaded';
         return;
     }
+    
     if(!file) {
         setError('uq-file', true);
         return;
     }
+    
     setError('uq-file', false);
-    handleActionBtn(btn, 'Upload File', 'Uploading...', 'Uploaded', () => {
-        if(exam) exam.questionsUploaded = true;
-        window.renderGlobalExams();
+    
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Uploading...`;
+    
+    try {
+        const token =
+            localStorage.getItem('token') ||
+            sessionStorage.getItem('token') ||
+            localStorage.getItem('accessToken') ||
+            sessionStorage.getItem('accessToken');
+        const formData = new FormData();
+        formData.append('file', file);
         
-        setTimeout(() => {
+        const response = await fetch('/api/questions/upload', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+        
+        const text = await response.text();
+        
+        if (response.ok && text.includes('successfully')) {
+            if(exam) exam.questionsUploaded = true;
+            window.renderGlobalExams();
             closeModal('uploadQuestionsModal');
             showToast('Questions uploaded successfully.');
-        }, 1000);
-    });
+        } else {
+            showToast(text || 'Upload failed. Please check the file format.', 'danger');
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    } catch (error) {
+        console.error("Upload error:", error);
+        showToast('An error occurred while uploading. Please try again.', 'danger');
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
 };
 
 window.openViewQuestions = function(id) {
@@ -2371,53 +2460,13 @@ window.refreshAttempts = async function() {
     if(btn) btn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Syncing...';
 
     try {
-        // Simulate API Delay
-        await new Promise(r => setTimeout(r, 600));
-        
-        // Generate/Load Mock Data
-        const students = ["John Doe", "Sarah Miller", "Michael Chen", "Emma Wilson", "David Brown", "Sophia Rodriguez", "James Wilson", "Isabella Moore"];
-        const exams = window.examsData || [{title: "JavaScript Fundamentals", id: "JS101"}];
-        const statuses = ["STARTED", "COMPLETED", "INVALIDATED", "AUTO_SUBMITTED", "EXPIRED"];
-        const risks = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
-        
-        const count = 50;
-        const newData = [];
-        for(let i=0; i<count; i++) {
-            const status = statuses[Math.floor(Math.random() * statuses.length)];
-            const riskScore = Math.floor(Math.random() * 100);
-            const stIdx = Math.floor(Math.random() * students.length);
-            const exIdx = Math.floor(Math.random() * exams.length);
-            
-            newData.push({
-                id: `AT_${Math.floor(1000 + Math.random()*9000)}_${i}`,
-                studentName: students[stIdx],
-                studentEmail: students[stIdx].toLowerCase().replace(' ','') + "@edu.com",
-                examTitle: exams[exIdx].title,
-                examId: exams[exIdx].id,
-                attemptNumber: Math.floor(Math.random()*3) + 1,
-                status: status,
-                score: status === 'COMPLETED' ? Math.floor(Math.random()*50) + 50 : 0,
-                percentage: status === 'COMPLETED' ? Math.floor(Math.random()*40) + 60 : 0,
-                cheatingScore: riskScore,
-                riskLevel: riskScore < 30 ? "LOW" : (riskScore < 60 ? "MEDIUM" : (riskScore < 80 ? "HIGH" : "CRITICAL")),
-                startTime: "2024-03-03 14:20",
-                endTime: status === 'COMPLETED' ? "2024-03-03 15:40" : "-",
-                duration: "1h 20m",
-                tabSwitches: Math.floor(Math.random()*12),
-                fullscreenViolations: Math.floor(Math.random()*5),
-                ip: `192.168.1.${10 + i}`,
-                device: "MacBook Pro",
-                browser: "Chrome v122",
-                date: "2024-03-03"
-            });
-        }
-        
-        window.attemptsData = newData;
+        const data = await API.get('/api/admin/attempts');
+        window.attemptsData = Array.isArray(data) ? data : [];
         
         // Populate Exam Filter if empty
         const examFilter = document.getElementById('attExam');
-        if(examFilter && examFilter.options.length <= 1) {
-            exams.forEach(ex => {
+        if(examFilter && examFilter.options.length <= 1 && window.examsData) {
+            window.examsData.forEach(ex => {
                 const opt = document.createElement('option');
                 opt.value = ex.title;
                 opt.textContent = ex.title;
@@ -2428,6 +2477,11 @@ window.refreshAttempts = async function() {
         window.handleAttemptFilters();
         window.updateAttemptStats();
         ensureAttemptsAutoRefresh();
+    } catch (error) {
+        console.error("Failed to refresh attempts:", error);
+        window.attemptsData = [];
+        window.handleAttemptFilters();
+        window.updateAttemptStats();
     } finally {
         if(btn) btn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync Engine';
         attemptsRefreshInFlight = false;
@@ -2669,41 +2723,33 @@ window.refreshProctoring = async function() {
     const btn = document.querySelector('[onclick="refreshProctoring()"]');
     if(btn) btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> Refreshing...';
     
-    // Simulate AI Sync
-    await new Promise(r => setTimeout(r, 800));
-    
-    const students = ["John Doe", "Sarah Miller", "Michael Chen", "Emma Wilson", "David Brown", "Sophia Rodriguez", "James Wilson", "Isabella Moore"];
-    const exams = ["Advanced JavaScript", "Machine Learning Basics", "Cloud Security", "Fullstack Development"];
-    const types = ["FACE_MISMATCH", "TAB_SWITCH", "MULTIPLE_FACES", "OBJECT_DETECTED"];
-    
-    const count = 40;
-    const newData = [];
-    for(let i=0; i<count; i++) {
-        const score = Math.floor(Math.random() * 120);
-        const riskLevel = score < 50 ? "LOW" : (score < 80 ? "MEDIUM" : (score < 100 ? "HIGH" : "CRITICAL"));
-        const sIdx = Math.floor(Math.random() * students.length);
-        const eIdx = Math.floor(Math.random() * exams.length);
+    try {
+        const data = await API.get('/api/admin/cheating');
+        window.proctoringMonitorData = (Array.isArray(data) ? data : []).map(item => ({
+            id: item.attemptId || item.id,
+            studentId: item.studentId ? `STU_${item.studentId}` : 'Unknown',
+            studentName: item.studentName || 'Student',
+            examTitle: item.examTitle || 'Exam',
+            violationType: item.eventType || item.violationType || 'Anomaly',
+            severity: item.severity || 'MEDIUM',
+            cheatingScore: item.cheatingScore || 0,
+            riskLevel: item.riskLevel || 'LOW',
+            status: item.status || 'STARTED',
+            timestamp: item.timestamp || '00:00:00',
+            date: item.date || '-'
+        }));
         
-        newData.push({
-            id: `PM_${1000 + i}`,
-            studentId: `STU_${9000 + i}`,
-            studentName: students[sIdx],
-            examTitle: exams[eIdx],
-            violationType: types[Math.floor(Math.random()*4)],
-            severity: score > 90 ? "HIGH" : (score > 60 ? "MEDIUM" : "LOW"),
-            cheatingScore: score,
-            riskLevel: riskLevel,
-            status: score > 90 ? "CANCELLED" : (score > 70 ? "FLAGGED" : "SUSPICIOUS"),
-            timestamp: "14:45:12",
-            date: "2024-03-03"
-        });
+        if(btn) btn.innerHTML = '<i class="fas fa-sync"></i> Refresh';
+        
+        window.runProctorFilter(window.activeProctorFilter || 'all');
+        window.updateProctorMonitorStats();
+    } catch (error) {
+        console.error("Failed to refresh proctoring data:", error);
+        window.proctoringMonitorData = [];
+        window.runProctorFilter(window.activeProctorFilter || 'all');
+        window.updateProctorMonitorStats();
+        if(btn) btn.innerHTML = '<i class="fas fa-sync"></i> Refresh';
     }
-    
-    window.proctoringMonitorData = newData;
-    if(btn) btn.innerHTML = '<i class="fas fa-sync"></i> Refresh';
-    
-    window.runProctorFilter(window.activeProctorFilter);
-    window.updateProctorMonitorStats();
 };
 
 window.updateProctorMonitorStats = function() {

@@ -6,8 +6,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "proctoring_events",
        indexes = {
-           @Index(name = "idx_attempt_id", columnList = "attemptId"),
-           @Index(name = "idx_event_type", columnList = "eventType")
+           @Index(name = "idx_proctoring_event_attempt_id", columnList = "attemptId"),
+           @Index(name = "idx_proctoring_event_type", columnList = "eventType")
        })
 public class ProctoringEvent {
 

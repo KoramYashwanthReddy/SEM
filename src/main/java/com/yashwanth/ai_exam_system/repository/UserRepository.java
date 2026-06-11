@@ -58,6 +58,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByRoleAndEnabled(Role role, boolean enabled);
 
+    long countByRoleAndEnabled(Role role, boolean enabled);
+
     // ================= TEACHER FILTER =================
 
     List<User> findByRoleAndDepartment(Role role, String department);

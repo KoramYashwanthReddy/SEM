@@ -1,9 +1,20 @@
 package com.yashwanth.ai_exam_system.dto;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+
 public class SaveAnswerRequest {
 
+    @NotNull(message = "Attempt ID is required")
+    @Positive(message = "Attempt ID must be positive")
     private Long attemptId;
+
+    @NotNull(message = "Question ID is required")
+    @Positive(message = "Question ID must be positive")
     private Long questionId;
+
+    @Size(max = 10000, message = "Answer cannot exceed 10000 characters")
     private String answer;
     private Boolean reviewMarked;
 

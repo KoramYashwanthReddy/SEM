@@ -36,6 +36,7 @@ public class AdminService {
     private final UserRepository userRepository;
     private final AdminNotificationService adminNotificationService;
     private final PasswordEncoder passwordEncoder;
+    private final EmailNotificationOrchestrator emailNotificationOrchestrator;
 
     public AdminService(
             ExamRepository examRepository,
@@ -46,7 +47,8 @@ public class AdminService {
             QuestionRepository questionRepository,
             UserRepository userRepository,
             AdminNotificationService adminNotificationService,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            EmailNotificationOrchestrator emailNotificationOrchestrator) {
 
         this.examRepository = examRepository;
         this.attemptRepository = attemptRepository;
@@ -57,6 +59,7 @@ public class AdminService {
         this.userRepository = userRepository;
         this.adminNotificationService = adminNotificationService;
         this.passwordEncoder = passwordEncoder;
+        this.emailNotificationOrchestrator = emailNotificationOrchestrator;
     }
 
     // ================= TEACHER =================
@@ -117,6 +120,7 @@ public class AdminService {
         } catch (Exception notificationError) {
             log.warn("Teacher created but admin notification failed: {}", notificationError.getMessage());
         }
+        emailNotificationOrchestrator.notifyTeacherCreated(teacher);
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
@@ -196,6 +200,7 @@ public class AdminService {
         } catch (Exception notificationError) {
             log.warn("Teacher updated but admin notification failed: {}", notificationError.getMessage());
         }
+        emailNotificationOrchestrator.notifyTeacherUpdated(teacher);
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
@@ -395,6 +400,7 @@ public class AdminService {
                 "warning",
                 null
         );
+        emailNotificationOrchestrator.notifyExamDeleted(exam);
     }
 
     public List<Question> getAllQuestions() {
@@ -478,6 +484,10 @@ public class AdminService {
                 "warning",
                 null
         );
+        emailNotificationOrchestrator.notifyUserAccessChanged(
+                user,
+                user.isEnabled() ? "USER_ENABLED" : "USER_DISABLED"
+        );
 
         return toUserSummary(user);
     }
@@ -495,6 +505,10 @@ public class AdminService {
                 "warning",
                 null
         );
+        emailNotificationOrchestrator.notifyUserAccessChanged(
+                user,
+                user.isAccountNonLocked() ? "ACCOUNT_UNLOCKED" : "ACCOUNT_LOCKED"
+        );
 
         return toUserSummary(user);
     }
@@ -506,6 +520,7 @@ public class AdminService {
             throw new RuntimeException("Admin users cannot be deleted");
         }
 
+        emailNotificationOrchestrator.notifyUserAccessChanged(user, "ACCOUNT_DELETED");
         userRepository.delete(user);
 
         adminNotificationService.createNotification(
@@ -628,6 +643,7 @@ public class AdminService {
                 "critical",
                 null
         );
+        emailNotificationOrchestrator.notifyAttemptAction(attempt, "ATTEMPT_CANCELLED_BY_ADMIN");
     }
 
     public void forceSubmitAttempt(Long attemptId) {
@@ -650,6 +666,7 @@ public class AdminService {
                 "warning",
                 null
         );
+        emailNotificationOrchestrator.notifyAttemptAction(attempt, "ATTEMPT_FORCE_SUBMITTED_BY_ADMIN");
     }
 
     public void restoreAttempt(Long attemptId) {
@@ -675,6 +692,7 @@ public class AdminService {
                 "info",
                 null
         );
+        emailNotificationOrchestrator.notifyAttemptAction(attempt, "ATTEMPT_RESTORED_BY_ADMIN");
     }
 
     // ================= DASHBOARD =================

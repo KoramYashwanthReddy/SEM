@@ -201,34 +201,19 @@
   installUiErrorHandlers();
 
   async function api(path, options = {}) {
-    if (!hasToken()) {
-      window.location.href = "admin-login.html";
-      throw new Error("Missing admin session");
-    }
-    const headers = { Accept: "application/json", ...(options.headers || {}) };
-    if (token()) headers.Authorization = `Bearer ${token()}`;
-    if (options.body && !headers["Content-Type"] && !(options.body instanceof FormData)) {
-      headers["Content-Type"] = "application/json";
-    }
-    const res = await fetch(`${apiBase}${path}`, { credentials: "same-origin", ...options, headers });
-    const raw = await res.text();
-    let data = raw;
-    if (raw) {
-      try { data = JSON.parse(raw); } catch (_) { data = raw; }
-    } else {
-      data = null;
-    }
-    if (!res.ok) {
-      if (res.status === 401 || res.status === 403) {
-        clearSession();
-        window.location.href = "admin-login.html";
+    try {
+      // Use the centralized API utility
+      // Admin-live.js prepends /api manually sometimes, but path here is usually /api/admin/...
+      // If path doesn't start with /api, we might need to add it, but looking at usage:
+      // api("/api/admin/dashboard")
+      // So we can pass it directly to API.request
+      return await API.request(path, options);
+    } catch (err) {
+      if (!options.silent) {
+        emitUiError(err.message);
       }
-      const message = (data && typeof data === "object")
-        ? (data.message || data.error || data.cause || data.detail)
-        : (typeof data === "string" && data.trim() ? data.trim() : "");
-      throw new Error(message || `Request failed (${res.status})`);
+      throw err;
     }
-    return data;
   }
 
   const live = {

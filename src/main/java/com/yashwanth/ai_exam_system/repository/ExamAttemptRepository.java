@@ -94,8 +94,16 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
     long countByCancelledTrue();
 
     long countByExamId(Long examId);
+    
+    long countByAutoSubmittedTrue();
 
     long countByCheatingScoreGreaterThan(int score);
+    
+    @Query("SELECT SUM(e.tabSwitchCount) FROM ExamAttempt e")
+    Long sumTabSwitchCount();
+
+    @Query("SELECT SUM(e.fullscreenViolationCount) FROM ExamAttempt e")
+    Long sumFullscreenViolationCount();
 
     // ================= ANALYTICS =================
 
