@@ -38,11 +38,24 @@ const API = (() => {
     const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`;
     
     const token = getToken();
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+    const isBinaryBody =
+      typeof Blob !== 'undefined' && options.body instanceof Blob ||
+      typeof ArrayBuffer !== 'undefined' && options.body instanceof ArrayBuffer ||
+      ArrayBuffer.isView?.(options.body);
+
     const headers = {
-      'Content-Type': 'application/json',
       'Accept': 'application/json',
       ...options.headers
     };
+
+    if (!isFormData && !isBinaryBody && options.body != null && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    const body = options.body != null && typeof options.body === 'object' && !isFormData && !isBinaryBody
+      ? JSON.stringify(options.body)
+      : options.body;
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -50,6 +63,7 @@ const API = (() => {
 
     const config = {
       ...options,
+      body,
       headers
     };
 

@@ -450,13 +450,35 @@
           <div class="section-head">
             <div class="header-titles">
               <h1 class="page-title">Student <span class="text-gradient">Profile</span></h1>
-              <p class="page-desc">Editable profile layout prepared for future data binding.</p>
+              <p class="page-desc">Manage your identity, academic details, and verification photo.</p>
             </div>
             <div class="head-actions">
               <button class="btn ghost" type="button" id="editProfileBtn">Edit Profile</button>
               <button class="btn primary" type="button" id="saveProfileBtn">Save Changes</button>
             </div>
           </div>
+
+          <!-- PHOTO PANEL -->
+          <article class="card profile-photo-card">
+            <div class="profile-photo-panel">
+              <div class="profile-photo-circle" id="profilePhotoCircle">
+                <img id="profilePhotoPreview" alt="Profile photo" src="">
+                <div class="profile-photo-overlay" id="profilePhotoOverlay">
+                  <span>&#128247; Change Photo</span>
+                </div>
+              </div>
+              <div class="profile-photo-info">
+                <strong id="profilePhotoName">Your Profile Photo</strong>
+                <p>Upload a clear facial portrait. Used for AI proctoring identity verification.</p>
+                <div class="profile-photo-actions">
+                  <input type="file" id="profilePhotoInput" accept="image/*" hidden>
+                  <button type="button" class="btn primary small" id="profilePhotoUploadBtn">Upload Photo</button>
+                  <button type="button" class="btn ghost small" id="profilePhotoRemoveBtn">Remove</button>
+                </div>
+              </div>
+            </div>
+          </article>
+
           <article class="card profile-card">
             <form class="profile-form" id="profileForm">
               <label>

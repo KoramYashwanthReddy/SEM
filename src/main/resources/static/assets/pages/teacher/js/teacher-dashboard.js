@@ -385,6 +385,32 @@ ensureAuthGuard();
     if (raw === "MCQ" || raw.includes("MULTIPLE")) return "MCQ";
     return raw;
   };
+  const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+  }[ch] || ch));
+  const normalizeDisplayText = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
+  const normalizePreviewQuestion = (question, index = 0, examCode = "") => ({
+    rowLabel: `Question ${index + 1}`,
+    examCode: String(question?.examCode || examCode || "").trim(),
+    questionText: normalizeDisplayText(question?.questionText || question?.text || question?.question || ""),
+    questionType: normalizeDisplayText(String(question?.questionType || question?.type || "MCQ").replaceAll("_", " ")),
+    difficulty: normalizeDisplayText(question?.difficulty || "Easy"),
+    topic: normalizeDisplayText(question?.topic || "general"),
+    marks: normalizeDisplayText(question?.marks ?? question?.points ?? 0),
+    optionA: normalizeDisplayText(question?.optionA || ""),
+    optionB: normalizeDisplayText(question?.optionB || ""),
+    optionC: normalizeDisplayText(question?.optionC || ""),
+    optionD: normalizeDisplayText(question?.optionD || ""),
+    optionE: normalizeDisplayText(question?.optionE || ""),
+    optionF: normalizeDisplayText(question?.optionF || ""),
+    correctAnswer: normalizeDisplayText(question?.correctAnswer || question?.answer || ""),
+    sampleInput: normalizeDisplayText(question?.sampleInput || ""),
+    sampleOutput: normalizeDisplayText(question?.sampleOutput || "")
+  });
 
   const mapUploadedQuestionToLocal = (examId, question, index = 0) => ({
     id: String(question?.id || uid("q")),
@@ -1961,12 +1987,13 @@ ensureAuthGuard();
         return;
       }
       const token = getAuthToken();
+      let dataUrl = "";
       try {
         dataUrl = await readFileAsDataUrl(file);
-      } catch (_e) {
+      } catch (error) {
         uploadBtn.disabled = false;
         uploadBtn.textContent = "Upload File";
-        toast("Failed to read uploaded file.", "error");
+        toast(`Failed to read uploaded file: ${error?.message || "unknown error"}`, "error");
         return;
       }
       let parsed;
@@ -2060,30 +2087,98 @@ ensureAuthGuard();
     });
   }
 
-  function openQuestionsPreviewModal(examId) {
+  async function openQuestionsPreviewModal(examId) {
     const exam = examById(examId);
     if (!exam) return;
-    const rawRows = exam.questionUpload?.rows || [];
-    const rawHeaders = exam.questionUpload?.headers || [];
-    const rows = state.data.questions.filter((q) => q.examId === examId);
+    const remoteResponse = await api.listQuestions(exam.examCode).catch((error) => {
+      console.warn("Failed to fetch live question preview:", error);
+      return null;
+    });
+    const backendQuestions = Array.isArray(remoteResponse?.data) ? remoteResponse.data : [];
+    const rawHeaders = ["examCode", "questionType", "difficulty", "questionText", "optionA", "optionB", "optionC", "optionD", "correctAnswer", "marks", "topic"];
+    const rawRows = backendQuestions.length
+      ? backendQuestions.map((q, index) => ({
+        rowLabel: `Row ${index + 2}`,
+        examCode: String(q.examCode || exam.examCode || ""),
+        questionType: String(q.questionType || q.type || "MCQ"),
+        difficulty: String(q.difficulty || "Easy"),
+        questionText: String(q.questionText || q.text || ""),
+        optionA: String(q.optionA || ""),
+        optionB: String(q.optionB || ""),
+        optionC: String(q.optionC || ""),
+        optionD: String(q.optionD || ""),
+        correctAnswer: String(q.correctAnswer || q.answer || ""),
+        marks: String(q.marks ?? ""),
+        topic: String(q.topic || "general")
+      }))
+      : (exam.questionUpload?.rows || []).map((row, index) => ({ ...row, rowLabel: `Row ${index + 2}` }));
+    const sourceLabel = backendQuestions.length
+      ? "Live data fetched from the server"
+      : (exam.questionUpload?.name ? `Source File: ${exam.questionUpload.name}` : "Uploaded questions for this exam.");
+    const rows = backendQuestions.length
+      ? backendQuestions.map((q, index) => normalizePreviewQuestion(q, index, exam.examCode))
+      : state.data.questions.filter((q) => String(q.examId) === String(examId)).map((q, index) => normalizePreviewQuestion({
+        questionText: q.text || q.questionText,
+        questionType: q.type || q.questionType,
+        difficulty: q.difficulty,
+        topic: q.topic,
+        marks: q.marks,
+        optionA: q.optionA,
+        optionB: q.optionB,
+        optionC: q.optionC,
+        optionD: q.optionD,
+        optionE: q.optionE,
+        optionF: q.optionF,
+        correctAnswer: q.correctAnswer,
+        sampleInput: q.sampleInput,
+        sampleOutput: q.sampleOutput,
+        examCode: exam.examCode
+      }, index, exam.examCode));
     const rawTable = rawRows.length
-      ? `<div class="questions-table-wrap raw-scroll">
+      ? `<div class="questions-table-wrap raw-scroll" data-preview-kind="raw">
           <table>
-            <thead><tr>${rawHeaders.map((h) => `<th>${h}</th>`).join("")}</tr></thead>
-            <tbody>${rawRows.map((r) => `<tr>${rawHeaders.map((h) => `<td>${r[h] ?? ""}</td>`).join("")}</tr>`).join("")}</tbody>
+            <thead><tr>${rawHeaders.map((h) => `<th title="${escapeHtml(h)}">${escapeHtml(h)}</th>`).join("")}</tr></thead>
+            <tbody>${rawRows.map((r, rowIndex) => `<tr data-row-label="Row ${rowIndex + 2}">${rawHeaders.map((h) => {
+              const value = normalizeDisplayText(r[h] ?? "");
+              return `<td title="${escapeHtml(value)}">${escapeHtml(value)}</td>`;
+            }).join("")}</tr>`).join("")}</tbody>
           </table>
         </div>`
       : "";
+    const mappedTable = `<div class="questions-table-wrap mapped-scroll" data-preview-kind="mapped">
+      <table>
+        <thead><tr><th>Question</th><th>Type</th><th>Marks</th><th>Difficulty</th><th>Topic</th></tr></thead>
+        <tbody>
+          ${rows.length ? rows.map((q, index) => {
+            const cells = [
+              normalizeDisplayText(q.questionText || q.text),
+              normalizeDisplayText(q.questionType || q.type),
+              normalizeDisplayText(q.marks),
+              normalizeDisplayText(q.difficulty),
+              normalizeDisplayText(q.topic)
+            ];
+            return `<tr data-row-label="Question ${index + 1}">${cells.map((value) => `<td title="${escapeHtml(value)}">${escapeHtml(value)}</td>`).join("")}</tr>`;
+          }).join("") : `<tr><td colspan="5"><div class="no-data">No uploaded questions found for this exam.</div></td></tr>`}
+        </tbody>
+      </table>
+    </div>`;
     openModal(`
       <div class="questions-modal">
         <div class="questions-modal-head">
           <div>
             <h3>Questions - ${exam.examCode}</h3>
-            <p>${exam.questionUpload?.name ? `Source File: ${exam.questionUpload.name}` : "Uploaded questions for this exam."}</p>
+            <p>${sourceLabel}</p>
           </div>
           <button id="qpCloseIcon" class="upload-close" aria-label="Close">&times;</button>
         </div>
         <div class="questions-modal-body">
+          <div class="questions-hover-inspector is-empty" id="questionsHoverInspector">
+            <div class="questions-hover-head">
+              <strong>Hover a row to inspect the full data</strong>
+              <span>${rawRows.length ? `${rawRows.length} raw rows` : "No raw sheet data"}</span>
+            </div>
+            <div class="questions-hover-empty">Move your pointer over any question row and we’ll show every column here, including values hidden off to the right.</div>
+          </div>
           ${rawRows.length ? `
             <div class="questions-block">
               <div class="questions-block-head">
@@ -2098,14 +2193,7 @@ ensureAuthGuard();
               <strong>Mapped Questions</strong>
               <span>${rows.length} questions</span>
             </div>
-            <div class="questions-table-wrap mapped-scroll">
-              <table>
-                <thead><tr><th>Question</th><th>Type</th><th>Marks</th><th>Difficulty</th><th>Topic</th></tr></thead>
-                <tbody>
-                  ${rows.length ? rows.map((q) => `<tr><td>${q.text}</td><td>${q.type}</td><td>${q.marks}</td><td>${q.difficulty}</td><td>${q.topic}</td></tr>`).join("") : `<tr><td colspan="5"><div class="no-data">No uploaded questions found for this exam.</div></td></tr>`}
-                </tbody>
-              </table>
-            </div>
+            ${mappedTable}
           </div>
         </div>
         <div class="actions questions-modal-actions">
@@ -2115,6 +2203,92 @@ ensureAuthGuard();
     `);
     setupQuestionsTableScrollbars();
     dom.modalContainer.classList.add("questions-modal-host");
+    const inspector = document.getElementById("questionsHoverInspector");
+    const setInspector = (label, entries) => {
+      if (!inspector) return;
+      const safeLabel = normalizeDisplayText(label || "Row preview");
+      const questionText = entries.find(([heading]) => String(heading || "").toLowerCase() === "questiontext")?.[1]
+        || entries.find(([heading]) => String(heading || "").toLowerCase() === "question")?.[1]
+        || "";
+      const metaKeys = new Set(["examcode", "questiontype", "difficulty", "marks", "topic"]);
+      const answerKeys = new Set(["optiona", "optionb", "optionc", "optiond", "optione", "optionf", "correctanswer", "sampleinput", "sampleoutput"]);
+      const meta = entries.filter(([heading]) => metaKeys.has(String(heading || "").toLowerCase()));
+      const answers = entries.filter(([heading]) => answerKeys.has(String(heading || "").toLowerCase()));
+      const extra = entries.filter(([heading]) => !metaKeys.has(String(heading || "").toLowerCase()) && !answerKeys.has(String(heading || "").toLowerCase()) && String(heading || "").toLowerCase() !== "questiontext" && String(heading || "").toLowerCase() !== "question");
+
+      inspector.classList.remove("is-empty");
+      inspector.innerHTML = `
+        <div class="questions-hover-head">
+          <div class="questions-hover-head-copy">
+            <strong>${escapeHtml(safeLabel)}</strong>
+            <div class="questions-hover-subtitle">${escapeHtml(normalizeDisplayText(questionText) || "Previewing the selected row.")}</div>
+          </div>
+          <div class="questions-hover-badges">
+            <span class="questions-hover-badge">${entries.length} fields</span>
+            <span class="questions-hover-badge">${meta.length} meta</span>
+            <span class="questions-hover-badge">${answers.length} answers</span>
+          </div>
+        </div>
+        <div class="questions-hover-stack">
+          ${questionText ? `
+            <section class="questions-hover-section questions-hover-section-wide">
+              <div class="questions-hover-section-title">Question</div>
+              <div class="questions-hover-hero">${escapeHtml(normalizeDisplayText(questionText))}</div>
+            </section>
+          ` : ""}
+          ${meta.length ? `
+            <section class="questions-hover-section">
+              <div class="questions-hover-section-title">Quick info</div>
+              <div class="questions-hover-grid questions-hover-grid-meta">${meta.map(([heading, value], idx) => `<div class="questions-hover-item ${idx === 0 ? "is-primary" : ""}"><span>${escapeHtml(heading)}</span><strong>${escapeHtml(normalizeDisplayText(value) || "?")}</strong></div>`).join("")}</div>
+            </section>
+          ` : ""}
+          ${answers.length ? `
+            <section class="questions-hover-section">
+              <div class="questions-hover-section-title">Answers and options</div>
+              <div class="questions-hover-grid questions-hover-grid-answers">${answers.map(([heading, value]) => `<div class="questions-hover-item"><span>${escapeHtml(heading)}</span><strong>${escapeHtml(normalizeDisplayText(value) || "?")}</strong></div>`).join("")}</div>
+            </section>
+          ` : ""}
+          ${extra.length ? `
+            <section class="questions-hover-section">
+              <div class="questions-hover-section-title">More fields</div>
+              <div class="questions-hover-grid questions-hover-grid-extra">${extra.map(([heading, value]) => `<div class="questions-hover-item"><span>${escapeHtml(heading)}</span><strong>${escapeHtml(normalizeDisplayText(value) || "?")}</strong></div>`).join("")}</div>
+            </section>
+          ` : ""}
+        </div>
+      `;
+    };
+    const resetInspector = () => {
+      if (!inspector) return;
+      inspector.classList.add("is-empty");
+      inspector.innerHTML = `
+        <div class="questions-hover-head">
+          <div class="questions-hover-head-copy">
+            <strong>Hover a row to inspect the full data</strong>
+            <div class="questions-hover-subtitle">${rawRows.length ? `${rawRows.length} raw rows available for preview` : "No raw sheet data is available yet"}</div>
+          </div>
+          <div class="questions-hover-badges">
+            <span class="questions-hover-badge">${backendQuestions.length ? "Fetched" : "Cached"}</span>
+            <span class="questions-hover-badge">${rawRows.length ? `${rawRows.length} rows` : `${rows.length} questions`}</span>
+          </div>
+        </div>
+        <div class="questions-hover-empty">Move your pointer over any row and the full record will appear here in grouped cards.</div>
+      `;
+    };
+    const bindHoverPreview = (selector, headers) => {
+      const wrap = document.querySelector(selector);
+      if (!wrap) return;
+      const bodyRows = wrap.querySelectorAll("tbody tr");
+      bodyRows.forEach((tr) => {
+        tr.addEventListener("mouseenter", () => {
+          const cells = Array.from(tr.querySelectorAll("td")).map((td, index) => [headers[index] || `Column ${index + 1}`, td.textContent || ""]);
+          setInspector(tr.dataset.rowLabel || "Row preview", cells);
+        });
+      });
+      wrap.addEventListener("mouseleave", resetInspector);
+    };
+    bindHoverPreview('.questions-table-wrap.raw-scroll', rawHeaders);
+    bindHoverPreview('.questions-table-wrap.mapped-scroll', ["Question", "Type", "Marks", "Difficulty", "Topic"]);
+    resetInspector();
     document.getElementById("qpCloseIcon").addEventListener("click", closeModal);
     document.getElementById("qpClose").addEventListener("click", closeModal);
   }

@@ -144,7 +144,8 @@
       department: profile.department || st.profile.department || '',
       year: profile.year || st.profile.year || '',
       rollNumber: profile.rollNumber || st.profile.rollNumber || '',
-      section: profile.section || st.profile.section || ''
+      section: profile.section || st.profile.section || '',
+      profilePhoto: profile.profilePhoto || st.profile.profilePhoto || ''
     };
 
     const dashboard = payload.dashboard || {};
@@ -1419,7 +1420,21 @@
     const label = el.toggle.querySelector('.toggle-text');
     if (label) label.textContent = text;
   }
-  function applyProfile() { save(K.p, st.profile); el.sidebarName.textContent = st.profile.fullName; el.sidebarRole.textContent = `${st.profile.department} Learner`; el.topName.textContent = st.profile.fullName; el.sidebarAvatar.src = avatar(st.profile.fullName); el.topAvatar.src = avatar(st.profile.fullName); ['fullName','email','phone','collegeName','department','year','rollNumber','sectionField'].forEach(id => { const map = { sectionField:'section' }; if ($(id)) $(id).value = st.profile[map[id] || id] || ''; }); }
+  function applyProfile() {
+    save(K.p, st.profile);
+    el.sidebarName.textContent = st.profile.fullName;
+    el.sidebarRole.textContent = `${st.profile.department} Learner`;
+    el.topName.textContent = st.profile.fullName;
+    const photoSrc = (st.profile.profilePhoto && st.profile.profilePhoto.trim())
+      ? st.profile.profilePhoto
+      : avatar(st.profile.fullName);
+    el.sidebarAvatar.src = photoSrc;
+    el.topAvatar.src = photoSrc;
+    ['fullName','email','phone','collegeName','department','year','rollNumber','sectionField'].forEach(id => {
+      const map = { sectionField:'section' };
+      if ($(id)) $(id).value = st.profile[map[id] || id] || '';
+    });
+  }
   function applySettings() { save(K.s, st.settings); document.body.classList.toggle('student-compact', !!st.settings.compactDensity); document.body.classList.toggle('student-contrast', !!st.settings.highContrast); const t = $$('.toggle-row input[type="checkbox"]'); if (t[0]) t[0].checked = !!st.settings.emailAlerts; if (t[1]) t[1].checked = !!st.settings.examReminders; if (t[2]) t[2].checked = !!st.settings.compactDensity; if (t[3]) t[3].checked = !!st.settings.highContrast; }
   function resolveTheme(mode) { return mode === 'system' ? (themeQuery.matches ? 'dark' : 'light') : mode; }
   function applyTheme(mode = st.theme) { st.theme = mode; localStorage.setItem(K.t, mode); document.documentElement.setAttribute('data-theme', resolveTheme(mode)); if (el.themeButtons) el.themeButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.themeMode === mode)); }

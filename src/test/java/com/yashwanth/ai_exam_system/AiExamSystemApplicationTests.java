@@ -10,12 +10,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.yashwanth.ai_exam_system.dto.CreateTeacherRequest;
 import com.yashwanth.ai_exam_system.entity.Role;
 import com.yashwanth.ai_exam_system.entity.User;
 import com.yashwanth.ai_exam_system.repository.UserRepository;
+import com.yashwanth.ai_exam_system.service.AdminService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -27,6 +30,9 @@ class AiExamSystemApplicationTests {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private AdminService adminService;
 
     @Test
     void contextLoads() {
@@ -109,4 +115,34 @@ class AiExamSystemApplicationTests {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("User not found"));
     }
+    @Test
+    void createTeacherWithMultipartProfileImageWorks() {
+        CreateTeacherRequest request = new CreateTeacherRequest();
+        request.setFullName("Multipart Teacher");
+        request.setEmail("multipart.teacher@ai-exam.local");
+        request.setPassword("Teacher@123456");
+        request.setPhone("7396339051");
+        request.setDepartment("Computer science and Engg");
+        request.setDesignation("Senior lecture");
+        request.setExperienceYears(3);
+        request.setQualification("Ph.D in computer science and Engg");
+        request.setEmployeeId("TCH-MULTI-1001");
+
+        MockMultipartFile profileImage = new MockMultipartFile(
+                "profileImage",
+                "profile.png",
+                MediaType.IMAGE_PNG_VALUE,
+                "fake-image-content".getBytes());
+
+        java.util.Map<String, Object> response = adminService.createTeacher(request, profileImage);
+
+        assertThat(response.get("success")).isEqualTo(true);
+        User teacher = userRepository.findByEmailIgnoreCase("multipart.teacher@ai-exam.local").orElseThrow();
+        assertThat(teacher.getRole()).isEqualTo(Role.TEACHER);
+        assertThat(teacher.getPhone()).isEqualTo("7396339051");
+        assertThat(teacher.getEmployeeId()).isEqualTo("TCH-MULTI-1001");
+        assertThat(teacher.getProfileImage()).startsWith("data:image/png;base64,");
+    }
 }
+
+

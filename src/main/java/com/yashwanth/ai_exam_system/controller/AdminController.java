@@ -10,6 +10,7 @@ import com.yashwanth.ai_exam_system.service.AdminService;
 
 import jakarta.validation.Valid;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -41,7 +42,7 @@ public class AdminController {
                 adminService.createTeacher(request, null));
     }
 
-    @PostMapping(value = "/teachers", consumes = "multipart/form-data")
+    @PostMapping(value = "/teachers", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> createTeacherWithProfileImage(
             @Valid @RequestPart("request") CreateTeacherRequest request,
             @RequestPart(value = "profileImage", required = false) MultipartFile profileImage) {
@@ -59,10 +60,10 @@ public class AdminController {
                 adminService.updateTeacher(userId, request, null));
     }
 
-    @PutMapping(value = "/teachers/{userId}", consumes = "multipart/form-data")
+    @PutMapping(value = "/teachers/{userId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> updateTeacherWithProfileImage(
             @PathVariable Long userId,
-            @RequestPart("request") CreateTeacherRequest request,
+            @Valid @RequestPart("request") CreateTeacherRequest request,
             @RequestPart(value = "profileImage", required = false) MultipartFile profileImage) {
 
         return ResponseEntity.ok(
@@ -291,3 +292,5 @@ public class AdminController {
                 adminService.getDashboardStats());
     }
 }
+
+
