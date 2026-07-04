@@ -2,6 +2,7 @@ package com.yashwanth.ai_exam_system.service;
 
 import com.yashwanth.ai_exam_system.entity.*;
 import com.yashwanth.ai_exam_system.repository.ExamResultRepository;
+import com.yashwanth.ai_exam_system.repository.ExamRepository;
 import com.yashwanth.ai_exam_system.repository.QuestionRepository;
 import com.yashwanth.ai_exam_system.repository.StudentAnswerRepository;
 
@@ -18,15 +19,21 @@ public class ExamEvaluationService {
     private final StudentAnswerRepository answerRepository;
     private final QuestionRepository questionRepository;
     private final ExamResultRepository resultRepository;
+    private final ExamRepository examRepository;
+    private final ExamQuestionSelectionService questionSelectionService;
 
     public ExamEvaluationService(
             StudentAnswerRepository answerRepository,
             QuestionRepository questionRepository,
-            ExamResultRepository resultRepository) {
+            ExamResultRepository resultRepository,
+            ExamRepository examRepository,
+            ExamQuestionSelectionService questionSelectionService) {
 
         this.answerRepository = answerRepository;
         this.questionRepository = questionRepository;
         this.resultRepository = resultRepository;
+        this.examRepository = examRepository;
+        this.questionSelectionService = questionSelectionService;
     }
 
     public ExamResult evaluateExam(Long attemptId, Long studentId, String examCode) {
@@ -45,7 +52,9 @@ public class ExamEvaluationService {
         int easyCorrect = 0, mediumCorrect = 0, difficultCorrect = 0;
         int easyWrong = 0, mediumWrong = 0, difficultWrong = 0;
 
-        List<Question> questions = questionRepository.findByExamCodeAndActiveTrue(examCode);
+        Exam exam = examRepository.findByExamCode(examCode)
+                .orElseThrow(() -> new RuntimeException("Exam not found"));
+        List<Question> questions = questionSelectionService.selectQuestionsForExam(exam, studentId, attemptId);
 
         for (Question question : questions) {
             StudentAnswer studentAnswer = answerRepository

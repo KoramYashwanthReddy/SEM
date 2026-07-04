@@ -15,6 +15,8 @@ import java.util.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import java.util.stream.Collectors;
+
 @Service
 public class ExcelQuestionUploadService {
 
@@ -38,10 +40,8 @@ public class ExcelQuestionUploadService {
 
             Sheet sheet = workbook.getSheetAt(0);
             Iterator<Row> rows = sheet.iterator();
-
-            if (rows.hasNext()) {
-                rows.next(); // skip header
-            }
+            Row headerRow = rows.hasNext() ? rows.next() : null;
+            Map<String, Integer> headerMap = buildHeaderMap(headerRow);
 
             List<Question> questions = new ArrayList<>();
             int mcq = 0;
@@ -58,7 +58,7 @@ public class ExcelQuestionUploadService {
                     continue;
                 }
 
-                String code = getCellValue(row, 0);
+                String code = getCellValue(row, headerMap, 0, "examcode", "exam code", "code");
                 if (code == null || code.isBlank()) {
                     logger.warn("Skipping row {}: Exam code is empty", rowNum);
                     continue;
@@ -70,7 +70,7 @@ public class ExcelQuestionUploadService {
                     throw new RuntimeException("Multiple exam codes found in file at row " + rowNum + ". Expected: " + examCode + ", Found: " + code);
                 }
 
-                String typeStr = getCellValue(row, 1);
+                String typeStr = getCellValue(row, headerMap, 1, "questiontype", "question type", "type");
                 if (typeStr == null || typeStr.isBlank()) {
                     logger.warn("Skipping row {}: Question type is empty", rowNum);
                     continue;
@@ -83,7 +83,7 @@ public class ExcelQuestionUploadService {
                     throw new RuntimeException("Invalid question type at row " + rowNum + ": " + typeStr + ". Valid types are MCQ, CODING, DESCRIPTIVE.");
                 }
 
-                String questionText = getCellValue(row, 3);
+                String questionText = getCellValue(row, headerMap, 3, "questiontext", "question text", "question", "prompt");
                 if (questionText == null || questionText.isBlank()) {
                     logger.warn("Skipping row {}: Question text is empty", rowNum);
                     continue;
@@ -92,27 +92,31 @@ public class ExcelQuestionUploadService {
                 Question q = new Question();
                 q.setExamCode(examCode);
                 q.setQuestionType(type);
-                q.setDifficulty(getCellValue(row, 2));
+                q.setDifficulty(getCellValue(row, headerMap, 2, "difficulty", "level"));
                 q.setQuestionText(questionText);
 
                 if (type == QuestionType.MCQ) {
-                    q.setOptionA(getCellValue(row, 4));
-                    q.setOptionB(getCellValue(row, 5));
-                    q.setOptionC(getCellValue(row, 6));
-                    q.setOptionD(getCellValue(row, 7));
-                    q.setCorrectAnswer(getCellValue(row, 8));
+                    List<String> options = readQuestionOptions(row, headerMap);
+                    q.setOptionA(optionAt(options, 0));
+                    q.setOptionB(optionAt(options, 1));
+                    q.setOptionC(optionAt(options, 2));
+                    q.setOptionD(optionAt(options, 3));
+                    q.setOptionE(optionAt(options, 4));
+                    q.setOptionF(optionAt(options, 5));
+                    q.setCorrectAnswer(getCellValue(row, headerMap, 8, "correctanswer", "correct answer", "answer", "correct"));
+                    q.setShuffleOptions(options.stream().filter(option -> option != null && !option.isBlank()).count() > 4);
                     mcq++;
                 } else if (type == QuestionType.CODING) {
-                    q.setSampleInput(getCellValue(row, 4));
-                    q.setSampleOutput(getCellValue(row, 5));
+                    q.setSampleInput(getCellValue(row, headerMap, 4, "sampleinput", "sample input", "input"));
+                    q.setSampleOutput(getCellValue(row, headerMap, 5, "sampleoutput", "sample output", "output"));
                     coding++;
                 } else {
                     descriptive++;
                 }
 
-                q.setMarks((int) getNumericValue(row, 9));
+                q.setMarks((int) getNumericValue(row, headerMap, 9, "marks", "mark", "score"));
 
-                String topic = getCellValue(row, 10);
+                String topic = getCellValue(row, headerMap, 10, "topic", "section", "subject");
                 q.setTopic(topic != null && !topic.isBlank() ? topic : "general");
 
                 questions.add(q);
@@ -153,6 +157,65 @@ public class ExcelQuestionUploadService {
     }
 
 
+    private Map<String, Integer> buildHeaderMap(Row headerRow) {
+        Map<String, Integer> headerMap = new HashMap<>();
+        if (headerRow == null) {
+            return headerMap;
+        }
+        for (int c = headerRow.getFirstCellNum(); c < headerRow.getLastCellNum(); c++) {
+            Cell cell = headerRow.getCell(c);
+            String header = normalizeHeader(cell == null ? null : cell.toString());
+            if (!header.isBlank() && !headerMap.containsKey(header)) {
+                headerMap.put(header, c);
+            }
+        }
+        return headerMap;
+    }
+
+    private List<String> readQuestionOptions(Row row, Map<String, Integer> headerMap) {
+        List<String> options = new ArrayList<>();
+        String[] headerKeys = {
+                "optiona", "optionb", "optionc", "optiond", "optione", "optionf"
+        };
+        boolean hasNamedOptions = false;
+        for (String key : headerKeys) {
+            if (headerMap.containsKey(key)) {
+                hasNamedOptions = true;
+                break;
+            }
+        }
+
+        if (hasNamedOptions) {
+            options.add(getCellValue(row, headerMap, 4, "optiona", "option a", "a", "opt_a"));
+            options.add(getCellValue(row, headerMap, 5, "optionb", "option b", "b", "opt_b"));
+            options.add(getCellValue(row, headerMap, 6, "optionc", "option c", "c", "opt_c"));
+            options.add(getCellValue(row, headerMap, 7, "optiond", "option d", "d", "opt_d"));
+            options.add(getCellValue(row, headerMap, 8, "optione", "option e", "e", "opt_e"));
+            options.add(getCellValue(row, headerMap, 9, "optionf", "option f", "f", "opt_f"));
+            return options.stream()
+                    .filter(value -> value != null && !value.isBlank())
+                    .collect(Collectors.toCollection(ArrayList::new));
+        }
+
+        String optionA = getCellValue(row, 4);
+        String optionB = getCellValue(row, 5);
+        String optionC = getCellValue(row, 6);
+        String optionD = getCellValue(row, 7);
+        if (optionA != null && !optionA.isBlank()) options.add(optionA);
+        if (optionB != null && !optionB.isBlank()) options.add(optionB);
+        if (optionC != null && !optionC.isBlank()) options.add(optionC);
+        if (optionD != null && !optionD.isBlank()) options.add(optionD);
+        return options;
+    }
+
+    private String optionAt(List<String> options, int index) {
+        if (index < 0 || index >= options.size()) {
+            return null;
+        }
+        String value = options.get(index);
+        return value == null || value.isBlank() ? null : value;
+    }
+
     private String getCellValue(Row row, int index) {
 
         Cell cell = row.getCell(index);
@@ -168,6 +231,21 @@ public class ExcelQuestionUploadService {
         }
 
         return cell.toString();
+    }
+
+    private String getCellValue(Row row, Map<String, Integer> headerMap, int fallbackIndex, String... headers) {
+        if (headerMap != null && !headerMap.isEmpty()) {
+            for (String header : headers) {
+                Integer index = headerMap.get(normalizeHeader(header));
+                if (index != null) {
+                    String value = getCellValue(row, index);
+                    if (value != null && !value.isBlank()) {
+                        return value;
+                    }
+                }
+            }
+        }
+        return getCellValue(row, fallbackIndex);
     }
 
     private double getNumericValue(Row row, int index) {
@@ -189,5 +267,27 @@ public class ExcelQuestionUploadService {
         }
 
         return 0;
+    }
+
+    private double getNumericValue(Row row, Map<String, Integer> headerMap, int fallbackIndex, String... headers) {
+        if (headerMap != null && !headerMap.isEmpty()) {
+            for (String header : headers) {
+                Integer index = headerMap.get(normalizeHeader(header));
+                if (index != null) {
+                    double value = getNumericValue(row, index);
+                    if (value != 0) {
+                        return value;
+                    }
+                }
+            }
+        }
+        return getNumericValue(row, fallbackIndex);
+    }
+
+    private String normalizeHeader(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
     }
 }

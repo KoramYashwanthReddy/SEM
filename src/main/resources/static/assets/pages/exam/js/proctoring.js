@@ -135,20 +135,22 @@ class ProctoringSystem {
     
     // Attempt camera init and proctoring setup
     this.initCameraProctoring();
-    
-    // Initialize Audio Proctoring (Detecting voices)
-    this.initAudioProctoring();
+    // Voice detection has been disabled. Keep microphone status visible
+    // so the setup still shows the expected hardware state without
+    // triggering unreliable audio-based warnings.
+    this.micReady = true;
+    this.updateSetupStatus('mic', true);
     
     // Add anti-cheat listeners
     this.initAntiCheat();
     
     // Final check for startup button
     if (this.startBtn) {
-       this.startBtn.addEventListener('click', () => {
-         if (this.camReady && this.micReady && this.consentChk.checked) {
+      this.startBtn.addEventListener('click', () => {
+         if (this.camReady && this.consentChk && this.consentChk.checked) {
             this.recordEvent('EXAM_PROCTORING_STARTED', 'Proctoring checks completed and exam started', {
               camReady: true,
-              micReady: true,
+              micReady: false,
               identityVerified: Boolean(this.userVisible)
             }, 'proctor-start');
             // Request Fullscreen (Mandatory)
@@ -175,7 +177,7 @@ class ProctoringSystem {
 
   validateFinalSetup() {
      if (!this.startBtn) return;
-     const isReady = this.camReady && this.micReady && this.userVisible && this.consentChk.checked;
+     const isReady = this.camReady && this.userVisible && this.consentChk && this.consentChk.checked;
      this.startBtn.disabled = !isReady;
   }
 

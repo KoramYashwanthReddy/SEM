@@ -87,7 +87,12 @@ const API = (() => {
         let errorMsg = `Request failed with status ${response.status}`;
         try {
           const json = await response.json();
-          errorMsg = json.message || json.error || errorMsg;
+          errorMsg =
+            json?.data?.message ||
+            json?.data?.error ||
+            json?.message ||
+            json?.error ||
+            errorMsg;
         } catch (e) {
              const text = await response.text();
              if(text) errorMsg = text;

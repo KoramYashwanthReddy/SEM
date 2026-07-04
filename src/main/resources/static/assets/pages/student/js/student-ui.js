@@ -5,10 +5,47 @@
   const $ = (id) => document.getElementById(id);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
   const pct = (n) => `${Number(n).toFixed(1)}%`;
+  const fmtScore = (n) => `${Number(n).toFixed(1)}`;
   const load = (k, f) => { try { return Object.assign({}, f, JSON.parse(localStorage.getItem(k) || '{}')); } catch { return f; } };
   const loadArray = (k, f) => { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return Array.isArray(v) ? v : f; } catch { return f; } };
   const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
   const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+  const leaderboardStudentKey = (value) => String(value ?? '').trim();
+  const normalizeLeaderboardRows = (rows) => {
+    const bestByStudent = new Map();
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const studentId = leaderboardStudentKey(row?.studentId);
+      if (!studentId) return;
+      const current = {
+        ...row,
+        studentId,
+        studentName: row?.studentName || `Student-${studentId}`,
+        score: Number(row?.score || 0),
+        percentage: Number(row?.percentage || 0),
+        rank: Number(row?.rank || 0)
+      };
+      const existing = bestByStudent.get(studentId);
+      if (!existing) {
+        bestByStudent.set(studentId, current);
+        return;
+      }
+      const better =
+        current.score > existing.score ||
+        (current.score === existing.score && current.percentage > existing.percentage) ||
+        (current.score === existing.score && current.percentage === existing.percentage && current.rank > 0 && (existing.rank <= 0 || current.rank < existing.rank));
+      if (better) {
+        bestByStudent.set(studentId, current);
+      }
+    });
+    return Array.from(bestByStudent.values())
+      .sort((a, b) => a.rank - b.rank || b.score - a.score || b.percentage - a.percentage || a.studentName.localeCompare(b.studentName))
+      .map((row, index) => ({
+        ...row,
+        rank: index + 1,
+        score: Number(row.score || 0),
+        percentage: Number(row.percentage || 0)
+      }));
+  };
   const normalizeToken = (raw) => {
     if (!raw) return '';
     let value = String(raw).trim();
@@ -55,6 +92,21 @@
       throw err;
     }
   };
+  async function isActiveAttempt(attemptId) {
+    if (!attemptId) return false;
+    try {
+      const attempt = await apiRequest(`/exam/resume/${attemptId}`, { method: 'GET', silent: true });
+      return Boolean(
+        attempt &&
+        Number(attempt.id || attempt.attemptId) === Number(attemptId) &&
+        String(attempt.status || '').toUpperCase() === 'STARTED' &&
+        !Boolean(attempt.cancelled) &&
+        attempt.active !== false
+      );
+    } catch (error) {
+      return false;
+    }
+  }
   const toIsoOrEmpty = (value) => {
     if (!value) return '';
     if (typeof value === 'string') return value;
@@ -64,6 +116,17 @@
   const toNumber = (value, fallback = 0) => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const resolvePercentage = (score, percentage, totalMarks = 0) => {
+    const pctValue = Number(percentage);
+    if (Number.isFinite(pctValue) && pctValue > 0) return pctValue;
+    const total = Number(totalMarks);
+    const obtained = Number(score);
+    if (Number.isFinite(total) && total > 0 && Number.isFinite(obtained)) {
+      return (obtained * 100.0) / total;
+    }
+    if (Number.isFinite(obtained) && obtained > 0) return Math.min(100, obtained);
+    return 0;
   };
   const leaderboardRows = (rows) => rows.map(([studentId, studentName, score, percentage, rank], idx) => ({
     studentId,
@@ -260,28 +323,29 @@
       const correctAnswers = toNumber(attempt.correctAnswers);
       const wrongAnswers = toNumber(attempt.wrongAnswers);
       const unansweredQuestions = toNumber(attempt.unansweredQuestions, Math.max(totalQuestions - correctAnswers - wrongAnswers, 0));
-      const percentage = toNumber(attempt.percentage);
       const score = toNumber(attempt.obtainedMarks, toNumber(attempt.score));
-      return {
-        examCode: attempt.examCode,
-        score,
-        percentage,
-        resultStatus: percentage >= 40 ? 'Pass' : 'Fail',
-        passed: percentage >= 40,
-        correctAnswers,
-        wrongAnswers,
-        unansweredQuestions,
-        timeTakenSeconds: toNumber(attempt.timeTakenSeconds),grade: attempt.grade || (percentage >= 90 ? 'O' : percentage >= 80 ? 'A+' : percentage >= 70 ? 'A' : percentage >= 60 ? 'B+' : percentage >= 50 ? 'B' : 'F'),
-        submittedAt: attempt.endTime || attempt.updatedAt || attempt.createdAt || null,
-        totalQuestions,
-        easyCorrect: toNumber(attempt.easyCorrect),
-        mediumCorrect: toNumber(attempt.mediumCorrect),
-        hardCorrect: toNumber(attempt.hardCorrect),
-        easyWrong: toNumber(attempt.easyWrong),
-        mediumWrong: toNumber(attempt.mediumWrong),
-        hardWrong: toNumber(attempt.hardWrong)
-      };
-    }) : st.data.results;
+      const percentage = resolvePercentage(score, attempt.percentage, toNumber(attempt.totalMarks, linkedExam?.totalMarks || 0));
+        return {
+          examCode: attempt.examCode,
+          score,
+          percentage,
+          resultStatus: percentage >= 40 ? 'Pass' : 'Fail',
+          passed: percentage >= 40,
+          correctAnswers,
+          wrongAnswers,
+          unansweredQuestions,
+          timeTakenSeconds: toNumber(attempt.timeTakenSeconds),
+          grade: attempt.grade || (percentage >= 90 ? 'O' : percentage >= 80 ? 'A+' : percentage >= 70 ? 'A' : percentage >= 60 ? 'B+' : percentage >= 50 ? 'B' : 'F'),
+          submittedAt: attempt.endTime || attempt.updatedAt || attempt.createdAt || null,
+          totalQuestions,
+          easyCorrect: toNumber(attempt.easyCorrect),
+          mediumCorrect: toNumber(attempt.mediumCorrect),
+          difficultCorrect: toNumber(attempt.difficultCorrect ?? attempt.hardCorrect),
+          easyWrong: toNumber(attempt.easyWrong),
+          mediumWrong: toNumber(attempt.mediumWrong),
+          difficultWrong: toNumber(attempt.difficultWrong ?? attempt.hardWrong)
+        };
+      }) : st.data.results;
     st.data.certs = Array.isArray(payload.certificates) ? payload.certificates.map((cert) => ({
       ...cert,
       revoked: Boolean(cert.revoked),
@@ -289,13 +353,7 @@
       issuedAt: cert.issuedAt || cert.updatedAt || cert.createdAt || null
     })) : st.data.certs;
     if (Array.isArray(payload.leaderboardGlobal)) {
-      st.data.leaderboard.global = payload.leaderboardGlobal.map((row, idx) => ({
-        studentId: `stu-${row.studentId}`,
-        studentName: row.studentName || `Student-${row.studentId}`,
-        score: Number(row.score || 0),
-        percentage: Number(row.percentage || 0),
-        rank: Number(row.rank || (idx + 1))
-      }));
+      st.data.leaderboard.global = normalizeLeaderboardRows(payload.leaderboardGlobal);
     }
 
     save(K.p, st.profile);
@@ -909,19 +967,6 @@
     };
   }
   const activeLeaderboardRows = () => st.data.leaderboard[st.leaderboard.mode] || [];
-  const leaderboardShuffle = (rows) => {
-    const shuffled = rows.slice().sort(() => Math.random() - 0.5);
-    return shuffled.map((row, index) => {
-      const nudge = Math.floor(Math.random() * 5) - 2;
-      const score = clamp((row.score || 0) + nudge, 58, 99);
-      return {
-        ...row,
-        rank: index + 1,
-        score,
-        percentage: score
-      };
-    });
-  };
   const sortBySubmittedAtDesc = (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
   const busyCopy = {
     'exam-instructions': 'Loading instructions...',
@@ -1550,7 +1595,11 @@
   async function ensureExamAttempt(code) {
     if (!code) return;
     let attemptId = st.examAttemptIds[code] || null;
-    if (attemptId) return attemptId;
+    if (attemptId && await isActiveAttempt(attemptId)) return attemptId;
+    if (attemptId) {
+      delete st.examAttemptIds[code];
+      save(K.ea, st.examAttemptIds);
+    }
     const studentId = Number(st.currentUserId);
     const payload = {
       studentId: Number.isFinite(studentId) && studentId > 0 ? studentId : st.currentUserId,
@@ -1594,15 +1643,13 @@
       toast('Navigation failed', 'Exam code is missing. Please try again.', 'warn');
       return;
     }
-    let attemptId = st.examAttemptIds[code] || null;
-    if (!attemptId) {
-      try {
-        attemptId = await ensureExamAttempt(code);
-      } catch (error) {
-        console.warn('Unable to create exam attempt before navigation.', error);
-        toast('Navigation failed', error?.message || 'Unable to create the exam attempt. Please try again.', 'warn');
-        return;
-      }
+    let attemptId = null;
+    try {
+      attemptId = await ensureExamAttempt(code);
+    } catch (error) {
+      console.warn('Unable to create exam attempt before navigation.', error);
+      toast('Navigation failed', error?.message || 'Unable to create the exam attempt. Please try again.', 'warn');
+      return;
     }
     if (!attemptId) {
       toast('Navigation failed', 'No active exam attempt found. Please verify and retry.', 'warn');
@@ -1668,6 +1715,50 @@
     }
   }
   function renderCards() { const c = [['Total Exams',st.data.dash.totalExams,'dashboard','blue'],['Attempted Exams',st.data.dash.attemptedCount,'exams','purple'],['Average Score',pct(st.data.dash.averageScore),'analytics','green'],['Certificates Earned',st.data.dash.certificatesEarned,'certificates','amber']]; el.dashStatsGrid.innerHTML = c.map(([t,v,i,tn]) => `<article class="stat-card stat-${tn}"><div class="stat-icon">${svg(i)}</div><div class="stat-copy"><span class="stat-label">${t}</span><strong class="stat-value">${v}</strong><small class="stat-hint">Enterprise UI data</small></div></article>`).join(''); const a = st.data.analytics; el.analyticsCards.innerHTML = [['Attempted Exams',a.attemptedExams,'dashboard'],['Average Score',pct(a.averageScore),'analytics'],['Highest Score',a.highestScore,'star'],['Lowest Score',a.lowestScore,'results']].map(([t,v,i]) => `<article class="stat-card"><div class="stat-icon">${svg(i)}</div><div class="stat-copy"><span class="stat-label">${t}</span><strong class="stat-value">${v}</strong></div></article>`).join(''); }
+  function getAnalyticsRows() {
+    const rows = Array.isArray(st.data.results) ? st.data.results : [];
+    if (rows.length) return rows;
+    return (st.data.dash.attempts || []).map((attempt) => ({
+      score: Number(attempt.obtainedMarks || 0),
+      percentage: Number(attempt.percentage || 0),
+      passed: Number(attempt.percentage || 0) >= 40
+    }));
+  }
+  function buildAnalyticsSnapshot() {
+    const rows = getAnalyticsRows();
+    const attemptedExams = rows.length;
+    const percentages = rows.map((row) => Number(row.percentage || 0));
+    const scores = rows.map((row) => Number(row.score || 0));
+    const averageScore = attemptedExams ? percentages.reduce((sum, value) => sum + value, 0) / attemptedExams : 0;
+    const highestScore = scores.length ? Math.max(...scores) : 0;
+    const lowestScore = scores.length ? Math.min(...scores) : 0;
+    const passRate = attemptedExams ? (rows.filter((row) => Boolean(row.passed) || Number(row.percentage || 0) >= 40).length * 100.0) / attemptedExams : 0;
+    const trend = percentages.length ? percentages.slice(-8) : [0, 0, 0, 0];
+    const scoreMix = rows.reduce((acc, row) => {
+      const pctValue = Number(row.percentage || 0);
+      if (pctValue >= 80) acc.high += 1;
+      else if (pctValue >= 50) acc.mid += 1;
+      else acc.low += 1;
+      return acc;
+    }, { high: 0, mid: 0, low: 0 });
+    return { attemptedExams, averageScore, highestScore, lowestScore, passRate, trend, scoreMix };
+  }
+  function renderAnalyticsCards() {
+    const analytics = buildAnalyticsSnapshot();
+    st.data.analytics = {
+      attemptedExams: analytics.attemptedExams,
+      averageScore: analytics.averageScore,
+      highestScore: analytics.highestScore,
+      lowestScore: analytics.lowestScore,
+      passRate: analytics.passRate
+    };
+    el.analyticsCards.innerHTML = [
+      ['Attempted Exams', analytics.attemptedExams, 'dashboard'],
+      ['Average Score', pct(analytics.averageScore), 'analytics'],
+      ['Highest Score', fmtScore(analytics.highestScore), 'star'],
+      ['Lowest Score', fmtScore(analytics.lowestScore), 'results']
+    ].map(([t, v, i]) => `<article class="stat-card"><div class="stat-icon">${svg(i)}</div><div class="stat-copy"><span class="stat-label">${t}</span><strong class="stat-value">${v}</strong></div></article>`).join('');
+  }
   function renderDashboardTable() { const q = st.q.trim().toLowerCase(); const rows = st.data.dash.attempts.filter(r => !q || [r.examCode,r.badge,r.status].some(v => String(v).toLowerCase().includes(q))); el.recentAttemptsBody.innerHTML = rows.length ? rows.map(r => `<tr class="clickable-row" data-detail="attempt" data-code="${r.examCode}"><td><strong>${r.examCode}</strong></td><td>${r.obtainedMarks}</td><td>${r.totalMarks}</td><td>${pct(r.percentage)}</td><td><span class="badge ${badge[r.badge] || 'neutral'}">${r.badge}</span></td></tr>`).join('') : `<tr><td colspan="5" class="empty-state">No recent attempts found.</td></tr>`; }
   function examEmptyState(title, description) {
     return `
@@ -1977,12 +2068,12 @@
           <div class="detail-item"><span>Department</span><strong>${c.department}</strong></div>
           <div class="detail-item"><span>Roll Number</span><strong>${c.rollNumber}</strong></div>
         </div>
-        <div class="cert-score-grid">
-          <div class="detail-item"><span>Score</span><strong>${c.score}%</strong></div>
-          <div class="detail-item"><span>Grade</span><strong>${c.grade}</strong></div>
-          <div class="detail-item"><span>Issued Date</span><strong>${formatDate(c.issuedAt)}</strong></div>
-          <div class="detail-item"><span>Status</span><strong>${certStatusLabel(c.revoked)}</strong></div>
-        </div>
+          <div class="cert-score-grid">
+            <div class="detail-item"><span>Score</span><strong>${fmtScore(c.score)}%</strong></div>
+            <div class="detail-item"><span>Grade</span><strong>${c.grade}</strong></div>
+            <div class="detail-item"><span>Issued Date</span><strong>${formatDate(c.issuedAt)}</strong></div>
+            <div class="detail-item"><span>Status</span><strong>${certStatusLabel(c.revoked)}</strong></div>
+          </div>
         <div class="card-actions cert-actions">
           <button class="btn ghost small" data-action="certificate-preview" data-code="${c.certificateId}" type="button">View</button>
           <button class="btn primary small" data-action="certificate-download" data-code="${c.certificateId}" type="button">Download</button>
@@ -2005,7 +2096,7 @@
   }
 
   function leaderboardRowsForMode() {
-    return activeLeaderboardRows().map((row) => ({ ...row }));
+    return normalizeLeaderboardRows(activeLeaderboardRows()).map((row) => ({ ...row }));
   }
 
   function renderSummary(rows) {
@@ -2046,7 +2137,7 @@
         <span class="rank-chip ${badgeInfo.tone}">${badgeInfo.label}</span>
       </div>
       <div class="rank-spotlight-stats">
-        <div class="rank-stat"><span>Score</span><strong>${user.score}</strong></div>
+        <div class="rank-stat"><span>Score</span><strong>${fmtScore(user.score)}</strong></div>
         <div class="rank-stat"><span>Percentage</span><strong>${pct(user.percentage)}</strong></div>
         <div class="rank-stat"><span>Mode</span><strong>${st.leaderboard.mode === 'global' ? 'Global' : 'Exam'}</strong></div>
       </div>
@@ -2069,7 +2160,7 @@
           </div>
           <div class="podium-avatar">${initials(row.studentName)}</div>
           <h3>${escapeHtml(row.studentName)}</h3>
-          <p>${row.score} score points</p>
+          <p>${fmtScore(row.score)} score points</p>
           <div class="podium-meta">
             <strong>${pct(row.percentage)}</strong>
             <span class="performance-badge ${badgeInfo.tone}">${badgeInfo.label}</span>
@@ -2095,7 +2186,7 @@
               </div>
             </div>
           </td>
-          <td>${row.score}</td>
+          <td>${fmtScore(row.score)}</td>
           <td>${pct(row.percentage)}</td>
           <td>
             <div class="leaderboard-performance">
@@ -2113,7 +2204,7 @@
 
   function refreshData() {
     const mode = st.leaderboard.mode;
-    st.data.leaderboard[mode] = leaderboardShuffle(st.data.leaderboard[mode] || []);
+    st.data.leaderboard[mode] = normalizeLeaderboardRows(st.data.leaderboard[mode] || []);
     renderLeaderboard();
   }
 
@@ -2129,7 +2220,22 @@
     renderPodium(sorted);
     renderTable(sorted);
   }
-  function renderAnalyticsCharts() { drawLine($('performanceTrendChart'), st.data.dash.trend); drawLine($('analyticsLineChart'), [9,12,15,18,16,19,22,24]); drawBars($('analyticsBarChart'), [88,76,91,84,93,89]); drawDonut($('analyticsDonutChart'), [{ label:'High', value:42, color:'#3b82f6' }, { label:'Mid', value:36, color:'#8b5cf6' }, { label:'Low', value:22, color:'#22c55e' }]); if (el.chartPlaceholder) el.chartPlaceholder.classList.add('hidden'); }
+  function renderAnalyticsCharts() {
+    const analytics = buildAnalyticsSnapshot();
+    const trend = analytics.trend.length ? analytics.trend : [0, 0, 0, 0];
+    const bars = trend.map((value) => clamp(Math.round(Number(value || 0)), 0, 100));
+    const passRate = clamp(Number(analytics.passRate || 0), 0, 100);
+    const failRate = clamp(100 - passRate, 0, 100);
+    drawLine($('performanceTrendChart'), st.data.dash.trend.length ? st.data.dash.trend : trend);
+    drawLine($('analyticsLineChart'), trend);
+    drawBars($('analyticsBarChart'), bars);
+    drawDonut($('analyticsDonutChart'), [
+      { label:'Pass', value: passRate, color:'#3b82f6' },
+      { label:'Fail', value: failRate, color:'#8b5cf6' },
+      { label:'Review', value: analytics.attemptedExams ? Math.max(0, 100 - passRate - failRate) : 0, color:'#22c55e' }
+    ]);
+    if (el.chartPlaceholder) el.chartPlaceholder.classList.add('hidden');
+  }
   function renderAllTables() { renderDashboardTable(); renderResultsSummary(); renderResultsTable(); renderLeaderboard(); renderCertificateSummary(); renderCertificates(); renderExamCatalog(); renderMyExams(); }
   function setLoadingState() {
     const examSkeleton = () => `
@@ -2190,7 +2296,10 @@
     if (st.sec === 'results') { renderResultsSummary(); renderResultsTable(); }
     if (st.sec === 'certificates') { renderCertificateSummary(); renderCertificates(); }
     if (st.sec === 'leaderboard') renderLeaderboard();
-    if (st.sec === 'analytics') renderAnalyticsCharts();
+    if (st.sec === 'analytics') {
+      renderAnalyticsCards();
+      renderAnalyticsCharts();
+    }
   }
   function notificationTone(type) {
     return ({ exam: 'warning', result: 'success', certificate: 'neutral' }[type] || 'neutral');
@@ -2360,6 +2469,51 @@
     $$('.support-tabs .tab-btn').forEach((btn) => btn.classList.toggle('active', btn.dataset.supportTab === tab));
     $$('.support-panel', document).forEach((panel) => panel.classList.toggle('active', panel.dataset.supportPanel === tab));
   }
+  function certificatePreviewMarkup(c) {
+    const score = fmtScore(c.score);
+    const issued = formatDate(c.issuedAt);
+    const verifiedLabel = c.revoked ? 'Revoked' : 'Verified';
+    return `
+      <div class="certificate-preview-artwork">
+        <div class="certificate-preview-topbar">
+          <div class="certificate-brand-lockup">
+            <div class="certificate-brand-mark">AI</div>
+            <div>
+              <strong>AI EXAM SYSTEM</strong>
+              <span>Official Certificate Preview</span>
+            </div>
+          </div>
+          <div class="certificate-status-pill ${c.revoked ? 'danger' : 'success'}">${verifiedLabel}</div>
+        </div>
+        <div class="certificate-preview-badge">Excellence in Online Assessment</div>
+        <div class="certificate-preview-title">
+          <span>Certificate</span>
+          <strong>of Completion</strong>
+        </div>
+        <p class="certificate-preview-subtitle">This certifies that</p>
+        <h2 class="certificate-preview-name">${escapeHtml(c.studentName || 'Student')}</h2>
+        <p class="certificate-preview-bodycopy">
+          has successfully completed the <strong>${escapeHtml(c.examTitle || c.examCode || 'Online Examination')}</strong>
+          conducted by <strong>AI Exam System</strong>.
+        </p>
+        <div class="certificate-preview-metrics">
+          <div><span>Exam</span><strong>${escapeHtml(c.examTitle || c.examCode || '-')}</strong></div>
+          <div><span>Score</span><strong>${score}%</strong></div>
+          <div><span>Grade</span><strong>${escapeHtml(c.grade || '-')}</strong></div>
+          <div><span>Issued</span><strong>${escapeHtml(issued)}</strong></div>
+        </div>
+        <div class="certificate-preview-footer">
+          <div class="certificate-preview-qr">
+            <span>QR</span>
+            <small>Verify online</small>
+          </div>
+          <div class="certificate-preview-signature">
+            <span>Dr. AI Admin</span>
+            <small>Chief Administrator, AI Exam System</small>
+          </div>
+        </div>
+      </div>`;
+  }
   function validateSupportForm(form) {
     const data = new FormData(form);
     const required = Array.from(form.querySelectorAll('[required]'));
@@ -2458,40 +2612,37 @@
       const c = st.data.certs.find((x) => x.certificateId === code);
       if (!c) return;
       modal({
-        kicker: 'Certificate Details',
+        kicker: 'Certificate Preview',
         title: `${c.certificateId} - ${c.examTitle}`,
         body: `
-          <div class="result-modal-hero">
-            <div>
-              <span class="result-modal-code">${c.certificateId}</span>
-              <h4>${c.examTitle}</h4>
-              <p>${c.studentName} | ${c.collegeName}</p>
+          <div class="certificate-preview-shell">
+            <div class="certificate-preview-frame">
+              ${certificatePreviewMarkup(c)}
             </div>
-            <span class="result-badge ${c.revoked ? 'fail' : 'pass'}">${certStatusLabel(c.revoked)}</span>
-          </div>
-          <div class="result-modal-grid">
-            <div class="result-modal-panel">
-              <h5>Student Info</h5>
-              <div class="detail-grid">
-                <div><span>Student Name</span><strong>${c.studentName}</strong></div>
-                <div><span>College</span><strong>${c.collegeName}</strong></div>
-                <div><span>Department</span><strong>${c.department}</strong></div>
-                <div><span>Roll Number</span><strong>${c.rollNumber}</strong></div>
+            <div class="result-modal-grid certificate-preview-grid">
+              <div class="result-modal-panel">
+                <h5>Student Info</h5>
+                <div class="detail-grid">
+                  <div><span>Student Name</span><strong>${c.studentName}</strong></div>
+                  <div><span>College</span><strong>${c.collegeName}</strong></div>
+                  <div><span>Department</span><strong>${c.department}</strong></div>
+                  <div><span>Roll Number</span><strong>${c.rollNumber}</strong></div>
+                </div>
+              </div>
+              <div class="result-modal-panel">
+                <h5>Certificate Info</h5>
+                <div class="detail-grid">
+                  <div><span>Score</span><strong>${fmtScore(c.score)}%</strong></div>
+                  <div><span>Grade</span><strong>${c.grade}</strong></div>
+                  <div><span>Issued Date</span><strong>${formatDate(c.issuedAt)}</strong></div>
+                  <div><span>Status</span><strong>${c.revoked ? 'REVOKED' : 'VERIFIED'}</strong></div>
+                </div>
               </div>
             </div>
-            <div class="result-modal-panel">
-              <h5>Certificate Info</h5>
-              <div class="detail-grid">
-                <div><span>Score</span><strong>${c.score}%</strong></div>
-                <div><span>Grade</span><strong>${c.grade}</strong></div>
-                <div><span>Issued Date</span><strong>${formatDate(c.issuedAt)}</strong></div>
-                <div><span>QR Text</span><strong>${c.qrCodeData}</strong></div>
-              </div>
+            <div class="result-modal-note">
+              <strong>Verification Status</strong>
+              <p>${c.revoked ? 'This certificate has been revoked and cannot be downloaded.' : 'This certificate is currently verified and available for download.'}</p>
             </div>
-          </div>
-          <div class="result-modal-note">
-            <strong>Verification Status</strong>
-            <p>${c.revoked ? 'This certificate has been revoked locally in the UI preview.' : 'This certificate is currently verified and available for download.'}</p>
           </div>
         `,
         foot: `
@@ -2500,7 +2651,7 @@
       });
     }
   }
-  function action(type, code, view = '') {
+  async function action(type, code, view = '') {
     if (type === 'exam-instructions') {
       const e = st.data.exams.find((x) => x.examCode === code);
       if (!e) return;
@@ -2615,14 +2766,37 @@
     if (type === 'certificate-download') {
       const c = st.data.certs.find(x => x.certificateId === code);
       if (!c) return;
-      const blob = new Blob([`Certificate ID: ${c.certificateId}\nExam Title: ${c.examTitle}\nStudent: ${c.studentName}\nCollege: ${c.collegeName}\nDepartment: ${c.department}\nRoll Number: ${c.rollNumber}\nScore: ${c.score}%\nGrade: ${c.grade}\nIssued: ${c.issuedAt}\nStatus: ${c.revoked ? 'REVOKED' : 'VERIFIED'}\nQR: ${c.qrCodeData}\n`], { type:'text/plain;charset=utf-8' });
-      const u = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = u;
-      a.download = `${c.certificateId}.txt`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(u), 500);
-      toast('Download started', `${code} has been downloaded.`, 'success');
+      try {
+        const response = await API.request(
+          `/api/certificate/download/${encodeURIComponent(code)}`,
+          {
+            method: 'GET',
+            headers: { Accept: 'application/pdf' },
+            raw: true
+          }
+        );
+        if (!response.ok) {
+          const text = await response.text().catch(() => '');
+          throw new Error(text || `Unable to download certificate PDF (${response.status})`);
+        }
+
+        const blob = await response.blob();
+        if (!blob || !blob.size) {
+          throw new Error('Empty certificate PDF received');
+        }
+
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = `${c.certificateId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        toast('Download started', `${code} has been downloaded as PDF.`, 'success');
+      } catch (error) {
+        toast('Download failed', error.message || 'Unable to download certificate PDF.', 'error');
+      }
       return;
     }
     if (type === 'certificate-verify') {
@@ -2652,11 +2826,14 @@
     const text = actionLoadingText(actionType, code, btn);
     setButtonBusy(btn, text);
     setTimeout(() => {
-      try {
-        action(actionType, code, btn.dataset.view || '');
-      } finally {
-        restoreButton(btn);
-      }
+      Promise.resolve(action(actionType, code, btn.dataset.view || ''))
+        .catch((error) => {
+          console.error('Action failed:', error);
+          toast('Action failed', error?.message || 'Please try again.', 'warn');
+        })
+        .finally(() => {
+          restoreButton(btn);
+        });
     }, delay);
   }
   function runButtonFeedback(btn, text, fn, delay = 420) {
@@ -2781,6 +2958,7 @@
     $('refreshDashboard').addEventListener('click', (e) => {
       runButtonFeedback(e.currentTarget, 'Refreshing...', () => {
         renderCards();
+        renderAnalyticsCards();
         renderAllTables();
         renderAnalyticsCharts();
         toast('Dashboard refreshed', 'UI data has been re-rendered.', 'info');
@@ -3011,7 +3189,7 @@
     renderHelpSupport();
     setInterval(updateClock, 1000);
     startCountdownTimer();
-    setTimeout(() => { booting = false; document.getElementById('loaderOverlay')?.classList.add('hidden'); setTimeout(() => document.getElementById('loaderOverlay')?.remove(), 600); renderCards(); renderAllTables(); renderAnalyticsCharts(); toast('Student UI ready', 'Enterprise dashboard shell has loaded.', 'success'); refresh(); document.getElementById('loaderOverlay')?.classList.remove('active'); }, 450);
+    setTimeout(() => { booting = false; document.getElementById('loaderOverlay')?.classList.add('hidden'); setTimeout(() => document.getElementById('loaderOverlay')?.remove(), 600); renderCards(); renderAnalyticsCards(); renderAllTables(); renderAnalyticsCharts(); toast('Student UI ready', 'Enterprise dashboard shell has loaded.', 'success'); refresh(); document.getElementById('loaderOverlay')?.classList.remove('active'); }, 450);
   }
   document.addEventListener('DOMContentLoaded', () => { init().catch((error) => console.error('Student UI init failed:', error)); });
   window.studentUI = { renderCards, renderChart: renderAnalyticsCharts, renderTable: renderAllTables, renderLeaderboard };

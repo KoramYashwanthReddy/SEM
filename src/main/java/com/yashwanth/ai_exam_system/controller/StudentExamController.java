@@ -2,10 +2,12 @@ package com.yashwanth.ai_exam_system.controller;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 import jakarta.validation.Valid;
@@ -42,7 +44,9 @@ import com.yashwanth.ai_exam_system.repository.UserRepository;
 import com.yashwanth.ai_exam_system.service.ExamAttemptService;
 import com.yashwanth.ai_exam_system.service.ExamEvaluationService;
 import com.yashwanth.ai_exam_system.service.EmailNotificationOrchestrator;
+import com.yashwanth.ai_exam_system.service.ExamQuestionSelectionService;
 import com.yashwanth.ai_exam_system.service.Phase2VerificationService;
+import com.yashwanth.ai_exam_system.service.CertificateService;
 
 @RestController
 @RequestMapping("/api/student/exam")
@@ -59,6 +63,8 @@ public class StudentExamController {
     private final UserRepository userRepository;
     private final EmailNotificationOrchestrator emailNotificationOrchestrator;
     private final Phase2VerificationService phase2VerificationService;
+    private final CertificateService certificateService;
+    private final ExamQuestionSelectionService questionSelectionService;
 
     public StudentExamController(
             ExamAttemptRepository examAttemptRepository,
@@ -70,7 +76,9 @@ public class StudentExamController {
             ExamRegistrationRepository examRegistrationRepository,
             UserRepository userRepository,
             EmailNotificationOrchestrator emailNotificationOrchestrator,
-            Phase2VerificationService phase2VerificationService) {
+            Phase2VerificationService phase2VerificationService,
+            CertificateService certificateService,
+            ExamQuestionSelectionService questionSelectionService) {
 
         this.examAttemptRepository = examAttemptRepository;
         this.questionRepository = questionRepository;
@@ -82,6 +90,8 @@ public class StudentExamController {
         this.userRepository = userRepository;
         this.emailNotificationOrchestrator = emailNotificationOrchestrator;
         this.phase2VerificationService = phase2VerificationService;
+        this.certificateService = certificateService;
+        this.questionSelectionService = questionSelectionService;
     }
 
     // ================= START EXAM =================
@@ -268,6 +278,8 @@ public class StudentExamController {
     @GetMapping("/{examCode}/questions")
     public ResponseEntity<?> loadQuestions(@PathVariable String examCode, Authentication auth) {
         Long studentId = getAuthenticatedStudentId(auth);
+        Exam exam = examRepository.findByExamCode(examCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
         boolean isRegistered = examRegistrationRepository
                 .findByStudentIdAndExamCode(studentId, examCode)
                 .map(ExamRegistration::getActive)
@@ -280,9 +292,10 @@ public class StudentExamController {
             throw new ForbiddenException("Please register for the exam or start an active session before loading questions");
         }
 
-        List<Question> questions = questionRepository.findByExamCodeAndActiveTrue(examCode);
-        questions.sort(Comparator.comparing((Question question) -> Optional.ofNullable(question.getDisplayOrder()).orElse(Integer.MAX_VALUE))
-                .thenComparing(Question::getId));
+        Long attemptSeed = examAttemptRepository.findActiveAttempt(studentId, examCode, AttemptStatus.STARTED)
+                .map(ExamAttempt::getId)
+                .orElse(null);
+        List<Question> questions = questionSelectionService.selectQuestionsForExam(exam, studentId, attemptSeed);
         List<QuestionResponse> response = questions.stream()
                 .map(this::toStudentQuestionResponse)
                 .collect(Collectors.toList());
@@ -379,16 +392,48 @@ public class StudentExamController {
                 attempt.getExamCode()
         );
 
+        Exam exam = examRepository.findByExamCode(attempt.getExamCode())
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+
+        int totalMarks = questionSelectionService.selectQuestionsForExam(exam, authenticatedStudentId, attempt.getId())
+                .stream()
+                .mapToInt(question -> question.getMarks() == null ? 0 : question.getMarks())
+                .sum();
+
+        Long timeTakenSeconds = attempt.getStartTime() != null
+                ? java.time.Duration.between(attempt.getStartTime(), LocalDateTime.now()).getSeconds()
+                : result.getTimeTakenSeconds();
+
         attempt.setStatus(AttemptStatus.SUBMITTED);
         attempt.setEndTime(LocalDateTime.now());
         attempt.setObtainedMarks((int) result.getScore());
-        attempt.setTotalMarks(result.getTotalQuestions());
+        attempt.setTotalMarks(totalMarks);
+        attempt.setScore(result.getScore());
+        attempt.setPercentage(result.getPercentage());
+        attempt.setTimeTakenSeconds(timeTakenSeconds);
+        attempt.setGrade(result.getGrade());
 
         examAttemptRepository.save(attempt);
         User student = userRepository.findById(authenticatedStudentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
-        Exam exam = examRepository.findByExamCode(attempt.getExamCode())
-                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+        if (Boolean.TRUE.equals(result.getPassed())) {
+            double certificateScore = result.getPercentage();
+            if (certificateScore <= 0) {
+                certificateScore = result.getScore();
+            }
+            try {
+                certificateService.generateCertificate(
+                        authenticatedStudentId,
+                        attempt.getExamCode(),
+                        exam.getTitle(),
+                        certificateScore,
+                        "");
+            } catch (Exception certError) {
+                System.err.println("Certificate generation failed for attemptId="
+                        + attemptId + ", studentId=" + authenticatedStudentId
+                        + ": " + certError.getMessage());
+            }
+        }
         emailNotificationOrchestrator.notifyExamSubmitted(student, exam, attempt, result);
 
         Map<String, Object> response = new LinkedHashMap<>();
@@ -404,7 +449,7 @@ public class StudentExamController {
         response.put("percentage", result.getPercentage());
         response.put("resultStatus", result.getResultStatus());
         response.put("passed", result.getPassed());
-        response.put("timeTakenSeconds", result.getTimeTakenSeconds());
+        response.put("timeTakenSeconds", timeTakenSeconds);
         response.put("submittedAt", result.getSubmittedAt());
         response.put("evaluatedAt", result.getEvaluatedAt());
         return ResponseEntity.ok(response);

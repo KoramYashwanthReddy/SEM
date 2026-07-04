@@ -45,6 +45,7 @@ public class StudentDashboardService {
     private final ExamRegistrationRepository examRegistrationRepository;
     private final CertificateRepository certificateRepository;
     private final LeaderboardService leaderboardService;
+    private final CertificateService certificateService;
 
     public StudentDashboardService(ExamAttemptRepository attemptRepository,
             ExamRepository examRepository,
@@ -52,7 +53,8 @@ public class StudentDashboardService {
             StudentProfileRepository studentProfileRepository,
             ExamRegistrationRepository examRegistrationRepository,
             CertificateRepository certificateRepository,
-            LeaderboardService leaderboardService) {
+            LeaderboardService leaderboardService,
+            CertificateService certificateService) {
         this.attemptRepository = attemptRepository;
         this.examRepository = examRepository;
         this.userRepository = userRepository;
@@ -60,6 +62,7 @@ public class StudentDashboardService {
         this.examRegistrationRepository = examRegistrationRepository;
         this.certificateRepository = certificateRepository;
         this.leaderboardService = leaderboardService;
+        this.certificateService = certificateService;
     }
 
     public StudentDashboardResponse getDashboardForIdentifier(String identifier) {
@@ -97,12 +100,7 @@ public class StudentDashboardService {
 
             int obtained = attempt.getObtainedMarks() == null ? 0 : attempt.getObtainedMarks();
             int total = attempt.getTotalMarks() == null ? 0 : attempt.getTotalMarks();
-
-            double percentage = 0;
-
-            if (total > 0) {
-                percentage = (obtained * 100.0) / total;
-            }
+            double percentage = resolvePercentage(attempt, obtained, total);
 
             if (attempt.getExamCode() != null) {
                 attemptedCodes.add(attempt.getExamCode());
@@ -115,8 +113,9 @@ public class StudentDashboardService {
                 cheatingAlerts++;
             }
 
-            if (percentage >= 80) {
+            if (percentage >= 40) {
                 certificates++;
+                ensureCertificateExists(studentId, attempt, percentage);
             }
 
             LocalDateTime attemptTime = attempt.getEndTime() != null ? attempt.getEndTime() : attempt.getStartTime();
@@ -264,6 +263,43 @@ public class StudentDashboardService {
             return "BRONZE";
 
         return "PARTICIPANT";
+    }
+
+    private void ensureCertificateExists(Long studentId, ExamAttempt attempt, double percentage) {
+        if (attempt == null || attempt.getExamCode() == null) {
+            return;
+        }
+        boolean exists = certificateRepository.findByStudentIdAndExamCode(studentId, attempt.getExamCode()).isPresent();
+        if (exists) {
+            return;
+        }
+        Exam exam = examRepository.findByExamCode(attempt.getExamCode()).orElse(null);
+        if (exam == null || exam.getTitle() == null || exam.getTitle().isBlank()) {
+            return;
+        }
+        try {
+            certificateService.generateCertificate(
+                    studentId,
+                    attempt.getExamCode(),
+                    exam.getTitle(),
+                    percentage,
+                    "");
+        } catch (Exception error) {
+            // Certificate generation is best-effort during dashboard hydration.
+        }
+    }
+
+    private double resolvePercentage(ExamAttempt attempt, int obtained, int total) {
+        if (attempt != null && attempt.getPercentage() != null && attempt.getPercentage() > 0) {
+            return attempt.getPercentage();
+        }
+        if (total > 0) {
+            return (obtained * 100.0) / total;
+        }
+        if (obtained > 0) {
+            return Math.min(100.0, obtained);
+        }
+        return 0;
     }
 
     private List<ExamSuggestionResponse> generateSuggestions(

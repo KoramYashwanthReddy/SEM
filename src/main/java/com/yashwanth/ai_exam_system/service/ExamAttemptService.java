@@ -41,6 +41,7 @@ public class ExamAttemptService {
     private final ExamRepository examRepository;
     private final ExamRegistrationRepository examRegistrationRepository;
     private final ExamResultRepository resultRepository;
+    private final ExamQuestionSelectionService questionSelectionService;
 
     public ExamAttemptService(
             ExamAttemptRepository attemptRepository,
@@ -49,7 +50,8 @@ public class ExamAttemptService {
             ExamEvaluationService evaluationService,
             ExamRepository examRepository,
             ExamRegistrationRepository examRegistrationRepository,
-            ExamResultRepository resultRepository) {
+            ExamResultRepository resultRepository,
+            ExamQuestionSelectionService questionSelectionService) {
 
         this.attemptRepository = attemptRepository;
         this.answerRepository = answerRepository;
@@ -58,6 +60,7 @@ public class ExamAttemptService {
         this.examRepository = examRepository;
         this.examRegistrationRepository = examRegistrationRepository;
         this.resultRepository = resultRepository;
+        this.questionSelectionService = questionSelectionService;
     }
 
     // ================= START EXAM =================
@@ -74,8 +77,8 @@ public class ExamAttemptService {
         if (!registered) {
             throw new BadRequestException("Please register for the exam first");
         }
-        List<Question> activeQuestions = questionRepository.findByExamCodeAndActiveTrue(examCode);
-        if (activeQuestions.isEmpty()) {
+        List<Question> selectedQuestions = questionSelectionService.selectQuestionsForExam(exam, studentId, null);
+        if (selectedQuestions.isEmpty()) {
             throw new BadRequestException("No active questions found for this exam");
         }
 
@@ -103,6 +106,8 @@ public class ExamAttemptService {
         attempt.setStudentId(studentId);
         attempt.setExamCode(examCode);
         attempt.setExamId(exam.getId());
+        attempt.setActive(true);
+        attempt.setCancelled(false);
 
         attempt.setStartTime(now);
         attempt.setDurationMinutes(exam.getDurationMinutes());
@@ -122,8 +127,12 @@ public class ExamAttemptService {
 
         ExamAttempt attempt = getAttempt(attemptId);
 
-        if (!attempt.isActive()) {
+        if (attempt.getStatus() != AttemptStatus.STARTED
+                || Boolean.TRUE.equals(attempt.getCancelled())) {
             throw new RuntimeException("Exam not active");
+        }
+        if (attempt.getExpiryTime() != null && attempt.getExpiryTime().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Exam time expired");
         }
 
         StudentAnswer studentAnswer = answerRepository.findByAttemptIdAndQuestionId(attemptId, questionId)
@@ -141,8 +150,10 @@ public class ExamAttemptService {
             studentAnswer.setReviewMarked(true);
         } else if (answer == null || answer.isEmpty()) {
             studentAnswer.setStatus("NOT_ANSWERED");
+            studentAnswer.setReviewMarked(false);
         } else {
             studentAnswer.setStatus("ANSWERED");
+            studentAnswer.setReviewMarked(false);
         }
 
         // Save additional production metadata
@@ -201,7 +212,9 @@ public class ExamAttemptService {
                     attempt.getExamCode());
         }
 
-        List<Question> questions = questionRepository.findByExamCodeAndActiveTrue(attempt.getExamCode());
+        Exam exam = examRepository.findByExamCode(attempt.getExamCode())
+                .orElseThrow(() -> new RuntimeException("Exam not found"));
+        List<Question> questions = questionSelectionService.selectQuestionsForExam(exam, attempt.getStudentId(), attempt.getId());
 
         int totalMarks = questions.stream()
                 .mapToInt(q -> q.getMarks() == null ? 0 : q.getMarks())
@@ -228,6 +241,17 @@ public class ExamAttemptService {
         response.setObtainedMarks(obtainedMarks);
         response.setPercentage(result.getPercentage());
         response.setResult(result.getResultStatus());
+        response.setTotalQuestions(result.getTotalQuestions());
+        response.setCorrectAnswers(result.getCorrectAnswers());
+        response.setWrongAnswers(result.getWrongAnswers());
+        response.setUnansweredQuestions(result.getUnansweredQuestions());
+        response.setEasyCorrect(result.getEasyCorrect());
+        response.setMediumCorrect(result.getMediumCorrect());
+        response.setDifficultCorrect(result.getDifficultCorrect());
+        response.setEasyWrong(result.getEasyWrong());
+        response.setMediumWrong(result.getMediumWrong());
+        response.setDifficultWrong(result.getDifficultWrong());
+        response.setGrade(result.getGrade());
         response.setTimeTakenSeconds(timeTaken);
         response.setPassed(result.getPassed());
 
@@ -239,7 +263,9 @@ public class ExamAttemptService {
 
         ExamAttempt attempt = getAttempt(attemptId);
 
-        List<Question> questions = questionRepository.findByExamCodeAndActiveTrue(attempt.getExamCode());
+        Exam exam = examRepository.findByExamCode(attempt.getExamCode())
+                .orElseThrow(() -> new RuntimeException("Exam not found"));
+        List<Question> questions = questionSelectionService.selectQuestionsForExam(exam, attempt.getStudentId(), attempt.getId());
 
         List<StudentAnswer> answers = answerRepository.findByAttemptId(attemptId);
 

@@ -1063,7 +1063,17 @@
       if (!selectedExamCode) {
         throw new Error("Invalid exam code. Please reopen the upload modal from a valid exam.");
       }
-      const imported = (parsed.rows || []).map((row, idx) => ({
+      const imported = (parsed.rows || []).map((row, idx) => {
+        const optionValues = [
+          txt(rowValue(row, ["Option A", "A", "opt_a"]) || ""),
+          txt(rowValue(row, ["Option B", "B", "opt_b"]) || ""),
+          txt(rowValue(row, ["Option C", "C", "opt_c"]) || ""),
+          txt(rowValue(row, ["Option D", "D", "opt_d"]) || ""),
+          txt(rowValue(row, ["Option E", "E", "opt_e"]) || ""),
+          txt(rowValue(row, ["Option F", "F", "opt_f"]) || "")
+        ].filter((value) => value && value.trim() !== "");
+        const shouldShuffleOptions = optionValues.length > 4;
+        return {
         examCode: txt(rowValue(row, ["Exam Code", "ExamCode", "exam_code", "Code"]) || selectedExamCode),
         questionText: txt(rowValue(row, ["Question", "Question Text", "question_text", "Q", "Prompt"]) || `Question ${idx + 1}`),
         questionType: normalizeUploadQuestionType(rowValue(row, ["Question Type", "Type", "question_type"])),
@@ -1079,10 +1089,11 @@
         sampleInput: txt(rowValue(row, ["Sample Input", "Input"]) || ""),
         sampleOutput: txt(rowValue(row, ["Sample Output", "Output"]) || ""),
         correctAnswer: txt(rowValue(row, ["Correct Answer", "Answer", "Correct"]) || ""),
-        shuffleOptions: false,
+        shuffleOptions: shouldShuffleOptions,
         displayOrder: idx + 1,
         shuffleGroup: ""
-      })).filter((q) => q.questionText && q.questionText.trim() !== "");
+      };
+      }).filter((q) => q.questionText && q.questionText.trim() !== "");
       const fileExamCodes = [...new Set(imported.map((q) => txt(q.examCode).trim()).filter(Boolean))];
       if (fileExamCodes.length && (fileExamCodes.length > 1 || fileExamCodes[0] !== selectedExamCode)) {
         throw new Error(`Exam code mismatch. Selected ${selectedExamCode}, but the file contains ${fileExamCodes.join(", ")}.`);

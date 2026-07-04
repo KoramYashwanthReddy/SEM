@@ -169,7 +169,7 @@
   </div>
 
   <div class="btn-row">
-    <button class="btn btn-primary" onclick="window.close()">Close Exam Window</button>
+    <button class="btn btn-primary" id="return-student-btn" type="button">Return to Student Dashboard</button>
   </div>
 </div>
 
@@ -198,11 +198,69 @@
     return '';
   };
 
+  const explicitBase = (window.__API_BASE_URL__ || localStorage.getItem('apiBaseUrl') || '').trim();
+  const origin = window.location.origin || '';
+  const isLocalFrontend = /:\/\/(localhost|127\.0\.0\.1)(:3000|:5173|:5500)?$/i.test(origin);
+  const API_BASE = explicitBase
+    ? explicitBase.replace(/\/+$/, '')
+    : (isLocalFrontend || origin.startsWith('file:') ? 'http://localhost:8080' : origin);
+
+  const apiRequest = async (path, options = {}) => {
+    if (window.API && typeof window.API.request === 'function') {
+      return window.API.request(`/api${path}`, options);
+    }
+    const headers = { Accept: 'application/json', ...(options.headers || {}) };
+    const token = getAuthToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    const res = await fetch(`${API_BASE}/api${path}`, {
+      credentials: 'same-origin',
+      ...options,
+      headers
+    });
+
+    const text = await res.text();
+    if (!res.ok) {
+      let body = text;
+      try { body = JSON.parse(text); } catch (_) {}
+      const message = body && typeof body === 'object'
+        ? (body.message || body.error || body.detail || body.cause)
+        : (typeof body === 'string' ? body : '');
+      throw new Error(message || `Request failed (${res.status})`);
+    }
+
+    if (!text) return null;
+    try {
+      const json = JSON.parse(text);
+      if (json && typeof json === 'object' && json.status === 'SUCCESS' && json.data !== undefined) {
+        return json.data;
+      }
+      return json;
+    } catch (_) {
+      return text;
+    }
+  };
+
   const formatDuration = (seconds = 0) => {
     const total = Math.max(0, Math.floor(Number(seconds) || 0));
     const mins = Math.floor(total / 60);
     const secs = total % 60;
     return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+  };
+
+  const resolvePercentage = (score, percentage, totalMarks = 0) => {
+    const pctValue = Number(percentage);
+    if (Number.isFinite(pctValue) && pctValue > 0) return pctValue;
+    const total = Number(totalMarks);
+    const obtained = Number(score);
+    if (Number.isFinite(total) && total > 0 && Number.isFinite(obtained)) {
+      return (obtained * 100.0) / total;
+    }
+    if (Number.isFinite(obtained) && obtained > 0) return Math.min(100, obtained);
+    return 0;
   };
 
   document.addEventListener('DOMContentLoaded', async () => {
@@ -214,17 +272,17 @@
       return;
     }
 
-    const token = getAuthToken();
-    const headers = { 'Accept': 'application/json' };
-    if (token) headers.Authorization = `Bearer ${token}`;
-
     try {
-      const res = await fetch(`/api/exam/result/${attemptId}`, { headers });
-      if (!res.ok) throw new Error("Failed to load exam results.");
-      const r = await res.json();
-      
+      const r = await apiRequest(`/exam/result/${attemptId}`, { method: 'GET' });
+      if (!r || typeof r !== 'object') throw new Error('Failed to load exam results.');
+
+      // Populate Stats first so pass/fail can use the corrected percentage
+      const score = Number(r.obtainedMarks ?? r.score ?? 0);
+      const totalMarks = Number(r.totalMarks ?? r.totalQuestions ?? 0);
+      const percentage = resolvePercentage(score, r.percentage, totalMarks);
+
       // Update Title & Badge
-      const isPassed = r.passed || String(r.result).toUpperCase() === 'PASS';
+      const isPassed = percentage >= 40 || r.passed || String(r.result).toUpperCase() === 'PASS';
       const statusIcon = document.getElementById('status-icon');
       const resultTitle = document.getElementById('result-title');
       const badgeContainer = document.getElementById('status-badge-container');
@@ -241,9 +299,8 @@
         badgeContainer.innerHTML = `<span class="pass-badge fail">FAIL</span>`;
       }
 
-      // Populate Stats
-      document.getElementById('res-percentage').textContent = `${(Number(r.percentage) || 0).toFixed(1)}%`;
-      document.getElementById('res-score').textContent = `${r.obtainedMarks} / ${r.totalMarks}`;
+      document.getElementById('res-percentage').textContent = `${percentage.toFixed(1)}%`;
+      document.getElementById('res-score').textContent = `${score} / ${totalMarks || score}`;
       document.getElementById('res-time').textContent = formatDuration(r.timeTakenSeconds);
 
       // Populate Panels
@@ -256,9 +313,22 @@
       document.getElementById('diff-medium').textContent = r.mediumCorrect ?? 0;
       document.getElementById('diff-hard').textContent = r.difficultCorrect ?? 0;
 
+      const returnBtn = document.getElementById('return-student-btn');
+      if (returnBtn) {
+        returnBtn.addEventListener('click', () => {
+          window.location.href = '../student-ui.html';
+        });
+      }
+
+      setTimeout(() => {
+        window.location.href = '../student-ui.html';
+      }, 7000);
+
     } catch (err) {
       console.error(err);
-      alert("Unable to fetch result from backend. Close the window and review results on the Student Console.");
+      document.getElementById('result-title').textContent = 'Result Unavailable';
+      document.getElementById('result-msg').textContent = err.message || 'Unable to fetch result from backend. Please return to the Student Console.';
+      document.querySelector('.btn-row').innerHTML = '<button class="btn btn-primary" type="button" onclick="window.location.href=\'../student-ui.html\'">Return to Student Dashboard</button>';
     }
   });
 </script>

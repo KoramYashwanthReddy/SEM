@@ -64,6 +64,9 @@ public class Certificate {
     @Column(name = "pdf_data", columnDefinition = "LONGBLOB")
     private byte[] pdfData;
 
+    @Column(name = "template_version")
+    private Integer templateVersion;
+
     // ================= METADATA =================
 
     private LocalDateTime issuedAt;
@@ -138,6 +141,9 @@ public class Certificate {
 
     public byte[] getPdfData() { return pdfData; }
     public void setPdfData(byte[] pdfData) { this.pdfData = pdfData; }
+
+    public Integer getTemplateVersion() { return templateVersion; }
+    public void setTemplateVersion(Integer templateVersion) { this.templateVersion = templateVersion; }
 
     public LocalDateTime getIssuedAt() { return issuedAt; }
     public void setIssuedAt(LocalDateTime issuedAt) { this.issuedAt = issuedAt; }

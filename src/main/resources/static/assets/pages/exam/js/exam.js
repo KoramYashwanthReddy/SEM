@@ -3,7 +3,12 @@
 // Production exam runtime uses backend questions only.
 
 const AUTH_KEYS = ['token', 'accessToken', 'jwt', 'authToken', 'access_token'];
-const API_BASE = /^https?:/i.test(window.location.origin) ? window.location.origin : 'http://localhost:8080';
+const explicitBase = (window.__API_BASE_URL__ || localStorage.getItem('apiBaseUrl') || '').trim();
+const origin = window.location.origin || '';
+const isLocalFrontend = /:\/\/(localhost|127\.0\.0\.1)(:3000|:5173|:5500)?$/i.test(origin);
+const API_BASE = explicitBase
+  ? explicitBase.replace(/\/+$/, '')
+  : (isLocalFrontend || origin.startsWith('file:') ? 'http://localhost:8080' : origin);
 const normalizeToken = (raw) => {
   if (!raw) return '';
   let value = String(raw).trim();
@@ -26,6 +31,13 @@ const getAuthToken = () => {
   return '';
 };
 const apiRequest = async (path, options = {}) => {
+  if (window.API && typeof window.API.request === 'function') {
+    const data = await window.API.request(`/api${path}`, options);
+    if (data && typeof data === 'object' && data.status === 'SUCCESS' && data.data !== undefined) {
+      return data.data;
+    }
+    return data;
+  }
   const headers = { Accept: 'application/json', ...(options.headers || {}) };
   const token = getAuthToken();
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -45,7 +57,15 @@ const apiRequest = async (path, options = {}) => {
     throw new Error(message || `Request failed (${res.status})`);
   }
   if (!text) return null;
-  try { return JSON.parse(text); } catch (_) { return text; }
+  try {
+    const json = JSON.parse(text);
+    if (json && typeof json === 'object' && json.status === 'SUCCESS' && json.data !== undefined) {
+      return json.data;
+    }
+    return json;
+  } catch (_) {
+    return text;
+  }
 };
 const getQueryParam = (key) => new URLSearchParams(window.location.search).get(key);
 const getExamAttemptId = () => {
@@ -92,6 +112,25 @@ const normalizeDifficulty = (raw) => {
   if (value === 'difficult') return 'Hard';
   return value.charAt(0).toUpperCase() + value.slice(1);
 };
+const seedFrom = (...parts) => {
+  const input = parts.map((part) => String(part ?? '')).join('|');
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) - hash) + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+const seededShuffle = (items, seed) => {
+  const arr = [...items];
+  let current = seed || 1;
+  for (let i = arr.length - 1; i > 0; i--) {
+    current = (current * 1664525 + 1013904223) >>> 0;
+    const j = current % (i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
 const toExamQuestion = (q) => {
   if (!q) return null;
   const optionPool = Array.isArray(q.options)
@@ -116,25 +155,28 @@ const toExamQuestion = (q) => {
     points: `+${marks} / -${negative}`,
     text: q.questionText || q.question || q.text || '',
     options: rawOptions,
+    shuffleOptions: Boolean(q.shuffleOptions),
     sampleInput: q.sampleInput || '',
     sampleOutput: q.sampleOutput || ''
   };
 };
-const loadExamQuestions = async (examCode) => {
+const loadExamQuestions = async (examCode, attemptId) => {
   if (!examCode) throw new Error('Missing exam code');
   const response = await apiRequest(`/student/exam/${encodeURIComponent(examCode)}/questions`, { method: 'GET' });
-  if (!Array.isArray(response)) throw new Error('Unexpected backend response');
-  const questions = response.map(toExamQuestion).filter(Boolean);
+  const questionRows = Array.isArray(response)
+    ? response
+    : Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response?.questions)
+        ? response.questions
+        : null;
+  if (!Array.isArray(questionRows)) throw new Error('Unexpected backend response');
+  const questions = questionRows.map(toExamQuestion).filter(Boolean);
   if (questions.length === 0) throw new Error('No questions were returned from the exam backend');
-  questions.sort((a, b) => {
-    const aOrder = Number.isFinite(Number(a.displayOrder)) ? Number(a.displayOrder) : Number.MAX_SAFE_INTEGER;
-    const bOrder = Number.isFinite(Number(b.displayOrder)) ? Number(b.displayOrder) : Number.MAX_SAFE_INTEGER;
-    if (aOrder !== bOrder) return aOrder - bOrder;
-    const order = ['Easy', 'Medium', 'Hard'];
-    const ai = order.indexOf(a.difficulty);
-    const bi = order.indexOf(b.difficulty);
-    if (ai !== bi) return ai - bi;
-    return Number(a.id) - Number(b.id);
+  questions.forEach((question) => {
+    if (question.shuffleOptions && Array.isArray(question.options) && question.options.length > 1) {
+      question.options = seededShuffle(question.options, seedFrom(examCode, attemptId, question.id, 'options'));
+    }
   });
   return questions;
 };
@@ -177,7 +219,7 @@ const initializeExamPage = async () => {
   if (overlay) overlay.classList.add('active');
 
   try {
-    const questions = await loadExamQuestions(examCode);
+    const questions = await loadExamQuestions(examCode, attemptId);
     const controller = new ExamController(questions, attemptId);
     await controller.initializeAttemptState();
   } catch (error) {
@@ -207,6 +249,7 @@ class ExamController {
     this.currentQIndex = 0;
     this.attemptId = attemptId;
     this.heartbeatInterval = null;
+    this.pendingSaveRequests = new Map();
     
     // State storage: { questionId: { answer: string|array, status: string } }
     this.answers = {};
@@ -520,31 +563,75 @@ class ExamController {
     const state = this.answers[questionId];
     if (!state) return;
 
+    if (this.pendingSaveRequests.has(questionId)) {
+      return this.pendingSaveRequests.get(questionId);
+    }
+
     const payload = {
       attemptId: this.attemptId,
       questionId,
       answer: this.serializeAnswer(state.answer),
       markForReview: Boolean(state.marked),
+      reviewMarked: Boolean(state.marked),
       visited: state.status !== 'not-visited',
       autoSaved: true,
       clientTimestamp: Date.now(),
-      questionNumber: questionId
+      questionNumber: this.questions.findIndex((q) => q.id === questionId) + 1
     };
 
-    try {
-      await apiRequest('/exam/submit-answer', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-      this.logAction('ACTION_ANSWER_SAVED', `Saved answer for question ${questionId}`, {
-        questionId,
-        markedForReview: Boolean(state.marked),
-        status: state.status
-      }, `answer-save-${questionId}`);
-    } catch (error) {
-      console.warn('Unable to persist answer to server:', error);
-      showToast('Unable to save this answer to server. Your work is still visible locally.', 'warning');
-    }
+    const savePromise = (async () => {
+      const requests = [
+        { path: '/exam/submit-answer', body: payload },
+        {
+          path: '/student/exam/save-answer',
+          body: {
+            attemptId: payload.attemptId,
+            questionId: payload.questionId,
+            answer: payload.answer,
+            reviewMarked: payload.reviewMarked,
+            visited: payload.visited,
+            timeSpentSeconds: payload.timeSpentSeconds,
+            autoSaved: payload.autoSaved,
+            answerChanged: payload.answerChanged,
+            tabSwitchCount: payload.tabSwitchCount,
+            fullscreenExitCount: payload.fullscreenExitCount,
+            codingLanguage: payload.codingLanguage,
+            codeAnswer: payload.codeAnswer,
+            savedAt: payload.clientTimestamp,
+            questionNumber: payload.questionNumber
+          }
+        }
+      ];
+      try {
+        let lastError = null;
+        for (const request of requests) {
+          try {
+            await apiRequest(request.path, {
+              method: 'POST',
+              body: JSON.stringify(request.body)
+            });
+            lastError = null;
+            break;
+          } catch (error) {
+            lastError = error;
+          }
+        }
+        if (lastError) throw lastError;
+        this.logAction('ACTION_ANSWER_SAVED', `Saved answer for question ${questionId}`, {
+          questionId,
+          markedForReview: Boolean(state.marked),
+          status: state.status
+        }, `answer-save-${questionId}`);
+      } catch (error) {
+        console.warn('Unable to persist answer to server:', error);
+        showToast(error?.message ? `Unable to save answer: ${error.message}` : 'Unable to save this answer to server. Your work is still visible locally.', 'warning');
+      } finally {
+        this.pendingSaveRequests.delete(questionId);
+      }
+    })();
+
+    this.pendingSaveRequests.set(questionId, savePromise);
+    return savePromise;
   }
 
   async saveCurrentAnswer() {
@@ -901,7 +988,20 @@ class ExamController {
         if (!isAuto) {
           await this.saveCurrentAnswer();
         }
-        await apiRequest(`/exam/submit/${this.attemptId}`, { method: 'POST' });
+        let submitError = null;
+        for (const path of [
+          `/exam/submit/${this.attemptId}`,
+          `/student/exam/submit/${this.attemptId}`
+        ]) {
+          try {
+            await apiRequest(path, { method: 'POST' });
+            submitError = null;
+            break;
+          } catch (error) {
+            submitError = error;
+          }
+        }
+        if (submitError) throw submitError;
         this.logAction(isAuto ? 'EXAM_AUTO_SUBMITTED' : 'EXAM_SUBMITTED', isAuto ? 'Exam auto submitted due to timer/proctoring rule' : 'Exam submitted by student', {
           autoSubmitted: Boolean(isAuto)
         }, 'exam-submit');

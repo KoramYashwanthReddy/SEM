@@ -122,11 +122,12 @@ public class ExamAttempt {
     // ================= BUSINESS METHODS =================
 
     public boolean isActive() {
-        return Boolean.TRUE.equals(active)
-                && status == AttemptStatus.STARTED
-                && !Boolean.TRUE.equals(cancelled)
-                && expiryTime != null
-                && expiryTime.isAfter(LocalDateTime.now());
+        if (!Boolean.TRUE.equals(active)
+                || status != AttemptStatus.STARTED
+                || Boolean.TRUE.equals(cancelled)) {
+            return false;
+        }
+        return expiryTime == null || expiryTime.isAfter(LocalDateTime.now());
     }
 
     public void markCancelled(String reason) {

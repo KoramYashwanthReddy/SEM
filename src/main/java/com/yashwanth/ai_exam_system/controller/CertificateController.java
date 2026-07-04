@@ -17,6 +17,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -150,11 +151,19 @@ public class CertificateController {
             throw new RuntimeException("Certificate revoked");
         }
 
+        String baseUrl = ServletUriComponentsBuilder
+                .fromCurrentRequestUri()
+                .replacePath(null)
+                .build()
+                .toUriString();
+
+        byte[] pdf = certificateService.refreshCertificatePdf(cert, baseUrl);
+
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=" + certificateId + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF)
-                .body(cert.getPdfData());
+                .body(pdf);
     }
 
     // ================= ADMIN REVOKE =================

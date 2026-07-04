@@ -48,6 +48,7 @@ public class ExamService {
     private final NotificationService notificationService;
     private final EmailNotificationOrchestrator emailNotificationOrchestrator;
     private final ExamEvaluationService evaluationService;
+    private final CertificateService certificateService;
 
     public ExamService(
             ExamRepository examRepository,
@@ -57,7 +58,8 @@ public class ExamService {
             CheatingDetectionService cheatingDetectionService,
             NotificationService notificationService,
             EmailNotificationOrchestrator emailNotificationOrchestrator,
-            ExamEvaluationService evaluationService) {
+            ExamEvaluationService evaluationService,
+            CertificateService certificateService) {
 
         this.examRepository = examRepository;
         this.attemptRepository = attemptRepository;
@@ -67,6 +69,7 @@ public class ExamService {
         this.notificationService = notificationService;
         this.emailNotificationOrchestrator = emailNotificationOrchestrator;
         this.evaluationService = evaluationService;
+        this.certificateService = certificateService;
     }
 
     // ================= CREATE =================
@@ -306,10 +309,30 @@ public class ExamService {
 
         // ── Evaluate immediately so results are visible straight away ────
         try {
-            evaluationService.evaluateExam(
+            var result = evaluationService.evaluateExam(
                     attemptId,
                     attempt.getStudentId(),
                     attempt.getExamCode());
+            if (result.getPassed() != null && result.getPassed()) {
+                Exam exam = examRepository.findByExamCode(attempt.getExamCode()).orElse(null);
+                if (exam != null) {
+                    double certificateScore = result.getPercentage();
+                    if (certificateScore <= 0) {
+                        certificateScore = result.getScore();
+                    }
+                    try {
+                        certificateService.generateCertificate(
+                                attempt.getStudentId(),
+                                attempt.getExamCode(),
+                                exam.getTitle(),
+                                certificateScore,
+                                "");
+                    } catch (Exception certError) {
+                        logger.warn("Certificate generation failed for attemptId={} studentId={}: {}",
+                                attemptId, attempt.getStudentId(), certError.getMessage());
+                    }
+                }
+            }
             attempt.setStatus(AttemptStatus.EVALUATED);
             attemptRepository.save(attempt);
             logger.info("Exam evaluated | attemptId={} studentId={}",
