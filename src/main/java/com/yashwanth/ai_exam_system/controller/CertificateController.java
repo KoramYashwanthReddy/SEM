@@ -96,7 +96,14 @@ public class CertificateController {
                     .body("Certificate has been revoked");
         }
 
-        return ResponseEntity.ok(cert);
+        String baseUrl = ServletUriComponentsBuilder
+                .fromCurrentRequestUri()
+                .replacePath(null)
+                .build()
+                .toUriString();
+
+        Certificate synced = certificateService.refreshCertificateMetadata(cert, baseUrl);
+        return ResponseEntity.ok(synced);
     }
 
     // ================= STUDENT CERTIFICATES =================

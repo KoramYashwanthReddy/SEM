@@ -30,15 +30,15 @@
         return;
       }
       const better =
-        current.score > existing.score ||
-        (current.score === existing.score && current.percentage > existing.percentage) ||
-        (current.score === existing.score && current.percentage === existing.percentage && current.rank > 0 && (existing.rank <= 0 || current.rank < existing.rank));
+        current.percentage > existing.percentage ||
+        (current.percentage === existing.percentage && current.score > existing.score) ||
+        (current.percentage === existing.percentage && current.score === existing.score && current.rank > 0 && (existing.rank <= 0 || current.rank < existing.rank));
       if (better) {
         bestByStudent.set(studentId, current);
       }
     });
     return Array.from(bestByStudent.values())
-      .sort((a, b) => a.rank - b.rank || b.score - a.score || b.percentage - a.percentage || a.studentName.localeCompare(b.studentName))
+      .sort((a, b) => a.rank - b.rank || b.percentage - a.percentage || b.score - a.score || a.studentName.localeCompare(b.studentName))
       .map((row, index) => ({
         ...row,
         rank: index + 1,
@@ -314,7 +314,43 @@
         st.examAttemptIds[exam.examCode] = exam.resumeAttemptId;
       }
     });
-    st.data.results = Array.isArray(payload.attempts) ? payload.attempts.map((attempt) => {
+    st.data.results = Array.isArray(payload.results) ? payload.results.map((result) => {
+      const linkedExam = st.data.exams.find((exam) => exam.examCode === result.examCode);
+      const totalQuestions = toNumber(
+        result.totalQuestions,
+        toNumber(linkedExam?.totalQuestions, toNumber(linkedExam?.easyQuestionCount) + toNumber(linkedExam?.mediumQuestionCount) + toNumber(linkedExam?.difficultQuestionCount))
+      );
+      const correctAnswers = toNumber(result.correctAnswers);
+      const wrongAnswers = toNumber(result.wrongAnswers);
+      const unansweredQuestions = toNumber(result.unansweredQuestions, Math.max(totalQuestions - correctAnswers - wrongAnswers, 0));
+      const score = toNumber(result.score, toNumber(result.obtainedMarks));
+      const percentage = resolvePercentage(score, result.percentage, toNumber(linkedExam?.totalMarks || totalQuestions));
+      return {
+        id: result.id,
+        attemptId: result.attemptId,
+        examCode: result.examCode,
+        score,
+        percentage,
+        resultStatus: result.resultStatus || (percentage >= 40 ? 'Pass' : 'Fail'),
+        passed: Boolean(result.passed) || percentage >= 40,
+        correctAnswers,
+        wrongAnswers,
+        unansweredQuestions,
+        timeTakenSeconds: toNumber(result.timeTakenSeconds),
+        grade: result.grade || (percentage >= 90 ? 'O' : percentage >= 80 ? 'A+' : percentage >= 70 ? 'A' : percentage >= 60 ? 'B+' : percentage >= 50 ? 'B' : 'F'),
+        submittedAt: result.submittedAt || result.updatedAt || result.createdAt || null,
+        evaluatedAt: result.evaluatedAt || null,
+        totalQuestions,
+        easyCorrect: toNumber(result.easyCorrect),
+        mediumCorrect: toNumber(result.mediumCorrect),
+        difficultCorrect: toNumber(result.difficultCorrect ?? result.hardCorrect),
+        hardCorrect: toNumber(result.hardCorrect ?? result.difficultCorrect),
+        easyWrong: toNumber(result.easyWrong),
+        mediumWrong: toNumber(result.mediumWrong),
+        difficultWrong: toNumber(result.difficultWrong ?? result.hardWrong),
+        hardWrong: toNumber(result.hardWrong ?? result.difficultWrong)
+      };
+    }) : (Array.isArray(payload.attempts) ? payload.attempts.map((attempt) => {
       const linkedExam = st.data.exams.find((exam) => exam.examCode === attempt.examCode);
       const totalQuestions = toNumber(
         attempt.totalQuestions,
@@ -325,27 +361,29 @@
       const unansweredQuestions = toNumber(attempt.unansweredQuestions, Math.max(totalQuestions - correctAnswers - wrongAnswers, 0));
       const score = toNumber(attempt.obtainedMarks, toNumber(attempt.score));
       const percentage = resolvePercentage(score, attempt.percentage, toNumber(attempt.totalMarks, linkedExam?.totalMarks || 0));
-        return {
-          examCode: attempt.examCode,
-          score,
-          percentage,
-          resultStatus: percentage >= 40 ? 'Pass' : 'Fail',
-          passed: percentage >= 40,
-          correctAnswers,
-          wrongAnswers,
-          unansweredQuestions,
-          timeTakenSeconds: toNumber(attempt.timeTakenSeconds),
-          grade: attempt.grade || (percentage >= 90 ? 'O' : percentage >= 80 ? 'A+' : percentage >= 70 ? 'A' : percentage >= 60 ? 'B+' : percentage >= 50 ? 'B' : 'F'),
-          submittedAt: attempt.endTime || attempt.updatedAt || attempt.createdAt || null,
-          totalQuestions,
-          easyCorrect: toNumber(attempt.easyCorrect),
-          mediumCorrect: toNumber(attempt.mediumCorrect),
-          difficultCorrect: toNumber(attempt.difficultCorrect ?? attempt.hardCorrect),
-          easyWrong: toNumber(attempt.easyWrong),
-          mediumWrong: toNumber(attempt.mediumWrong),
-          difficultWrong: toNumber(attempt.difficultWrong ?? attempt.hardWrong)
-        };
-      }) : st.data.results;
+      return {
+        examCode: attempt.examCode,
+        score,
+        percentage,
+        resultStatus: percentage >= 40 ? 'Pass' : 'Fail',
+        passed: percentage >= 40,
+        correctAnswers,
+        wrongAnswers,
+        unansweredQuestions,
+        timeTakenSeconds: toNumber(attempt.timeTakenSeconds),
+        grade: attempt.grade || (percentage >= 90 ? 'O' : percentage >= 80 ? 'A+' : percentage >= 70 ? 'A' : percentage >= 60 ? 'B+' : percentage >= 50 ? 'B' : 'F'),
+        submittedAt: attempt.endTime || attempt.updatedAt || attempt.createdAt || null,
+        totalQuestions,
+        easyCorrect: toNumber(attempt.easyCorrect),
+        mediumCorrect: toNumber(attempt.mediumCorrect),
+        difficultCorrect: toNumber(attempt.difficultCorrect ?? attempt.hardCorrect),
+        hardCorrect: toNumber(attempt.hardCorrect ?? attempt.difficultCorrect),
+        easyWrong: toNumber(attempt.easyWrong),
+        mediumWrong: toNumber(attempt.mediumWrong),
+        difficultWrong: toNumber(attempt.difficultWrong ?? attempt.hardWrong),
+        hardWrong: toNumber(attempt.hardWrong ?? attempt.difficultWrong)
+      };
+    }) : st.data.results);
     st.data.certs = Array.isArray(payload.certificates) ? payload.certificates.map((cert) => ({
       ...cert,
       revoked: Boolean(cert.revoked),
@@ -448,16 +486,35 @@
   const getExamEndDate = (exam) => new Date(getExamDate(exam).getTime() + (Number(exam?.durationMinutes || 0) * 60000));
   const formatExamTime = (exam) => getExamDate(exam).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const formatExamDateTime = (exam) => getExamDate(exam).toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-  const getExamResult = (examCode) => (st.data.results || []).find((row) => row.examCode === examCode) || null;
+  const bestResultForExam = (examCode) => {
+    const code = String(examCode || '').trim();
+    if (!code) return null;
+    const rows = (st.data.results || []).filter((row) => String(row?.examCode || '').trim() === code);
+    if (!rows.length) return null;
+    return rows.slice().sort((a, b) => {
+      const scoreDiff = Number(b.score || 0) - Number(a.score || 0);
+      if (scoreDiff !== 0) return scoreDiff;
+      const pctDiff = Number(b.percentage || 0) - Number(a.percentage || 0);
+      if (pctDiff !== 0) return pctDiff;
+      const aTime = new Date(a.submittedAt || a.evaluatedAt || a.updatedAt || a.createdAt || 0).getTime();
+      const bTime = new Date(b.submittedAt || b.evaluatedAt || b.updatedAt || b.createdAt || 0).getTime();
+      return bTime - aTime;
+    })[0] || null;
+  };
   function examRuntimeState(exam) {
     const startAt = getExamDate(exam);
     const endAt = getExamEndDate(exam);
     const now = Date.now();
     const registered = !!st.examRegistration[exam.examCode];
-    const sessionStarted = !!st.examSessions[exam.examCode] || !!exam.resumeAttemptId || String(exam?.status || '').toLowerCase() === 'resume';
-    const result = getExamResult(exam.examCode);
-    const failed = !!(result && !result.passed);
+    const result = bestResultForExam(exam.examCode);
     const attemptsRemaining = calculateAttemptsRemaining(exam);
+    const resumeEligible = !!result && attemptsRemaining > 0;
+    const sessionStarted = !!exam.resumeAttemptId
+      || (!!st.examSessions[exam.examCode] && !result)
+      || resumeEligible
+      || (!result && String(exam?.status || '').toLowerCase() === 'resume');
+    const failed = !!(result && !result.passed);
+    const completed = attemptsRemaining <= 0;
     const reexamEligible = failed && attemptsRemaining > 0;
 
     // Use backend-provided registration phase times
@@ -489,6 +546,8 @@
       sessionStarted,
       result,
       failed,
+      completed,
+      resumeEligible,
       reexamEligible,
       attemptsRemaining,
       registrationOpen,
@@ -519,7 +578,10 @@
     const state = examRuntimeState(exam);
     if (view === 'my') {
       if (!state.registered) return null;
-      if (state.sessionStarted) {
+      if (state.completed) {
+        return { label: 'Completed', action: 'exam-detail', tone: 'ghost', hint: 'Attempt limit reached or result finalized.', disabled: true };
+      }
+      if (state.resumeEligible || state.sessionStarted) {
         return { label: 'Resume Exam', action: 'exam-enter', tone: 'primary', hint: 'Saved session ready to continue.', disabled: false };
       }
       if (state.reexamEligible) {
@@ -609,7 +671,8 @@
   function myExamGroup(exam) {
     const state = examRuntimeState(exam);
     if (!state.registered) return null;
-    if (state.sessionStarted) return 'resume';
+    if (state.completed) return 'completed';
+    if (state.sessionStarted || state.resumeEligible) return 'resume';
     if (state.reexamEligible) return 'reexam';
     if (state.expired) return null;
     return 'registered';
@@ -617,7 +680,8 @@
   function examVisibleLabel(exam, view = 'catalog') {
     const state = examRuntimeState(exam);
     if (view === 'my') {
-      if (state.sessionStarted) return 'SESSION SAVED';
+      if (state.sessionStarted || state.resumeEligible) return 'SESSION SAVED';
+      if (state.completed) return 'COMPLETED';
       if (state.failed) return 'RE-EXAM';
       if (state.live) return 'LIVE';
       if (state.preStartLock) return 'VERIFICATION SOON';
@@ -631,7 +695,8 @@
   function examGroupTone(exam, view = 'catalog') {
     const state = examRuntimeState(exam);
     if (view === 'my') {
-      if (state.sessionStarted) return 'warning';
+      if (state.sessionStarted || state.resumeEligible) return 'warning';
+      if (state.completed) return 'neutral';
       if (state.failed) return 'danger';
       if (state.live) return 'success';
       if (state.preStartLock) return 'neutral';
@@ -844,7 +909,10 @@
     const now = Date.now();
     const registered = !!st.examRegistration[exam.examCode];
     const sessionStarted = !!st.examSessions[exam.examCode];
-    const started = sessionStarted || now >= startAt.getTime();
+    const result = bestResultForExam(exam.examCode);
+    const attemptsRemaining = calculateAttemptsRemaining(exam);
+    const completed = attemptsRemaining <= 0 || !!(result && result.passed);
+    const started = (sessionStarted && !completed) || (!completed && now >= startAt.getTime());
     const minutesUntil = Math.ceil((startAt.getTime() - now) / 60000);
     const registrationCloseAt = startAt.getTime();
     const verificationOpenAt = startAt.getTime() - (30 * 60000);
@@ -887,6 +955,19 @@
         label: 'Enter Exam',
         action: 'exam-enter',
         hint: sessionStarted ? 'Verified session ready to continue.' : 'Exam window is live.'
+      };
+    }
+
+    if (completed) {
+      return {
+        registered,
+        started: false,
+        minutesUntil,
+        tone: 'ghost',
+        disabled: true,
+        label: 'Completed',
+        action: 'exam-detail',
+        hint: result ? 'Result finalized for this exam.' : 'Attempt limit reached.'
       };
     }
 
@@ -1005,7 +1086,7 @@
     if (btn?.dataset.loadingText) return btn.dataset.loadingText;
     return busyCopy[type] || 'Please wait...';
   }
-  function bind() { Object.assign(el, { sidebar:$('sidebar'), toggle:$('toggle-sidebar'), logout:$('logoutBtn'), sideNav:$('sideNav'), sidebarAvatar:$('sidebarAvatar'), sidebarName:$('sidebarName'), sidebarRole:$('sidebarRole'), topAvatar:$('topAvatar'), topName:$('topName'), topSearch:$('top-nav-search'), notifBtn:$('notifBtn'), notifCount:$('notifCount'), notifNavCount:$('notifNavCount'), notifyDrop:$('notifyDrop'), notifyDropCount:$('notifyDropCount'), notifyList:$('notifyList'), notificationTypeFilter:$('notificationTypeFilter'), markAllReadBtn:$('markAllReadBtn'), clearNotificationsBtn:$('clearNotificationsBtn'), unreadNotificationCount:$('unreadNotificationCount'), notificationStream:$('notificationStream'), scheduleDateFilter:$('scheduleDateFilter'), scheduleList:$('scheduleList'), scheduleTimeline:$('scheduleTimeline'), scheduleTodayLabel:$('scheduleTodayLabel'), proctoringStatusGrid:$('proctoringStatusGrid'), proctoringSummaryPanel:$('proctoringSummaryPanel'), faqAccordion:$('faqAccordion'), contactSupportForm:$('contactSupportForm'), reportIssueForm:$('reportIssueForm'), supportTabs:$$('[data-support-tab]'), supportPanels:$$('[data-support-panel]'), profileDd:$('profileDd'), profileMenuBtn:$('profileMenuBtn'), profileMenu:$('profileMenu'), profileLogout:$('profileLogout'), themeToggle:$('themeToggle'), themeButtons:$$('[data-theme-mode]', $('themeToggle')), dashStatsGrid:$('dashStatsGrid'), recentAttemptsBody:$('recentAttemptsBody'), performanceTrendChart:$('performanceTrendChart'), chartPlaceholder:$('chartPlaceholder'), refreshDashboard:$('refreshDashboard'), dashboardActionBtn:$('dashboardActionBtn'), attemptsResetBtn:$('attemptsResetBtn'), examSearch:$('examSearch'), examFilter:$('examFilter'), refreshExamsBtn:$('refreshExamsBtn'), examTabs:$$('[data-tab]'), summaryPill:$('summaryPill'), examStatusLegend:$('examStatusLegend'), unregisteredGrid:$('unregisteredGrid'), upcomingGrid:$('upcomingGrid'), closedGrid:$('closedGrid'), unregisteredCount:$('unregisteredCount'), upcomingCount:$('upcomingCount'), closedCount:$('closedCount'), myExamSearch:$('myExamSearch'), myExamFilter:$('myExamFilter'), myExamTabs:$$('[data-my-tab]'), myExamSummaryPill:$('myExamSummaryPill'), registeredGrid:$('registeredGrid'), resumeMyGrid:$('resumeMyGrid'), reexamGrid:$('reexamGrid'), registeredCount:$('registeredCount'), resumeMyCount:$('resumeMyCount'), reexamCount:$('reexamCount'), resultsSummaryGrid:$('resultsSummaryGrid'), resultsFilter:$('resultsFilter'), resultsFilterBtn:$('resultsFilterBtn'), resultsSearch:$('resultsSearch'), resultsResetBtn:$('resultsResetBtn'), resultsBody:$('resultsBody'), certificatesSummaryGrid:$('certificatesSummaryGrid'), certificatesFilter:$('certificatesFilter'), certificatesSearch:$('certificatesSearch'), certificatesResetBtn:$('certificatesResetBtn'), certificatesGrid:$('certificatesGrid'), leaderboardModeToggle:$('leaderboardModeToggle'), leaderboardModeButtons:$$('[data-leaderboard-mode]', $('leaderboardModeToggle')), leaderboardSearch:$('leaderboardSearch'), leaderboardSort:$('leaderboardSort'), leaderboardRefresh:$('leaderboardRefresh'), leaderboardSummaryGrid:$('leaderboardSummaryGrid'), yourRankCard:$('yourRankCard'), podiumGrid:$('podiumGrid'), leaderboardBody:$('leaderboardBody'), analyticsCards:$('analyticsCards'), analyticsLineChart:$('analyticsLineChart'), analyticsBarChart:$('analyticsBarChart'), analyticsDonutChart:$('analyticsDonutChart'), editProfileBtn:$('editProfileBtn'), saveProfileBtn:$('saveProfileBtn'), profileForm:$('profileForm'), detailModal:$('detailModal'), detailModalKicker:$('detailModalKicker'), detailModalTitle:$('detailModalTitle'), detailModalBody:$('detailModalBody'), detailModalFoot:$('detailModalFoot'), detailModalClose:$('detailModalClose'), examVerificationModal:$('examVerificationModal'), examVerificationClose:$('examVerificationClose'), examVerificationTitle:$('examVerificationTitle'), examVerificationSubtitle:$('examVerificationSubtitle'), examVerificationBody:$('examVerificationBody'), examVerificationFoot:$('examVerificationFoot'), examStepper:$('examStepper'), examSecurityIndicators:$('examSecurityIndicators'), toastStack:$('toastStack'), liveClock:$('liveClock') }); }
+  function bind() { Object.assign(el, { sidebar:$('sidebar'), toggle:$('toggle-sidebar'), logout:$('logoutBtn'), sideNav:$('sideNav'), sidebarAvatar:$('sidebarAvatar'), sidebarName:$('sidebarName'), sidebarRole:$('sidebarRole'), topAvatar:$('topAvatar'), topName:$('topName'), topSearch:$('top-nav-search'), notifBtn:$('notifBtn'), notifCount:$('notifCount'), notifNavCount:$('notifNavCount'), notifyDrop:$('notifyDrop'), notifyDropCount:$('notifyDropCount'), notifyList:$('notifyList'), notificationTypeFilter:$('notificationTypeFilter'), markAllReadBtn:$('markAllReadBtn'), clearNotificationsBtn:$('clearNotificationsBtn'), unreadNotificationCount:$('unreadNotificationCount'), notificationStream:$('notificationStream'), scheduleDateFilter:$('scheduleDateFilter'), scheduleList:$('scheduleList'), scheduleTimeline:$('scheduleTimeline'), scheduleTodayLabel:$('scheduleTodayLabel'), proctoringStatusGrid:$('proctoringStatusGrid'), proctoringSummaryPanel:$('proctoringSummaryPanel'), faqAccordion:$('faqAccordion'), contactSupportForm:$('contactSupportForm'), reportIssueForm:$('reportIssueForm'), supportTabs:$$('[data-support-tab]'), supportPanels:$$('[data-support-panel]'), profileDd:$('profileDd'), profileMenuBtn:$('profileMenuBtn'), profileMenu:$('profileMenu'), profileLogout:$('profileLogout'), themeToggle:$('themeToggle'), themeButtons:$$('[data-theme-mode]', $('themeToggle')), dashStatsGrid:$('dashStatsGrid'), recentAttemptsBody:$('recentAttemptsBody'), performanceTrendChart:$('performanceTrendChart'), chartPlaceholder:$('chartPlaceholder'), refreshDashboard:$('refreshDashboard'), dashboardActionBtn:$('dashboardActionBtn'), attemptsResetBtn:$('attemptsResetBtn'), examSearch:$('examSearch'), examFilter:$('examFilter'), refreshExamsBtn:$('refreshExamsBtn'), examTabs:$$('[data-tab]'), summaryPill:$('summaryPill'), examStatusLegend:$('examStatusLegend'), unregisteredGrid:$('unregisteredGrid'), upcomingGrid:$('upcomingGrid'), closedGrid:$('closedGrid'), unregisteredCount:$('unregisteredCount'), upcomingCount:$('upcomingCount'), closedCount:$('closedCount'), myExamSearch:$('myExamSearch'), myExamFilter:$('myExamFilter'), myExamTabs:$$('[data-my-tab]'), myExamSummaryPill:$('myExamSummaryPill'), registeredGrid:$('registeredGrid'), resumeMyGrid:$('resumeMyGrid'), completedGrid:$('completedGrid'), reexamGrid:$('reexamGrid'), registeredCount:$('registeredCount'), resumeMyCount:$('resumeMyCount'), completedMyCount:$('completedMyCount'), reexamCount:$('reexamCount'), resultsSummaryGrid:$('resultsSummaryGrid'), resultsFilter:$('resultsFilter'), resultsFilterBtn:$('resultsFilterBtn'), resultsSearch:$('resultsSearch'), resultsResetBtn:$('resultsResetBtn'), resultsBody:$('resultsBody'), certificatesSummaryGrid:$('certificatesSummaryGrid'), certificatesFilter:$('certificatesFilter'), certificatesSearch:$('certificatesSearch'), certificatesResetBtn:$('certificatesResetBtn'), certificatesGrid:$('certificatesGrid'), leaderboardModeToggle:$('leaderboardModeToggle'), leaderboardModeButtons:$$('[data-leaderboard-mode]', $('leaderboardModeToggle')), leaderboardSearch:$('leaderboardSearch'), leaderboardSort:$('leaderboardSort'), leaderboardRefresh:$('leaderboardRefresh'), leaderboardSummaryGrid:$('leaderboardSummaryGrid'), yourRankCard:$('yourRankCard'), podiumGrid:$('podiumGrid'), leaderboardBody:$('leaderboardBody'), analyticsCards:$('analyticsCards'), analyticsLineChart:$('analyticsLineChart'), analyticsBarChart:$('analyticsBarChart'), analyticsDonutChart:$('analyticsDonutChart'), editProfileBtn:$('editProfileBtn'), saveProfileBtn:$('saveProfileBtn'), profileForm:$('profileForm'), detailModal:$('detailModal'), detailModalKicker:$('detailModalKicker'), detailModalTitle:$('detailModalTitle'), detailModalBody:$('detailModalBody'), detailModalFoot:$('detailModalFoot'), detailModalClose:$('detailModalClose'), examVerificationModal:$('examVerificationModal'), examVerificationClose:$('examVerificationClose'), examVerificationTitle:$('examVerificationTitle'), examVerificationSubtitle:$('examVerificationSubtitle'), examVerificationBody:$('examVerificationBody'), examVerificationFoot:$('examVerificationFoot'), examStepper:$('examStepper'), examSecurityIndicators:$('examSecurityIndicators'), toastStack:$('toastStack'), liveClock:$('liveClock') }); }
   function hydrateIcons(root = document) {
     $$('[data-icon]', root).forEach((node) => {
       const name = node.dataset.icon;
@@ -1730,8 +1811,8 @@
     const percentages = rows.map((row) => Number(row.percentage || 0));
     const scores = rows.map((row) => Number(row.score || 0));
     const averageScore = attemptedExams ? percentages.reduce((sum, value) => sum + value, 0) / attemptedExams : 0;
-    const highestScore = scores.length ? Math.max(...scores) : 0;
-    const lowestScore = scores.length ? Math.min(...scores) : 0;
+    const highestScore = percentages.length ? Math.max(...percentages) : 0;
+    const lowestScore = percentages.length ? Math.min(...percentages) : 0;
     const passRate = attemptedExams ? (rows.filter((row) => Boolean(row.passed) || Number(row.percentage || 0) >= 40).length * 100.0) / attemptedExams : 0;
     const trend = percentages.length ? percentages.slice(-8) : [0, 0, 0, 0];
     const scoreMix = rows.reduce((acc, row) => {
@@ -1908,17 +1989,20 @@
     const groups = {
       registered: visible.filter((exam) => myExamGroup(exam) === 'registered'),
       resume: visible.filter((exam) => myExamGroup(exam) === 'resume'),
+      completed: visible.filter((exam) => myExamGroup(exam) === 'completed'),
       reexam: visible.filter((exam) => myExamGroup(exam) === 'reexam')
     };
 
     el.registeredGrid.innerHTML = groups.registered.length ? groups.registered.slice().sort(sortExamStartAsc).map((exam) => examCardHtml(exam, 'my')).join('') : examEmptyState('No registered exams', 'Register for an exam to see it here.');
     el.resumeMyGrid.innerHTML = groups.resume.length ? groups.resume.slice().sort(sortExamStartAsc).map((exam) => examCardHtml(exam, 'my')).join('') : examEmptyState('No resume sessions', 'Saved attempts will appear here when a session is in progress.');
+    el.completedGrid.innerHTML = groups.completed.length ? groups.completed.slice().sort(sortExamEndDesc).map((exam) => examCardHtml(exam, 'my')).join('') : examEmptyState('No completed exams', 'Finished exams will appear here once the attempt limit is reached or the result is finalized.');
     el.reexamGrid.innerHTML = groups.reexam.length ? groups.reexam.slice().sort(sortExamEndDesc).map((exam) => examCardHtml(exam, 'my')).join('') : examEmptyState('No re-exam opportunities', 'Failed attempts eligible for retry will appear here.');
 
     const visibleCount = visible.length;
     el.myExamSummaryPill.textContent = `${visibleCount} visible ${visibleCount === 1 ? 'exam' : 'exams'}`;
     el.registeredCount.textContent = groups.registered.length;
     el.resumeMyCount.textContent = groups.resume.length;
+    el.completedMyCount.textContent = groups.completed.length;
     el.reexamCount.textContent = groups.reexam.length;
 
     $$('.exam-group[data-my-group]', document).forEach((group) => {
@@ -1930,7 +2014,7 @@
     const rows = st.data.results || [];
     const total = rows.length;
     const avg = total ? rows.reduce((sum, row) => sum + Number(row.percentage || 0), 0) / total : 0;
-    const high = total ? Math.max(...rows.map((row) => Number(row.score || 0))) : 0;
+    const high = total ? Math.max(...rows.map((row) => Number(row.percentage || 0))) : 0;
     const pass = total ? (rows.filter((row) => row.passed).length / total) * 100 : 0;
     const trendLine = (points) => {
       const width = 120;
@@ -1947,7 +2031,7 @@
     const cards = [
       ['Total Exams', total, 'dashboard', 'blue', 'Submitted result entries', [4, 5, 4, 6, 5, 7, 6, 8]],
       ['Average Percentage', pct(avg), 'analytics', 'purple', 'Across all completed attempts', [3, 3, 4, 4, 5, 4, 6, 7]],
-      ['Highest Score', `${high}`, 'star', 'green', 'Top score achieved', [2, 3, 3, 4, 4, 6, 7, 6]],
+      ['Highest Score', pct(high), 'star', 'green', 'Top score achieved', [2, 3, 3, 4, 4, 6, 7, 6]],
       ['Pass Rate', pct(pass), 'results', 'amber', 'Successful submissions', [2, 2, 2, 3, 3, 4, 5, 6]]
     ];
     el.resultsSummaryGrid.innerHTML = cards.map(([label, value, icon, tone, hint, trend]) => `
@@ -1989,7 +2073,7 @@
       .filter((r) => (!q || [r.examCode, r.resultStatus, formatDate(r.submittedAt)].some((v) => String(v).toLowerCase().includes(q))) && resultsFilterValue(r));
     const output = f === 'recent' ? rows.slice(0, 3) : rows;
     el.resultsBody.innerHTML = output.length ? output.map((r) => `
-      <tr class="clickable-row result-row" data-detail="result" data-code="${r.examCode}">
+      <tr class="clickable-row result-row" data-detail="result" data-code="${r.id ?? r.attemptId ?? r.examCode}">
         <td><strong>${r.examCode}</strong></td>
         <td>${r.score}</td>
         <td>${pct(r.percentage)}</td>
@@ -2000,7 +2084,7 @@
         <td>${formatDuration(r.timeTakenSeconds)}</td>
         <td>${formatDate(r.submittedAt)}</td>
         <td>
-          <button class="btn ghost small result-action" type="button" data-action="result-view" data-code="${r.examCode}">
+          <button class="btn ghost small result-action" type="button" data-action="result-view" data-code="${r.id ?? r.attemptId ?? r.examCode}">
             <span>View Details</span>
             ${svg('chevron')}
           </button>
@@ -2271,6 +2355,7 @@
     el.closedGrid.innerHTML = examSkeleton();
     el.registeredGrid.innerHTML = examSkeleton().repeat(3);
     el.resumeMyGrid.innerHTML = examSkeleton();
+    el.completedGrid.innerHTML = examSkeleton();
     el.reexamGrid.innerHTML = examSkeleton();
     el.resultsSummaryGrid.innerHTML = '<article class="summary-card skeleton"></article>'.repeat(4);
     el.resultsBody.innerHTML = '<tr><td colspan="10"><div class="card-skeleton"><div class="line large skeleton"></div><div class="line medium skeleton"></div></div></td></tr>';
@@ -2554,9 +2639,21 @@
       return;
     }
     if (type === 'result') {
-      const r = st.data.results.find((x) => x.examCode === code);
+      const r = st.data.results.find((x) => String(x.id ?? '') === String(code))
+        || st.data.results.find((x) => String(x.attemptId ?? '') === String(code))
+        || bestResultForExam(code);
       if (!r) return;
-      const totalAnswered = (r.correctAnswers || 0) + (r.wrongAnswers || 0) + (r.unansweredQuestions || 0);
+      const totalQuestions = toNumber(r.totalQuestions);
+      const correctAnswers = toNumber(r.correctAnswers);
+      const wrongAnswers = toNumber(r.wrongAnswers);
+      const unansweredQuestions = toNumber(r.unansweredQuestions, Math.max(totalQuestions - correctAnswers - wrongAnswers, 0));
+      const easyCorrect = toNumber(r.easyCorrect);
+      const mediumCorrect = toNumber(r.mediumCorrect);
+      const hardCorrect = toNumber(r.hardCorrect ?? r.difficultCorrect);
+      const easyWrong = toNumber(r.easyWrong);
+      const mediumWrong = toNumber(r.mediumWrong);
+      const hardWrong = toNumber(r.hardWrong ?? r.difficultWrong);
+      const totalAnswered = correctAnswers + wrongAnswers + unansweredQuestions;
       modal({
         kicker: 'Result Details',
         title: `${r.examCode} - ${r.resultStatus}`,
@@ -2572,28 +2669,28 @@
           <div class="result-modal-grid">
             <div class="result-modal-panel">
               <h5>Answer Breakdown</h5>
-              <div class="detail-grid">
-                <div><span>Total Questions</span><strong>${r.totalQuestions}</strong></div>
-                <div><span>Correct Answers</span><strong>${r.correctAnswers}</strong></div>
-                <div><span>Wrong Answers</span><strong>${r.wrongAnswers}</strong></div>
-                <div><span>Unanswered</span><strong>${r.unansweredQuestions}</strong></div>
+              <div class="detail-grid result-metric-grid">
+                <div class="detail-item metric-card"><span>Total Questions</span><strong>${totalQuestions}</strong></div>
+                <div class="detail-item metric-card"><span>Correct Answers</span><strong>${correctAnswers}</strong></div>
+                <div class="detail-item metric-card"><span>Wrong Answers</span><strong>${wrongAnswers}</strong></div>
+                <div class="detail-item metric-card"><span>Unanswered</span><strong>${unansweredQuestions}</strong></div>
               </div>
             </div>
             <div class="result-modal-panel">
               <h5>Difficulty Split</h5>
-              <div class="detail-grid">
-                <div><span>Easy Correct</span><strong>${r.easyCorrect}</strong></div>
-                <div><span>Medium Correct</span><strong>${r.mediumCorrect}</strong></div>
-                <div><span>Hard Correct</span><strong>${r.hardCorrect}</strong></div>
-                <div><span>Easy Wrong</span><strong>${r.easyWrong}</strong></div>
-                <div><span>Medium Wrong</span><strong>${r.mediumWrong}</strong></div>
-                <div><span>Hard Wrong</span><strong>${r.hardWrong}</strong></div>
+              <div class="detail-grid result-metric-grid result-metric-grid-3">
+                <div class="detail-item metric-card"><span>Easy Correct</span><strong>${easyCorrect}</strong></div>
+                <div class="detail-item metric-card"><span>Medium Correct</span><strong>${mediumCorrect}</strong></div>
+                <div class="detail-item metric-card"><span>Hard Correct</span><strong>${hardCorrect}</strong></div>
+                <div class="detail-item metric-card"><span>Easy Wrong</span><strong>${easyWrong}</strong></div>
+                <div class="detail-item metric-card"><span>Medium Wrong</span><strong>${mediumWrong}</strong></div>
+                <div class="detail-item metric-card"><span>Hard Wrong</span><strong>${hardWrong}</strong></div>
               </div>
             </div>
           </div>
           <div class="result-modal-note">
             <strong>Submission Summary</strong>
-            <p>${totalAnswered}/${r.totalQuestions} questions were answered, with ${r.correctAnswers} correct and ${r.wrongAnswers} incorrect responses.</p>
+            <p>${totalAnswered}/${totalQuestions} questions were answered, with ${correctAnswers} correct and ${wrongAnswers} incorrect responses.</p>
           </div>
         `,
         foot: '<button class="btn ghost" data-close-modal type="button">Close</button>'
@@ -2605,7 +2702,37 @@
       const r = rows.find((x) => x.studentId === code) || st.data.leaderboard.global.find((x) => x.studentId === code) || st.data.leaderboard.exam.find((x) => x.studentId === code);
       if (!r) return;
       const info = leaderboardBadge(r.percentage);
-      modal({ kicker:'Leaderboard Student', title:r.studentName, body:`<div class="detail-grid"><div><span>Rank</span><strong>#${r.rank}</strong></div><div><span>Score</span><strong>${r.score}</strong></div><div><span>Percentage</span><strong>${pct(r.percentage)}</strong></div><div><span>Performance</span><strong>${info.label}</strong></div></div>`, foot:'<button class="btn ghost" data-close-modal type="button">Close</button>' });
+      modal({
+        kicker:'Leaderboard Student',
+        title:r.studentName,
+        body: `
+          <div class="leaderboard-modal-card">
+            <div class="leaderboard-modal-badge">${info.label}</div>
+            <div class="leaderboard-modal-grid">
+              <div class="leaderboard-stat">
+                <span>Rank</span>
+                <strong>#${r.rank}</strong>
+              </div>
+              <div class="leaderboard-stat">
+                <span>Score</span>
+                <strong>${fmtScore(r.score)}</strong>
+              </div>
+              <div class="leaderboard-stat">
+                <span>Percentage</span>
+                <strong>${pct(r.percentage)}</strong>
+              </div>
+              <div class="leaderboard-stat">
+                <span>Mode</span>
+                <strong>${st.leaderboard.mode === 'global' ? 'Global' : 'Exam'}</strong>
+              </div>
+            </div>
+            <div class="leaderboard-modal-footer">
+              <span>Performance</span>
+              <strong class="performance-badge ${info.tone}">${info.label}</strong>
+            </div>
+          </div>`,
+        foot:'<button class="btn ghost" data-close-modal type="button">Close</button>'
+      });
       return;
     }
     if (type === 'certificate') {
@@ -2622,20 +2749,20 @@
             <div class="result-modal-grid certificate-preview-grid">
               <div class="result-modal-panel">
                 <h5>Student Info</h5>
-                <div class="detail-grid">
-                  <div><span>Student Name</span><strong>${c.studentName}</strong></div>
-                  <div><span>College</span><strong>${c.collegeName}</strong></div>
-                  <div><span>Department</span><strong>${c.department}</strong></div>
-                  <div><span>Roll Number</span><strong>${c.rollNumber}</strong></div>
+                <div class="detail-grid certificate-preview-detail-grid">
+                  <div class="detail-item metric-card"><span>Student Name</span><strong>${c.studentName}</strong></div>
+                  <div class="detail-item metric-card"><span>College</span><strong>${c.collegeName}</strong></div>
+                  <div class="detail-item metric-card"><span>Department</span><strong>${c.department}</strong></div>
+                  <div class="detail-item metric-card"><span>Roll Number</span><strong>${c.rollNumber}</strong></div>
                 </div>
               </div>
               <div class="result-modal-panel">
                 <h5>Certificate Info</h5>
-                <div class="detail-grid">
-                  <div><span>Score</span><strong>${fmtScore(c.score)}%</strong></div>
-                  <div><span>Grade</span><strong>${c.grade}</strong></div>
-                  <div><span>Issued Date</span><strong>${formatDate(c.issuedAt)}</strong></div>
-                  <div><span>Status</span><strong>${c.revoked ? 'REVOKED' : 'VERIFIED'}</strong></div>
+                <div class="detail-grid certificate-preview-detail-grid">
+                  <div class="detail-item metric-card"><span>Score</span><strong>${fmtScore(c.score)}%</strong></div>
+                  <div class="detail-item metric-card"><span>Grade</span><strong>${c.grade}</strong></div>
+                  <div class="detail-item metric-card"><span>Issued Date</span><strong>${formatDate(c.issuedAt)}</strong></div>
+                  <div class="detail-item metric-card"><span>Status</span><strong>${c.revoked ? 'REVOKED' : 'VERIFIED'}</strong></div>
                 </div>
               </div>
             </div>

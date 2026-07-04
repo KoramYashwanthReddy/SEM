@@ -64,8 +64,8 @@ public class LeaderboardService {
 
     private Comparator<ExamResult> resultComparator() {
         return Comparator
-                .comparingDouble(ExamResult::getScore).reversed()
-                .thenComparing(Comparator.comparingDouble(ExamResult::getPercentage).reversed())
+                .comparingDouble(ExamResult::getPercentage).reversed()
+                .thenComparing(Comparator.comparingDouble(ExamResult::getScore).reversed())
                 .thenComparing(ExamResult::getSubmittedAt, Comparator.nullsLast(Comparator.reverseOrder()))
                 .thenComparing(ExamResult::getAttemptId, Comparator.nullsLast(Comparator.reverseOrder()))
                 .thenComparing(ExamResult::getId, Comparator.nullsLast(Comparator.reverseOrder()));

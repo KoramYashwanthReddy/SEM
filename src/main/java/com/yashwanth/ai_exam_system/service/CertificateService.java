@@ -6,8 +6,10 @@ import com.lowagie.text.Image;
 import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.*;
 import com.yashwanth.ai_exam_system.entity.Certificate;
+import com.yashwanth.ai_exam_system.entity.ExamResult;
 import com.yashwanth.ai_exam_system.entity.StudentProfile;
 import com.yashwanth.ai_exam_system.repository.CertificateRepository;
+import com.yashwanth.ai_exam_system.repository.ExamResultRepository;
 import com.yashwanth.ai_exam_system.repository.StudentProfileRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -20,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -36,6 +39,7 @@ public class CertificateService {
     private static final java.awt.Color SOFT_BLUE = new java.awt.Color(220, 230, 246);
 
     private final CertificateRepository certificateRepository;
+    private final ExamResultRepository examResultRepository;
     private final QrCodeService qrCodeService;
     private final StudentProfileRepository studentProfileRepository;
     private final EmailService emailService;
@@ -43,12 +47,14 @@ public class CertificateService {
 
     public CertificateService(
             CertificateRepository certificateRepository,
+            ExamResultRepository examResultRepository,
             QrCodeService qrCodeService,
             StudentProfileRepository studentProfileRepository,
             EmailService emailService,
             @Value("${app.frontend.base-url:http://localhost:8080}") String fallbackBaseUrl) {
 
         this.certificateRepository = certificateRepository;
+        this.examResultRepository = examResultRepository;
         this.qrCodeService = qrCodeService;
         this.studentProfileRepository = studentProfileRepository;
         this.emailService = emailService;
@@ -65,6 +71,7 @@ public class CertificateService {
     ) {
 
         StudentProfile profile = getValidatedProfile(studentId);
+        double resolvedScore = resolveBestCertificateScore(studentId, examCode, score);
 
         Certificate existing = certificateRepository
                 .findByStudentIdAndExamCode(studentId, examCode)
@@ -74,14 +81,16 @@ public class CertificateService {
             if (existing.isRevoked()) {
                 throw new RuntimeException("Certificate is revoked");
             }
+            boolean scoreMatches = Math.abs(existing.getScore() - resolvedScore) < 0.0001d;
             if (existing.getPdfData() != null
-                    && Integer.valueOf(CERTIFICATE_TEMPLATE_VERSION).equals(existing.getTemplateVersion())) {
+                    && Integer.valueOf(CERTIFICATE_TEMPLATE_VERSION).equals(existing.getTemplateVersion())
+                    && scoreMatches) {
                 return existing.getPdfData();
             }
         }
 
         Certificate cert = existing != null ? existing : new Certificate();
-        populateCertificate(cert, profile, examCode, examTitle, score, baseUrl);
+        populateCertificate(cert, profile, examCode, examTitle, resolvedScore, baseUrl);
 
         byte[] pdf = generateAndStoreCertificatePdf(cert, false);
         sendEmailSafe(profile, cert.getCertificateId(), pdf);
@@ -141,34 +150,51 @@ public class CertificateService {
 
         cert.setTemplateVersion(CERTIFICATE_TEMPLATE_VERSION);
         cert.setQrCodeData(buildVerifyUrl(cert.getCertificateId(), baseUrl));
-        cert.setIssuedAt(LocalDateTime.now());
+        if (cert.getIssuedAt() == null) {
+            cert.setIssuedAt(LocalDateTime.now());
+        }
 
         return cert;
     }
 
     public byte[] refreshCertificatePdf(Certificate cert, String baseUrl) {
-        if (cert == null) {
-            throw new RuntimeException("Certificate not found");
-        }
-        if (cert.isRevoked()) {
-            throw new RuntimeException("Certificate is revoked");
-        }
-        if (cert.getCertificateId() == null || cert.getCertificateId().isBlank()) {
-            throw new RuntimeException("Certificate ID missing");
-        }
-
-        if (StringUtils.hasText(baseUrl) && cert.getQrCodeData() != null && cert.getPdfData() != null
-                && Integer.valueOf(CERTIFICATE_TEMPLATE_VERSION).equals(cert.getTemplateVersion())) {
-            return cert.getPdfData();
-        }
-
         try {
-            byte[] pdf = generateAndStoreCertificatePdf(cert, true, baseUrl);
-            certificateRepository.save(cert);
+            if (cert == null) {
+                throw new RuntimeException("Certificate not found");
+            }
+            double bestScore = resolveBestCertificateScore(
+                    cert.getStudentId(),
+                    cert.getExamCode(),
+                    cert.getScore()
+            );
+            boolean scoreChanged = Math.abs(cert.getScore() - bestScore) >= 0.0001d;
+
+            Certificate synced = syncCertificateScore(cert, baseUrl, bestScore);
+            if (!scoreChanged
+                    && StringUtils.hasText(baseUrl)
+                    && synced.getQrCodeData() != null
+                    && synced.getPdfData() != null
+                    && Integer.valueOf(CERTIFICATE_TEMPLATE_VERSION).equals(synced.getTemplateVersion())) {
+                return synced.getPdfData();
+            }
+
+            byte[] pdf = generateAndStoreCertificatePdf(synced, true, baseUrl);
             return pdf;
         } catch (Exception ex) {
             throw new RuntimeException("Certificate PDF refresh failed", ex);
         }
+    }
+
+    public Certificate refreshCertificateMetadata(Certificate cert, String baseUrl) {
+        if (cert == null) {
+            throw new RuntimeException("Certificate not found");
+        }
+        double bestScore = resolveBestCertificateScore(
+                cert.getStudentId(),
+                cert.getExamCode(),
+                cert.getScore()
+        );
+        return syncCertificateScore(cert, baseUrl, bestScore);
     }
 
     // ================= EMAIL =================
@@ -214,6 +240,73 @@ public class CertificateService {
         if (score >= 50) return "C";
         if (score >= 40) return "D";
         return "Fail";
+    }
+
+    private double resolveBestCertificateScore(Long studentId, String examCode, double fallbackScore) {
+        List<ExamResult> results = examResultRepository.findByStudentIdAndExamCode(studentId, examCode);
+        double bestScore = fallbackScore;
+
+        for (ExamResult result : results) {
+            if (result == null) {
+                continue;
+            }
+            double candidateScore = resolveAttemptScore(result);
+            if (candidateScore > bestScore) {
+                bestScore = candidateScore;
+            }
+        }
+
+        return bestScore;
+    }
+
+    private Certificate syncCertificateScore(Certificate cert, String baseUrl) {
+        double bestScore = resolveBestCertificateScore(
+                cert.getStudentId(),
+                cert.getExamCode(),
+                cert.getScore()
+        );
+        return syncCertificateScore(cert, baseUrl, bestScore);
+    }
+
+    private Certificate syncCertificateScore(Certificate cert, String baseUrl, double bestScore) {
+        if (cert == null) {
+            throw new RuntimeException("Certificate not found");
+        }
+        if (cert.isRevoked()) {
+            throw new RuntimeException("Certificate is revoked");
+        }
+        if (cert.getCertificateId() == null || cert.getCertificateId().isBlank()) {
+            throw new RuntimeException("Certificate ID missing");
+        }
+
+        boolean scoreChanged = Math.abs(cert.getScore() - bestScore) >= 0.0001d;
+        boolean metadataChanged = false;
+
+        if (scoreChanged) {
+            cert.setScore(bestScore);
+            cert.setGrade(calculateGrade(bestScore));
+            metadataChanged = true;
+        }
+
+        if (baseUrl != null || !StringUtils.hasText(cert.getQrCodeData())) {
+            cert.setQrCodeData(buildVerifyUrl(cert.getCertificateId(), baseUrl));
+            metadataChanged = true;
+        }
+
+        if (metadataChanged) {
+            certificateRepository.save(cert);
+        }
+
+        return cert;
+    }
+
+    private double resolveAttemptScore(ExamResult result) {
+        double percentage = result.getPercentage();
+        if (percentage > 0d) {
+            return percentage;
+        }
+        double rawScore = result.getScore();
+        return rawScore > 0d ? rawScore : 0d;
     }
 
     // ================= PDF =================

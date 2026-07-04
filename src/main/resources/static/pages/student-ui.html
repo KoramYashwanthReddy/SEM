@@ -244,6 +244,7 @@
                 <option value="all">All</option>
                 <option value="registered">Registered</option>
                 <option value="resume">Resume</option>
+                <option value="completed">Completed</option>
                 <option value="reexam">Re-Exam</option>
               </select>
             </div>
@@ -254,6 +255,7 @@
               <button class="tab-btn active" data-my-tab="all" type="button">All Registered</button>
               <button class="tab-btn" data-my-tab="registered" type="button">Registered</button>
               <button class="tab-btn" data-my-tab="resume" type="button">Resume</button>
+              <button class="tab-btn" data-my-tab="completed" type="button">Completed</button>
               <button class="tab-btn" data-my-tab="reexam" type="button">Re-Exam</button>
             </div>
             <div class="summary-pill" id="myExamSummaryPill">0 visible exams</div>
@@ -280,6 +282,17 @@
                 <span class="tag warning" id="resumeMyCount">0</span>
               </div>
               <div class="exam-grid" id="resumeMyGrid"></div>
+            </section>
+
+            <section class="exam-group" data-my-group="completed" aria-labelledby="completedMyTitle">
+              <div class="group-head">
+                <div>
+                  <h2 id="completedMyTitle">Completed Exams</h2>
+                  <p>Finished attempts that reached the teacher-set limit or were submitted successfully.</p>
+                </div>
+                <span class="tag neutral" id="completedMyCount">0</span>
+              </div>
+              <div class="exam-grid" id="completedGrid"></div>
             </section>
 
             <section class="exam-group" data-my-group="reexam" aria-labelledby="reexamTitle">

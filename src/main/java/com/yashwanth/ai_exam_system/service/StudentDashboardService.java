@@ -32,6 +32,7 @@ import com.yashwanth.ai_exam_system.repository.CertificateRepository;
 import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRegistrationRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRepository;
+import com.yashwanth.ai_exam_system.repository.ExamResultRepository;
 import com.yashwanth.ai_exam_system.repository.StudentProfileRepository;
 import com.yashwanth.ai_exam_system.repository.UserRepository;
 
@@ -44,6 +45,7 @@ public class StudentDashboardService {
     private final StudentProfileRepository studentProfileRepository;
     private final ExamRegistrationRepository examRegistrationRepository;
     private final CertificateRepository certificateRepository;
+    private final ExamResultRepository examResultRepository;
     private final LeaderboardService leaderboardService;
     private final CertificateService certificateService;
 
@@ -53,6 +55,7 @@ public class StudentDashboardService {
             StudentProfileRepository studentProfileRepository,
             ExamRegistrationRepository examRegistrationRepository,
             CertificateRepository certificateRepository,
+            ExamResultRepository examResultRepository,
             LeaderboardService leaderboardService,
             CertificateService certificateService) {
         this.attemptRepository = attemptRepository;
@@ -61,6 +64,7 @@ public class StudentDashboardService {
         this.studentProfileRepository = studentProfileRepository;
         this.examRegistrationRepository = examRegistrationRepository;
         this.certificateRepository = certificateRepository;
+        this.examResultRepository = examResultRepository;
         this.leaderboardService = leaderboardService;
         this.certificateService = certificateService;
     }
@@ -235,7 +239,20 @@ public class StudentDashboardService {
                 .map(this::toAttemptRow)
                 .toList();
 
-        List<Certificate> certificates = certificateRepository.findByStudentId(student.getId());
+        List<Map<String, Object>> resultRows = examResultRepository.findByStudentIdOrderBySubmittedAtAsc(student.getId())
+                .stream()
+                .map(this::toResultRow)
+                .toList();
+
+        List<Certificate> certificates = certificateRepository.findByStudentId(student.getId()).stream()
+                .map(cert -> {
+                    try {
+                        return certificateService.refreshCertificateMetadata(cert, null);
+                    } catch (Exception ex) {
+                        return cert;
+                    }
+                })
+                .toList();
         List<LeaderboardDTO> leaderboardGlobal = leaderboardService.getGlobalLeaderboard();
 
         Map<String, Object> response = new LinkedHashMap<>();
@@ -245,6 +262,7 @@ public class StudentDashboardService {
         response.put("dashboard", dashboard);
         response.put("exams", examCards);
         response.put("attempts", attemptRows);
+        response.put("results", resultRows);
         response.put("certificates", certificates);
         response.put("leaderboardGlobal", leaderboardGlobal);
         response.put("registeredExamCodes", registeredExamCodes);
@@ -470,6 +488,33 @@ public class StudentDashboardService {
         map.put("remarks", attempt.getRemarks());
         map.put("createdAt", attempt.getCreatedAt());
         map.put("updatedAt", attempt.getUpdatedAt());
+        return map;
+    }
+
+    private Map<String, Object> toResultRow(com.yashwanth.ai_exam_system.entity.ExamResult result) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", result.getId());
+        map.put("attemptId", result.getAttemptId());
+        map.put("studentId", result.getStudentId());
+        map.put("examCode", result.getExamCode());
+        map.put("totalQuestions", result.getTotalQuestions());
+        map.put("correctAnswers", result.getCorrectAnswers());
+        map.put("wrongAnswers", result.getWrongAnswers());
+        map.put("unansweredQuestions", result.getUnansweredQuestions());
+        map.put("score", result.getScore());
+        map.put("percentage", result.getPercentage());
+        map.put("resultStatus", result.getResultStatus());
+        map.put("passed", result.getPassed());
+        map.put("easyCorrect", result.getEasyCorrect());
+        map.put("mediumCorrect", result.getMediumCorrect());
+        map.put("difficultCorrect", result.getDifficultCorrect());
+        map.put("easyWrong", result.getEasyWrong());
+        map.put("mediumWrong", result.getMediumWrong());
+        map.put("difficultWrong", result.getDifficultWrong());
+        map.put("timeTakenSeconds", result.getTimeTakenSeconds());
+        map.put("submittedAt", result.getSubmittedAt());
+        map.put("evaluatedAt", result.getEvaluatedAt());
+        map.put("grade", result.getGrade());
         return map;
     }
 }
