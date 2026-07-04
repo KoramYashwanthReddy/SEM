@@ -150,6 +150,7 @@
     examRegistration: load(K.er, {}),
     examSessions: load(K.es, {}),
     examAttemptIds: load(K.ea, {}),
+    profileEditorPhotoDraft: '',
     examUi: {
       minuteToken: '',
       secondToken: '',
@@ -486,6 +487,11 @@
   const getExamEndDate = (exam) => new Date(getExamDate(exam).getTime() + (Number(exam?.durationMinutes || 0) * 60000));
   const formatExamTime = (exam) => getExamDate(exam).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const formatExamDateTime = (exam) => getExamDate(exam).toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const formatFullDateTime = (value) => {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '-';
+    return d.toLocaleString([], { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
   const bestResultForExam = (examCode) => {
     const code = String(examCode || '').trim();
     if (!code) return null;
@@ -508,14 +514,23 @@
     const registered = !!st.examRegistration[exam.examCode];
     const result = bestResultForExam(exam.examCode);
     const attemptsRemaining = calculateAttemptsRemaining(exam);
-    const resumeEligible = !!result && attemptsRemaining > 0;
-    const sessionStarted = !!exam.resumeAttemptId
-      || (!!st.examSessions[exam.examCode] && !result)
+    const expired = now > endAt.getTime() || String(exam?.status || '').toLowerCase() === 'closed';
+    const attemptsDepleted = attemptsRemaining <= 0;
+    const closed = expired || attemptsDepleted;
+    const resumeEligible = !closed && (
+      !!exam.resumeAttemptId
+      || !!st.examSessions[exam.examCode]
+      || String(exam?.status || '').toLowerCase() === 'resume'
+    );
+    const sessionStarted = !closed && (
+      !!exam.resumeAttemptId
+      || !!st.examSessions[exam.examCode]
       || resumeEligible
-      || (!result && String(exam?.status || '').toLowerCase() === 'resume');
+      || String(exam?.status || '').toLowerCase() === 'resume'
+    );
     const failed = !!(result && !result.passed);
-    const completed = attemptsRemaining <= 0;
-    const reexamEligible = failed && attemptsRemaining > 0;
+    const completed = closed;
+    const reexamEligible = !closed && failed && attemptsRemaining > 0;
 
     // Use backend-provided registration phase times
     const registrationStartTime = exam.registrationStartTime ? new Date(exam.registrationStartTime) : null;
@@ -537,7 +552,6 @@
     const live = now >= startAt.getTime() && now <= endAt.getTime();
     const upcoming = now < startAt.getTime();
     const minutesUntil = Math.ceil((startAt.getTime() - now) / 60000);
-    const expired = now > endAt.getTime() || String(exam?.status || '').toLowerCase() === 'closed';
     const minutesUntilVerification = Math.ceil((verificationOpenAt - now) / 60000);
     const minutesUntilRegistrationClose = Math.ceil((registrationCloseAt - now) / 60000);
 
@@ -579,7 +593,7 @@
     if (view === 'my') {
       if (!state.registered) return null;
       if (state.completed) {
-        return { label: 'Completed', action: 'exam-detail', tone: 'ghost', hint: 'Attempt limit reached or result finalized.', disabled: true };
+        return { label: state.expired ? 'Closed' : 'Completed', action: 'exam-detail', tone: 'ghost', hint: state.expired ? 'Session closed.' : 'Attempt limit reached or result finalized.', disabled: true };
       }
       if (state.resumeEligible || state.sessionStarted) {
         return { label: 'Resume Exam', action: 'exam-enter', tone: 'primary', hint: 'Saved session ready to continue.', disabled: false };
@@ -671,17 +685,16 @@
   function myExamGroup(exam) {
     const state = examRuntimeState(exam);
     if (!state.registered) return null;
-    if (state.completed) return 'completed';
+    if (state.completed || state.expired) return 'completed';
     if (state.sessionStarted || state.resumeEligible) return 'resume';
     if (state.reexamEligible) return 'reexam';
-    if (state.expired) return null;
     return 'registered';
   }
   function examVisibleLabel(exam, view = 'catalog') {
     const state = examRuntimeState(exam);
     if (view === 'my') {
+      if (state.completed) return state.expired ? 'CLOSED' : 'COMPLETED';
       if (state.sessionStarted || state.resumeEligible) return 'SESSION SAVED';
-      if (state.completed) return 'COMPLETED';
       if (state.failed) return 'RE-EXAM';
       if (state.live) return 'LIVE';
       if (state.preStartLock) return 'VERIFICATION SOON';
@@ -695,8 +708,8 @@
   function examGroupTone(exam, view = 'catalog') {
     const state = examRuntimeState(exam);
     if (view === 'my') {
-      if (state.sessionStarted || state.resumeEligible) return 'warning';
       if (state.completed) return 'neutral';
+      if (state.sessionStarted || state.resumeEligible) return 'warning';
       if (state.failed) return 'danger';
       if (state.live) return 'success';
       if (state.preStartLock) return 'neutral';
@@ -739,6 +752,9 @@
   function openExamDetailModal(exam) {
     const totalQuestions = toNumber(exam?.totalQuestions, toNumber(exam?.easyQuestionCount) + toNumber(exam?.mediumQuestionCount) + toNumber(exam?.difficultQuestionCount));
     const state = examRuntimeState(exam);
+    const startAt = getExamDate(exam);
+    const endAt = state.endAt;
+    const detailAction = examActionForView(exam, st.examRegistration[exam.examCode] ? 'my' : 'catalog');
     const accessLabel = state.live ? 'Live' : state.expired ? 'Closed' : exam?.registrationOpen ? 'Registration Open' : 'Registration Closed';
     const infoTone = exam?.status === 'closed' ? 'locked' : exam?.status === 'resume' ? 'resume' : exam?.status === 'available' ? 'live' : 'warning';
     const infoLabel = exam?.status === 'closed' ? 'Closed' : exam?.status === 'resume' ? 'Resume' : exam?.status === 'available' ? 'Available' : 'Upcoming';
@@ -794,8 +810,8 @@
               <small>Window and access</small>
             </div>
             <div class="detail-grid">
-              <div class="detail-item"><span>Start Time</span><strong>${formatExamTime(exam)}</strong></div>
-              <div class="detail-item"><span>End Time</span><strong>${new Date(state.endAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></div>
+              <div class="detail-item"><span>Exam Start</span><strong>${formatFullDateTime(startAt)}</strong></div>
+              <div class="detail-item"><span>Exam End</span><strong>${formatFullDateTime(endAt)}</strong></div>
               <div class="detail-item"><span>Window</span><strong>${accessLabel}</strong></div>
               <div class="detail-item"><span>Access</span><strong>${exam?.registrationOpen ? 'Registration Open' : 'Registration Closed'}</strong></div>
             </div>
@@ -808,7 +824,11 @@
           </div>
         </div>
       `,
-      foot: '<button class="btn ghost" data-close-modal type="button">Close</button>'
+      foot: `
+        ${detailAction && !detailAction.disabled && detailAction.action !== 'exam-detail'
+          ? `<button class="btn primary" type="button" data-action="${detailAction.action}" data-code="${exam.examCode}">${escapeHtml(detailAction.label)}</button>`
+          : ''}
+        <button class="btn ghost" data-close-modal type="button">Close</button>`
     });
   }
   function renderVerificationBadge(exam) {
@@ -908,11 +928,12 @@
     const startAt = getExamDate(exam);
     const now = Date.now();
     const registered = !!st.examRegistration[exam.examCode];
-    const sessionStarted = !!st.examSessions[exam.examCode];
     const result = bestResultForExam(exam.examCode);
     const attemptsRemaining = calculateAttemptsRemaining(exam);
-    const completed = attemptsRemaining <= 0 || !!(result && result.passed);
-    const started = (sessionStarted && !completed) || (!completed && now >= startAt.getTime());
+    const expired = now > getExamEndDate(exam).getTime() || String(exam?.status || '').toLowerCase() === 'closed';
+    const completed = expired || attemptsRemaining <= 0;
+    const sessionStarted = !completed && !!st.examSessions[exam.examCode];
+    const started = !completed && ((sessionStarted && now >= startAt.getTime()) || now >= startAt.getTime());
     const minutesUntil = Math.ceil((startAt.getTime() - now) / 60000);
     const registrationCloseAt = startAt.getTime();
     const verificationOpenAt = startAt.getTime() - (30 * 60000);
@@ -1086,7 +1107,7 @@
     if (btn?.dataset.loadingText) return btn.dataset.loadingText;
     return busyCopy[type] || 'Please wait...';
   }
-  function bind() { Object.assign(el, { sidebar:$('sidebar'), toggle:$('toggle-sidebar'), logout:$('logoutBtn'), sideNav:$('sideNav'), sidebarAvatar:$('sidebarAvatar'), sidebarName:$('sidebarName'), sidebarRole:$('sidebarRole'), topAvatar:$('topAvatar'), topName:$('topName'), topSearch:$('top-nav-search'), notifBtn:$('notifBtn'), notifCount:$('notifCount'), notifNavCount:$('notifNavCount'), notifyDrop:$('notifyDrop'), notifyDropCount:$('notifyDropCount'), notifyList:$('notifyList'), notificationTypeFilter:$('notificationTypeFilter'), markAllReadBtn:$('markAllReadBtn'), clearNotificationsBtn:$('clearNotificationsBtn'), unreadNotificationCount:$('unreadNotificationCount'), notificationStream:$('notificationStream'), scheduleDateFilter:$('scheduleDateFilter'), scheduleList:$('scheduleList'), scheduleTimeline:$('scheduleTimeline'), scheduleTodayLabel:$('scheduleTodayLabel'), proctoringStatusGrid:$('proctoringStatusGrid'), proctoringSummaryPanel:$('proctoringSummaryPanel'), faqAccordion:$('faqAccordion'), contactSupportForm:$('contactSupportForm'), reportIssueForm:$('reportIssueForm'), supportTabs:$$('[data-support-tab]'), supportPanels:$$('[data-support-panel]'), profileDd:$('profileDd'), profileMenuBtn:$('profileMenuBtn'), profileMenu:$('profileMenu'), profileLogout:$('profileLogout'), themeToggle:$('themeToggle'), themeButtons:$$('[data-theme-mode]', $('themeToggle')), dashStatsGrid:$('dashStatsGrid'), recentAttemptsBody:$('recentAttemptsBody'), performanceTrendChart:$('performanceTrendChart'), chartPlaceholder:$('chartPlaceholder'), refreshDashboard:$('refreshDashboard'), dashboardActionBtn:$('dashboardActionBtn'), attemptsResetBtn:$('attemptsResetBtn'), examSearch:$('examSearch'), examFilter:$('examFilter'), refreshExamsBtn:$('refreshExamsBtn'), examTabs:$$('[data-tab]'), summaryPill:$('summaryPill'), examStatusLegend:$('examStatusLegend'), unregisteredGrid:$('unregisteredGrid'), upcomingGrid:$('upcomingGrid'), closedGrid:$('closedGrid'), unregisteredCount:$('unregisteredCount'), upcomingCount:$('upcomingCount'), closedCount:$('closedCount'), myExamSearch:$('myExamSearch'), myExamFilter:$('myExamFilter'), myExamTabs:$$('[data-my-tab]'), myExamSummaryPill:$('myExamSummaryPill'), registeredGrid:$('registeredGrid'), resumeMyGrid:$('resumeMyGrid'), completedGrid:$('completedGrid'), reexamGrid:$('reexamGrid'), registeredCount:$('registeredCount'), resumeMyCount:$('resumeMyCount'), completedMyCount:$('completedMyCount'), reexamCount:$('reexamCount'), resultsSummaryGrid:$('resultsSummaryGrid'), resultsFilter:$('resultsFilter'), resultsFilterBtn:$('resultsFilterBtn'), resultsSearch:$('resultsSearch'), resultsResetBtn:$('resultsResetBtn'), resultsBody:$('resultsBody'), certificatesSummaryGrid:$('certificatesSummaryGrid'), certificatesFilter:$('certificatesFilter'), certificatesSearch:$('certificatesSearch'), certificatesResetBtn:$('certificatesResetBtn'), certificatesGrid:$('certificatesGrid'), leaderboardModeToggle:$('leaderboardModeToggle'), leaderboardModeButtons:$$('[data-leaderboard-mode]', $('leaderboardModeToggle')), leaderboardSearch:$('leaderboardSearch'), leaderboardSort:$('leaderboardSort'), leaderboardRefresh:$('leaderboardRefresh'), leaderboardSummaryGrid:$('leaderboardSummaryGrid'), yourRankCard:$('yourRankCard'), podiumGrid:$('podiumGrid'), leaderboardBody:$('leaderboardBody'), analyticsCards:$('analyticsCards'), analyticsLineChart:$('analyticsLineChart'), analyticsBarChart:$('analyticsBarChart'), analyticsDonutChart:$('analyticsDonutChart'), editProfileBtn:$('editProfileBtn'), saveProfileBtn:$('saveProfileBtn'), profileForm:$('profileForm'), detailModal:$('detailModal'), detailModalKicker:$('detailModalKicker'), detailModalTitle:$('detailModalTitle'), detailModalBody:$('detailModalBody'), detailModalFoot:$('detailModalFoot'), detailModalClose:$('detailModalClose'), examVerificationModal:$('examVerificationModal'), examVerificationClose:$('examVerificationClose'), examVerificationTitle:$('examVerificationTitle'), examVerificationSubtitle:$('examVerificationSubtitle'), examVerificationBody:$('examVerificationBody'), examVerificationFoot:$('examVerificationFoot'), examStepper:$('examStepper'), examSecurityIndicators:$('examSecurityIndicators'), toastStack:$('toastStack'), liveClock:$('liveClock') }); }
+  function bind() { Object.assign(el, { sidebar:$('sidebar'), toggle:$('toggle-sidebar'), logout:$('logoutBtn'), sideNav:$('sideNav'), sidebarAvatar:$('sidebarAvatar'), sidebarName:$('sidebarName'), sidebarRole:$('sidebarRole'), topAvatar:$('topAvatar'), topName:$('topName'), topSearch:$('top-nav-search'), notifBtn:$('notifBtn'), notifCount:$('notifCount'), notifNavCount:$('notifNavCount'), notifyDrop:$('notifyDrop'), notifyDropCount:$('notifyDropCount'), notifyList:$('notifyList'), notificationTypeFilter:$('notificationTypeFilter'), markAllReadBtn:$('markAllReadBtn'), clearNotificationsBtn:$('clearNotificationsBtn'), unreadNotificationCount:$('unreadNotificationCount'), notificationStream:$('notificationStream'), scheduleDateFilter:$('scheduleDateFilter'), scheduleList:$('scheduleList'), scheduleTimeline:$('scheduleTimeline'), scheduleTodayLabel:$('scheduleTodayLabel'), proctoringStatusGrid:$('proctoringStatusGrid'), proctoringSummaryPanel:$('proctoringSummaryPanel'), faqAccordion:$('faqAccordion'), contactSupportForm:$('contactSupportForm'), reportIssueForm:$('reportIssueForm'), supportTabs:$$('[data-support-tab]'), supportPanels:$$('[data-support-panel]'), profileDd:$('profileDd'), profileMenuBtn:$('profileMenuBtn'), profileMenu:$('profileMenu'), profileLogout:$('profileLogout'), themeToggle:$('themeToggle'), themeButtons:$$('[data-theme-mode]', $('themeToggle')), dashStatsGrid:$('dashStatsGrid'), recentAttemptsBody:$('recentAttemptsBody'), performanceTrendChart:$('performanceTrendChart'), chartPlaceholder:$('chartPlaceholder'), refreshDashboard:$('refreshDashboard'), dashboardActionBtn:$('dashboardActionBtn'), attemptsResetBtn:$('attemptsResetBtn'), examSearch:$('examSearch'), examFilter:$('examFilter'), refreshExamsBtn:$('refreshExamsBtn'), examTabs:$$('[data-tab]'), summaryPill:$('summaryPill'), examStatusLegend:$('examStatusLegend'), unregisteredGrid:$('unregisteredGrid'), upcomingGrid:$('upcomingGrid'), closedGrid:$('closedGrid'), unregisteredCount:$('unregisteredCount'), upcomingCount:$('upcomingCount'), closedCount:$('closedCount'), myExamSearch:$('myExamSearch'), myExamFilter:$('myExamFilter'), myExamTabs:$$('[data-my-tab]'), myExamSummaryPill:$('myExamSummaryPill'), registeredGrid:$('registeredGrid'), resumeMyGrid:$('resumeMyGrid'), completedGrid:$('completedGrid'), reexamGrid:$('reexamGrid'), registeredCount:$('registeredCount'), resumeMyCount:$('resumeMyCount'), completedMyCount:$('completedMyCount'), reexamCount:$('reexamCount'), resultsSummaryGrid:$('resultsSummaryGrid'), resultsFilter:$('resultsFilter'), resultsFilterBtn:$('resultsFilterBtn'), resultsSearch:$('resultsSearch'), resultsResetBtn:$('resultsResetBtn'), resultsBody:$('resultsBody'), certificatesSummaryGrid:$('certificatesSummaryGrid'), certificatesFilter:$('certificatesFilter'), certificatesSearch:$('certificatesSearch'), certificatesResetBtn:$('certificatesResetBtn'), certificatesGrid:$('certificatesGrid'), leaderboardModeToggle:$('leaderboardModeToggle'), leaderboardModeButtons:$$('[data-leaderboard-mode]', $('leaderboardModeToggle')), leaderboardSearch:$('leaderboardSearch'), leaderboardSort:$('leaderboardSort'), leaderboardRefresh:$('leaderboardRefresh'), leaderboardSummaryGrid:$('leaderboardSummaryGrid'), yourRankCard:$('yourRankCard'), podiumGrid:$('podiumGrid'), leaderboardBody:$('leaderboardBody'), analyticsCards:$('analyticsCards'), analyticsLineChart:$('analyticsLineChart'), analyticsBarChart:$('analyticsBarChart'), analyticsDonutChart:$('analyticsDonutChart'), editProfileBtn:$('editProfileBtn'), profileForm:$('profileForm'), profilePhotoPreview:$('profilePhotoPreview'), profilePhotoName:$('profilePhotoName'), profileEditorModal:$('profileEditorModal'), profileEditorClose:$('profileEditorClose'), profileEditorForm:$('profileEditorForm'), profileEditorCancel:$('profileEditorCancel'), profileEditorSave:$('profileEditorSave'), profileEditorPhotoInput:$('profileEditorPhotoInput'), profileEditorPhotoUploadBtn:$('profileEditorPhotoUploadBtn'), profileEditorPhotoRemoveBtn:$('profileEditorPhotoRemoveBtn'), profileEditorPhotoPreview:$('profileEditorPhotoPreview'), profileEditorPhotoCircle:$('profileEditorPhotoCircle'), profileEditorPhotoName:$('profileEditorPhotoName'), detailModal:$('detailModal'), detailModalKicker:$('detailModalKicker'), detailModalTitle:$('detailModalTitle'), detailModalBody:$('detailModalBody'), detailModalFoot:$('detailModalFoot'), detailModalClose:$('detailModalClose'), examVerificationModal:$('examVerificationModal'), examVerificationClose:$('examVerificationClose'), examVerificationTitle:$('examVerificationTitle'), examVerificationSubtitle:$('examVerificationSubtitle'), examVerificationBody:$('examVerificationBody'), examVerificationFoot:$('examVerificationFoot'), examStepper:$('examStepper'), examSecurityIndicators:$('examSecurityIndicators'), toastStack:$('toastStack'), liveClock:$('liveClock') }); }
   function hydrateIcons(root = document) {
     $$('[data-icon]', root).forEach((node) => {
       const name = node.dataset.icon;
@@ -1763,10 +1784,9 @@
       : avatar(st.profile.fullName);
     el.sidebarAvatar.src = photoSrc;
     el.topAvatar.src = photoSrc;
-    ['fullName','email','phone','collegeName','department','year','rollNumber','sectionField'].forEach(id => {
-      const map = { sectionField:'section' };
-      if ($(id)) $(id).value = st.profile[map[id] || id] || '';
-    });
+    fillProfileForm(el.profileForm);
+    fillProfileForm(el.profileEditorForm);
+    syncProfilePhotoPreview();
   }
   function applySettings() { save(K.s, st.settings); document.body.classList.toggle('student-compact', !!st.settings.compactDensity); document.body.classList.toggle('student-contrast', !!st.settings.highContrast); const t = $$('.toggle-row input[type="checkbox"]'); if (t[0]) t[0].checked = !!st.settings.emailAlerts; if (t[1]) t[1].checked = !!st.settings.examReminders; if (t[2]) t[2].checked = !!st.settings.compactDensity; if (t[3]) t[3].checked = !!st.settings.highContrast; }
   function resolveTheme(mode) { return mode === 'system' ? (themeQuery.matches ? 'dark' : 'light') : mode; }
@@ -1855,85 +1875,118 @@
     const state = examRuntimeState(exam);
     const result = state.result;
     const verificationBadge = renderVerificationBadge(exam);
-    const proctoringIndicator = renderProctoringIndicator(exam);
-    const attemptCounter = renderAttemptCounter(exam);
-    const timeRemainingBadge = renderTimeRemainingBadge(exam);
-    const totalQuestions = toNumber(exam.totalQuestions, toNumber(exam.easyQuestionCount) + toNumber(exam.mediumQuestionCount) + toNumber(exam.difficultQuestionCount));
-    const phaseLabel = access.action === 'exam-register-phase2'
-      ? 'Phase 2'
-      : access.action === 'exam-register'
-        ? 'Phase 1'
-        : state.live
-          ? 'Live'
-          : state.verificationOpen
-            ? 'Verification'
-            : state.expired
-              ? 'Closed'
-              : 'Scheduled';
-    const accessTone = view === 'my' && state.sessionStarted
-      ? 'resume'
-      : access.action === 'exam-register'
-        ? 'register'
-        : access.action === 'exam-enter'
-          ? 'live'
-          : 'verified';
-    const metrics = view === 'my' && result ? `
-      <div class="detail-grid">
-        <div class="detail-item"><span>Attempt</span><strong>${state.sessionStarted ? 'Saved' : `#${result.passed ? 1 : 2}`}</strong></div>
-        <div class="detail-item"><span>Score</span><strong>${result.score}/${result.totalQuestions}</strong></div>
-        <div class="detail-item"><span>Percentage</span><strong>${pct(result.percentage)}</strong></div>
-        <div class="detail-item"><span>Result</span><strong>${result.resultStatus}</strong></div>
-      </div>` : '';
-    const resumeMeta = view === 'my' && state.sessionStarted ? `
-      <div class="detail-grid">
-        <div class="detail-item"><span>Attempt</span><strong>#${exam.attemptNumber || 1}</strong></div>
-        <div class="detail-item"><span>Score</span><strong>${exam.percentage || result?.percentage || 0}%</strong></div>
-        <div class="detail-item"><span>Obtained</span><strong>${exam.obtainedMarks || result?.score || 0}/${exam.totalMarks}</strong></div>
-        <div class="detail-item"><span>Time Taken</span><strong>${formatDuration(exam.timeTakenSeconds || result?.timeTakenSeconds || 0)}</strong></div>
-      </div>` : '';
+    const startAt = getExamDate(exam);
+    const attemptUsed = Math.min(Number(exam.attemptsUsed || 0), Number(exam.maxAttempts || 0));
+    const attemptMax = Math.max(Number(exam.maxAttempts || 0), 1);
+    const attemptRemaining = calculateAttemptsRemaining(exam);
+    const attemptPercent = clamp((attemptUsed / attemptMax) * 100, 0, 100);
+    const topStatus = state.completed ? 'CLOSED' : state.live ? 'LIVE' : state.resumeEligible ? 'RESUME' : state.verificationOpen ? 'AVAILABLE' : 'CLOSED';
+    const topStatusTone = state.completed ? 'closed' : state.live ? 'available' : state.resumeEligible ? 'resume' : state.verificationOpen ? 'upcoming' : 'closed';
+    const examDate = formatDate(startAt);
+    const endDate = formatDate(state.endAt);
+    const accessNote = state.live
+      ? 'Exam is currently available.'
+      : state.expired
+        ? 'Exam is not accessible now.'
+        : state.resumeEligible
+          ? 'Saved session ready to continue.'
+          : 'Registration closed.';
+    const footerTitle = state.completed ? 'Closed' : state.live ? 'Live' : state.resumeEligible ? 'Resume Session' : 'Closed';
+    const footerBody = state.completed
+      ? 'This exam is currently closed.'
+      : state.live
+        ? 'This exam is live now.'
+        : state.resumeEligible
+          ? 'This exam can be resumed from the saved session.'
+          : 'This exam is currently closed.';
     const myExamMenu = view === 'my' ? `
       <div class="exam-card-menu">
-        <button class="btn ghost exam-card-menu-btn" type="button" data-action="exam-card-menu-toggle" aria-expanded="false" aria-label="More exam actions">
-          <span aria-hidden="true">&#8942;</span>
-        </button>
+        <button class="btn ghost exam-card-menu-btn" type="button" data-action="exam-card-menu-toggle" aria-expanded="false" aria-label="More exam actions">&#8942;</button>
         <div class="exam-card-menu-panel" role="menu" aria-label="Exam actions">
           <button class="exam-card-menu-item" type="button" data-action="exam-detail" data-code="${exam.examCode}" role="menuitem">Details</button>
           <button class="exam-card-menu-item" type="button" data-action="exam-instructions" data-code="${exam.examCode}" role="menuitem">Instructions</button>
         </div>
       </div>` : '';
     return `
-      <article class="exam-card ${view === 'my' ? 'my-exam-card' : ''}" data-status="${exam.status}" data-exam-view="${view}" data-exam-code="${exam.examCode}">
-        <div class="exam-card-head">
-          <div class="exam-card-title-block">
-            <h3 class="exam-title">${escapeHtml(exam.title || 'Untitled Exam')}</h3>
-            <p class="exam-subject">${escapeHtml(exam.subject || 'Subject')}</p>
-            <div class="meta-line">
-              <span class="code-badge">${escapeHtml(exam.examCode)}</span>
-              <span class="status-badge ${view === 'my' ? examGroupTone(exam, view) : examGroupTone(exam, view)}">${examVisibleLabel(exam, view)}</span>
-              ${verificationBadge}
+      <article class="exam-card ${view === 'my' ? 'my-exam-card' : ''}" data-status="${exam.status}" data-exam-view="${view}" data-exam-code="${exam.examCode}" data-action="exam-detail" role="button" tabindex="0">
+        <div class="exam-card-shell">
+          <div class="exam-card-head">
+            <div class="exam-card-icon-wrap" aria-hidden="true">
+              <span class="exam-card-icon">${svg('exams')}</span>
+            </div>
+            <div class="exam-card-title-block">
+              <h3 class="exam-title">${escapeHtml(exam.title || 'Untitled Exam')}</h3>
+              <p class="exam-subject">${escapeHtml(exam.subject || 'Subject')}</p>
+              <span class="exam-title-accent"></span>
+            </div>
+            <div class="exam-card-head-actions">
+              <span class="exam-status-chip ${topStatusTone}">
+                <span class="exam-status-chip-icon">${svg(state.completed ? 'lock' : state.live ? 'clock' : 'shield')}</span>
+                <span>${topStatus}</span>
+              </span>
+              ${myExamMenu}
             </div>
           </div>
-          <div class="exam-card-head-actions">
-            <span class="exam-phase-badge ${access.disabled ? 'locked' : accessTone}">${phaseLabel}</span>
-            ${myExamMenu}
+
+          <div class="exam-card-code-row">
+            <span class="exam-code-pill exam-code-pill--primary"><span class="exam-code-pill-icon">${svg('calendar')}</span><span>${escapeHtml(exam.examCode)}</span></span>
+            <span class="exam-code-pill exam-code-pill--muted">${state.completed ? 'CLOSED' : state.live ? 'LIVE' : state.resumeEligible ? 'RESUME' : 'SCHEDULED'}</span>
+          </div>
+
+          ${verificationBadge ? `
+            <div class="exam-verify-banner" data-action="exam-detail" data-code="${exam.examCode}">
+              <div class="exam-verify-icon">${svg('shield')}</div>
+              <div class="exam-verify-copy">
+                <strong>Verification Required</strong>
+                <span>Please complete identity verification to access this exam.</span>
+              </div>
+              <span class="exam-verify-chevron">${svg('chevron')}</span>
+            </div>
+          ` : ''}
+
+          <div class="exam-attempts-panel ${state.completed ? 'is-closed' : state.resumeEligible ? 'is-resume' : 'is-open'}">
+            <div class="exam-attempts-icon">${svg('exams')}</div>
+            <div class="exam-attempts-copy">
+              <h4>Attempts: <strong>${attemptUsed}</strong> / ${attemptMax}</h4>
+              <p>${attemptRemaining > 0 ? `${attemptRemaining} ATTEMPTS LEFT` : 'NO ATTEMPTS LEFT'}</p>
+            </div>
+            <div class="exam-attempts-ring" style="--attempt-pct:${attemptPercent}">
+              <div class="exam-attempts-ring-inner">
+                <strong>${Math.round(attemptPercent)}%</strong>
+                <span>USED</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="exam-schedule-grid">
+            <div class="exam-schedule-card">
+              <div class="exam-schedule-icon blue">${svg('calendar')}</div>
+              <span class="exam-schedule-label">START TIME</span>
+              <strong class="exam-schedule-value">${formatExamTime(exam)}</strong>
+              <span class="exam-schedule-sub">${examDate}</span>
+            </div>
+            <div class="exam-schedule-card">
+              <div class="exam-schedule-icon indigo">${svg('clock')}</div>
+              <span class="exam-schedule-label">END TIME</span>
+              <strong class="exam-schedule-value">${new Date(state.endAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
+              <span class="exam-schedule-sub">${endDate}</span>
+            </div>
+            <div class="exam-schedule-card">
+              <div class="exam-schedule-icon green">${svg('lock')}</div>
+              <span class="exam-schedule-label">ACCESS</span>
+              <strong class="exam-schedule-value">${state.live ? 'Live' : state.expired ? 'Closed' : accessNote}</strong>
+              <span class="exam-schedule-sub">${accessNote}</span>
+            </div>
+          </div>
+
+          <div class="exam-footer-card">
+            <div class="exam-footer-icon">${svg(state.completed ? 'lock' : state.live ? 'clock' : 'shield')}</div>
+            <div class="exam-footer-copy">
+              <strong>${footerTitle}</strong>
+              <span>${footerBody}</span>
+            </div>
           </div>
         </div>
-        <div class="exam-card-badges">
-          ${attemptCounter}
-          ${proctoringIndicator}
-        </div>
-        <div class="exam-timing-grid">
-          <div class="detail-item"><span>Start Time</span><strong>${formatExamTime(exam)}</strong></div>
-          <div class="detail-item"><span>End Time</span><strong>${new Date(state.endAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></div>
-          <div class="detail-item"><span>Access</span><strong>${state.live ? 'Live' : state.expired ? 'Closed' : access.hint}</strong></div>
-        </div>
-        <div class="exam-actions-shell">
-          <button class="btn ${access.tone === 'primary' ? 'primary' : access.tone === 'warning' ? 'primary warning' : 'ghost'} exam-primary-action" type="button" data-action="${access.action}" data-code="${exam.examCode}" ${access.disabled ? 'disabled' : ''}>${access.label}</button>
-          <button class="btn ghost exam-info-btn" type="button" data-action="exam-detail" data-code="${exam.examCode}">Details</button>
-        </div>
-        ${metrics}
-        ${resumeMeta}
-        ${timeRemainingBadge ? `<div class="time-remaining-row">${timeRemainingBadge}</div>` : ''}
       </article>`;
   }
 
@@ -2949,6 +3002,14 @@
     const actionType = btn.dataset.action;
     if (!actionType) return;
     const code = btn.dataset.code || '';
+    if (actionType === 'exam-detail' && btn.closest('.exam-card')) {
+      Promise.resolve(action(actionType, code, btn.dataset.view || ''))
+        .catch((error) => {
+          console.error('Action failed:', error);
+          toast('Action failed', error?.message || 'Please try again.', 'warn');
+        });
+      return;
+    }
     const delay = actionType === 'certificate-download' ? 650 : actionType === 'exam-start' ? 520 : actionType === 'exam-instructions' ? 420 : 360;
     const text = actionLoadingText(actionType, code, btn);
     setButtonBusy(btn, text);
@@ -2977,18 +3038,63 @@
       }
     }, delay);
   }
-  function setProfileEditable(on) {
-    $$('input', el.profileForm).forEach((input) => {
-      if (input.id === 'email') {
-        input.setAttribute('readonly', 'readonly');
-        return;
-      }
-      input.toggleAttribute('readonly', !on);
+  const PROFILE_FIELD_MAP = {
+    fullName: 'fullName',
+    email: 'email',
+    phone: 'phone',
+    collegeName: 'collegeName',
+    department: 'department',
+    year: 'year',
+    rollNumber: 'rollNumber',
+    section: 'section'
+  };
+  function fillProfileForm(formEl, profile = st.profile) {
+    if (!formEl) return;
+    Object.entries(PROFILE_FIELD_MAP).forEach(([fieldName, profileKey]) => {
+      const input = formEl.querySelector(`[name="${fieldName}"]`);
+      if (input) input.value = profile[profileKey] || '';
     });
-    toast(on ? 'Edit mode enabled' : 'Edit mode disabled', on ? 'You can now update profile values.' : 'Profile editing locked.', 'info');
   }
-  async function saveProfile() {
-    const f = new FormData(el.profileForm);
+  function syncProfilePhotoPreview() {
+    const photoSrc = (st.profile.profilePhoto && st.profile.profilePhoto.trim())
+      ? st.profile.profilePhoto
+      : avatar(st.profile.fullName);
+    const draftSrc = (st.profileEditorPhotoDraft && st.profileEditorPhotoDraft.trim())
+      ? st.profileEditorPhotoDraft
+      : photoSrc;
+    const title = 'Your Profile Photo';
+    if (el.profilePhotoPreview) {
+      el.profilePhotoPreview.src = photoSrc;
+      el.profilePhotoPreview.alt = `${st.profile.fullName || 'Student'} photo`;
+    }
+    if (el.profileEditorPhotoPreview) {
+      el.profileEditorPhotoPreview.src = draftSrc;
+      el.profileEditorPhotoPreview.alt = `${st.profile.fullName || 'Student'} photo`;
+    }
+    if (el.profilePhotoName) el.profilePhotoName.textContent = title;
+    if (el.profileEditorPhotoName) el.profileEditorPhotoName.textContent = title;
+  }
+  function openProfileEditor() {
+    st.profileEditorPhotoDraft = st.profile.profilePhoto || '';
+    fillProfileForm(el.profileEditorForm);
+    syncProfilePhotoPreview();
+    el.profileEditorModal?.classList.remove('hidden');
+    el.profileEditorModal?.setAttribute('aria-hidden', 'false');
+    setTimeout(() => {
+      el.profileEditorForm?.querySelector('input:not([readonly])')?.focus();
+    }, 40);
+    toast('Profile editor opened', 'Update your details in the popup form.', 'info');
+  }
+  function closeProfileEditor() {
+    if (!el.profileEditorModal) return;
+    st.profileEditorPhotoDraft = '';
+    el.profileEditorModal.classList.add('hidden');
+    el.profileEditorModal.setAttribute('aria-hidden', 'true');
+  }
+  async function saveProfile(formEl = el.profileEditorForm || el.profileForm) {
+    const sourceForm = formEl || el.profileEditorForm || el.profileForm;
+    if (!sourceForm) throw new Error('Profile form is not ready');
+    const f = new FormData(sourceForm);
     const payload = {
       fullName: String(f.get('fullName') || '').trim(),
       email: String(f.get('email') || st.profile.email || '').trim(),
@@ -2998,7 +3104,7 @@
       year: String(f.get('year') || '').trim(),
       rollNumber: String(f.get('rollNumber') || '').trim(),
       section: String(f.get('section') || '').trim(),
-      profilePhoto: st.profile.profilePhoto || ''
+      profilePhoto: st.profileEditorPhotoDraft || st.profile.profilePhoto || ''
     };
     if (!payload.fullName || !payload.collegeName || !payload.department || !payload.rollNumber) {
       throw new Error('Full name, college, department, and ID are required');
@@ -3021,10 +3127,11 @@
       year: saved?.year || payload.year,
       rollNumber: saved?.rollNumber || payload.rollNumber,
       section: saved?.section || payload.section,
-      profilePhoto: saved?.profilePhoto || st.profile.profilePhoto || ''
+      profilePhoto: saved?.profilePhoto || payload.profilePhoto || st.profile.profilePhoto || ''
     };
+    st.profileEditorPhotoDraft = '';
     applyProfile();
-    setProfileEditable(false);
+    closeProfileEditor();
     toast('Profile saved', 'Student profile has been synced to the server.', 'success');
   }
   function goLogout() { toast('Logging out', 'Returning to role selection.', 'info'); setTimeout(() => { location.href = 'role-selection.html'; }, 180); }
@@ -3150,12 +3257,33 @@
         toast('Leaderboard refreshed', 'Student positions were reshuffled locally.', 'info');
       }, 520);
     });
-    $('editProfileBtn').addEventListener('click', (e) => runButtonFeedback(e.currentTarget, 'Opening editor...', () => setProfileEditable(true), 360));
-    $('saveProfileBtn').addEventListener('click', (e) => runButtonFeedback(e.currentTarget, 'Saving profile...', () => saveProfile(), 520));
-    $('profileForm').addEventListener('submit', (e) => {
+    el.editProfileBtn?.addEventListener('click', (e) => runButtonFeedback(e.currentTarget, 'Opening editor...', () => openProfileEditor(), 360));
+    el.profileEditorClose?.addEventListener('click', closeProfileEditor);
+    el.profileEditorCancel?.addEventListener('click', closeProfileEditor);
+    el.profileEditorModal?.addEventListener('click', (e) => {
+      if (e.target === el.profileEditorModal) closeProfileEditor();
+    });
+    el.profileEditorSave?.addEventListener('click', (e) => runButtonFeedback(e.currentTarget, 'Saving profile...', () => saveProfile(el.profileEditorForm), 520));
+    el.profileEditorForm?.addEventListener('submit', (e) => {
       e.preventDefault();
-      const btn = $('saveProfileBtn');
-      runButtonFeedback(btn, 'Saving profile...', () => saveProfile(), 520);
+      runButtonFeedback(el.profileEditorSave, 'Saving profile...', () => saveProfile(el.profileEditorForm), 520);
+    });
+    el.profileEditorPhotoUploadBtn?.addEventListener('click', () => el.profileEditorPhotoInput?.click());
+    el.profileEditorPhotoInput?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        st.profileEditorPhotoDraft = String(reader.result || '');
+        syncProfilePhotoPreview();
+        fillProfileForm(el.profileEditorForm);
+      };
+      reader.readAsDataURL(file);
+    });
+    el.profileEditorPhotoRemoveBtn?.addEventListener('click', () => {
+      st.profileEditorPhotoDraft = '';
+      if (el.profileEditorPhotoInput) el.profileEditorPhotoInput.value = '';
+      syncProfilePhotoPreview();
     });
     if (el.examVerificationClose) {
       el.examVerificationClose.addEventListener('click', closeExamVerification);
@@ -3283,7 +3411,7 @@
       if (!e.target.closest('.exam-card-menu')) closeExamCardMenus();
       if (!el.sidebar.contains(e.target) && !el.toggle.contains(e.target) && isMobile()) closeSidebar();
     });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeExamVerification(); closeExamCardMenus(); el.profileMenu.classList.remove('open'); el.notifyDrop.classList.remove('open'); closeSidebar(); } });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeExamVerification(); closeProfileEditor(); closeExamCardMenus(); el.profileMenu.classList.remove('open'); el.notifyDrop.classList.remove('open'); closeSidebar(); } });
     window.addEventListener('resize', () => { if (isMobile()) el.sidebar.classList.remove('collapsed'); renderAnalyticsCharts(); renderExamCatalog(); renderMyExams(); renderNotifications(); renderSchedule(); renderProctoringStatus(); if (st.sec === 'leaderboard') renderLeaderboard(); updateSidebarToggle(); });
     themeQuery.addEventListener?.('change', () => { if (st.theme === 'system') applyTheme('system'); });
   }

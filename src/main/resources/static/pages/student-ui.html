@@ -473,7 +473,6 @@
             </div>
             <div class="head-actions">
               <button class="btn ghost" type="button" id="editProfileBtn">Edit Profile</button>
-              <button class="btn primary" type="button" id="saveProfileBtn">Save Changes</button>
             </div>
           </div>
 
@@ -483,16 +482,14 @@
               <div class="profile-photo-circle" id="profilePhotoCircle">
                 <img id="profilePhotoPreview" alt="Profile photo" src="">
                 <div class="profile-photo-overlay" id="profilePhotoOverlay">
-                  <span>&#128247; Change Photo</span>
+                  <span>Profile preview</span>
                 </div>
               </div>
               <div class="profile-photo-info">
                 <strong id="profilePhotoName">Your Profile Photo</strong>
-                <p>Upload a clear facial portrait. Used for AI proctoring identity verification.</p>
+                <p>Your profile details stay visible here. Use Edit Profile to update personal information or photo in a popup.</p>
                 <div class="profile-photo-actions">
-                  <input type="file" id="profilePhotoInput" accept="image/*" hidden>
-                  <button type="button" class="btn primary small" id="profilePhotoUploadBtn">Upload Photo</button>
-                  <button type="button" class="btn ghost small" id="profilePhotoRemoveBtn">Remove</button>
+                  <span class="tag neutral">Read only preview</span>
                 </div>
               </div>
             </div>
@@ -728,6 +725,77 @@
       </div>
       <div class="modal-body" id="detailModalBody"></div>
       <div class="modal-foot" id="detailModalFoot"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden profile-editor-backdrop" id="profileEditorModal" aria-hidden="true">
+    <div class="modal-card profile-editor-card" role="dialog" aria-modal="true" aria-labelledby="profileEditorTitle">
+      <div class="modal-head profile-editor-head">
+        <div>
+          <p class="panel-kicker">Profile Editor</p>
+          <h3 id="profileEditorTitle">Edit Student Profile</h3>
+          <p class="profile-editor-subtitle">Update your personal and academic details in a focused popup.</p>
+        </div>
+        <button class="icon-btn" id="profileEditorClose" type="button" aria-label="Close profile editor">
+          <span class="svg-icon" data-icon="logout"></span>
+        </button>
+      </div>
+      <div class="modal-body profile-editor-body">
+        <div class="profile-editor-banner">
+          <div class="profile-editor-photo">
+            <div class="profile-photo-circle profile-editor-photo-circle" id="profileEditorPhotoCircle">
+              <img id="profileEditorPhotoPreview" alt="Profile photo preview" src="">
+            </div>
+          </div>
+          <div class="profile-editor-copy">
+            <strong id="profileEditorPhotoName">Your Profile Photo</strong>
+            <p>Upload a clear facial portrait. It is used for identity verification and certificate records.</p>
+            <div class="profile-photo-actions profile-editor-actions">
+              <input type="file" id="profileEditorPhotoInput" accept="image/*" hidden>
+              <button type="button" class="btn primary small" id="profileEditorPhotoUploadBtn">Upload Photo</button>
+              <button type="button" class="btn ghost small" id="profileEditorPhotoRemoveBtn">Remove</button>
+            </div>
+          </div>
+        </div>
+        <form class="profile-form profile-editor-form" id="profileEditorForm">
+          <label>
+            <span>Full Name</span>
+            <input type="text" id="profileEditorFullName" name="fullName">
+          </label>
+          <label>
+            <span>Email</span>
+            <input type="email" id="profileEditorEmail" name="email" readonly>
+          </label>
+          <label>
+            <span>Phone</span>
+            <input type="text" id="profileEditorPhone" name="phone">
+          </label>
+          <label>
+            <span>College Name</span>
+            <input type="text" id="profileEditorCollegeName" name="collegeName">
+          </label>
+          <label>
+            <span>Department</span>
+            <input type="text" id="profileEditorDepartment" name="department">
+          </label>
+          <label>
+            <span>Year</span>
+            <input type="text" id="profileEditorYear" name="year">
+          </label>
+          <label>
+            <span>Roll Number</span>
+            <input type="text" id="profileEditorRollNumber" name="rollNumber">
+          </label>
+          <label>
+            <span>Section</span>
+            <input type="text" id="profileEditorSection" name="section">
+          </label>
+        </form>
+      </div>
+      <div class="modal-foot profile-editor-foot">
+        <button class="btn ghost" id="profileEditorCancel" type="button">Cancel</button>
+        <button class="btn primary" id="profileEditorSave" type="button">Save Profile</button>
+      </div>
     </div>
   </div>
 

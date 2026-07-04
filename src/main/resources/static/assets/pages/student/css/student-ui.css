@@ -3031,6 +3031,95 @@ body.student-page .performance-badge {
   box-shadow: 0 14px 28px rgba(59, 130, 246, 0.12);
 }
 
+.profile-editor-card {
+  width: min(1080px, 100%);
+  max-height: calc(100dvh - 28px);
+}
+
+.profile-editor-head {
+  align-items: flex-start;
+}
+
+.profile-editor-subtitle {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.96rem;
+  line-height: 1.5;
+  max-width: 52ch;
+}
+
+.profile-editor-body {
+  display: grid;
+  gap: 18px;
+  padding-bottom: 18px;
+  overflow: auto;
+}
+
+.profile-editor-banner {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid var(--border-card);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top left, rgba(59,130,246,0.06), transparent 28%),
+    var(--card-elevated);
+}
+
+.profile-editor-photo-circle {
+  width: 140px;
+  height: 140px;
+  border-radius: 30px;
+  overflow: hidden;
+}
+
+.profile-editor-photo-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.profile-editor-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-editor-copy strong {
+  font-size: 1.2rem;
+  color: var(--text-primary);
+}
+
+.profile-editor-copy p {
+  margin: 0;
+  color: var(--text-secondary);
+  max-width: 64ch;
+  line-height: 1.55;
+}
+
+.profile-editor-actions {
+  margin-top: 4px;
+}
+
+.profile-editor-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profile-editor-form label {
+  min-width: 0;
+}
+
+.profile-editor-form input[readonly] {
+  cursor: not-allowed;
+}
+
+.profile-editor-foot {
+  justify-content: flex-end;
+  gap: 12px;
+}
+
 .toast-stack {
   position: fixed;
   right: 18px;
@@ -8870,6 +8959,12 @@ body.student-page #profile .profile-photo-actions {
   gap: 12px;
 }
 
+body.student-page #profile .profile-photo-actions .tag {
+  min-height: 42px;
+  padding-inline: 16px;
+  border-radius: 999px;
+}
+
 body.student-page #profile .profile-photo-actions .btn {
   min-height: 42px;
   padding-inline: 16px;
@@ -8916,6 +9011,22 @@ body.student-page #profile .profile-form input:focus {
 body.student-page #profile .profile-form input[readonly] {
   background: #fbfbfb;
   color: #111111;
+}
+
+body.student-page .profile-editor-card .profile-editor-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body.student-page .profile-editor-card .profile-editor-form label {
+  margin: 0;
+}
+
+body.student-page .profile-editor-card .profile-editor-form input {
+  min-height: 48px;
+}
+
+body.student-page .profile-editor-card .profile-editor-form input[readonly] {
+  background: #fafafa;
 }
 
 body.student-page #profile .profile-form input:not([readonly]):hover {
@@ -10494,6 +10605,621 @@ html[data-theme="dark"] body.student-page #my-exams .timing-item {
   border-color: rgba(148, 163, 184, 0.16) !important;
 }
 
+body.student-page #exams .exam-card,
+body.student-page #my-exams .exam-card {
+  padding: 18px !important;
+  border-radius: 24px !important;
+  border: 1px solid #dfe6f1 !important;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%) !important;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04) !important;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+body.student-page #exams .exam-card:hover,
+body.student-page #my-exams .exam-card:hover {
+  transform: translateY(-3px);
+  border-color: #cfd9e8 !important;
+  box-shadow: 0 22px 44px rgba(15, 23, 42, 0.08) !important;
+}
+
+body.student-page #exams .exam-card-shell,
+body.student-page #my-exams .exam-card-shell {
+  display: grid;
+  gap: 16px;
+}
+
+body.student-page #exams .exam-card-head,
+body.student-page #my-exams .exam-card-head {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+}
+
+body.student-page #exams .exam-card-icon-wrap,
+body.student-page #my-exams .exam-card-icon-wrap {
+  width: 84px;
+  height: 84px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #1d4c9a 0%, #234c98 42%, #3a6dd6 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 10px 22px rgba(30, 64, 175, 0.15);
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+}
+
+body.student-page #exams .exam-card-icon,
+body.student-page #my-exams .exam-card-icon {
+  color: #ffffff;
+}
+
+body.student-page #exams .exam-card-icon .svg-icon,
+body.student-page #my-exams .exam-card-icon .svg-icon {
+  width: 46px;
+  height: 46px;
+}
+
+body.student-page #exams .exam-card-title-block,
+body.student-page #my-exams .exam-card-title-block {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+body.student-page #exams .exam-title,
+body.student-page #my-exams .exam-title {
+  margin: 0;
+  font-size: clamp(1.15rem, 1.8vw, 1.6rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  color: #13294b;
+  font-weight: 900;
+}
+
+body.student-page #exams .exam-subject,
+body.student-page #my-exams .exam-subject {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #5f6d83;
+  font-weight: 600;
+}
+
+body.student-page #exams .exam-title-accent,
+body.student-page #my-exams .exam-title-accent {
+  width: 48px;
+  height: 3px;
+  border-radius: 999px;
+  background: #2f80ff;
+  display: block;
+  margin-top: 6px;
+}
+
+body.student-page #exams .exam-card-head-actions,
+body.student-page #my-exams .exam-card-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+body.student-page #exams .exam-status-chip,
+body.student-page #my-exams .exam-status-chip {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  font-size: 0.88rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #edf4ff 0%, #deebff 100%);
+  color: #214a8a;
+}
+
+body.student-page #exams .exam-status-chip.closed,
+body.student-page #my-exams .exam-status-chip.closed {
+  background: linear-gradient(180deg, #edf2f8 0%, #e8edf5 100%);
+  color: #344761;
+}
+
+body.student-page #exams .exam-status-chip.resume,
+body.student-page #my-exams .exam-status-chip.resume {
+  background: linear-gradient(180deg, #fff5ea 0%, #ffe9d6 100%);
+  color: #b45309;
+}
+
+body.student-page #exams .exam-status-chip.available,
+body.student-page #my-exams .exam-status-chip.available {
+  background: linear-gradient(180deg, #eefbf6 0%, #ddf7eb 100%);
+  color: #0f8a51;
+}
+
+body.student-page #exams .exam-status-chip-icon,
+body.student-page #my-exams .exam-status-chip-icon {
+  display: inline-grid;
+  place-items: center;
+}
+
+body.student-page #exams .exam-status-chip-icon .svg-icon,
+body.student-page #my-exams .exam-status-chip-icon .svg-icon {
+  width: 18px;
+  height: 18px;
+}
+
+body.student-page #exams .exam-card-menu-btn,
+body.student-page #my-exams .exam-card-menu-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.05);
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+
+body.student-page #exams .exam-card-menu-btn:hover,
+body.student-page #my-exams .exam-card-menu-btn:hover {
+  background: #f8fafc !important;
+  border-color: #d7e0ec !important;
+}
+
+body.student-page #exams .exam-card-menu-btn::before,
+body.student-page #my-exams .exam-card-menu-btn::before,
+body.student-page #exams .exam-card-menu-btn::after,
+body.student-page #my-exams .exam-card-menu-btn::after {
+  content: none !important;
+}
+
+body.student-page #exams .exam-card-code-row,
+body.student-page #my-exams .exam-card-code-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+body.student-page #exams .exam-code-pill,
+body.student-page #my-exams .exam-code-pill {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #d8e3f5;
+  background: linear-gradient(180deg, #f8fbff 0%, #f4f7fc 100%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.86rem;
+  font-weight: 900;
+  color: #13294b;
+}
+
+body.student-page #exams .exam-code-pill--primary,
+body.student-page #my-exams .exam-code-pill--primary {
+  color: #0f2448;
+}
+
+body.student-page #exams .exam-code-pill--muted,
+body.student-page #my-exams .exam-code-pill--muted {
+  color: #344761;
+  min-width: 112px;
+  justify-content: center;
+}
+
+body.student-page #exams .exam-code-pill-icon,
+body.student-page #my-exams .exam-code-pill-icon {
+  display: inline-grid;
+  place-items: center;
+  color: #2757d7;
+}
+
+body.student-page #exams .exam-code-pill-icon .svg-icon,
+body.student-page #my-exams .exam-code-pill-icon .svg-icon {
+  width: 16px;
+  height: 16px;
+}
+
+body.student-page #exams .exam-verify-banner,
+body.student-page #my-exams .exam-verify-banner {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid #f7dfb4;
+  background: linear-gradient(180deg, #fff8eb 0%, #fff4e6 100%);
+  color: #cc6f0b;
+}
+
+body.student-page #exams .exam-verify-icon,
+body.student-page #my-exams .exam-verify-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ffbf4d 0%, #ffa61f 100%);
+  display: grid;
+  place-items: center;
+  color: #fff6e8;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35);
+}
+
+body.student-page #exams .exam-verify-icon .svg-icon,
+body.student-page #my-exams .exam-verify-icon .svg-icon,
+body.student-page #exams .exam-verify-chevron .svg-icon,
+body.student-page #my-exams .exam-verify-chevron .svg-icon {
+  width: 16px;
+  height: 16px;
+}
+
+body.student-page #exams .exam-verify-copy,
+body.student-page #my-exams .exam-verify-copy {
+  display: grid;
+  gap: 4px;
+}
+
+body.student-page #exams .exam-verify-copy strong,
+body.student-page #my-exams .exam-verify-copy strong {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: #cd6d00;
+}
+
+body.student-page #exams .exam-verify-copy span,
+body.student-page #my-exams .exam-verify-copy span {
+  color: #5f6d83;
+  font-size: 0.82rem;
+}
+
+body.student-page #exams .exam-verify-chevron,
+body.student-page #my-exams .exam-verify-chevron {
+  display: inline-grid;
+  place-items: center;
+  color: #61718a;
+}
+
+body.student-page #exams .exam-attempts-panel,
+body.student-page #my-exams .exam-attempts-panel {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr) 72px;
+  gap: 14px;
+  align-items: center;
+  padding: 18px 18px;
+  border-radius: 20px;
+  border: 1px solid #f6d0d5;
+  background: linear-gradient(180deg, #fff7f8 0%, #fff3f4 100%);
+}
+
+body.student-page #exams .exam-attempts-panel.is-open,
+body.student-page #my-exams .exam-attempts-panel.is-open {
+  border-color: #bcebd7;
+  background: linear-gradient(180deg, #f5fff9 0%, #eefbf5 100%);
+}
+
+body.student-page #exams .exam-attempts-panel.is-resume,
+body.student-page #my-exams .exam-attempts-panel.is-resume {
+  border-color: #f7d7b1;
+  background: linear-gradient(180deg, #fff9f0 0%, #fff6eb 100%);
+}
+
+body.student-page #exams .exam-attempts-icon,
+body.student-page #my-exams .exam-attempts-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: #ffd8dc;
+  display: grid;
+  place-items: center;
+  color: #e11d48;
+}
+
+body.student-page #exams .exam-attempts-panel.is-open .exam-attempts-icon,
+body.student-page #my-exams .exam-attempts-panel.is-open .exam-attempts-icon {
+  background: #dff7ec;
+  color: #0f8a51;
+}
+
+body.student-page #exams .exam-attempts-icon .svg-icon,
+body.student-page #my-exams .exam-attempts-icon .svg-icon {
+  width: 22px;
+  height: 22px;
+}
+
+body.student-page #exams .exam-attempts-copy,
+body.student-page #my-exams .exam-attempts-copy {
+  display: grid;
+  gap: 10px;
+  align-self: center;
+}
+
+body.student-page #exams .exam-attempts-copy h4,
+body.student-page #my-exams .exam-attempts-copy h4 {
+  margin: 0;
+  font-size: clamp(1rem, 1.3vw, 1.25rem);
+  line-height: 1.05;
+  color: #0f2448;
+  font-weight: 900;
+}
+
+body.student-page #exams .exam-attempts-copy strong,
+body.student-page #my-exams .exam-attempts-copy strong {
+  color: #dc2626;
+}
+
+body.student-page #exams .exam-attempts-copy p,
+body.student-page #my-exams .exam-attempts-copy p {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  color: #dc2626;
+}
+
+body.student-page #exams .exam-attempts-panel.is-open .exam-attempts-copy p,
+body.student-page #my-exams .exam-attempts-panel.is-open .exam-attempts-copy p {
+  color: #0f8a51;
+}
+
+body.student-page #exams .exam-attempts-ring,
+body.student-page #my-exams .exam-attempts-ring {
+  --attempt-pct: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: conic-gradient(#e63946 calc(var(--attempt-pct) * 1%), #f1f5f9 0);
+  display: grid;
+  place-items: center;
+}
+
+body.student-page #exams .exam-attempts-ring-inner,
+body.student-page #my-exams .exam-attempts-ring-inner {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  box-shadow: inset 0 0 0 1px #eef2f7;
+}
+
+body.student-page #exams .exam-attempts-ring-inner strong,
+body.student-page #my-exams .exam-attempts-ring-inner strong {
+  font-size: 0.9rem;
+  color: #0f2448;
+  line-height: 1;
+}
+
+body.student-page #exams .exam-attempts-ring-inner span,
+body.student-page #my-exams .exam-attempts-ring-inner span {
+  margin-top: 1px;
+  font-size: 0.6rem;
+  font-weight: 900;
+  color: #475569;
+  letter-spacing: 0.02em;
+}
+
+body.student-page #exams .exam-schedule-grid,
+body.student-page #my-exams .exam-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+body.student-page #exams .exam-schedule-card,
+body.student-page #my-exams .exam-schedule-card {
+  min-height: 146px;
+  padding: 14px 14px 12px;
+  border-radius: 18px;
+  border: 1px solid #e1e8f2;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f9fd 100%);
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+body.student-page #exams .exam-schedule-icon,
+body.student-page #my-exams .exam-schedule-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #2f80ff;
+  background: rgba(47, 128, 255, 0.12);
+}
+
+body.student-page #exams .exam-schedule-icon.indigo,
+body.student-page #my-exams .exam-schedule-icon.indigo {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.12);
+}
+
+body.student-page #exams .exam-schedule-icon.green,
+body.student-page #my-exams .exam-schedule-icon.green {
+  color: #0f9d58;
+  background: rgba(15, 157, 88, 0.12);
+}
+
+body.student-page #exams .exam-schedule-icon .svg-icon,
+body.student-page #my-exams .exam-schedule-icon .svg-icon {
+  width: 18px;
+  height: 18px;
+}
+
+body.student-page #exams .exam-schedule-label,
+body.student-page #my-exams .exam-schedule-label {
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #687487;
+  text-transform: uppercase;
+}
+
+body.student-page #exams .exam-schedule-value,
+body.student-page #my-exams .exam-schedule-value {
+  font-size: clamp(0.95rem, 1.2vw, 1.18rem);
+  line-height: 1.05;
+  font-weight: 900;
+  color: #0f2448;
+}
+
+body.student-page #exams .exam-schedule-sub,
+body.student-page #my-exams .exam-schedule-sub {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px dashed #dde5ef;
+  color: #7a889b;
+  font-size: 0.72rem;
+}
+
+body.student-page #exams .exam-footer-card,
+body.student-page #my-exams .exam-footer-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  min-height: 88px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid #e5e9f0;
+  background:
+    radial-gradient(circle at 4% 50%, rgba(15, 23, 42, 0.06) 0 2px, transparent 2px) 0 0 / 18px 18px,
+    radial-gradient(circle at 96% 50%, rgba(15, 23, 42, 0.06) 0 2px, transparent 2px) 0 0 / 18px 18px,
+    linear-gradient(180deg, #ffffff 0%, #f8f9fd 100%);
+}
+
+body.student-page #exams .exam-footer-icon,
+body.student-page #my-exams .exam-footer-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #e6ebf2;
+  display: grid;
+  place-items: center;
+  color: #475569;
+}
+
+body.student-page #exams .exam-footer-icon .svg-icon,
+body.student-page #my-exams .exam-footer-icon .svg-icon {
+  width: 18px;
+  height: 18px;
+}
+
+body.student-page #exams .exam-footer-copy,
+body.student-page #my-exams .exam-footer-copy {
+  display: grid;
+  gap: 10px;
+}
+
+body.student-page #exams .exam-footer-copy strong,
+body.student-page #my-exams .exam-footer-copy strong {
+  font-size: 1rem;
+  line-height: 1.05;
+  color: #0f2448;
+  font-weight: 900;
+}
+
+body.student-page #exams .exam-footer-copy span,
+body.student-page #my-exams .exam-footer-copy span {
+  color: #6a7686;
+  font-size: 0.84rem;
+}
+
+body.student-page #exams .exam-card .exam-primary-action,
+body.student-page #my-exams .exam-card .exam-primary-action,
+body.student-page #exams .exam-card .exam-info-btn,
+body.student-page #my-exams .exam-card .exam-info-btn {
+  display: none !important;
+}
+
+html[data-theme="dark"] body.student-page #exams .exam-card,
+html[data-theme="dark"] body.student-page #my-exams .exam-card {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.97) 0%, rgba(15, 23, 42, 0.93) 100%) !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.35) !important;
+}
+
+html[data-theme="dark"] body.student-page #exams .exam-title,
+html[data-theme="dark"] body.student-page #my-exams .exam-title,
+html[data-theme="dark"] body.student-page #exams .exam-schedule-value,
+html[data-theme="dark"] body.student-page #my-exams .exam-schedule-value,
+html[data-theme="dark"] body.student-page #exams .exam-footer-copy strong,
+html[data-theme="dark"] body.student-page #my-exams .exam-footer-copy strong,
+html[data-theme="dark"] body.student-page #exams .exam-attempts-copy h4,
+html[data-theme="dark"] body.student-page #my-exams .exam-attempts-copy h4 {
+  color: #f8fafc !important;
+}
+
+html[data-theme="dark"] body.student-page #exams .exam-subject,
+html[data-theme="dark"] body.student-page #my-exams .exam-subject,
+html[data-theme="dark"] body.student-page #exams .exam-schedule-sub,
+html[data-theme="dark"] body.student-page #my-exams .exam-schedule-sub,
+html[data-theme="dark"] body.student-page #exams .exam-footer-copy span,
+html[data-theme="dark"] body.student-page #my-exams .exam-footer-copy span {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] body.student-page #exams .exam-card-menu-btn,
+html[data-theme="dark"] body.student-page #my-exams .exam-card-menu-btn {
+  background: rgba(15, 23, 42, 0.88) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme="dark"] body.student-page #exams .exam-code-pill,
+html[data-theme="dark"] body.student-page #my-exams .exam-code-pill,
+html[data-theme="dark"] body.student-page #exams .exam-schedule-card,
+html[data-theme="dark"] body.student-page #my-exams .exam-schedule-card,
+html[data-theme="dark"] body.student-page #exams .exam-footer-card,
+html[data-theme="dark"] body.student-page #my-exams .exam-footer-card {
+  background: rgba(17, 24, 39, 0.94) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+html[data-theme="dark"] body.student-page #exams .exam-attempts-panel,
+html[data-theme="dark"] body.student-page #my-exams .exam-attempts-panel {
+  background: linear-gradient(180deg, rgba(70, 20, 24, 0.45) 0%, rgba(49, 16, 18, 0.42) 100%) !important;
+  border-color: rgba(248, 113, 113, 0.22) !important;
+}
+
+html[data-theme="dark"] body.student-page #exams .exam-attempts-panel.is-open,
+html[data-theme="dark"] body.student-page #my-exams .exam-attempts-panel.is-open {
+  background: linear-gradient(180deg, rgba(11, 48, 36, 0.5) 0%, rgba(8, 39, 29, 0.45) 100%) !important;
+  border-color: rgba(74, 222, 128, 0.22) !important;
+}
+
+html[data-theme="dark"] body.student-page #exams .exam-verify-banner,
+html[data-theme="dark"] body.student-page #my-exams .exam-verify-banner {
+  background: linear-gradient(180deg, rgba(88, 57, 10, 0.36) 0%, rgba(72, 47, 9, 0.32) 100%) !important;
+  border-color: rgba(251, 191, 36, 0.22) !important;
+}
+
+html[data-theme="dark"] body.student-page #exams .exam-schedule-icon.blue,
+html[data-theme="dark"] body.student-page #my-exams .exam-schedule-icon.blue,
+html[data-theme="dark"] body.student-page #exams .exam-schedule-icon.indigo,
+html[data-theme="dark"] body.student-page #my-exams .exam-schedule-icon.indigo,
+html[data-theme="dark"] body.student-page #exams .exam-schedule-icon.green,
+html[data-theme="dark"] body.student-page #my-exams .exam-schedule-icon.green {
+  background: rgba(59, 130, 246, 0.16) !important;
+  color: #93c5fd !important;
+}
+
+html[data-theme="dark"] body.student-page #exams .exam-footer-icon,
+html[data-theme="dark"] body.student-page #my-exams .exam-footer-icon {
+  background: rgba(71, 85, 105, 0.75) !important;
+  color: #e2e8f0 !important;
+}
+
 html[data-theme="dark"] body.student-page #results .results-table thead th,
 html[data-theme="dark"] body.student-page #results .results-table tbody td {
   background: transparent !important;
@@ -10509,4 +11235,404 @@ html[data-theme="dark"] body.student-page #results .results-table tbody tr:hover
 html[data-theme="dark"] body.student-page .theme-toggle-btn.active {
   background: #f8fafc !important;
   color: #111827 !important;
+}
+
+body.student-page #my-exams .exam-card {
+  padding: 12px !important;
+  border-radius: 20px !important;
+}
+
+body.student-page #my-exams .exam-card-shell {
+  gap: 10px !important;
+}
+
+body.student-page #my-exams .exam-card-head {
+  grid-template-columns: 68px minmax(0, 1fr) auto !important;
+  gap: 10px !important;
+}
+
+body.student-page #my-exams .exam-card-icon-wrap {
+  width: 68px !important;
+  height: 68px !important;
+  border-radius: 16px !important;
+}
+
+body.student-page #my-exams .exam-card-icon .svg-icon {
+  width: 38px !important;
+  height: 38px !important;
+}
+
+body.student-page #my-exams .exam-title {
+  font-size: 1rem !important;
+  line-height: 1.05 !important;
+}
+
+body.student-page #my-exams .exam-subject {
+  font-size: 0.76rem !important;
+}
+
+body.student-page #my-exams .exam-title-accent {
+  width: 34px !important;
+  height: 2px !important;
+  margin-top: 4px !important;
+}
+
+body.student-page #my-exams .exam-status-chip {
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  font-size: 0.7rem !important;
+  gap: 6px !important;
+}
+
+body.student-page #my-exams .exam-status-chip-icon .svg-icon {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+body.student-page #my-exams .exam-card-menu-btn {
+  width: 34px !important;
+  height: 34px !important;
+  font-size: 18px !important;
+}
+
+body.student-page #my-exams .exam-card-code-row {
+  gap: 8px !important;
+}
+
+body.student-page #my-exams .exam-code-pill {
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  font-size: 0.7rem !important;
+  gap: 6px !important;
+}
+
+body.student-page #my-exams .exam-code-pill--muted {
+  min-width: 0 !important;
+  padding-inline: 12px !important;
+}
+
+body.student-page #my-exams .exam-verify-banner {
+  grid-template-columns: 32px minmax(0, 1fr) auto !important;
+  padding: 10px 12px !important;
+  gap: 8px !important;
+  border-radius: 14px !important;
+}
+
+body.student-page #my-exams .exam-verify-icon {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+body.student-page #my-exams .exam-verify-copy strong {
+  font-size: 0.7rem !important;
+}
+
+body.student-page #my-exams .exam-verify-copy span {
+  font-size: 0.66rem !important;
+  line-height: 1.25 !important;
+}
+
+body.student-page #my-exams .exam-attempts-panel {
+  grid-template-columns: 40px minmax(0, 1fr) 52px !important;
+  padding: 10px 12px !important;
+  gap: 8px !important;
+  border-radius: 14px !important;
+}
+
+body.student-page #my-exams .exam-attempts-icon {
+  width: 36px !important;
+  height: 36px !important;
+}
+
+body.student-page #my-exams .exam-attempts-icon .svg-icon {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+body.student-page #my-exams .exam-attempts-copy h4 {
+  font-size: 0.85rem !important;
+}
+
+body.student-page #my-exams .exam-attempts-copy p {
+  font-size: 0.62rem !important;
+}
+
+body.student-page #my-exams .exam-attempts-ring {
+  width: 52px !important;
+  height: 52px !important;
+}
+
+body.student-page #my-exams .exam-attempts-ring-inner {
+  width: 38px !important;
+  height: 38px !important;
+}
+
+body.student-page #my-exams .exam-attempts-ring-inner strong {
+  font-size: 0.62rem !important;
+}
+
+body.student-page #my-exams .exam-attempts-ring-inner span {
+  font-size: 0.45rem !important;
+}
+
+body.student-page #my-exams .exam-schedule-grid {
+  gap: 8px !important;
+}
+
+body.student-page #my-exams .exam-schedule-card {
+  min-height: 92px !important;
+  padding: 10px !important;
+  border-radius: 14px !important;
+  gap: 5px !important;
+}
+
+body.student-page #my-exams .exam-schedule-icon {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 9px !important;
+}
+
+body.student-page #my-exams .exam-schedule-icon .svg-icon {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+body.student-page #my-exams .exam-schedule-label {
+  font-size: 0.52rem !important;
+  letter-spacing: 0.12em !important;
+}
+
+body.student-page #my-exams .exam-schedule-value {
+  font-size: 0.82rem !important;
+}
+
+body.student-page #my-exams .exam-schedule-sub {
+  font-size: 0.58rem !important;
+  padding-top: 6px !important;
+}
+
+body.student-page #my-exams .exam-footer-card {
+  min-height: 64px !important;
+  padding: 10px 12px !important;
+  grid-template-columns: 34px minmax(0, 1fr) !important;
+  gap: 10px !important;
+  border-radius: 14px !important;
+}
+
+body.student-page #my-exams .exam-footer-icon {
+  width: 30px !important;
+  height: 30px !important;
+}
+
+body.student-page #my-exams .exam-footer-icon .svg-icon {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+body.student-page #my-exams .exam-footer-copy strong {
+  font-size: 0.8rem !important;
+}
+
+body.student-page #my-exams .exam-footer-copy span {
+  font-size: 0.66rem !important;
+}
+
+body.student-page #exams .exam-card {
+  padding: 12px !important;
+  border-radius: 20px !important;
+}
+
+body.student-page #exams .exam-card-shell {
+  gap: 10px !important;
+}
+
+body.student-page #exams .exam-card-head {
+  grid-template-columns: 68px minmax(0, 1fr) auto !important;
+  gap: 10px !important;
+}
+
+body.student-page #exams .exam-card-icon-wrap {
+  width: 68px !important;
+  height: 68px !important;
+  border-radius: 16px !important;
+}
+
+body.student-page #exams .exam-card-icon .svg-icon {
+  width: 38px !important;
+  height: 38px !important;
+}
+
+body.student-page #exams .exam-title {
+  font-size: 1rem !important;
+  line-height: 1.05 !important;
+}
+
+body.student-page #exams .exam-subject {
+  font-size: 0.76rem !important;
+}
+
+body.student-page #exams .exam-title-accent {
+  width: 34px !important;
+  height: 2px !important;
+  margin-top: 4px !important;
+}
+
+body.student-page #exams .exam-status-chip {
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  font-size: 0.7rem !important;
+  gap: 6px !important;
+}
+
+body.student-page #exams .exam-status-chip-icon .svg-icon {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+body.student-page #exams .exam-card-menu-btn {
+  width: 34px !important;
+  height: 34px !important;
+  font-size: 18px !important;
+}
+
+body.student-page #exams .exam-card-code-row {
+  gap: 8px !important;
+}
+
+body.student-page #exams .exam-code-pill {
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  font-size: 0.7rem !important;
+  gap: 6px !important;
+}
+
+body.student-page #exams .exam-code-pill--muted {
+  min-width: 0 !important;
+  padding-inline: 12px !important;
+}
+
+body.student-page #exams .exam-verify-banner {
+  grid-template-columns: 32px minmax(0, 1fr) auto !important;
+  padding: 10px 12px !important;
+  gap: 8px !important;
+  border-radius: 14px !important;
+}
+
+body.student-page #exams .exam-verify-icon {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+body.student-page #exams .exam-verify-copy strong {
+  font-size: 0.7rem !important;
+}
+
+body.student-page #exams .exam-verify-copy span {
+  font-size: 0.66rem !important;
+  line-height: 1.25 !important;
+}
+
+body.student-page #exams .exam-attempts-panel {
+  grid-template-columns: 40px minmax(0, 1fr) 52px !important;
+  padding: 10px 12px !important;
+  gap: 8px !important;
+  border-radius: 14px !important;
+}
+
+body.student-page #exams .exam-attempts-icon {
+  width: 36px !important;
+  height: 36px !important;
+}
+
+body.student-page #exams .exam-attempts-icon .svg-icon {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+body.student-page #exams .exam-attempts-copy h4 {
+  font-size: 0.85rem !important;
+}
+
+body.student-page #exams .exam-attempts-copy p {
+  font-size: 0.62rem !important;
+}
+
+body.student-page #exams .exam-attempts-ring {
+  width: 52px !important;
+  height: 52px !important;
+}
+
+body.student-page #exams .exam-attempts-ring-inner {
+  width: 38px !important;
+  height: 38px !important;
+}
+
+body.student-page #exams .exam-attempts-ring-inner strong {
+  font-size: 0.62rem !important;
+}
+
+body.student-page #exams .exam-attempts-ring-inner span {
+  font-size: 0.45rem !important;
+}
+
+body.student-page #exams .exam-schedule-grid {
+  gap: 8px !important;
+}
+
+body.student-page #exams .exam-schedule-card {
+  min-height: 92px !important;
+  padding: 10px !important;
+  border-radius: 14px !important;
+  gap: 5px !important;
+}
+
+body.student-page #exams .exam-schedule-icon {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 9px !important;
+}
+
+body.student-page #exams .exam-schedule-icon .svg-icon {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+body.student-page #exams .exam-schedule-label {
+  font-size: 0.52rem !important;
+  letter-spacing: 0.12em !important;
+}
+
+body.student-page #exams .exam-schedule-value {
+  font-size: 0.82rem !important;
+}
+
+body.student-page #exams .exam-schedule-sub {
+  font-size: 0.58rem !important;
+  padding-top: 6px !important;
+}
+
+body.student-page #exams .exam-footer-card {
+  min-height: 64px !important;
+  padding: 10px 12px !important;
+  grid-template-columns: 34px minmax(0, 1fr) !important;
+  gap: 10px !important;
+  border-radius: 14px !important;
+}
+
+body.student-page #exams .exam-footer-icon {
+  width: 30px !important;
+  height: 30px !important;
+}
+
+body.student-page #exams .exam-footer-icon .svg-icon {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+body.student-page #exams .exam-footer-copy strong {
+  font-size: 0.8rem !important;
+}
+
+body.student-page #exams .exam-footer-copy span {
+  font-size: 0.66rem !important;
 }
