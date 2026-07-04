@@ -171,6 +171,18 @@ ensureAuthGuard();
   };
 
   const dom = {};
+  let examModalSubmitting = false;
+
+  const setExamModalSubmitting = (busy) => {
+    examModalSubmitting = busy;
+    ["mxCancel", "mxDraft", "mxPublish", "mxPrev", "mxNext"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = busy;
+    });
+    document.querySelectorAll(".stage-chip").forEach((chip) => {
+      chip.disabled = busy;
+    });
+  };
 
   const ids = () => {
     const map = {};
@@ -503,8 +515,7 @@ ensureAuthGuard();
       return await API.request(path, config);
     } catch (err) {
       if (!silent) {
-        // toast is a global function in teacher-dashboard.js
-        if (typeof toast === 'function') toast(err.message, "error");
+        console.error(`Teacher API error [${path}]:`, err);
       }
       throw err;
     }
@@ -1678,11 +1689,11 @@ ensureAuthGuard();
     openModal(`
       <div class="exam-create-wrap">
         <h3>${isEdit ? "Edit Exam" : "Create New Exam"}</h3>
-        <p>${isEdit ? "Update exam details below." : "Fill details and save as draft or publish."}</p>
+        <p>${isEdit ? "Update exam details below." : "Fill details and create a draft first. Publish after uploading questions."}</p>
         <div class="exam-stage-nav">
-          <button class="stage-chip is-active" data-stage-go="1">1. Basic</button>
-          <button class="stage-chip" data-stage-go="2">2. Marks</button>
-          <button class="stage-chip" data-stage-go="3">3. Schedule</button>
+          <button type="button" class="stage-chip is-active" data-stage-go="1">1. Basic</button>
+          <button type="button" class="stage-chip" data-stage-go="2">2. Marks</button>
+          <button type="button" class="stage-chip" data-stage-go="3">3. Schedule</button>
         </div>
         <form id="examHoverForm" class="exam-form-grid">
           <div class="exam-stage-pane is-active" data-stage="1">
@@ -1715,14 +1726,14 @@ ensureAuthGuard();
           </div>
         </form>
         <div class="exam-stage-actions">
-          <button id="mxPrev" class="btn ghost">Previous</button>
-          <button id="mxNext" class="btn ghost">Next</button>
+          <button id="mxPrev" type="button" class="btn ghost">Previous</button>
+          <button id="mxNext" type="button" class="btn ghost">Next</button>
         </div>
       </div>
       <div class="actions exam-create-actions">
-        <button id="mxCancel" class="btn ghost">Cancel</button>
-        <button id="mxDraft" class="btn ghost">Save Draft</button>
-        <button id="mxPublish" class="btn primary">${isEdit ? "Update / Publish" : "Create / Publish"}</button>
+        <button id="mxCancel" type="button" class="btn ghost">Cancel</button>
+        <button id="mxDraft" type="button" class="btn ghost">Save Draft</button>
+        <button id="mxPublish" type="button" class="btn primary">${isEdit ? "Update / Publish" : "Create Draft"}</button>
       </div>
     `);
     let currentStage = 1;
@@ -1770,11 +1781,14 @@ ensureAuthGuard();
       await submitExamFromModal("Draft", exam?.id || null);
     });
     document.getElementById("mxPublish").addEventListener("click", async () => {
-      await submitExamFromModal("Published", exam?.id || null);
+      await submitExamFromModal(isEdit ? "Published" : "Draft", exam?.id || null);
     });
   }
 
   async function submitExamFromModal(status, examId = null) {
+    if (examModalSubmitting) {
+      return;
+    }
     const requiredFieldIds = [
       "mxTitle", "mxSubject", "mxDescription", "mxDuration",
       "mxTotalMarks", "mxPassingMarks", "mxMaxAttempts", "mxMarksPerQuestion",
@@ -1816,63 +1830,74 @@ ensureAuthGuard();
       toast("End time must be after start time.", "error");
       return;
     }
-    await withLoading(async () => {
-      if (examId) {
-        const exam = examById(examId);
-        if (!exam) return;
-        if (status === "Published" && !exam.questionsUploaded) {
-          toast("Publish blocked: upload questions first.", "error");
-          return;
+    const requestPayload = {
+      title: payload.title,
+      description: payload.description,
+      subject: payload.subject,
+      durationMinutes: payload.durationMinutes,
+      totalMarks: payload.totalMarks,
+      passingMarks: payload.passingMarks,
+      maxAttempts: payload.maxAttempts,
+      marksPerQuestion: payload.marksPerQuestion,
+      negativeMarks: payload.negativeMarks,
+      easyQuestionCount: payload.easyQuestionCount,
+      mediumQuestionCount: payload.mediumQuestionCount,
+      difficultQuestionCount: payload.difficultQuestionCount,
+      startTime: payload.startTime,
+      endTime: payload.endTime,
+      shuffleQuestions: payload.shuffleQuestions,
+      shuffleOptions: payload.shuffleOptions
+    };
+    setExamModalSubmitting(true);
+    try {
+      await withLoading(async () => {
+        if (examId) {
+          const exam = examById(examId);
+          if (!exam) return;
+          if (status === "Published" && !exam.questionsUploaded) {
+            toast("Publish blocked: upload questions first.", "error");
+            return;
+          }
+          const apiUpdated = await api.updateExam(exam.examCode || examId, requestPayload);
+          const updatedData = apiUpdated?.data || apiUpdated?.exam || apiUpdated || {};
+          Object.assign(exam, requestPayload, {
+            id: updatedData.id != null ? String(updatedData.id) : exam.id,
+            examCode: updatedData.examCode || exam.examCode,
+            status: String(updatedData.status || payload.status || exam.status || "").toLowerCase() === "published" ? "Published" : "Draft",
+            questionsUploaded: updatedData.questionsUploaded != null ? Boolean(updatedData.questionsUploaded) : Boolean(exam.questionsUploaded),
+            createdBy: updatedData.createdBy || exam.createdBy,
+            createdDate: updatedData.createdAt || exam.createdDate,
+            duration: requestPayload.durationMinutes,
+            active: updatedData.active != null ? Boolean(updatedData.active) : payload.status === "Published",
+            easyCount: requestPayload.easyQuestionCount,
+            mediumCount: requestPayload.mediumQuestionCount,
+            hardCount: requestPayload.difficultQuestionCount
+          });
+          toast("Exam updated.");
+        } else {
+          const apiCreated = await api.createExam(requestPayload);
+          const createdData = apiCreated?.data || apiCreated?.exam || apiCreated || {};
+          if (!createdData || !createdData.id) {
+            throw new Error("Exam create API did not return a persisted exam id");
+          }
+          const persistedExam = normalizeExam({
+            ...requestPayload,
+            ...createdData
+          });
+          state.data.exams.unshift(persistedExam);
+          if (status === "Published") {
+            toast("Exam created as draft. Upload questions before publish.", "error");
+          } else {
+            toast("Exam created.");
+          }
         }
-        const apiUpdated = await api.updateExam(exam.examCode || examId, payload);
-        const updatedData = apiUpdated?.data || apiUpdated?.exam || apiUpdated || {};
-        Object.assign(exam, payload, {
-          id: updatedData.id != null ? String(updatedData.id) : exam.id,
-          examCode: updatedData.examCode || exam.examCode,
-          status: String(updatedData.status || payload.status || exam.status || "").toLowerCase() === "published" ? "Published" : "Draft",
-          questionsUploaded: updatedData.questionsUploaded != null ? Boolean(updatedData.questionsUploaded) : Boolean(exam.questionsUploaded),
-          createdBy: updatedData.createdBy || exam.createdBy,
-          createdDate: updatedData.createdAt || exam.createdDate,
-          duration: payload.durationMinutes,
-          active: payload.status === "Published",
-          easyCount: payload.easyQuestionCount,
-          mediumCount: payload.mediumQuestionCount,
-          hardCount: payload.difficultQuestionCount
-        });
-        toast("Exam updated.");
-      } else {
-        const created = {
-          id: uid("e"),
-          examCode: `EXAM-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
-          createdBy: state.teacher.name,
-          createdDate: new Date().toISOString(),
-          active: status === "Published",
-          duration: payload.durationMinutes,
-          easyCount: payload.easyQuestionCount,
-          mediumCount: payload.mediumQuestionCount,
-          hardCount: payload.difficultQuestionCount,
-          ...payload
-        };
-        if (status === "Published") {
-          created.status = "Draft";
-          toast("Exam created as draft. Upload questions before publish.", "error");
-        }
-        const apiCreated = await api.createExam(created);
-        const createdData = apiCreated?.data || apiCreated?.exam || apiCreated || {};
-        if (!createdData || !createdData.id) {
-          throw new Error("Exam create API did not return a persisted exam id");
-        }
-        const persistedExam = normalizeExam({
-          ...created,
-          ...createdData
-        });
-        state.data.exams.unshift(persistedExam);
-        toast("Exam created.");
-      }
-      closeModal();
-      renderAll();
-      addNotification(`Exam saved (${status}).`);
-    });
+        closeModal();
+        renderAll();
+        addNotification(`Exam saved (${status}).`);
+      });
+    } finally {
+      setExamModalSubmitting(false);
+    }
   }
 
   function openQuestionUploadModal(examId) {

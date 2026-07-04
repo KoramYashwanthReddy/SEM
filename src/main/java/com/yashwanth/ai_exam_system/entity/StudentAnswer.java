@@ -1,5 +1,6 @@
 package com.yashwanth.ai_exam_system.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -95,6 +96,7 @@ public class StudentAnswer {
     public Boolean getReviewMarked() { return reviewMarked; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getLastUpdated() { return lastUpdated; }
+    @JsonIgnore
     public ExamAttempt getAttempt() { return attempt; }
 
     public Boolean getVisited() { return visited; }

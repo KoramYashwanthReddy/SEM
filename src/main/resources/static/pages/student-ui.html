@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student UI | SEM AI Exam System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/core/css/themes.css">
   <link rel="stylesheet" href="../assets/pages/student/css/student-ui.css">
 </head>
@@ -19,9 +19,13 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="brand">
-          <span class="brand-badge">SEM</span>
-          <span class="brand-text">Student Console</span>
+          <span class="brand-badge">AI</span>
+          <span class="brand-text">Student Portal</span>
         </div>
+        <button id="toggle-sidebar" class="icon-btn sidebar-toggle" type="button" aria-label="Toggle sidebar">
+          <span class="svg-icon" data-icon="menu"></span>
+          <span class="toggle-text">Collapse</span>
+        </button>
       </div>
       <nav class="side-nav" id="sideNav" aria-label="Student navigation">
         <button class="nav-link active" data-section="dashboard"><span class="nav-icon" data-icon="dashboard"></span><span>Dashboard</span></button>
@@ -57,17 +61,18 @@
     <main class="main-content">
       <header class="top-nav">
         <div class="nav-left">
-          <button id="toggle-sidebar" class="icon-btn sidebar-toggle" type="button" aria-label="Toggle sidebar">
-            <span class="svg-icon" data-icon="menu"></span>
-            <span class="toggle-text">Collapse</span>
-          </button>
-          <label class="search-wrap" aria-label="Search dashboard data">
-            <span class="search-icon svg-icon" data-icon="search"></span>
-            <input id="top-nav-search" type="text" placeholder="Search exams, results, certificates..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-          </label>
+          <div class="topbar-brand">
+            <span class="topbar-kicker">Project Alpha</span>
+            <span class="topbar-divider" aria-hidden="true"></span>
+            <span class="topbar-title">Student Dashboard</span>
+          </div>
         </div>
 
         <div class="nav-right">
+          <label class="search-wrap top-search" aria-label="Search dashboard data">
+            <span class="search-icon svg-icon" data-icon="search"></span>
+            <input id="top-nav-search" type="text" placeholder="Search exams, results, certificates..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+          </label>
           <div class="live-pill"><span class="dot"></span><span id="liveClock">LIVE</span></div>
           <div class="theme-toggle" id="themeToggle" role="group" aria-label="Theme modes">
             <button type="button" class="theme-toggle-btn" data-theme-mode="light"><span class="svg-icon" data-icon="sun"></span><span>Light</span></button>
@@ -302,7 +307,7 @@
                 <input id="resultsSearch" type="text" placeholder="Search exam code..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
               </label>
               <select id="resultsFilter" class="inline-select">
-                <option value="all">All</option>
+                <option value="all">All Exams</option>
                 <option value="passed">Passed</option>
                 <option value="failed">Failed</option>
                 <option value="highscore">High Score</option>
@@ -318,6 +323,7 @@
               <strong>Result History</strong>
               <span>Sorted by the most recent submissions and filtered locally.</span>
             </div>
+            <button id="resultsFilterBtn" class="btn ghost small icon-only" type="button" aria-label="Cycle result filter" title="Cycle result filter"><span class="svg-icon" data-icon="filter"></span></button>
             <button id="resultsResetBtn" class="btn ghost small" type="button"><span class="svg-icon" data-icon="refresh"></span>Reset</button>
           </div>
 

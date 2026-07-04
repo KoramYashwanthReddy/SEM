@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="../assets/pages/home/css/animations.css">
   
   <!-- CSS Page Specific -->
-  <link rel="stylesheet" href="../assets/pages/admin/css/dashboard.css">
+  <link rel="stylesheet" href="../assets/pages/admin/css/dashboard.css?v=20260702a">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="admin-page">
@@ -475,60 +475,87 @@
         <section id="analytics-section" class="tab-content">
           <div class="section-top" style="margin-bottom: 24px">
             <div>
-              <h1 class="page-title">Intelligence <span class="text-gradient">Console.</span></h1>
+              <h1 class="page-title">Intelligence <span class="console-highlight">Console.</span></h1>
             </div>
-            <div style="display:flex; align-items:center; gap:16px">
-               <select id="analyticsExamFilter" class="form-control" style="width:240px" onchange="loadExamSpecificAnalytics(this.value)">
+            <div style="display:flex; align-items:center; gap:12px">
+               <select id="analyticsExamFilter" class="form-control" style="width:200px; height:38px;" onchange="loadExamSpecificAnalytics(this.value)">
                   <option value="global">Global Statistics</option>
                   <!-- Populate from examsData -->
                </select>
-               <button class="btn btn-primary" onclick="refreshAnalytics()"><i class="fas fa-sync-alt"></i> Refresh</button>
+               <button class="btn btn-primary btn-refresh-analytics" onclick="refreshAnalytics()"><i class="fa-solid fa-rotate"></i> Refresh</button>
             </div>
           </div>
           
-          <!-- SECTION 1: OVERVIEW CARDS (Complete Elite Suite) -->
+          <!-- SECTION 1: OVERVIEW CARDS -->
           <div class="analytics-stats-grid">
              <div class="ana-stat-card">
-                <span class="s-label">Total Results</span>
-                <span class="s-value s-animate" id="ana-results">0</span>
+                <div class="ana-icon bg-indigo-light text-indigo"><i class="fa-regular fa-file-lines"></i></div>
+                <div class="ana-info">
+                   <span class="ana-label">TOTAL RESULTS</span>
+                   <span class="ana-value" id="ana-results">0</span>
+                </div>
              </div>
              <div class="ana-stat-card">
-                <span class="s-label">Average Score</span>
-                <span class="s-value s-animate" id="ana-avg-score">0%</span>
+                <div class="ana-icon bg-green-light text-green"><i class="fa-regular fa-star"></i></div>
+                <div class="ana-info">
+                   <span class="ana-label">AVERAGE SCORE</span>
+                   <span class="ana-value" id="ana-avg-score">0%</span>
+                </div>
              </div>
              <div class="ana-stat-card">
-                <span class="s-label">Total Students</span>
-                <span class="s-value s-animate" id="ana-total-students">0</span>
+                <div class="ana-icon bg-blue-light text-blue"><i class="fa-solid fa-users"></i></div>
+                <div class="ana-info">
+                   <span class="ana-label">TOTAL STUDENTS</span>
+                   <span class="ana-value" id="ana-total-students">0</span>
+                </div>
              </div>
              <div class="ana-stat-card">
-                <span class="s-label">Total Teachers</span>
-                <span class="s-value s-animate" id="ana-total-teachers">0</span>
+                <div class="ana-icon bg-purple-light text-purple"><i class="fa-solid fa-user-tie"></i></div>
+                <div class="ana-info">
+                   <span class="ana-label">TOTAL TEACHERS</span>
+                   <span class="ana-value" id="ana-total-teachers">0</span>
+                </div>
              </div>
              <div class="ana-stat-card">
-                <span class="s-label">Total Exams</span>
-                <span class="s-value s-animate" id="ana-total-exams">0</span>
+                <div class="ana-icon bg-orange-light text-orange"><i class="fa-solid fa-file-invoice"></i></div>
+                <div class="ana-info">
+                   <span class="ana-label">TOTAL EXAMS</span>
+                   <span class="ana-value" id="ana-total-exams">0</span>
+                </div>
              </div>
              <div class="ana-stat-card">
-                <span class="s-label">Total Attempts</span>
-                <span class="s-value s-animate" id="ana-total-attempts">0</span>
+                <div class="ana-icon bg-red-light text-red"><i class="fa-solid fa-chart-line"></i></div>
+                <div class="ana-info">
+                   <span class="ana-label">TOTAL ATTEMPTS</span>
+                   <span class="ana-value" id="ana-total-attempts">0</span>
+                </div>
              </div>
              <div class="ana-stat-card">
-                <span class="s-label">Active Attempts</span>
-                <span class="s-value s-animate" id="ana-active-attempts" style="color:var(--accent-green)">0</span>
+                <div class="ana-icon bg-teal-light text-teal"><i class="fa-regular fa-circle-check"></i></div>
+                <div class="ana-info">
+                   <span class="ana-label">ACTIVE ATTEMPTS</span>
+                   <span class="ana-value text-green" id="ana-active-attempts">0</span>
+                </div>
              </div>
              <div class="ana-stat-card">
-                <span class="s-label">Pass Percentage</span>
-                <span class="s-value s-animate" id="ana-global-pass">0%</span>
+                <div class="ana-icon bg-orange-light text-orange"><i class="fa-solid fa-percent"></i></div>
+                <div class="ana-info">
+                   <span class="ana-label">PASS PERCENTAGE</span>
+                   <span class="ana-value" id="ana-global-pass">0%</span>
+                </div>
              </div>
              <div class="ana-stat-card">
-                <span class="s-label">Avg. Risk Score</span>
-                <span class="s-value s-animate" id="ana-risk-score" style="color:var(--accent-pink)">0%</span>
+                <div class="ana-icon bg-red-light text-red"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="ana-info">
+                   <span class="ana-label">AVG. RISK SCORE</span>
+                   <span class="ana-value text-red" id="ana-risk-score">0%</span>
+                </div>
              </div>
           </div>
 
           <!-- SECTION 2 & 3: PERFORMANCE & AI -->
           <div class="analytics-layout-primary">
-             <div class="glass-card" style="position:relative">
+             <div class="glass-card performance-trend-card" style="position:relative">
                 <div class="card-header">
                    <h3 class="card-title">Score Performance Trend</h3>
                    <span class="card-hint">Monthly Aggregates</span>
@@ -537,88 +564,96 @@
                    <canvas id="scoreTrendCanvas"></canvas>
                    <div id="chart-tooltip" style="position:absolute; pointer-events:none; background:var(--bg-card); border:1px solid var(--border-subtle); padding:6px 12px; border-radius:8px; display:none; z-index:100; font-size:12px; font-weight:700; box-shadow:var(--shadow-card)"></div>
                 </div>
-                <div style="padding:20px; display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; border-top:1px solid var(--border-subtle)">
-                   <div style="text-align:center">
-                      <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase">Highest Grade</div>
-                      <div id="ana-high" style="font-size:18px; font-weight:800; color:var(--accent-blue)">A+</div>
+                <div class="trend-footer-stats">
+                   <div class="trend-stat-col">
+                      <div class="trend-stat-label">HIGHEST GRADE</div>
+                      <div id="ana-high" class="trend-stat-val text-blue">A+</div>
                    </div>
-                   <div style="text-align:center">
-                      <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase">Lowest Grade</div>
-                      <div id="ana-low" style="font-size:18px; font-weight:800; color:var(--accent-pink)">D</div>
+                   <div class="trend-stat-col">
+                      <div class="trend-stat-label">LOWEST GRADE</div>
+                      <div id="ana-low" class="trend-stat-val text-red">D</div>
                    </div>
-                   <div style="text-align:center">
-                      <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase">Pass Percentage</div>
-                      <div id="ana-pass" style="font-size:18px; font-weight:800; color:var(--accent-green)">84%</div>
+                   <div class="trend-stat-col">
+                      <div class="trend-stat-label">PASS PERCENTAGE</div>
+                      <div id="ana-pass" class="trend-stat-val text-green">84%</div>
                    </div>
                 </div>
              </div>
 
-             <div class="glass-card">
+             <div class="glass-card ai-intelligence-card">
                 <div class="card-header">
                    <h3 class="card-title">AI Intelligence</h3>
-                   <span id="ana-ai-risk-badge" class="status-badge" style="background:rgba(16, 185, 129, 0.1); color:var(--accent-green)">LOW RISK</span>
+                   <span id="ana-ai-risk-badge" class="status-badge risk-low">LOW RISK</span>
                 </div>
-                <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle)">
-                   <span style="font-size:12px; color:var(--text-tertiary); font-weight:700">Topic Analysis</span>
-                   <button class="btn btn-ghost btn-sm" onclick="toggleAIInsights()" id="ai-toggle-btn" style="height:24px; padding:0 8px">Expand</button>
+                <div class="topic-analysis-header">
+                   <span class="topic-analysis-label">Topic Analysis</span>
+                   <button class="btn-expand-topic" onclick="toggleAIInsights()" id="ai-toggle-btn">Expand</button>
                 </div>
-                <div id="ai-insights-container" style="padding:16px; display:flex; flex-direction:column; gap:12px; max-height:200px; overflow:hidden; transition:max-height 0.4s ease">
+                <div id="ai-insights-container" class="ai-insights-scroll">
                    <!-- Population terminal -->
                 </div>
-                <div style="padding:16px; margin:16px; background:var(--bg-tertiary); border-radius:12px; border:1px solid var(--border-subtle)">
-                   <div style="font-size:12px; font-weight:700; color:var(--accent-blue); margin-bottom:4px">AI Recommendation:</div>
-                   <p id="ai-recommend" style="font-size:12px; color:var(--text-secondary); line-height:1.4">Loading insights...</p>
+                <div class="ai-recommendation-box">
+                   <div class="ai-box-header">
+                      <div class="ai-icon bg-indigo-light text-indigo"><i class="fa-solid fa-microchip"></i></div>
+                      <div class="ai-box-titles">
+                         <div class="ai-box-title">AI Recommendation:</div>
+                         <p id="ai-recommend" class="ai-box-desc">Loading insights...</p>
+                      </div>
+                   </div>
+                   <div class="ai-progress-bar">
+                      <div class="ai-progress-fill"></div>
+                   </div>
                 </div>
              </div>
           </div>
 
           <!-- SECTION 4 & 7: PROCTORING & LEADERBOARD -->
           <div class="analytics-layout-secondary">
-             <div class="glass-card">
+             <div class="glass-card proctoring-metrics-card">
                 <div class="card-header">
                    <h3 class="card-title">Proctoring Metrics</h3>
                    <span class="card-hint">Real-time Safety Monitor</span>
                 </div>
-                <div style="padding:20px; display:flex; flex-direction:column; gap:16px">
+                <div class="proctoring-metrics-body">
                    <div class="risk-bar-row">
-                      <div style="display:flex; justify-content:space-between; margin-bottom:8px">
-                         <span style="font-size:13px; font-weight:600">High Risk Attempts</span>
-                         <span id="ana-proctor-high" style="font-weight:700; color:var(--accent-pink)">0</span>
+                      <div class="risk-bar-header">
+                         <span class="risk-label">High Risk Attempts</span>
+                         <span id="ana-proctor-high" class="risk-val text-red">0</span>
                       </div>
-                      <div style="height:6px; background:var(--bg-tertiary); border-radius:3px; overflow:hidden">
-                         <div id="ana-proctor-bar-high" style="width:0; height:100%; background:var(--accent-pink); transition:1s"></div>
+                      <div class="risk-bar-container">
+                         <div id="ana-proctor-bar-high" class="risk-bar-fill bg-red" style="width:0;"></div>
                       </div>
                    </div>
                    <div class="risk-bar-row">
-                      <div style="display:flex; justify-content:space-between; margin-bottom:8px">
-                         <span style="font-size:13px; font-weight:600">Suspicious Students</span>
-                         <span id="ana-proctor-susp" style="font-weight:700; color:var(--accent-amber)">0</span>
+                      <div class="risk-bar-header">
+                         <span class="risk-label">Suspicious Students</span>
+                         <span id="ana-proctor-susp" class="risk-val text-orange">0</span>
                       </div>
-                      <div style="height:6px; background:var(--bg-tertiary); border-radius:3px; overflow:hidden">
-                         <div id="ana-proctor-bar-susp" style="width:0; height:100%; background:var(--accent-amber); transition:1s"></div>
+                      <div class="risk-bar-container">
+                         <div id="ana-proctor-bar-susp" class="risk-bar-fill bg-orange" style="width:0;"></div>
                       </div>
                    </div>
-                   <div style="display:flex; gap:16px; margin-top:8px; padding-top:16px; border-top:1px solid var(--border-subtle)">
-                      <div style="flex:1">
-                         <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase">Avg Cheating Score</div>
-                         <div id="ana-cheating-avg" style="font-size:18px; font-weight:800; color:var(--accent-pink)">0%</div>
+                   <div class="proctoring-footer-stats">
+                      <div class="proctoring-stat-col">
+                         <div class="proctoring-stat-label">AVG CHEATING SCORE</div>
+                         <div id="ana-cheating-avg" class="proctoring-stat-val text-red">0%</div>
                       </div>
-                      <div style="flex:1">
-                         <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase">Risk Stability</div>
-                         <div id="ana-risk-stability" style="font-size:18px; font-weight:800; color:var(--accent-green)">STABLE</div>
+                      <div class="proctoring-stat-col">
+                         <div class="proctoring-stat-label">RISK STABILITY</div>
+                         <div id="ana-risk-stability" class="proctoring-stat-val text-green">STABLE</div>
                       </div>
                    </div>
                 </div>
              </div>
 
-             <div class="glass-card">
+             <div class="glass-card top-performers-card">
                 <div class="card-header">
                    <h3 class="card-title">Top Performers</h3>
                 </div>
-                <div class="table-wrap" style="max-height:240px; overflow-y:auto">
+                <div class="table-wrap performers-table-wrap">
                    <table>
                       <thead>
-                         <tr><th>Rank</th><th>Student</th><th>Score</th><th>Grade</th></tr>
+                         <tr><th>RANK</th><th>STUDENT</th><th>SCORE</th><th>GRADE</th></tr>
                       </thead>
                       <tbody id="leaderboard-mini-list">
                          <!-- Dynamically populated -->
@@ -630,25 +665,28 @@
 
           <!-- SUMMARY TERMINALS -->
           <div class="analytics-layout-tertiary">
-             <div class="glass-card" style="padding:20px; display:flex; align-items:center; gap:16px">
-                 <div style="width:48px; height:48px; background:rgba(59, 130, 246, 0.1); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px">📈</div>
-                 <div>
-                    <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Overall Performance</div>
-                    <div style="font-size:15px; font-weight:700; color:var(--text-primary)">Stable & Improving</div>
+             <div class="glass-card summary-item-card">
+                 <div class="summary-icon bg-blue-light text-blue"><i class="fa-solid fa-chart-line"></i></div>
+                 <div class="summary-info">
+                    <div class="summary-label">OVERALL PERFORMANCE</div>
+                    <div class="summary-val">Stable & Improving</div>
+                    <div class="summary-desc">Keep up the good work!</div>
                  </div>
              </div>
-             <div class="glass-card" style="padding:20px; display:flex; align-items:center; gap:16px">
-                 <div style="width:48px; height:48px; background:rgba(16, 185, 129, 0.1); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px">🛡️</div>
-                 <div>
-                    <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">System Health</div>
-                    <div style="font-size:15px; font-weight:700; color:var(--accent-green)">99.9% Operational</div>
+             <div class="glass-card summary-item-card">
+                 <div class="summary-icon bg-green-light text-green"><i class="fa-solid fa-shield-halved"></i></div>
+                 <div class="summary-info">
+                    <div class="summary-label">SYSTEM HEALTH</div>
+                    <div class="summary-val text-green">99.9% Operational</div>
+                    <div class="summary-desc">All systems running smoothly</div>
                  </div>
              </div>
-             <div class="glass-card" style="padding:20px; display:flex; align-items:center; gap:16px">
-                 <div style="width:48px; height:48px; background:rgba(236, 72, 153, 0.1); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px">⚠️</div>
-                 <div>
-                    <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:700">Risk Indicator</div>
-                    <div style="font-size:15px; font-weight:700; color:var(--accent-pink)">No Major Breaches</div>
+             <div class="glass-card summary-item-card">
+                 <div class="summary-icon bg-red-light text-red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                 <div class="summary-info">
+                    <div class="summary-label">RISK INDICATOR</div>
+                    <div class="summary-val text-red">No Major Breaches</div>
+                    <div class="summary-desc">Your platform is secure</div>
                  </div>
              </div>
           </div>
@@ -759,46 +797,62 @@
           </div>
 
           <!-- TOP STAT CARDS -->
-          <div class="attempts-stats-grid">
-             <div class="attempts-stat-card">
-                <div class="s-label">Total Attempts</div>
-                <div class="s-value s-animate" id="att-total" style="color:var(--text-primary)">0</div>
-                <div class="s-bg-icon">📝</div>
+          <div class="stats-row" style="margin-bottom: 24px">
+             <div class="stat-card" style="border-left:4px solid var(--accent-blue)">
+                <div class="s-icon" style="background:rgba(24, 24, 27, 0.05); color:var(--text-primary)">📝</div>
+                <div class="s-info">
+                   <span class="s-label">Total Attempts</span>
+                   <span class="s-value" id="att-total">0</span>
+                </div>
              </div>
-             <div class="attempts-stat-card">
-                <div class="s-label">Active Now</div>
-                <div class="s-value s-animate" id="att-active" style="color:var(--accent-blue)">0</div>
-                <div class="s-bg-icon">🌀</div>
+             <div class="stat-card" style="border-left:4px solid var(--accent-blue)">
+                <div class="s-icon" style="background:rgba(59, 130, 246, 0.05); color:var(--accent-blue)">🌀</div>
+                <div class="s-info">
+                   <span class="s-label">Active Now</span>
+                   <span class="s-value" id="att-active">0</span>
+                </div>
              </div>
-             <div class="attempts-stat-card">
-                <div class="s-label">Completed</div>
-                <div class="s-value s-animate" id="att-completed" style="color:var(--accent-green)">0</div>
-                <div class="s-bg-icon">✅</div>
+             <div class="stat-card" style="border-left:4px solid var(--accent-green)">
+                <div class="s-icon" style="background:rgba(16, 185, 129, 0.05); color:var(--accent-green)">✅</div>
+                <div class="s-info">
+                   <span class="s-label">Completed</span>
+                   <span class="s-value" id="att-completed">0</span>
+                </div>
              </div>
-             <div class="attempts-stat-card">
-                <div class="s-label">Auto-Submitted</div>
-                <div class="s-value s-animate" id="att-auto" style="color:var(--accent-amber)">0</div>
-                <div class="s-bg-icon">⏳</div>
+             <div class="stat-card" style="border-left:4px solid var(--accent-amber)">
+                <div class="s-icon" style="background:rgba(245, 158, 11, 0.05); color:var(--accent-amber)">⏳</div>
+                <div class="s-info">
+                   <span class="s-label">Auto-Submitted</span>
+                   <span class="s-value" id="att-auto">0</span>
+                </div>
              </div>
-             <div class="attempts-stat-card">
-                <div class="s-label">Cancelled</div>
-                <div class="s-value s-animate" id="att-cancelled" style="color:var(--accent-pink)">0</div>
-                <div class="s-bg-icon">🚫</div>
+             <div class="stat-card" style="border-left:4px solid var(--accent-pink)">
+                <div class="s-icon" style="background:rgba(236, 72, 153, 0.05); color:var(--accent-pink)">🚫</div>
+                <div class="s-info">
+                   <span class="s-label">Cancelled</span>
+                   <span class="s-value" id="att-cancelled">0</span>
+                </div>
              </div>
-             <div class="attempts-stat-card">
-                <div class="s-label">High Risk</div>
-                <div class="s-value s-animate" id="att-high-risk" style="color:var(--accent-pink)">0</div>
-                <div class="s-bg-icon">⚠️</div>
+             <div class="stat-card" style="border-left:4px solid var(--accent-pink)">
+                <div class="s-icon" style="background:rgba(236, 72, 153, 0.05); color:var(--accent-pink)">⚠️</div>
+                <div class="s-info">
+                   <span class="s-label">High Risk</span>
+                   <span class="s-value" id="att-high-risk">0</span>
+                </div>
              </div>
-             <div class="attempts-stat-card">
-                <div class="s-label">Avg Score</div>
-                <div class="s-value s-animate" id="att-avg-score" style="color:var(--text-primary)">0%</div>
-                <div class="s-bg-icon">📊</div>
+             <div class="stat-card" style="border-left:4px solid var(--accent-purple)">
+                <div class="s-icon" style="background:rgba(139, 92, 246, 0.05); color:var(--accent-purple)">📊</div>
+                <div class="s-info">
+                   <span class="s-label">Avg Score</span>
+                   <span class="s-value" id="att-avg-score">0%</span>
+                </div>
              </div>
-             <div class="attempts-stat-card">
-                <div class="s-label">Avg Cheating</div>
-                <div class="s-value s-animate" id="att-avg-cheat" style="color:var(--accent-pink)">0%</div>
-                <div class="s-bg-icon">🛡️</div>
+             <div class="stat-card" style="border-left:4px solid var(--accent-pink)">
+                <div class="s-icon" style="background:rgba(236, 72, 153, 0.05); color:var(--accent-pink)">🛡️</div>
+                <div class="s-info">
+                   <span class="s-label">Avg Cheating</span>
+                   <span class="s-value" id="att-avg-cheat">0%</span>
+                </div>
              </div>
           </div>
 

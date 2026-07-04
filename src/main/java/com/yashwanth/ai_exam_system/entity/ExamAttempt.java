@@ -1,5 +1,6 @@
 package com.yashwanth.ai_exam_system.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.yashwanth.ai_exam_system.enums.AttemptStatus;
 import jakarta.persistence.*;
 
@@ -269,10 +270,12 @@ public class ExamAttempt {
         return updatedAt;
     }
 
+    @JsonIgnore
     public User getStudent() {
         return student;
     }
 
+    @JsonIgnore
     public Exam getExam() {
         return exam;
     }

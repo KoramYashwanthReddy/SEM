@@ -200,6 +200,16 @@
 
   installUiErrorHandlers();
 
+  function safeRender(label, renderer) {
+    if (typeof renderer !== "function") return;
+    try {
+      renderer();
+    } catch (error) {
+      console.error(`Admin render failed for ${label}:`, error);
+      emitUiError(`${label} section failed to render`);
+    }
+  }
+
   async function api(path, options = {}) {
     try {
       // Use the centralized API utility
@@ -369,12 +379,8 @@
     const metrics = document.querySelectorAll("#dash-metrics-container .counter-anim");
     const values = [
       live.dashboard.totalUsers || live.users.length,
-      live.dashboard.totalStudents || live.users.filter((u) => txt(u.role).toUpperCase() === "STUDENT").length,
-      live.dashboard.totalTeachers || live.users.filter((u) => txt(u.role).toUpperCase() === "TEACHER").length,
       live.dashboard.totalExams || live.exams.length,
       live.dashboard.totalAttempts || live.attempts.length,
-      live.dashboard.suspiciousAttempts || live.attempts.filter((a) => num(a.cheatingScore) >= 50).length,
-      live.dashboard.cancelledAttempts || live.attempts.filter((a) => a.cancelled).length,
       live.dashboard.totalCertificates || live.certificates.length
     ];
     metrics.forEach((el, idx) => {
@@ -586,12 +592,12 @@
       window.AdminDashboard.dashAlerts = window.proctoringMonitorData.slice(0, 5).map((item, idx) => ({ id: idx + 1, risk: item.riskLevel === "LOW" ? "low" : item.riskLevel === "MEDIUM" ? "med" : "high", title: item.violationType, user: item.studentName, time: item.date }));
     }
 
-    window.renderGlobalExams?.();
-    window.renderGlobalStudents?.();
-    window.renderGlobalTeachers?.();
-    window.renderAttemptsTable?.();
-    window.renderCertPage?.();
-    window.renderLBSection?.();
+    safeRender("Exams", window.renderGlobalExams);
+    safeRender("Students", window.renderGlobalStudents);
+    safeRender("Teachers", window.renderGlobalTeachers);
+    safeRender("Attempts", window.renderAttemptsTable);
+    safeRender("Certificates", window.renderCertPage);
+    safeRender("Leaderboard", window.renderLBSection);
     syncActivityFooter();
     applyMetrics();
     ensureAttemptsAutoRefresh();

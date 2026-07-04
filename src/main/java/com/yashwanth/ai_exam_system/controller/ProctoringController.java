@@ -20,6 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,49 @@ public class ProctoringController {
         proctoringService.recordEvent(request);
 
         return success("Proctoring event recorded successfully");
+    }
+
+    // =========================================================
+    // 📷 PERIODIC PHOTO SNAPSHOT (from frontend every 5 min)
+    // =========================================================
+    @PostMapping("/snapshot")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<Map<String, Object>> recordSnapshot(
+            @RequestBody Map<String, Object> payload,
+            Authentication auth) {
+
+        Long studentId = resolveAuthenticatedStudentId(auth);
+
+        // attemptId is optional — frontend sends it when available
+        Long attemptId = null;
+        Object rawAttemptId = payload.get("attemptId");
+        if (rawAttemptId != null && !String.valueOf(rawAttemptId).equals("null")) {
+            try {
+                attemptId = Long.valueOf(String.valueOf(rawAttemptId));
+            } catch (NumberFormatException ignored) {}
+        }
+
+        // Validate attempt ownership when attemptId is provided
+        if (attemptId != null) {
+            ExamAttempt attempt = attemptRepository.findById(attemptId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
+            if (!studentId.equals(attempt.getStudentId())) {
+                throw new ForbiddenException("You can only upload snapshots for your own attempt");
+            }
+            // Persist as a PHOTO_CAPTURE proctoring event
+            proctoringService.recordPhotoSnapshot(
+                    attemptId,
+                    String.valueOf(payload.getOrDefault("imageData", "")),
+                    String.valueOf(payload.getOrDefault("capturedAt", LocalDateTime.now().toString()))
+            );
+        }
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("saved", true);
+        resp.put("studentId", studentId);
+        resp.put("attemptId", attemptId);
+        resp.put("capturedAt", payload.getOrDefault("capturedAt", LocalDateTime.now().toString()));
+        return ResponseEntity.ok(resp);
     }
 
     // =========================================================

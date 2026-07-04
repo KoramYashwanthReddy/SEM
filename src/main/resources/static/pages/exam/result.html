@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Results Summary</title>
+  
+  <link rel="stylesheet" href="../../assets/pages/exam/css/themes.css">
+  <link rel="stylesheet" href="../../assets/pages/exam/css/base.css">
+  <link rel="stylesheet" href="../../assets/pages/exam/css/layout.css">
+  <link rel="stylesheet" href="../../assets/pages/exam/css/components.css">
+  <link rel="stylesheet" href="../../assets/pages/exam/css/responsive.css">
+
+  <style>
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .result-container {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 3rem;
+      max-width: 800px;
+      width: 100%;
+      text-align: center;
+    }
+    .check-icon {
+      font-size: 4rem;
+      color: var(--success-color);
+      margin-bottom: 1.5rem;
+    }
+    .score-hero {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      padding: 2rem;
+      border-radius: 12px;
+      margin: 2rem 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+    .score-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+    .grid-panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      text-align: left;
+    }
+    .panel {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    .panel h5 {
+      margin: 0 0 1rem 0;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      row-gap: 0.75rem;
+      font-size: 0.9rem;
+    }
+    .detail-grid span {
+      color: var(--text-secondary);
+    }
+    .detail-grid strong {
+      color: var(--text-primary);
+    }
+    .btn-row {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+    }
+    .pass-badge {
+      display: inline-block;
+      padding: 0.35rem 1rem;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .pass-badge.pass {
+      background: rgba(40, 167, 69, 0.1);
+      color: var(--success-color);
+      border: 1px solid var(--success-color);
+    }
+    .pass-badge.fail {
+      background: rgba(220, 53, 69, 0.1);
+      color: var(--danger-color);
+      border: 1px solid var(--danger-color);
+    }
+  </style>
+</head>
+<body>
+
+<div class="result-container">
+  <div class="check-icon" id="status-icon">✓</div>
+  <h2 id="result-title" style="margin-bottom: 0.25rem;">Exam Submitted Successfully!</h2>
+  <div id="status-badge-container"></div>
+  <p id="result-msg" style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1.5rem;">
+    Your exam answers have been securely submitted and evaluated.
+  </p>
+
+  <div class="score-hero">
+    <div class="score-stat">
+      <span class="stat-label">Percentage</span>
+      <span class="stat-value" id="res-percentage">0.0%</span>
+    </div>
+    <div class="score-stat">
+      <span class="stat-label">Score Obtained</span>
+      <span class="stat-value" id="res-score">0 / 0</span>
+    </div>
+    <div class="score-stat">
+      <span class="stat-label">Time Spent</span>
+      <span class="stat-value" id="res-time">0m 0s</span>
+    </div>
+  </div>
+
+  <div class="grid-panels">
+    <div class="panel">
+      <h5>Answer Breakdown</h5>
+      <div class="detail-grid">
+        <span>Total Questions</span><strong id="breakdown-total">0</strong>
+        <span>Correct Answers</span><strong id="breakdown-correct">0</strong>
+        <span>Wrong Answers</span><strong id="breakdown-wrong">0</strong>
+        <span>Unanswered</span><strong id="breakdown-unanswered">0</strong>
+      </div>
+    </div>
+    <div class="panel">
+      <h5>Difficulty Split</h5>
+      <div class="detail-grid">
+        <span>Easy Correct</span><strong id="diff-easy">0</strong>
+        <span>Medium Correct</span><strong id="diff-medium">0</strong>
+        <span>Hard Correct</span><strong id="diff-hard">0</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="window.close()">Close Exam Window</button>
+  </div>
+</div>
+
+<script>
+  const normalizeToken = (raw) => {
+    if (!raw) return '';
+    let value = String(raw).trim();
+    if (!value) return '';
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1).trim();
+    }
+    if (/^bearer\s+/i.test(value)) {
+      value = value.replace(/^bearer\s+/i, '').trim();
+    }
+    return value;
+  };
+
+  const getAuthToken = () => {
+    const AUTH_KEYS = ['token', 'accessToken', 'jwt', 'authToken', 'access_token'];
+    for (const key of AUTH_KEYS) {
+      const localValue = normalizeToken(localStorage.getItem(key));
+      if (localValue) return localValue;
+      const sessionValue = normalizeToken(sessionStorage.getItem(key));
+      if (sessionValue) return sessionValue;
+    }
+    return '';
+  };
+
+  const formatDuration = (seconds = 0) => {
+    const total = Math.max(0, Math.floor(Number(seconds) || 0));
+    const mins = Math.floor(total / 60);
+    const secs = total % 60;
+    return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+  };
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const params = new URLSearchParams(window.location.search);
+    const attemptId = params.get('attemptId');
+
+    if (!attemptId) {
+      alert("Attempt ID is missing.");
+      return;
+    }
+
+    const token = getAuthToken();
+    const headers = { 'Accept': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    try {
+      const res = await fetch(`/api/exam/result/${attemptId}`, { headers });
+      if (!res.ok) throw new Error("Failed to load exam results.");
+      const r = await res.json();
+      
+      // Update Title & Badge
+      const isPassed = r.passed || String(r.result).toUpperCase() === 'PASS';
+      const statusIcon = document.getElementById('status-icon');
+      const resultTitle = document.getElementById('result-title');
+      const badgeContainer = document.getElementById('status-badge-container');
+
+      if (isPassed) {
+        statusIcon.textContent = '✓';
+        statusIcon.style.color = 'var(--success-color)';
+        resultTitle.textContent = 'Exam Passed Successfully!';
+        badgeContainer.innerHTML = `<span class="pass-badge pass">PASS</span>`;
+      } else {
+        statusIcon.textContent = '✗';
+        statusIcon.style.color = 'var(--danger-color)';
+        resultTitle.textContent = 'Exam Completed';
+        badgeContainer.innerHTML = `<span class="pass-badge fail">FAIL</span>`;
+      }
+
+      // Populate Stats
+      document.getElementById('res-percentage').textContent = `${(Number(r.percentage) || 0).toFixed(1)}%`;
+      document.getElementById('res-score').textContent = `${r.obtainedMarks} / ${r.totalMarks}`;
+      document.getElementById('res-time').textContent = formatDuration(r.timeTakenSeconds);
+
+      // Populate Panels
+      document.getElementById('breakdown-total').textContent = r.totalQuestions || (Number(r.correctAnswers || 0) + Number(r.wrongAnswers || 0) + Number(r.unansweredQuestions || 0));
+      document.getElementById('breakdown-correct').textContent = r.correctAnswers ?? 0;
+      document.getElementById('breakdown-wrong').textContent = r.wrongAnswers ?? 0;
+      document.getElementById('breakdown-unanswered').textContent = r.unansweredQuestions ?? 0;
+
+      document.getElementById('diff-easy').textContent = r.easyCorrect ?? 0;
+      document.getElementById('diff-medium').textContent = r.mediumCorrect ?? 0;
+      document.getElementById('diff-hard').textContent = r.difficultCorrect ?? 0;
+
+    } catch (err) {
+      console.error(err);
+      alert("Unable to fetch result from backend. Close the window and review results on the Student Console.");
+    }
+  });
+</script>
+</body>
+</html>

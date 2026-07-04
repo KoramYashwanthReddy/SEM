@@ -1,9 +1,6 @@
 package com.yashwanth.ai_exam_system.controller;
 
 import java.time.LocalDateTime;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.yashwanth.ai_exam_system.dto.QuestionResponse;
 import com.yashwanth.ai_exam_system.dto.SaveAnswerRequest;
@@ -44,6 +42,7 @@ import com.yashwanth.ai_exam_system.repository.UserRepository;
 import com.yashwanth.ai_exam_system.service.ExamAttemptService;
 import com.yashwanth.ai_exam_system.service.ExamEvaluationService;
 import com.yashwanth.ai_exam_system.service.EmailNotificationOrchestrator;
+import com.yashwanth.ai_exam_system.service.Phase2VerificationService;
 
 @RestController
 @RequestMapping("/api/student/exam")
@@ -59,6 +58,7 @@ public class StudentExamController {
     private final ExamRegistrationRepository examRegistrationRepository;
     private final UserRepository userRepository;
     private final EmailNotificationOrchestrator emailNotificationOrchestrator;
+    private final Phase2VerificationService phase2VerificationService;
 
     public StudentExamController(
             ExamAttemptRepository examAttemptRepository,
@@ -69,7 +69,8 @@ public class StudentExamController {
             ExamRepository examRepository,
             ExamRegistrationRepository examRegistrationRepository,
             UserRepository userRepository,
-            EmailNotificationOrchestrator emailNotificationOrchestrator) {
+            EmailNotificationOrchestrator emailNotificationOrchestrator,
+            Phase2VerificationService phase2VerificationService) {
 
         this.examAttemptRepository = examAttemptRepository;
         this.questionRepository = questionRepository;
@@ -80,12 +81,13 @@ public class StudentExamController {
         this.examRegistrationRepository = examRegistrationRepository;
         this.userRepository = userRepository;
         this.emailNotificationOrchestrator = emailNotificationOrchestrator;
+        this.phase2VerificationService = phase2VerificationService;
     }
 
     // ================= START EXAM =================
 
     @PostMapping("/start/{examCode}/{studentId}")
-    public ResponseEntity<?> startExam(
+    public ResponseEntity<Map<String, Object>> startExam(
             @PathVariable String examCode,
             @PathVariable Long studentId,
             Authentication auth) {
@@ -100,7 +102,20 @@ public class StudentExamController {
         Exam exam = examRepository.findByExamCode(examCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
         emailNotificationOrchestrator.notifyStudentExamStarted(student, exam, attempt);
-        return ResponseEntity.ok(attempt);
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("id", attempt.getId());
+        response.put("attemptId", attempt.getId());
+        response.put("examId", attempt.getExamId());
+        response.put("examCode", attempt.getExamCode());
+        response.put("studentId", attempt.getStudentId());
+        response.put("status", attempt.getStatus() != null ? attempt.getStatus().name() : "STARTED");
+        response.put("attemptNumber", attempt.getAttemptNumber());
+        response.put("startTime", attempt.getStartTime());
+        response.put("endTime", attempt.getEndTime());
+        response.put("expiryTime", attempt.getExpiryTime());
+        response.put("durationMinutes", attempt.getDurationMinutes());
+        response.put("active", attempt.getActive());
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/register/{examCode}")
@@ -201,73 +216,49 @@ public class StudentExamController {
                                                @RequestBody Map<String, Object> verificationData,
                                                Authentication auth) {
         Long studentId = getAuthenticatedStudentId(auth);
+        String verificationCode = String.valueOf(verificationData.getOrDefault("verificationCode", "")).trim();
+        String verificationToken = String.valueOf(verificationData.getOrDefault("verificationToken", "")).trim();
+
+        Map<String, Object> response = verificationToken.isBlank()
+                ? phase2VerificationService.completeRegistrationWithOtp(studentId, examCode, verificationCode)
+                : phase2VerificationService.completeRegistrationWithToken(examCode, verificationToken);
+
         Exam exam = examRepository.findByExamCode(examCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
-
-        if (!exam.isPublished() || !exam.isActive()) {
-            throw new ForbiddenException("Only active published exams can be registered");
-        }
-        if (!exam.isRegistrationOpen() || !exam.isInPhase2()) {
-            throw new ForbiddenException("Phase 2 registration is not available at this time");
-        }
-        if (!exam.requiresPhase2Verification()) {
-            throw new ForbiddenException("Phase 2 verification is not enabled for this exam");
-        }
-
-        boolean alreadyRegistered = examRegistrationRepository
-                .findByStudentIdAndExamCode(studentId, examCode)
-                .isPresent();
-        if (alreadyRegistered) {
-            throw new ForbiddenException("You are already registered for this exam");
-        }
-
-        String verificationCode = String.valueOf(verificationData.getOrDefault("verificationCode", "")).trim();
-        if (verificationCode.isBlank()) {
-            throw new ForbiddenException("Verification code is required for Phase 2 registration");
-        }
-        if (verificationCode.length() < 6) {
-            throw new ForbiddenException("Verification code must be at least 6 characters");
-        }
-
-        ExamRegistration registration = new ExamRegistration();
-        registration.setStudentId(studentId);
-        registration.setExamId(exam.getId());
-        registration.setExamCode(examCode);
-        registration.setActive(true);
-        registration.setSource("STUDENT_UI_PHASE2");
-        registration.setRegistrationPhase("PHASE2");
-        registration.setPhase2Verified(true);
-        registration.setPhase2VerificationMethod("CODE");
-        registration.setPhase2VerificationCodeHash(hashVerificationCode(verificationCode));
-        registration.setPhase2VerifiedAt(LocalDateTime.now());
-        registration.setRegisteredAt(LocalDateTime.now());
-        examRegistrationRepository.save(registration);
-        User student = userRepository.findById(studentId)
+        Long registeredStudentId = response.get("studentId") instanceof Number
+                ? ((Number) response.get("studentId")).longValue()
+                : studentId;
+        User student = userRepository.findById(registeredStudentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
         emailNotificationOrchestrator.notifyStudentRegistered(student, exam, "PHASE2");
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("registered", true);
-        response.put("studentId", studentId);
-        response.put("examCode", examCode);
-        response.put("registrationId", registration.getId());
-        response.put("registeredAt", registration.getRegisteredAt());
-        response.put("registrationPhase", registration.getRegistrationPhase());
-        response.put("phase2Verified", registration.getPhase2Verified());
-        response.put("phase2VerifiedAt", registration.getPhase2VerifiedAt());
         if (exam.getStartTime() != null) {
             response.put("examStartsAt", exam.getStartTime());
         }
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/phase2/send/{examCode}")
+    public ResponseEntity<?> sendPhase2VerificationEmail(@PathVariable String examCode,
+                                                         Authentication auth,
+                                                         jakarta.servlet.http.HttpServletRequest request) {
+        Long studentId = getAuthenticatedStudentId(auth);
+        String requestBaseUrl = ServletUriComponentsBuilder.fromRequestUri(request)
+                .replacePath(request.getContextPath())
+                .replaceQuery(null)
+                .build()
+                .toUriString();
+        Map<String, Object> response = phase2VerificationService.sendVerificationEmail(studentId, examCode, requestBaseUrl);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/registrations")
-    public ResponseEntity<?> getMyRegistrations(Authentication auth) {
+    public ResponseEntity<Map<String, Object>> getMyRegistrations(Authentication auth) {
         Long studentId = getAuthenticatedStudentId(auth);
         List<ExamRegistration> rows = examRegistrationRepository.findByStudentIdAndActiveTrue(studentId);
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("studentId", studentId);
-        response.put("registrations", rows);
+        response.put("registrations", rows.stream().map(this::toRegistrationMap).collect(Collectors.toList()));
         response.put("examCodes", rows.stream().map(ExamRegistration::getExamCode).collect(Collectors.toList()));
         return ResponseEntity.ok(response);
     }
@@ -281,8 +272,12 @@ public class StudentExamController {
                 .findByStudentIdAndExamCode(studentId, examCode)
                 .map(ExamRegistration::getActive)
                 .orElse(false);
-        if (!isRegistered) {
-            throw new ForbiddenException("Please register for the exam before loading questions");
+        boolean hasActiveAttempt = examAttemptRepository
+                .findActiveAttempt(studentId, examCode, AttemptStatus.STARTED)
+                .isPresent();
+
+        if (!isRegistered && !hasActiveAttempt) {
+            throw new ForbiddenException("Please register for the exam or start an active session before loading questions");
         }
 
         List<Question> questions = questionRepository.findByExamCodeAndActiveTrue(examCode);
@@ -297,7 +292,7 @@ public class StudentExamController {
     // ================= SAVE ANSWER =================
 
     @PostMapping("/save-answer")
-    public ResponseEntity<?> saveAnswer(@Valid @RequestBody SaveAnswerRequest request, Authentication auth) {
+    public ResponseEntity<Map<String, Object>> saveAnswer(@Valid @RequestBody SaveAnswerRequest request, Authentication auth) {
 
         Long authenticatedStudentId = getAuthenticatedStudentId(auth);
         ExamAttempt attempt = examAttemptRepository.findById(request.getAttemptId())
@@ -307,12 +302,18 @@ public class StudentExamController {
         }
 
         if (attempt.getStatus() != AttemptStatus.STARTED) {
-            return ResponseEntity.badRequest().body("Exam already submitted");
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("saved", false);
+            response.put("message", "Exam already submitted");
+            return ResponseEntity.badRequest().body(response);
         }
 
         if (attempt.getExpiryTime() != null &&
                 LocalDateTime.now().isAfter(attempt.getExpiryTime())) {
-            return ResponseEntity.badRequest().body("Exam time expired");
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("saved", false);
+            response.put("message", "Exam time expired");
+            return ResponseEntity.badRequest().body(response);
         }
 
         StudentAnswer answer =
@@ -340,15 +341,22 @@ public class StudentExamController {
 
         answer.setLastUpdated(LocalDateTime.now());
 
-        studentAnswerRepository.save(answer);
+        StudentAnswer saved = studentAnswerRepository.save(answer);
 
-        return ResponseEntity.ok(answer);
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("saved", true);
+        response.put("attemptId", saved.getAttemptId());
+        response.put("questionId", saved.getQuestionId());
+        response.put("status", saved.getStatus());
+        response.put("reviewMarked", saved.getReviewMarked());
+        response.put("lastUpdated", saved.getLastUpdated());
+        return ResponseEntity.ok(response);
     }
 
     // ================= SUBMIT EXAM =================
 
     @PostMapping("/submit/{attemptId}")
-    public ResponseEntity<?> submitExam(@PathVariable Long attemptId, Authentication auth) {
+    public ResponseEntity<Map<String, Object>> submitExam(@PathVariable Long attemptId, Authentication auth) {
 
         Long authenticatedStudentId = getAuthenticatedStudentId(auth);
         ExamAttempt attempt = examAttemptRepository.findById(attemptId)
@@ -358,7 +366,11 @@ public class StudentExamController {
         }
 
         if (attempt.getStatus() != AttemptStatus.STARTED) {
-            return ResponseEntity.badRequest().body("Exam already submitted");
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("submitted", false);
+            response.put("attemptId", attemptId);
+            response.put("message", "Exam already submitted");
+            return ResponseEntity.badRequest().body(response);
         }
 
         ExamResult result = examEvaluationService.evaluateExam(
@@ -379,7 +391,23 @@ public class StudentExamController {
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
         emailNotificationOrchestrator.notifyExamSubmitted(student, exam, attempt, result);
 
-        return ResponseEntity.ok(result);
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("id", result.getId());
+        response.put("attemptId", result.getAttemptId());
+        response.put("studentId", result.getStudentId());
+        response.put("examCode", result.getExamCode());
+        response.put("totalQuestions", result.getTotalQuestions());
+        response.put("correctAnswers", result.getCorrectAnswers());
+        response.put("wrongAnswers", result.getWrongAnswers());
+        response.put("unansweredQuestions", result.getUnansweredQuestions());
+        response.put("score", result.getScore());
+        response.put("percentage", result.getPercentage());
+        response.put("resultStatus", result.getResultStatus());
+        response.put("passed", result.getPassed());
+        response.put("timeTakenSeconds", result.getTimeTakenSeconds());
+        response.put("submittedAt", result.getSubmittedAt());
+        response.put("evaluatedAt", result.getEvaluatedAt());
+        return ResponseEntity.ok(response);
     }
 
     private Long getAuthenticatedStudentId(Authentication auth) {
@@ -424,18 +452,21 @@ public class StudentExamController {
         return response;
     }
 
-    private String hashVerificationCode(String verificationCode) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(verificationCode.getBytes(StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder(hash.length * 2);
-            for (byte b : hash) {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
-        } catch (NoSuchAlgorithmException ex) {
-            throw new ForbiddenException("Unable to process verification code at this time");
-        }
+    private Map<String, Object> toRegistrationMap(ExamRegistration registration) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", registration.getId());
+        map.put("studentId", registration.getStudentId());
+        map.put("examId", registration.getExamId());
+        map.put("examCode", registration.getExamCode());
+        map.put("active", registration.getActive());
+        map.put("source", registration.getSource());
+        map.put("registrationPhase", registration.getRegistrationPhase());
+        map.put("phase2Verified", registration.getPhase2Verified());
+        map.put("phase2VerifiedAt", registration.getPhase2VerifiedAt());
+        map.put("registeredAt", registration.getRegisteredAt());
+        map.put("createdAt", registration.getCreatedAt());
+        map.put("updatedAt", registration.getUpdatedAt());
+        return map;
     }
 
 }

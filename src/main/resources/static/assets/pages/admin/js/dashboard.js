@@ -462,6 +462,19 @@
     setupNavigation() {
         const navItems = document.querySelectorAll('.nav-item:not(.logout)');
         const sections = document.querySelectorAll('.tab-content');
+        const resetAdminScrollPosition = () => {
+            const contentBody = document.querySelector('.content-body');
+            if (contentBody) {
+                contentBody.scrollTop = 0;
+                contentBody.scrollTo?.({ top: 0, behavior: 'auto' });
+            }
+
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+            if (typeof window.scrollTo === 'function') {
+                window.scrollTo({ top: 0, behavior: 'auto' });
+            }
+        };
 
         navItems.forEach(item => {
             item.addEventListener('click', (e) => {
@@ -513,6 +526,9 @@
                     this.renderAdminProfile?.();
                 }
 
+                // Keep each admin section opening from the top in both page-scroll and panel-scroll modes.
+                resetAdminScrollPosition();
+
                 // Handle mobile sidebar auto-close
                 if (window.innerWidth <= 768) {
                     document.getElementById('sidebar').classList.remove('open');
@@ -525,6 +541,7 @@
         window.switchSection = (id) => {
             const targetNav = document.querySelector(`.nav-item[data-target="${id}"]`);
             if (targetNav) targetNav.click();
+            resetAdminScrollPosition();
             if (id === 'attempts-section') {
                 window.refreshAttempts();
             }
@@ -1323,6 +1340,11 @@ window.renderGlobalExams = function() {
         
         const dotColor = e.status === 'Published' ? 'g' : 'o';
         const canPublish = e.status === 'Draft' && !!e.questionsUploaded;
+        const publishButton = e.status === 'Draft'
+            ? (canPublish
+                ? `<button class="exam-action-btn success" onclick="publishExam(this, '${e.id}')"><i class="fa-solid fa-check"></i><span>Publish</span></button>`
+                : `<button class="exam-action-btn muted" disabled title="Upload questions to enable publish"><i class="fa-solid fa-check"></i><span>Publish</span></button>`)
+            : `<button class="exam-action-btn muted" disabled><i class="fa-solid fa-check"></i><span>Published</span></button>`;
         const publishBtn = e.status === 'Draft'
             ? (canPublish
                 ? `<button class="btn btn-ghost btn-sm" style="color:var(--accent-green); border-color:var(--accent-green)" onclick="publishExam(this, '${e.id}')">Publish</button>`
@@ -1362,9 +1384,127 @@ window.setExamFilter = function(filter, btn) {
 
 if(document.getElementById('examSearchInput')) {
     document.getElementById('examSearchInput').addEventListener('input', () => {
+        window.currentExamPage = 1;
         window.renderGlobalExams();
     });
 }
+
+window.currentExamPageSize = window.currentExamPageSize || 10;
+window.currentExamPage = window.currentExamPage || 1;
+
+window.renderGlobalExams = function() {
+    const list = document.getElementById('exams-list');
+    if (!list) return;
+    const filter = window.currentExamFilter || 'all';
+    const pageSize = Number(window.currentExamPageSize || 10);
+    const searchTerm = (document.getElementById('examSearchInput')?.value || '').toLowerCase();
+
+    const filtered = (window.examsData || []).filter((e) => {
+        if (filter === 'published' && e.status !== 'Published') return false;
+        if (filter === 'draft' && e.status !== 'Draft') return false;
+        const titleText = String(e.title || '').toLowerCase();
+        const codeText = String(e.id || '').toLowerCase();
+        const creatorText = String(e.creator || '').toLowerCase();
+        return !searchTerm || titleText.includes(searchTerm) || codeText.includes(searchTerm) || creatorText.includes(searchTerm);
+    });
+
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.min(Math.max(Number(window.currentExamPage || 1), 1), totalPages);
+    window.currentExamPage = page;
+
+    const start = (page - 1) * pageSize;
+    const pageRows = filtered.slice(start, start + pageSize);
+
+    list.innerHTML = pageRows.map((e) => {
+        const statusKey = String(e.status || '').toLowerCase();
+        const creator = String(e.creator || 'Admin');
+        const creatorInitials = creator
+            .split(/[\s@._-]+/)
+            .filter(Boolean)
+            .map((part) => part[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase() || 'AU';
+        const canPublish = e.status === 'Draft' && !!e.questionsUploaded;
+        const publishButton = e.status === 'Draft'
+            ? (canPublish
+                ? `<button class="exam-action-btn success" onclick="publishExam(this, '${e.id}')"><i class="fa-solid fa-check"></i><span>Publish</span></button>`
+                : `<button class="exam-action-btn muted" disabled title="Upload questions to enable publish"><i class="fa-solid fa-check"></i><span>Publish</span></button>`)
+            : `<button class="exam-action-btn muted" disabled><i class="fa-solid fa-check"></i><span>Published</span></button>`;
+
+        return `
+            <tr data-exid="${e.id}">
+                <td class="exam-title-cell">
+                    <div class="exam-main-title">${e.title}</div>
+                    ${e.questionsUploaded ? '<div class="exam-subtitle success"><i class="fa-solid fa-check"></i> Questions Uploaded</div>' : '<div class="exam-subtitle muted">Questions not uploaded</div>'}
+                </td>
+                <td class="exam-code-cell">${e.id}</td>
+                <td class="exam-creator-cell">
+                    <span class="creator-badge">${creatorInitials}</span>
+                    <span class="creator-email">${creator}</span>
+                </td>
+                <td class="exam-duration-cell"><i class="fa-regular fa-clock"></i> ${e.duration} Min</td>
+                <td>
+                    <span class="exam-status-pill ${statusKey}">
+                        <span class="status-dot"></span>${e.status}
+                    </span>
+                </td>
+                <td class="exam-actions-cell">
+                    <div class="exam-action-group">
+                        <button class="exam-action-btn" onclick="openUploadQuestions('${e.id}')"><i class="fa-solid fa-upload"></i><span>Upload</span></button>
+                        <button class="exam-action-btn" onclick="openViewQuestions('${e.id}')"><i class="fa-regular fa-eye"></i><span>View</span></button>
+                        ${publishButton}
+                        <button class="exam-action-btn" onclick="openEditExam('${e.id}')"><i class="fa-solid fa-pen"></i><span>Edit</span></button>
+                        <button class="exam-action-btn danger" onclick="confirmDeleteExam('${e.id}')"><i class="fa-regular fa-trash-can"></i><span>Delete</span></button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    const countEl = document.getElementById('exam-count');
+    if (countEl) {
+        if (total === 0) countEl.textContent = 'Showing 0 to 0 of 0 exams';
+        else countEl.textContent = `Showing ${start + 1} to ${Math.min(start + pageRows.length, total)} of ${total} exams`;
+    }
+
+    const pageEl = document.getElementById('exam-page-btn');
+    if (pageEl) pageEl.textContent = String(page);
+    const prevBtn = document.getElementById('exam-prev-btn');
+    const nextBtn = document.getElementById('exam-next-btn');
+    if (prevBtn) prevBtn.disabled = page <= 1;
+    if (nextBtn) nextBtn.disabled = page >= totalPages;
+};
+
+window.setExamFilter = function(filter, btn) {
+    document.querySelectorAll('#examFilterGroup button').forEach((b) => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    window.currentExamFilter = filter;
+    window.currentExamPage = 1;
+    window.renderGlobalExams();
+};
+
+window.prevExamPage = function() {
+    window.currentExamPage = Math.max(1, Number(window.currentExamPage || 1) - 1);
+    window.renderGlobalExams();
+};
+
+window.nextExamPage = function() {
+    const filter = window.currentExamFilter || 'all';
+    const searchTerm = (document.getElementById('examSearchInput')?.value || '').toLowerCase();
+    const filtered = (window.examsData || []).filter((e) => {
+        if (filter === 'published' && e.status !== 'Published') return false;
+        if (filter === 'draft' && e.status !== 'Draft') return false;
+        const titleText = String(e.title || '').toLowerCase();
+        const codeText = String(e.id || '').toLowerCase();
+        const creatorText = String(e.creator || '').toLowerCase();
+        return !searchTerm || titleText.includes(searchTerm) || codeText.includes(searchTerm) || creatorText.includes(searchTerm);
+    });
+    const totalPages = Math.max(1, Math.ceil(filtered.length / Number(window.currentExamPageSize || 10)));
+    window.currentExamPage = Math.min(totalPages, Number(window.currentExamPage || 1) + 1);
+    window.renderGlobalExams();
+};
 
 window.openEditExam = function(id) {
     const exam = window.examsData.find(x => x.id === id);
@@ -2290,7 +2430,16 @@ window.populateAnalyticsUI = function(data) {
             <td style="font-weight:700">${p.score}</td>
             <td><span class="status-badge published">${p.grade}</span></td>
         </tr>
-    `).join('') || '<tr><td colspan="4" style="text-align:center; padding:20px">No ranking data.</td></tr>';
+    `).join('') || `
+        <tr>
+            <td colspan="4" style="text-align:center; padding:30px 0;">
+                <div class="empty-performers">
+                    <div class="empty-icon-wrap"><i class="fa-solid fa-trophy"></i></div>
+                    <div class="empty-text">No data available</div>
+                </div>
+            </td>
+        </tr>
+    `;
 
     // Chart
     window.renderLineChart('scoreTrendCanvas', data.chartData);
@@ -2408,17 +2557,32 @@ window.animateCounter = function(id, target, suffix = '') {
     }, 20);
 };
 
-// Initial Load
-document.addEventListener('DOMContentLoaded', () => {
-   // Synchronize analytics once DOM is ready
-});
-
-// Update the section switcher to trigger analytics if needed
 const originalSwitchSection = window.switchSection;
 window.switchSection = function(id) {
     if(typeof originalSwitchSection === 'function') originalSwitchSection(id);
+
+    if (window.location.hash) {
+        history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    }
+
+    const resetPanelScroll = () => {
+        const contentBody = document.querySelector('.content-body');
+        if (contentBody) {
+            contentBody.scrollTop = 0;
+            contentBody.scrollTo?.({ top: 0, behavior: 'auto' });
+        }
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        window.scrollTo?.({ top: 0, behavior: 'auto' });
+    };
+
+    requestAnimationFrame(() => {
+        resetPanelScroll();
+        requestAnimationFrame(resetPanelScroll);
+    });
+
     if(id === 'analytics-section') {
-        window.refreshAnalytics();
+        requestAnimationFrame(() => window.refreshAnalytics());
         
         // Populate exam filter once
         const filter = document.getElementById('analyticsExamFilter');
@@ -3942,7 +4106,6 @@ window.clearNotifs = function() {
         window.showToast("Inbox cleared", "info");
     }
 };
-
 };
 document.addEventListener('DOMContentLoaded', () => {
     if(window.AdminDashboard && window.AdminDashboard.init) {

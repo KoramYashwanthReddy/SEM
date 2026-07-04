@@ -55,6 +55,7 @@ public class SecurityConfig {
                     // ✅ Public APIs
                     .requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers("/api/certificate/verify/**").permitAll()
+                    .requestMatchers("/api/public/**").permitAll()
                     .requestMatchers("/api/home/**").permitAll()
 
                     // Admin APIs

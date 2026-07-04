@@ -181,6 +181,41 @@ public class EmailService {
         sendEmail(toEmail, subject, content);
     }
 
+    @Async("mailExecutor")
+    public void sendPhase2VerificationEmail(
+            String toEmail,
+            String recipientName,
+            String examTitle,
+            String examCode,
+            String otp,
+            String verificationLink,
+            int expiryMinutes
+    ) {
+
+        String subject = "Phase 2 Verification - " + examCode;
+        String safeName = recipientName == null || recipientName.isBlank() ? "Student" : recipientName;
+        String safeExamTitle = examTitle == null || examTitle.isBlank() ? examCode : examTitle;
+
+        String content =
+                "<div style='font-family:Arial,sans-serif;padding:20px'>" +
+                        "<h2>Phase 2 verification for " + safeExamTitle + "</h2>" +
+                        "<p>Hello " + safeName + ",</p>" +
+                        "<p>Your Phase 2 verification code is:</p>" +
+                        "<div style='font-size:28px;font-weight:bold;letter-spacing:6px;margin:20px 0'>" + otp + "</div>" +
+                        "<p>This code expires in " + expiryMinutes + " minutes.</p>" +
+                        "<p>You can also complete verification using the secure link below:</p>" +
+                        "<p><a href='" + verificationLink + "' " +
+                        "style='background:#4f46e5;color:white;padding:12px 18px;text-decoration:none;border-radius:6px;display:inline-block'>Verify Phase 2 Registration</a></p>" +
+                        "<p>If the button does not open, copy this link into your browser:</p>" +
+                        "<p style='word-break:break-all'><a href='" + verificationLink + "'>" + verificationLink + "</a></p>" +
+                        "<p>If you did not request this registration, you can ignore this email.</p>" +
+                        "<br>" +
+                        "<p>Regards,<br><b>AI Exam System</b></p>" +
+                        "</div>";
+
+        sendEmail(toEmail, subject, content);
+    }
+
     private void sleepQuietly(long delayMs) {
         try {
             Thread.sleep(delayMs);

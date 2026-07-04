@@ -20,6 +20,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -160,7 +161,7 @@ public class CertificateController {
 
     @PostMapping("/revoke/{certificateId}")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
-    public ResponseEntity<String> revokeCertificate(
+    public ResponseEntity<Map<String, Object>> revokeCertificate(
             @PathVariable String certificateId,
             Authentication auth) {
 
@@ -176,7 +177,10 @@ public class CertificateController {
         cert.setRevoked(true);
         certificateRepository.save(cert);
 
-        return ResponseEntity.ok("Certificate revoked successfully");
+        return ResponseEntity.ok(Map.of(
+                "revoked", true,
+                "certificateId", certificateId,
+                "message", "Certificate revoked successfully"));
     }
 
     // ================= ADMIN ALL CERTIFICATES =================

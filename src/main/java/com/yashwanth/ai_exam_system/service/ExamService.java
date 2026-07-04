@@ -47,6 +47,7 @@ public class ExamService {
     private final CheatingDetectionService cheatingDetectionService;
     private final NotificationService notificationService;
     private final EmailNotificationOrchestrator emailNotificationOrchestrator;
+    private final ExamEvaluationService evaluationService;
 
     public ExamService(
             ExamRepository examRepository,
@@ -55,7 +56,8 @@ public class ExamService {
             UserRepository userRepository,
             CheatingDetectionService cheatingDetectionService,
             NotificationService notificationService,
-            EmailNotificationOrchestrator emailNotificationOrchestrator) {
+            EmailNotificationOrchestrator emailNotificationOrchestrator,
+            ExamEvaluationService evaluationService) {
 
         this.examRepository = examRepository;
         this.attemptRepository = attemptRepository;
@@ -64,6 +66,7 @@ public class ExamService {
         this.cheatingDetectionService = cheatingDetectionService;
         this.notificationService = notificationService;
         this.emailNotificationOrchestrator = emailNotificationOrchestrator;
+        this.evaluationService = evaluationService;
     }
 
     // ================= CREATE =================
@@ -72,7 +75,7 @@ public class ExamService {
         if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
             throw new ForbiddenException("Authenticated teacher/admin is required");
         }
-        validateExamRequest(request);
+        validateExamRequest(request, true);
 
         Exam exam = new Exam();
         exam.setExamCode(generateExamCode());
@@ -89,7 +92,7 @@ public class ExamService {
         try {
             saved = examRepository.saveAndFlush(exam);
         } catch (DataIntegrityViolationException ex) {
-            throw new ConflictException("Unable to create exam due to duplicate or invalid exam data");
+            throw createExamPersistenceException("create", ex);
         }
 
         safeNotifyTeacher(
@@ -100,7 +103,8 @@ public class ExamService {
                 "Teacher Console",
                 "info"
         );
-        emailNotificationOrchestrator.notifyExamCreated(saved);
+        safeNotifyEmail(() -> emailNotificationOrchestrator.notifyExamCreated(saved),
+                "exam created");
 
         return saved;
     }
@@ -133,7 +137,7 @@ public class ExamService {
     // ================= UPDATE =================
     public Exam updateExam(String examCode, ExamRequest request, Authentication auth) {
 
-        validateExamRequest(request);
+        validateExamRequest(request, true);
         Exam exam = getExamByCodeForActor(examCode, auth);
 
         if (exam.isPublished()) {
@@ -150,12 +154,13 @@ public class ExamService {
                 "Teacher Console",
                 "info"
         );
-        emailNotificationOrchestrator.notifyExamUpdated(exam);
+        safeNotifyEmail(() -> emailNotificationOrchestrator.notifyExamUpdated(exam),
+                "exam updated");
 
         try {
             return examRepository.saveAndFlush(exam);
         } catch (DataIntegrityViolationException ex) {
-            throw new ConflictException("Unable to update exam due to duplicate or invalid exam data");
+            throw createExamPersistenceException("update", ex);
         }
     }
 
@@ -173,7 +178,8 @@ public class ExamService {
                 "Teacher Console",
                 "warning"
         );
-        emailNotificationOrchestrator.notifyExamDeleted(exam);
+        safeNotifyEmail(() -> emailNotificationOrchestrator.notifyExamDeleted(exam),
+                "exam deleted");
     }
 
     // ================= PUBLISH =================
@@ -189,11 +195,15 @@ public class ExamService {
         exam.setStatus(ExamStatus.PUBLISHED);
         exam.setRegistrationOpen(true); // Open registration when exam is published
 
-        // Ensure registration times are calculated
+        // Ensure registration phase times are (re)calculated on publish.
+        // Fixed markers relative to startTime — the helper methods handle
+        // late-publish scenarios at query time automatically:
+        //   • Published < 24 h before start → Phase 1 opens immediately
+        //   • Published <  1 h before start → Phase 2 is immediately active
         if (exam.getStartTime() != null) {
-            exam.setRegistrationStartTime(exam.getStartTime().minusHours(25));
-            exam.setPhase1EndTime(exam.getStartTime().minusMinutes(30));
-            exam.setPhase2StartTime(exam.getStartTime().minusMinutes(30));
+            exam.setRegistrationStartTime(exam.getStartTime().minusHours(24)); // T-24h
+            exam.setPhase1EndTime(exam.getStartTime().minusHours(1));          // T-1h
+            exam.setPhase2StartTime(exam.getStartTime().minusHours(1));        // T-1h
             exam.setPhase2VerificationRequired(true);
         }
         Exam saved;
@@ -211,7 +221,8 @@ public class ExamService {
                 "Teacher Console",
                 "success"
         );
-        emailNotificationOrchestrator.notifyExamPublished(saved);
+        safeNotifyEmail(() -> emailNotificationOrchestrator.notifyExamPublished(saved),
+                "exam published");
 
         return saved;
     }
@@ -292,6 +303,23 @@ public class ExamService {
         }
 
         attemptRepository.save(attempt);
+
+        // ── Evaluate immediately so results are visible straight away ────
+        try {
+            evaluationService.evaluateExam(
+                    attemptId,
+                    attempt.getStudentId(),
+                    attempt.getExamCode());
+            attempt.setStatus(AttemptStatus.EVALUATED);
+            attemptRepository.save(attempt);
+            logger.info("Exam evaluated | attemptId={} studentId={}",
+                    attemptId, attempt.getStudentId());
+        } catch (Exception ex) {
+            // Evaluation failure must NOT block the submission confirmation
+            logger.error("Evaluation failed for attemptId={} — will retry on result view: {}",
+                    attemptId, ex.getMessage());
+        }
+
         emailNotificationOrchestrator.notifyAttemptAction(attempt, "ATTEMPT_SUBMITTED");
 
         cheatingDetectionService.analyzeAttempt(attemptId);
@@ -329,6 +357,10 @@ public class ExamService {
     // ================= HELPERS =================
 
     private void validateExamRequest(ExamRequest request) {
+        validateExamRequest(request, false);
+    }
+
+    private void validateExamRequest(ExamRequest request, boolean allowEmptyDifficultyDistribution) {
         if (request == null) {
             throw new BadRequestException("Exam request is required");
         }
@@ -369,7 +401,7 @@ public class ExamService {
         int totalDifficultyQuestions = request.getEasyQuestionCount()
                 + request.getMediumQuestionCount()
                 + request.getDifficultQuestionCount();
-        if (totalDifficultyQuestions <= 0) {
+        if (!allowEmptyDifficultyDistribution && totalDifficultyQuestions <= 0) {
             throw new BadRequestException("At least one question is required in difficulty distribution");
         }
         if (request.getStartTime() == null || request.getStartTime().trim().isEmpty()
@@ -429,7 +461,38 @@ public class ExamService {
     }
 
     private String generateExamCode() {
-        return "EXAM-" + UUID.randomUUID().toString().substring(0, 8);
+        for (int attempt = 0; attempt < 10; attempt++) {
+            String code = "EXAM-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
+            if (examRepository.findByExamCode(code).isEmpty()) {
+                return code;
+            }
+        }
+        throw new ConflictException("Unable to generate a unique exam code");
+    }
+
+    private void safeNotifyEmail(Runnable action, String label) {
+        try {
+            action.run();
+        } catch (Exception ex) {
+            logger.warn("Exam was saved, but email notification for {} failed: {}", label, ex.getMessage());
+        }
+    }
+
+    private ConflictException createExamPersistenceException(String operation, DataIntegrityViolationException ex) {
+        String rootMessage = ex.getMostSpecificCause() != null
+                ? String.valueOf(ex.getMostSpecificCause().getMessage())
+                : String.valueOf(ex.getMessage());
+        String message = rootMessage == null ? "" : rootMessage.toLowerCase();
+
+        if (message.contains("examcode") || message.contains("exam_code")) {
+            return new ConflictException("Exam code already exists. Please try again.");
+        }
+        if (message.contains("duplicate")) {
+            return new ConflictException("Duplicate exam data was rejected by the database.");
+        }
+
+        logger.error("Exam {} failed due to data integrity violation: {}", operation, rootMessage, ex);
+        return new ConflictException("Unable to " + operation + " exam due to invalid exam data");
     }
 
     private ExamAttempt getAttempt(Long attemptId) {

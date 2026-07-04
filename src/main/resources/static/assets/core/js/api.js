@@ -3,9 +3,12 @@
  * Standardized Fetch Wrapper with JWT, Error Handling and ApiResponse support.
  */
 const API = (() => {
-  const BASE_URL = /^https?:/i.test(window.location.origin)
-    ? window.location.origin
-    : "http://localhost:8080";
+  const explicitBase = (window.__API_BASE_URL__ || localStorage.getItem('apiBaseUrl') || '').trim();
+  const origin = window.location.origin || '';
+  const isLocalFrontend = /:\/\/(localhost|127\.0\.0\.1)(:3000|:5173|:5500)?$/i.test(origin);
+  const BASE_URL = explicitBase
+    ? explicitBase.replace(/\/+$/, '')
+    : (isLocalFrontend || origin.startsWith('file:') ? "http://localhost:8080" : origin);
 
   /**
    * Get JWT token from storage

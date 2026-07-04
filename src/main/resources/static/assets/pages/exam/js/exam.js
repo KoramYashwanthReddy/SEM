@@ -166,6 +166,7 @@ const initializeExamPage = async () => {
   const attemptId = getExamAttemptId();
   const overlay = document.getElementById('proctoring-setup-overlay');
   const errorMessage = document.getElementById('setup-error-msg');
+  const startBtn = document.getElementById('start-exam-btn');
 
   if (!examCode || !attemptId) {
     document.body.innerHTML = `<div style="padding:3rem;text-align:center;"><h1>Exam load failed</h1><p>Missing exam code or attempt ID. Please return to the student dashboard and enter the exam again.</p></div>`;
@@ -185,8 +186,17 @@ const initializeExamPage = async () => {
       errorMessage.textContent = error.message || 'Unable to load exam questions from backend.';
       errorMessage.style.display = 'block';
     }
-    const appContainer = document.body.querySelector('.app-container');
-    if (appContainer) appContainer.classList.add('hide');
+    if (startBtn) {
+      startBtn.disabled = false;
+      startBtn.textContent = 'Return to Student Dashboard';
+      startBtn.addEventListener('click', () => {
+        window.location.href = '../student-ui.html';
+      }, { once: true });
+    }
+    if (overlay) {
+      overlay.classList.add('active');
+      overlay.setAttribute('aria-hidden', 'false');
+    }
     return;
   }
 };
@@ -911,30 +921,7 @@ class ExamController {
 
   renderFinalSuccess(isAutoTimeOut, timeTaken) {
     if(this.timeUpModal) this.timeUpModal.classList.remove('active');
-    
-    // Replace whole body with a success message
-    document.body.innerHTML = `
-      <div style="height: 100vh; width: 100vw; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-primary);">
-         <div style="background: var(--bg-secondary); padding: 3rem; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); text-align: center; max-width: 500px;">
-           <div style="font-size: 4rem; color: var(--success-color); margin-bottom: 1rem;">✓</div>
-           <h2 style="margin-bottom: 0.5rem;">Examination Submitted Successfully!</h2>
-           
-           ${!isAutoTimeOut ? `
-           <div style="margin: 1.5rem 0; padding: 1rem; background: var(--bg-tertiary); border-radius: 12px; border: 1px solid var(--border-color);">
-              <div style="font-size: 0.75rem; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 4px;">Time Spent</div>
-              <div style="font-size: 1.5rem; font-weight: 600; color: var(--primary-color);">${timeTaken.formatted}</div>
-              <p style="margin-top: 8px; font-size: 0.85rem; color: var(--text-secondary);">Excellent! You completed the assessment ahead of schedule.</p>
-           </div>
-           ` : ''}
-
-           <p style="color: var(--text-secondary); margin-bottom: 2rem;">
-             ${isAutoTimeOut ? 'Your session was automatically submitted because you reached the maximum time allowed. ' : ''}
-             Your answers have been securely recorded. You may now close this window safely.
-           </p>
-           <button class="btn btn-primary" onclick="window.close()">Close Window</button>
-         </div>
-      </div>
-    `;
+    window.location.href = `result.html?attemptId=${encodeURIComponent(this.attemptId)}`;
   }
 }
 

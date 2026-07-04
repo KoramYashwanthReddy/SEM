@@ -86,6 +86,42 @@ public class ProctoringService {
         );
     }
 
+    // ================= PHOTO SNAPSHOT =================
+    /**
+     * Saves a periodic photo snapshot as a PHOTO_CAPTURE proctoring event.
+     * Score contribution is 0 — purely an evidence/audit record.
+     */
+    @Transactional
+    public void recordPhotoSnapshot(Long attemptId, String imageData, String capturedAt) {
+        ExamAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new RuntimeException("Exam attempt not found"));
+
+        if (!attempt.isActive()) {
+            return;
+        }
+
+        // Truncate to avoid DB column overflow (keep first 200 KB)
+        String safeImage = (imageData != null && imageData.length() > 200_000)
+                ? imageData.substring(0, 200_000) : imageData;
+
+        String metadata = String.format(
+                "{\"type\":\"PHOTO_CAPTURE\",\"capturedAt\":\"%s\",\"size\":%d}",
+                capturedAt, safeImage != null ? safeImage.length() : 0);
+
+        ProctoringEvent event = new ProctoringEvent();
+        event.setAttemptId(attemptId);
+        event.setEventType("PHOTO_CAPTURE");
+        event.setDetails("Periodic photo snapshot at " + capturedAt);
+        event.setEvidenceUrl(safeImage);   // base64 JPEG
+        event.setMetadata(metadata);
+        event.setSeverity(1);
+        event.setScore(0);                  // no cheating score impact
+        event.setTimestamp(LocalDateTime.now());
+
+        eventRepository.save(event);
+        logger.info("Photo snapshot saved | attempt={} | capturedAt={}", attemptId, capturedAt);
+    }
+
     // ================= THRESHOLD ENGINE =================
     private void handleThresholds(ExamAttempt attempt, int score) {
 

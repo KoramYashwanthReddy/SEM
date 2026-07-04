@@ -259,27 +259,36 @@ public class AdminController {
     // =====================================================
 
     @PostMapping("/attempts/{attemptId}/cancel")
-    public ResponseEntity<String> cancelAttempt(
+    public ResponseEntity<Map<String, Object>> cancelAttempt(
             @PathVariable Long attemptId) {
 
         adminService.cancelAttempt(attemptId);
-        return ResponseEntity.ok("Attempt cancelled successfully");
+        return ResponseEntity.ok(Map.of(
+                "cancelled", true,
+                "attemptId", attemptId,
+                "message", "Attempt cancelled successfully"));
     }
 
     @PostMapping("/attempts/{attemptId}/force-submit")
-    public ResponseEntity<String> forceSubmitAttempt(
+    public ResponseEntity<Map<String, Object>> forceSubmitAttempt(
             @PathVariable Long attemptId) {
 
         adminService.forceSubmitAttempt(attemptId);
-        return ResponseEntity.ok("Attempt force submitted successfully");
+        return ResponseEntity.ok(Map.of(
+                "submitted", true,
+                "attemptId", attemptId,
+                "message", "Attempt force submitted successfully"));
     }
 
     @PostMapping("/attempts/{attemptId}/restore")
-    public ResponseEntity<String> restoreAttempt(
+    public ResponseEntity<Map<String, Object>> restoreAttempt(
             @PathVariable Long attemptId) {
 
         adminService.restoreAttempt(attemptId);
-        return ResponseEntity.ok("Attempt restored successfully");
+        return ResponseEntity.ok(Map.of(
+                "restored", true,
+                "attemptId", attemptId,
+                "message", "Attempt restored successfully"));
     }
 
     // =====================================================

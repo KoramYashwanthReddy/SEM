@@ -75,7 +75,7 @@
   const st = {
     sec: localStorage.getItem(K.sec) || 'dashboard',
     q: localStorage.getItem(K.q) || '',
-    theme: localStorage.getItem(K.t) || 'system',
+    theme: localStorage.getItem(K.t) || 'light',
     currentUserId: '',
     leaderboard: {
       mode: 'global',
@@ -307,6 +307,7 @@
   const ico = {
     menu:'<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
     search:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.8-3.8"/></svg>',
+    filter:'<svg viewBox="0 0 24 24"><path d="M4 5h16l-6 7v5l-4 2v-7z"/></svg>',
     bell:'<svg viewBox="0 0 24 24"><path d="M15 17H5l1.4-2.1A2 2 0 0 0 7 13.7V10a5 5 0 0 1 10 0v3.7c0 .4.1.8.3 1.1L18 17h-3"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>',
     chevron:'<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>',
     collapse:'<svg viewBox="0 0 24 24"><path d="M10 5 4 12l6 7"/><path d="M20 12H4"/><path d="M14 5v14"/></svg>',
@@ -464,7 +465,7 @@
         return { label: 'Resume Exam', action: 'exam-enter', tone: 'primary', hint: 'Saved session ready to continue.', disabled: false };
       }
       if (state.reexamEligible) {
-        return { label: 'Re-Exam', action: 'exam-start', tone: 'primary', hint: 'Eligible for another verified attempt.', disabled: false };
+        return { label: 'Re-Exam', action: 'exam-reexam-ready', tone: 'primary', hint: 'Eligible for another verified attempt.', disabled: false };
       }
       if (state.live) {
         return { label: 'Enter Exam', action: 'exam-enter', tone: 'primary', hint: 'Exam is live now.', disabled: false };
@@ -594,6 +595,98 @@
     const minutes = Math.floor(remainingMs / 60000);
     const seconds = Math.floor((remainingMs % 60000) / 1000);
     return { remainingMs, minutes, seconds, urgent: remainingMs > 0 && remainingMs <= 5 * 60000 };
+  }
+  function closeExamCardMenus() {
+    $$('.exam-card-menu.is-open').forEach((menu) => {
+      menu.classList.remove('is-open');
+      const btn = $('.exam-card-menu-btn', menu);
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    });
+  }
+  function toggleExamCardMenu(btn) {
+    const menu = btn?.closest('.exam-card-menu');
+    if (!menu) return;
+    const open = menu.classList.contains('is-open');
+    closeExamCardMenus();
+    if (!open) {
+      menu.classList.add('is-open');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+  }
+  function openExamDetailModal(exam) {
+    const totalQuestions = toNumber(exam?.totalQuestions, toNumber(exam?.easyQuestionCount) + toNumber(exam?.mediumQuestionCount) + toNumber(exam?.difficultQuestionCount));
+    const state = examRuntimeState(exam);
+    const accessLabel = state.live ? 'Live' : state.expired ? 'Closed' : exam?.registrationOpen ? 'Registration Open' : 'Registration Closed';
+    const infoTone = exam?.status === 'closed' ? 'locked' : exam?.status === 'resume' ? 'resume' : exam?.status === 'available' ? 'live' : 'warning';
+    const infoLabel = exam?.status === 'closed' ? 'Closed' : exam?.status === 'resume' ? 'Resume' : exam?.status === 'available' ? 'Available' : 'Upcoming';
+    const sessionSummary = state.sessionStarted ? `
+      <div class="result-modal-panel exam-detail-panel">
+        <div class="exam-detail-section-head">
+          <span>Session Summary</span>
+          <small>Saved attempt</small>
+        </div>
+        <div class="detail-grid">
+          <div class="detail-item"><span>Attempt</span><strong>#${exam.attemptNumber || 1}</strong></div>
+          <div class="detail-item"><span>Score</span><strong>${exam.percentage || 0}%</strong></div>
+          <div class="detail-item"><span>Obtained</span><strong>${exam.obtainedMarks || 0}/${exam.totalMarks}</strong></div>
+          <div class="detail-item"><span>Time Taken</span><strong>${formatDuration(exam.timeTakenSeconds || 0)}</strong></div>
+        </div>
+      </div>` : '';
+    modal({
+      kicker: 'Exam Details',
+      title: `${exam.examCode} - ${exam.title}`,
+      body: `
+        <div class="exam-detail-shell">
+          <div class="result-modal-hero exam-detail-hero exam-detail-hero--animated">
+            <div class="result-modal-hero-copy">
+              <span class="result-modal-code">${exam.examCode}</span>
+              <h4>${exam.subject}</h4>
+              <p>Duration ${toNumber(exam.durationMinutes)} min | Total Marks ${toNumber(exam.totalMarks)} | Passing Marks ${toNumber(exam.passingMarks)}</p>
+              <div class="exam-detail-metrics">
+                <span class="exam-detail-metric"><strong>${toNumber(exam.durationMinutes)}</strong><small>Minutes</small></span>
+                <span class="exam-detail-metric"><strong>${toNumber(exam.totalMarks)}</strong><small>Total Marks</small></span>
+                <span class="exam-detail-metric"><strong>${toNumber(exam.passingMarks)}</strong><small>Passing Marks</small></span>
+              </div>
+            </div>
+            <span class="result-badge ${infoTone}">${infoLabel}</span>
+          </div>
+          <div class="result-modal-grid exam-detail-grid">
+            <div class="result-modal-panel exam-detail-panel">
+              <div class="exam-detail-section-head">
+                <span>Exam Info</span>
+                <small>Question distribution</small>
+              </div>
+              <div class="detail-grid">
+                <div class="detail-item"><span>Easy</span><strong>${toNumber(exam.easyQuestionCount)}</strong></div>
+                <div class="detail-item"><span>Medium</span><strong>${toNumber(exam.mediumQuestionCount)}</strong></div>
+                <div class="detail-item"><span>Hard</span><strong>${toNumber(exam.difficultQuestionCount)}</strong></div>
+                <div class="detail-item"><span>Total</span><strong>${totalQuestions}</strong></div>
+                <div class="detail-item"><span>Negative Marks</span><strong>${toNumber(exam.negativeMarks)}</strong></div>
+                <div class="detail-item"><span>Attempts</span><strong>${toNumber(exam.maxAttempts)}</strong></div>
+              </div>
+            </div>
+          <div class="result-modal-panel exam-detail-panel">
+            <div class="exam-detail-section-head">
+              <span>Schedule</span>
+              <small>Window and access</small>
+            </div>
+            <div class="detail-grid">
+              <div class="detail-item"><span>Start Time</span><strong>${formatExamTime(exam)}</strong></div>
+              <div class="detail-item"><span>End Time</span><strong>${new Date(state.endAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></div>
+              <div class="detail-item"><span>Window</span><strong>${accessLabel}</strong></div>
+              <div class="detail-item"><span>Access</span><strong>${exam?.registrationOpen ? 'Registration Open' : 'Registration Closed'}</strong></div>
+            </div>
+          </div>
+          ${sessionSummary}
+          </div>
+          <div class="result-modal-note exam-detail-note">
+            <strong>Description</strong>
+            <p>${exam.description || 'No description available.'}</p>
+          </div>
+        </div>
+      `,
+      foot: '<button class="btn ghost" data-close-modal type="button">Close</button>'
+    });
   }
   function renderVerificationBadge(exam) {
     if (!exam?.verificationRequired) return '';
@@ -834,6 +927,7 @@
     'exam-instructions': 'Loading instructions...',
     'exam-start': 'Preparing exam...',
     'exam-register': 'Registering student...',
+    'exam-reexam-ready': 'Preparing re-exam...',
     'exam-enter': 'Opening exam...',
     'exam-enter-confirm': 'Entering exam...',
     'exam-schedule': 'Opening schedule...',
@@ -866,7 +960,7 @@
     if (btn?.dataset.loadingText) return btn.dataset.loadingText;
     return busyCopy[type] || 'Please wait...';
   }
-  function bind() { Object.assign(el, { sidebar:$('sidebar'), toggle:$('toggle-sidebar'), logout:$('logoutBtn'), sideNav:$('sideNav'), sidebarAvatar:$('sidebarAvatar'), sidebarName:$('sidebarName'), sidebarRole:$('sidebarRole'), topAvatar:$('topAvatar'), topName:$('topName'), topSearch:$('top-nav-search'), notifBtn:$('notifBtn'), notifCount:$('notifCount'), notifNavCount:$('notifNavCount'), notifyDrop:$('notifyDrop'), notifyDropCount:$('notifyDropCount'), notifyList:$('notifyList'), notificationTypeFilter:$('notificationTypeFilter'), markAllReadBtn:$('markAllReadBtn'), clearNotificationsBtn:$('clearNotificationsBtn'), unreadNotificationCount:$('unreadNotificationCount'), notificationStream:$('notificationStream'), scheduleDateFilter:$('scheduleDateFilter'), scheduleList:$('scheduleList'), scheduleTimeline:$('scheduleTimeline'), scheduleTodayLabel:$('scheduleTodayLabel'), proctoringStatusGrid:$('proctoringStatusGrid'), proctoringSummaryPanel:$('proctoringSummaryPanel'), faqAccordion:$('faqAccordion'), contactSupportForm:$('contactSupportForm'), reportIssueForm:$('reportIssueForm'), supportTabs:$$('[data-support-tab]'), supportPanels:$$('[data-support-panel]'), profileDd:$('profileDd'), profileMenuBtn:$('profileMenuBtn'), profileMenu:$('profileMenu'), profileLogout:$('profileLogout'), themeToggle:$('themeToggle'), themeButtons:$$('[data-theme-mode]', $('themeToggle')), dashStatsGrid:$('dashStatsGrid'), recentAttemptsBody:$('recentAttemptsBody'), performanceTrendChart:$('performanceTrendChart'), chartPlaceholder:$('chartPlaceholder'), refreshDashboard:$('refreshDashboard'), dashboardActionBtn:$('dashboardActionBtn'), attemptsResetBtn:$('attemptsResetBtn'), examSearch:$('examSearch'), examFilter:$('examFilter'), refreshExamsBtn:$('refreshExamsBtn'), examTabs:$$('[data-tab]'), summaryPill:$('summaryPill'), examStatusLegend:$('examStatusLegend'), unregisteredGrid:$('unregisteredGrid'), upcomingGrid:$('upcomingGrid'), closedGrid:$('closedGrid'), unregisteredCount:$('unregisteredCount'), upcomingCount:$('upcomingCount'), closedCount:$('closedCount'), myExamSearch:$('myExamSearch'), myExamFilter:$('myExamFilter'), myExamTabs:$$('[data-my-tab]'), myExamSummaryPill:$('myExamSummaryPill'), registeredGrid:$('registeredGrid'), resumeMyGrid:$('resumeMyGrid'), reexamGrid:$('reexamGrid'), registeredCount:$('registeredCount'), resumeMyCount:$('resumeMyCount'), reexamCount:$('reexamCount'), resultsSummaryGrid:$('resultsSummaryGrid'), resultsFilter:$('resultsFilter'), resultsSearch:$('resultsSearch'), resultsResetBtn:$('resultsResetBtn'), resultsBody:$('resultsBody'), certificatesSummaryGrid:$('certificatesSummaryGrid'), certificatesFilter:$('certificatesFilter'), certificatesSearch:$('certificatesSearch'), certificatesResetBtn:$('certificatesResetBtn'), certificatesGrid:$('certificatesGrid'), leaderboardModeToggle:$('leaderboardModeToggle'), leaderboardModeButtons:$$('[data-leaderboard-mode]', $('leaderboardModeToggle')), leaderboardSearch:$('leaderboardSearch'), leaderboardSort:$('leaderboardSort'), leaderboardRefresh:$('leaderboardRefresh'), leaderboardSummaryGrid:$('leaderboardSummaryGrid'), yourRankCard:$('yourRankCard'), podiumGrid:$('podiumGrid'), leaderboardBody:$('leaderboardBody'), analyticsCards:$('analyticsCards'), analyticsLineChart:$('analyticsLineChart'), analyticsBarChart:$('analyticsBarChart'), analyticsDonutChart:$('analyticsDonutChart'), editProfileBtn:$('editProfileBtn'), saveProfileBtn:$('saveProfileBtn'), profileForm:$('profileForm'), detailModal:$('detailModal'), detailModalKicker:$('detailModalKicker'), detailModalTitle:$('detailModalTitle'), detailModalBody:$('detailModalBody'), detailModalFoot:$('detailModalFoot'), detailModalClose:$('detailModalClose'), examVerificationModal:$('examVerificationModal'), examVerificationClose:$('examVerificationClose'), examVerificationTitle:$('examVerificationTitle'), examVerificationSubtitle:$('examVerificationSubtitle'), examVerificationBody:$('examVerificationBody'), examVerificationFoot:$('examVerificationFoot'), examStepper:$('examStepper'), examSecurityIndicators:$('examSecurityIndicators'), toastStack:$('toastStack'), liveClock:$('liveClock') }); }
+  function bind() { Object.assign(el, { sidebar:$('sidebar'), toggle:$('toggle-sidebar'), logout:$('logoutBtn'), sideNav:$('sideNav'), sidebarAvatar:$('sidebarAvatar'), sidebarName:$('sidebarName'), sidebarRole:$('sidebarRole'), topAvatar:$('topAvatar'), topName:$('topName'), topSearch:$('top-nav-search'), notifBtn:$('notifBtn'), notifCount:$('notifCount'), notifNavCount:$('notifNavCount'), notifyDrop:$('notifyDrop'), notifyDropCount:$('notifyDropCount'), notifyList:$('notifyList'), notificationTypeFilter:$('notificationTypeFilter'), markAllReadBtn:$('markAllReadBtn'), clearNotificationsBtn:$('clearNotificationsBtn'), unreadNotificationCount:$('unreadNotificationCount'), notificationStream:$('notificationStream'), scheduleDateFilter:$('scheduleDateFilter'), scheduleList:$('scheduleList'), scheduleTimeline:$('scheduleTimeline'), scheduleTodayLabel:$('scheduleTodayLabel'), proctoringStatusGrid:$('proctoringStatusGrid'), proctoringSummaryPanel:$('proctoringSummaryPanel'), faqAccordion:$('faqAccordion'), contactSupportForm:$('contactSupportForm'), reportIssueForm:$('reportIssueForm'), supportTabs:$$('[data-support-tab]'), supportPanels:$$('[data-support-panel]'), profileDd:$('profileDd'), profileMenuBtn:$('profileMenuBtn'), profileMenu:$('profileMenu'), profileLogout:$('profileLogout'), themeToggle:$('themeToggle'), themeButtons:$$('[data-theme-mode]', $('themeToggle')), dashStatsGrid:$('dashStatsGrid'), recentAttemptsBody:$('recentAttemptsBody'), performanceTrendChart:$('performanceTrendChart'), chartPlaceholder:$('chartPlaceholder'), refreshDashboard:$('refreshDashboard'), dashboardActionBtn:$('dashboardActionBtn'), attemptsResetBtn:$('attemptsResetBtn'), examSearch:$('examSearch'), examFilter:$('examFilter'), refreshExamsBtn:$('refreshExamsBtn'), examTabs:$$('[data-tab]'), summaryPill:$('summaryPill'), examStatusLegend:$('examStatusLegend'), unregisteredGrid:$('unregisteredGrid'), upcomingGrid:$('upcomingGrid'), closedGrid:$('closedGrid'), unregisteredCount:$('unregisteredCount'), upcomingCount:$('upcomingCount'), closedCount:$('closedCount'), myExamSearch:$('myExamSearch'), myExamFilter:$('myExamFilter'), myExamTabs:$$('[data-my-tab]'), myExamSummaryPill:$('myExamSummaryPill'), registeredGrid:$('registeredGrid'), resumeMyGrid:$('resumeMyGrid'), reexamGrid:$('reexamGrid'), registeredCount:$('registeredCount'), resumeMyCount:$('resumeMyCount'), reexamCount:$('reexamCount'), resultsSummaryGrid:$('resultsSummaryGrid'), resultsFilter:$('resultsFilter'), resultsFilterBtn:$('resultsFilterBtn'), resultsSearch:$('resultsSearch'), resultsResetBtn:$('resultsResetBtn'), resultsBody:$('resultsBody'), certificatesSummaryGrid:$('certificatesSummaryGrid'), certificatesFilter:$('certificatesFilter'), certificatesSearch:$('certificatesSearch'), certificatesResetBtn:$('certificatesResetBtn'), certificatesGrid:$('certificatesGrid'), leaderboardModeToggle:$('leaderboardModeToggle'), leaderboardModeButtons:$$('[data-leaderboard-mode]', $('leaderboardModeToggle')), leaderboardSearch:$('leaderboardSearch'), leaderboardSort:$('leaderboardSort'), leaderboardRefresh:$('leaderboardRefresh'), leaderboardSummaryGrid:$('leaderboardSummaryGrid'), yourRankCard:$('yourRankCard'), podiumGrid:$('podiumGrid'), leaderboardBody:$('leaderboardBody'), analyticsCards:$('analyticsCards'), analyticsLineChart:$('analyticsLineChart'), analyticsBarChart:$('analyticsBarChart'), analyticsDonutChart:$('analyticsDonutChart'), editProfileBtn:$('editProfileBtn'), saveProfileBtn:$('saveProfileBtn'), profileForm:$('profileForm'), detailModal:$('detailModal'), detailModalKicker:$('detailModalKicker'), detailModalTitle:$('detailModalTitle'), detailModalBody:$('detailModalBody'), detailModalFoot:$('detailModalFoot'), detailModalClose:$('detailModalClose'), examVerificationModal:$('examVerificationModal'), examVerificationClose:$('examVerificationClose'), examVerificationTitle:$('examVerificationTitle'), examVerificationSubtitle:$('examVerificationSubtitle'), examVerificationBody:$('examVerificationBody'), examVerificationFoot:$('examVerificationFoot'), examStepper:$('examStepper'), examSecurityIndicators:$('examSecurityIndicators'), toastStack:$('toastStack'), liveClock:$('liveClock') }); }
   function hydrateIcons(root = document) {
     $$('[data-icon]', root).forEach((node) => {
       const name = node.dataset.icon;
@@ -877,6 +971,76 @@
   function toast(t, m, tone='info') { const n = document.createElement('div'); n.className = `toast ${tone}`; n.innerHTML = `<strong>${t}</strong><span>${m}</span>`; el.toastStack.appendChild(n); setTimeout(() => { n.style.opacity = '0'; n.style.transform = 'translateY(8px)'; setTimeout(() => n.remove(), 220); }, 3200); }
   function modal({ kicker='Student Detail', title='', body='', foot='' }) { el.detailModalKicker.textContent = kicker; el.detailModalTitle.textContent = title; el.detailModalBody.innerHTML = body; el.detailModalFoot.innerHTML = foot; el.detailModal.classList.remove('hidden'); el.detailModal.setAttribute('aria-hidden', 'false'); }
   function closeModal() { el.detailModal.classList.add('hidden'); el.detailModal.setAttribute('aria-hidden', 'true'); }
+  function openReexamReadyModal(exam) {
+    modal({
+      kicker: 'Exam Ready',
+      title: `${exam.examCode} - ${exam.title}`,
+      body: `
+        <div class="reexam-ready-shell">
+          <div class="reexam-ready-topline">
+            <span class="reexam-ready-icon"><span class="svg-icon" data-icon="shield"></span></span>
+            <span class="reexam-ready-kicker">Exam Ready</span>
+          </div>
+          <div class="reexam-ready-titleblock">
+            <h4>${escapeHtml(exam.examCode)} - ${escapeHtml(exam.title)}</h4>
+          </div>
+          <div class="reexam-ready-summary">
+            <div class="reexam-ready-card-head">
+              <span class="code-badge">${escapeHtml(exam.examCode)}</span>
+              <span class="status-badge available">VERIFIED</span>
+            </div>
+            <div class="reexam-ready-name">${escapeHtml(exam.title)}</div>
+            <div class="reexam-ready-meta">
+              <span><span class="svg-icon" data-icon="clock"></span>${escapeHtml(exam.subject)}</span>
+              <span><span class="svg-icon" data-icon="clock"></span>${toNumber(exam.durationMinutes)} min</span>
+              <span><span class="svg-icon" data-icon="calendar"></span>Start ${escapeHtml(formatExamDateTime(exam))}</span>
+            </div>
+          </div>
+          <div class="reexam-ready-grid">
+            <div class="reexam-ready-tile">
+              <div class="reexam-ready-tile-icon"><span class="svg-icon" data-icon="shield"></span></div>
+              <div>
+                <span>AI Proctoring</span>
+                <strong>Enabled</strong>
+              </div>
+            </div>
+            <div class="reexam-ready-tile">
+              <div class="reexam-ready-tile-icon"><span class="svg-icon" data-icon="camera"></span></div>
+              <div>
+                <span>Face Match</span>
+                <strong>Required</strong>
+              </div>
+            </div>
+            <div class="reexam-ready-tile">
+              <div class="reexam-ready-tile-icon"><span class="svg-icon" data-icon="camera"></span></div>
+              <div>
+                <span>Recording</span>
+                <strong>On</strong>
+              </div>
+            </div>
+            <div class="reexam-ready-tile">
+              <div class="reexam-ready-tile-icon"><span class="svg-icon" data-icon="shield"></span></div>
+              <div>
+                <span>Identity</span>
+                <strong>Enforced</strong>
+              </div>
+            </div>
+          </div>
+          <div class="reexam-ready-note">
+            <span class="reexam-ready-note-icon"><span class="svg-icon" data-icon="shield"></span></span>
+            <div>
+              <strong>Your verification has been accepted.</strong>
+              <p>Use the action below to enter the exam workspace.</p>
+            </div>
+          </div>
+        </div>
+      `,
+      foot: `
+        <button class="btn ghost" data-close-modal type="button">Close</button>
+        <button class="btn primary" data-action="exam-reexam-enter" data-code="${exam.examCode}" type="button">Enter Exam</button>`
+    });
+    hydrateIcons(el.detailModalBody);
+  }
   function openExamAccess(exam) {
     modal({
       kicker: 'Exam Ready',
@@ -954,16 +1118,20 @@
     return !!st.examUi.form.registrationConfirmed;
   }
   function isStep7Valid() {
-    return !!st.examUi.form.phase2VerificationCode;
+    return /^\d{6}$/.test(String(st.examUi.form.phase2VerificationCode || '').trim());
   }
   function isStep8Valid() {
     return !!st.examUi.form.phase2Confirmed;
   }
   function canStartExam() {
     const isPhase2 = (st.examUi.mode || 'start') === 'register-phase2';
+    const isRegistration = (st.examUi.mode || 'start') === 'register';
     const baseValid = isStep1Valid() && isStep2Valid() && isStep3Valid() && isStep4Valid() && isStep5Valid();
     if (isPhase2) {
-      return baseValid && isStep6Valid() && isStep7Valid() && isStep8Valid();
+      return baseValid && isStep7Valid() && isStep8Valid();
+    }
+    if (isRegistration) {
+      return baseValid && isStep6Valid();
     }
     return baseValid;
   }
@@ -1171,6 +1339,9 @@
             <input id="examPhase2Code" type="text" value="${escapeHtml(form.phase2VerificationCode || '')}" placeholder="Enter 6-digit verification code" maxlength="6" required>
             <small id="examPhase2CodeError" class="field-error">Valid verification code is required for phase 2 registration.</small>
           </label>
+          <div class="verification-upload-row">
+            <button class="btn ghost" type="button" data-verification-action="send-phase2-email">Send Email</button>
+          </div>
           <div class="phase2-info">
             <p><strong>Why Phase 2 verification?</strong></p>
             <ul>
@@ -1240,15 +1411,16 @@
       || (step === 2 && !isStep2Valid())
       || (step === 3 && !isStep3Valid())
       || (step === 4 && !isStep4Valid())
-      || (step === 5 && !canStartExam())
+      || (step === 5 && !isStep5Valid())
+      || (step === 7 && !isPhase2 && mode === 'register' && !isStep6Valid())
       || (step === 7 && isPhase2 && !isStep7Valid())
       || (step === 8 && isPhase2 && !isStep8Valid());
     const primaryLabel = step === 5
-      ? (mode === 'register' ? 'Review Registration' : 'Start Exam')
+      ? (mode === 'start' ? 'Start Exam' : 'Review Registration')
       : step === 6
-        ? 'Continue to Confirmation'
+        ? (isPhase2 ? 'Continue to Phase 2 Verification' : 'Continue to Confirmation')
         : step === 7
-          ? (isPhase2 ? 'Enter Verification Code' : 'Confirm Registration')
+          ? (isPhase2 ? 'Continue to Final Confirmation' : 'Confirm Registration')
         : step === 8
           ? 'Complete Phase 2 Registration'
         : 'Next Step';
@@ -1358,21 +1530,45 @@
     const phaseText = isPhase2 ? 'Phase 2 ' : '';
     toast(`${phaseText}Registration verified`, `The exam has been added to My Exams.`, 'success');
   }
-  async function startVerifiedExam(code) {
+  async function sendPhase2VerificationEmail(code, triggerBtn) {
+    if (!code) return;
+    try {
+      setButtonBusy(triggerBtn, 'Sending email...');
+      const response = await apiRequest(`/student/exam/phase2/send/${encodeURIComponent(code)}`, {
+        method: 'POST'
+      });
+      const email = String(response?.email || '').trim();
+      const maskedEmail = email ? email.replace(/(^.).*(@.*$)/, '$1***$2') : 'your registered email';
+      toast('Verification email sent', `A phase 2 code was sent to ${maskedEmail}.`, 'success');
+    } catch (error) {
+      console.error('Failed to send phase 2 verification email:', error);
+      toast('Email send failed', error?.message || 'Unable to send the phase 2 verification email right now.', 'warn');
+    } finally {
+      restoreButton(triggerBtn);
+    }
+  }
+  async function ensureExamAttempt(code) {
     if (!code) return;
     let attemptId = st.examAttemptIds[code] || null;
+    if (attemptId) return attemptId;
+    const studentId = Number(st.currentUserId);
+    const payload = {
+      studentId: Number.isFinite(studentId) && studentId > 0 ? studentId : st.currentUserId,
+      examCode: code
+    };
+    const started = await apiRequest('/exam/start', { method: 'POST', body: JSON.stringify(payload) });
+    if (started?.id != null) {
+      attemptId = started.id;
+      st.examAttemptIds[code] = started.id;
+      save(K.ea, st.examAttemptIds);
+    }
+    return attemptId || null;
+  }
+  async function startVerifiedExam(code) {
+    if (!code) return;
+    let attemptId = null;
     try {
-      const studentId = Number(st.currentUserId);
-      const payload = {
-        studentId: Number.isFinite(studentId) && studentId > 0 ? studentId : st.currentUserId,
-        examCode: code
-      };
-      const started = await apiRequest('/exam/start', { method: 'POST', body: JSON.stringify(payload) });
-      if (started?.id != null) {
-        attemptId = started.id;
-        st.examAttemptIds[code] = started.id;
-        save(K.ea, st.examAttemptIds);
-      }
+      attemptId = await ensureExamAttempt(code);
       if (!attemptId) {
         toast('Unable to enter exam', 'Exam session could not be created. Please try again.', 'warn');
         return;
@@ -1393,12 +1589,21 @@
     renderMyExams();
     if (exam) openExamAccess(exam);
   }
-  function navigateToExamPage(code) {
+  async function navigateToExamPage(code) {
     if (!code) {
       toast('Navigation failed', 'Exam code is missing. Please try again.', 'warn');
       return;
     }
-    const attemptId = st.examAttemptIds[code] || null;
+    let attemptId = st.examAttemptIds[code] || null;
+    if (!attemptId) {
+      try {
+        attemptId = await ensureExamAttempt(code);
+      } catch (error) {
+        console.warn('Unable to create exam attempt before navigation.', error);
+        toast('Navigation failed', error?.message || 'Unable to create the exam attempt. Please try again.', 'warn');
+        return;
+      }
+    }
     if (!attemptId) {
       toast('Navigation failed', 'No active exam attempt found. Please verify and retry.', 'warn');
       return;
@@ -1437,7 +1642,31 @@
   }
   function applySettings() { save(K.s, st.settings); document.body.classList.toggle('student-compact', !!st.settings.compactDensity); document.body.classList.toggle('student-contrast', !!st.settings.highContrast); const t = $$('.toggle-row input[type="checkbox"]'); if (t[0]) t[0].checked = !!st.settings.emailAlerts; if (t[1]) t[1].checked = !!st.settings.examReminders; if (t[2]) t[2].checked = !!st.settings.compactDensity; if (t[3]) t[3].checked = !!st.settings.highContrast; }
   function resolveTheme(mode) { return mode === 'system' ? (themeQuery.matches ? 'dark' : 'light') : mode; }
-  function applyTheme(mode = st.theme) { st.theme = mode; localStorage.setItem(K.t, mode); document.documentElement.setAttribute('data-theme', resolveTheme(mode)); if (el.themeButtons) el.themeButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.themeMode === mode)); }
+  function chartPalette() {
+    const resolved = resolveTheme(st.theme);
+    const dark = resolved === 'dark';
+    return {
+      grid: dark ? 'rgba(82, 82, 91, 0.42)' : 'rgba(148, 163, 184, 0.18)',
+      line: dark ? '#60a5fa' : '#3b82f6',
+      lineFillStart: dark ? 'rgba(96, 165, 250, 0.30)' : 'rgba(59, 130, 246, 0.28)',
+      lineFillEnd: dark ? 'rgba(96, 165, 250, 0.03)' : 'rgba(59, 130, 246, 0.02)',
+      barTop: dark ? 'rgba(167, 139, 250, 0.96)' : 'rgba(139, 92, 246, 0.92)',
+      barBottom: dark ? 'rgba(96, 165, 250, 0.52)' : 'rgba(59, 130, 246, 0.46)',
+      text: dark ? '#f8fafc' : '#0f172a'
+    };
+  }
+  function applyTheme(mode = st.theme) {
+    st.theme = mode;
+    localStorage.setItem(K.t, mode);
+    const resolved = resolveTheme(mode);
+    document.documentElement.setAttribute('data-theme', resolved);
+    document.documentElement.setAttribute('data-theme-mode', mode);
+    document.documentElement.style.colorScheme = resolved;
+    if (el.themeButtons) el.themeButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.themeMode === mode));
+    if (el.analyticsLineChart || el.analyticsBarChart || el.analyticsDonutChart || el.performanceTrendChart) {
+      renderAnalyticsCharts();
+    }
+  }
   function renderCards() { const c = [['Total Exams',st.data.dash.totalExams,'dashboard','blue'],['Attempted Exams',st.data.dash.attemptedCount,'exams','purple'],['Average Score',pct(st.data.dash.averageScore),'analytics','green'],['Certificates Earned',st.data.dash.certificatesEarned,'certificates','amber']]; el.dashStatsGrid.innerHTML = c.map(([t,v,i,tn]) => `<article class="stat-card stat-${tn}"><div class="stat-icon">${svg(i)}</div><div class="stat-copy"><span class="stat-label">${t}</span><strong class="stat-value">${v}</strong><small class="stat-hint">Enterprise UI data</small></div></article>`).join(''); const a = st.data.analytics; el.analyticsCards.innerHTML = [['Attempted Exams',a.attemptedExams,'dashboard'],['Average Score',pct(a.averageScore),'analytics'],['Highest Score',a.highestScore,'star'],['Lowest Score',a.lowestScore,'results']].map(([t,v,i]) => `<article class="stat-card"><div class="stat-icon">${svg(i)}</div><div class="stat-copy"><span class="stat-label">${t}</span><strong class="stat-value">${v}</strong></div></article>`).join(''); }
   function renderDashboardTable() { const q = st.q.trim().toLowerCase(); const rows = st.data.dash.attempts.filter(r => !q || [r.examCode,r.badge,r.status].some(v => String(v).toLowerCase().includes(q))); el.recentAttemptsBody.innerHTML = rows.length ? rows.map(r => `<tr class="clickable-row" data-detail="attempt" data-code="${r.examCode}"><td><strong>${r.examCode}</strong></td><td>${r.obtainedMarks}</td><td>${r.totalMarks}</td><td>${pct(r.percentage)}</td><td><span class="badge ${badge[r.badge] || 'neutral'}">${r.badge}</span></td></tr>`).join('') : `<tr><td colspan="5" class="empty-state">No recent attempts found.</td></tr>`; }
   function examEmptyState(title, description) {
@@ -1457,6 +1686,18 @@
     const proctoringIndicator = renderProctoringIndicator(exam);
     const attemptCounter = renderAttemptCounter(exam);
     const timeRemainingBadge = renderTimeRemainingBadge(exam);
+    const totalQuestions = toNumber(exam.totalQuestions, toNumber(exam.easyQuestionCount) + toNumber(exam.mediumQuestionCount) + toNumber(exam.difficultQuestionCount));
+    const phaseLabel = access.action === 'exam-register-phase2'
+      ? 'Phase 2'
+      : access.action === 'exam-register'
+        ? 'Phase 1'
+        : state.live
+          ? 'Live'
+          : state.verificationOpen
+            ? 'Verification'
+            : state.expired
+              ? 'Closed'
+              : 'Scheduled';
     const accessTone = view === 'my' && state.sessionStarted
       ? 'resume'
       : access.action === 'exam-register'
@@ -1478,57 +1719,49 @@
         <div class="detail-item"><span>Obtained</span><strong>${exam.obtainedMarks || result?.score || 0}/${exam.totalMarks}</strong></div>
         <div class="detail-item"><span>Time Taken</span><strong>${formatDuration(exam.timeTakenSeconds || result?.timeTakenSeconds || 0)}</strong></div>
       </div>` : '';
+    const myExamMenu = view === 'my' ? `
+      <div class="exam-card-menu">
+        <button class="btn ghost exam-card-menu-btn" type="button" data-action="exam-card-menu-toggle" aria-expanded="false" aria-label="More exam actions">
+          <span aria-hidden="true">&#8942;</span>
+        </button>
+        <div class="exam-card-menu-panel" role="menu" aria-label="Exam actions">
+          <button class="exam-card-menu-item" type="button" data-action="exam-detail" data-code="${exam.examCode}" role="menuitem">Details</button>
+          <button class="exam-card-menu-item" type="button" data-action="exam-instructions" data-code="${exam.examCode}" role="menuitem">Instructions</button>
+        </div>
+      </div>` : '';
     return `
       <article class="exam-card ${view === 'my' ? 'my-exam-card' : ''}" data-status="${exam.status}" data-exam-view="${view}" data-exam-code="${exam.examCode}">
-        <div class="exam-top">
-          <div>
-            <h3 class="exam-title">${exam.title}</h3>
+        <div class="exam-card-head">
+          <div class="exam-card-title-block">
+            <h3 class="exam-title">${escapeHtml(exam.title || 'Untitled Exam')}</h3>
+            <p class="exam-subject">${escapeHtml(exam.subject || 'Subject')}</p>
             <div class="meta-line">
-              <span class="code-badge">${exam.examCode}</span>
+              <span class="code-badge">${escapeHtml(exam.examCode)}</span>
               <span class="status-badge ${view === 'my' ? examGroupTone(exam, view) : examGroupTone(exam, view)}">${examVisibleLabel(exam, view)}</span>
               ${verificationBadge}
-              <span class="access-badge ${access.disabled ? 'locked' : accessTone}">${access.hint}</span>
             </div>
-            <p class="exam-subject">${exam.subject}</p>
+          </div>
+          <div class="exam-card-head-actions">
+            <span class="exam-phase-badge ${access.disabled ? 'locked' : accessTone}">${phaseLabel}</span>
+            ${myExamMenu}
           </div>
         </div>
-        <div class="exam-signal-grid">
-          ${proctoringIndicator}
+        <div class="exam-card-badges">
           ${attemptCounter}
+          ${proctoringIndicator}
         </div>
-        <div class="section-block">
-          <div class="exam-core-grid">
-            <div class="detail-item"><span>Duration</span><strong>${exam.durationMinutes} min</strong></div>
-            <div class="detail-item"><span>Total Marks</span><strong>${exam.totalMarks}</strong></div>
-            <div class="detail-item"><span>Passing Marks</span><strong>${exam.passingMarks}</strong></div>
-          </div>
-          <div class="exam-aux-grid">
-            <div class="detail-item"><span>Negative</span><strong>${exam.negativeMarks}</strong></div>
-            <div class="detail-item"><span>Max Attempts</span><strong>${exam.maxAttempts}</strong></div>
-            <div class="detail-item"><span>Window</span><strong>${state.live ? 'Live' : state.expired ? 'Closed' : 'Scheduled'}</strong></div>
-          </div>
+        <div class="exam-timing-grid">
+          <div class="detail-item"><span>Start Time</span><strong>${formatExamTime(exam)}</strong></div>
+          <div class="detail-item"><span>End Time</span><strong>${new Date(state.endAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></div>
+          <div class="detail-item"><span>Access</span><strong>${state.live ? 'Live' : state.expired ? 'Closed' : access.hint}</strong></div>
         </div>
-        <div class="section-block">
-          <div class="timing-grid">
-            <div class="timing-item"><span>Start Time</span><strong>${formatExamTime(exam)}</strong></div>
-            <div class="timing-item"><span>End Time</span><strong>${new Date(state.endAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></div>
-            <div class="timing-item"><span>Access</span><strong>${access.hint}</strong></div>
-          </div>
-        </div>
-        <div class="section-block">
-          <div class="difficulty-grid">
-            <div class="difficulty-row"><div class="difficulty-row-header"><span class="difficulty-label">Easy Questions</span><strong>${exam.easyQuestionCount}</strong></div><div class="progress-track"><div class="progress-fill easy" style="width:${progressWidth('easy', exam)}%"></div></div></div>
-            <div class="difficulty-row"><div class="difficulty-row-header"><span class="difficulty-label">Medium Questions</span><strong>${exam.mediumQuestionCount}</strong></div><div class="progress-track"><div class="progress-fill medium" style="width:${progressWidth('medium', exam)}%"></div></div></div>
-            <div class="difficulty-row"><div class="difficulty-row-header"><span class="difficulty-label">Hard Questions</span><strong>${exam.difficultQuestionCount}</strong></div><div class="progress-track"><div class="progress-fill hard" style="width:${progressWidth('hard', exam)}%"></div></div></div>
-          </div>
+        <div class="exam-actions-shell">
+          <button class="btn ${access.tone === 'primary' ? 'primary' : access.tone === 'warning' ? 'primary warning' : 'ghost'} exam-primary-action" type="button" data-action="${access.action}" data-code="${exam.examCode}" ${access.disabled ? 'disabled' : ''}>${access.label}</button>
+          <button class="btn ghost exam-info-btn" type="button" data-action="exam-detail" data-code="${exam.examCode}">Details</button>
         </div>
         ${metrics}
         ${resumeMeta}
         ${timeRemainingBadge ? `<div class="time-remaining-row">${timeRemainingBadge}</div>` : ''}
-        <div class="card-actions">
-          <button class="btn ${access.tone === 'primary' ? 'primary' : 'ghost'}" type="button" data-action="${access.action}" data-code="${exam.examCode}" ${access.disabled ? 'disabled' : ''}>${access.label}</button>
-          <button class="btn ghost" type="button" data-action="exam-instructions" data-code="${exam.examCode}">Instructions</button>
-        </div>
       </article>`;
   }
 
@@ -1608,13 +1841,25 @@
     const avg = total ? rows.reduce((sum, row) => sum + Number(row.percentage || 0), 0) / total : 0;
     const high = total ? Math.max(...rows.map((row) => Number(row.score || 0))) : 0;
     const pass = total ? (rows.filter((row) => row.passed).length / total) * 100 : 0;
+    const trendLine = (points) => {
+      const width = 120;
+      const height = 36;
+      const min = Math.min(...points, 0);
+      const max = Math.max(...points, 1);
+      const coords = points.map((value, index) => {
+        const x = (index / Math.max(points.length - 1, 1)) * width;
+        const y = height - ((value - min) / ((max - min) || 1)) * (height - 4) - 2;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(' ');
+      return `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${coords}" /></svg>`;
+    };
     const cards = [
-      ['Total Exams', total, 'dashboard', 'blue', 'Submitted result entries'],
-      ['Average Percentage', pct(avg), 'analytics', 'purple', 'Across all completed attempts'],
-      ['Highest Score', `${high}`, 'star', 'green', 'Top score achieved'],
-      ['Pass Rate', pct(pass), 'results', 'amber', 'Successful submissions']
+      ['Total Exams', total, 'dashboard', 'blue', 'Submitted result entries', [4, 5, 4, 6, 5, 7, 6, 8]],
+      ['Average Percentage', pct(avg), 'analytics', 'purple', 'Across all completed attempts', [3, 3, 4, 4, 5, 4, 6, 7]],
+      ['Highest Score', `${high}`, 'star', 'green', 'Top score achieved', [2, 3, 3, 4, 4, 6, 7, 6]],
+      ['Pass Rate', pct(pass), 'results', 'amber', 'Successful submissions', [2, 2, 2, 3, 3, 4, 5, 6]]
     ];
-    el.resultsSummaryGrid.innerHTML = cards.map(([label, value, icon, tone, hint]) => `
+    el.resultsSummaryGrid.innerHTML = cards.map(([label, value, icon, tone, hint, trend]) => `
       <article class="summary-card summary-${tone}">
         <div class="summary-icon">${svg(icon)}</div>
         <div class="summary-copy">
@@ -1622,6 +1867,7 @@
           <strong class="summary-value">${value}</strong>
           <small class="summary-hint">${hint}</small>
         </div>
+        <div class="summary-trend">${trendLine(trend)}</div>
       </article>
     `).join('');
   }
@@ -1633,6 +1879,15 @@
     if (f === 'highscore') return Number(row.percentage || 0) >= 90;
     if (f === 'recent') return true;
     return true;
+  }
+  function cycleResultsFilter() {
+    if (!el.resultsFilter) return;
+    const values = ['all', 'passed', 'failed', 'highscore', 'recent'];
+    const current = values.indexOf(el.resultsFilter.value);
+    const next = values[(current + 1) % values.length];
+    el.resultsFilter.value = next;
+    renderResultsTable();
+    toast('Filter updated', `Showing ${next === 'all' ? 'all results' : next.replace(/^\w/, (m) => m.toUpperCase())}.`, 'info');
   }
   function renderResultsTable() {
     const q = (el.resultsSearch.value.trim() || st.q).toLowerCase();
@@ -1654,7 +1909,10 @@
         <td>${formatDuration(r.timeTakenSeconds)}</td>
         <td>${formatDate(r.submittedAt)}</td>
         <td>
-          <button class="btn ghost small result-action" type="button" data-action="result-view" data-code="${r.examCode}">Intelligence</button>
+          <button class="btn ghost small result-action" type="button" data-action="result-view" data-code="${r.examCode}">
+            <span>View Details</span>
+            ${svg('chevron')}
+          </button>
         </td>
       </tr>`).join('') : `<tr class="empty-row"><td colspan="10" class="empty-state"><strong>No results match the selected filters.</strong><span>Try clearing the search or choose a different status.</span></td></tr>`;
   }
@@ -1918,9 +2176,9 @@
     el.leaderboardBody.innerHTML = '<tr><td colspan="5"><div class="card-skeleton"><div class="line large skeleton"></div></div></td></tr>';
     el.analyticsCards.innerHTML = '<div class="card stat-skel skeleton"></div>'.repeat(4);
   }
-  function drawLine(canvas, data) { if (!canvas) return; const ctx = canvas.getContext('2d'); const dpr = devicePixelRatio || 1; const r = canvas.getBoundingClientRect(); const w = Math.max(r.width, 280), h = Math.max(r.height, 220); canvas.width = w * dpr; canvas.height = h * dpr; ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h); const pad = 30, max = Math.max(...data, 1), min = Math.min(...data, 0); ctx.strokeStyle = 'rgba(148,163,184,.18)'; for (let i = 0; i < 4; i++) { const y = pad + ((h - pad * 2) / 3) * i; ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - pad, y); ctx.stroke(); } ctx.beginPath(); data.forEach((v, i) => { const x = pad + (i * (w - pad * 2)) / Math.max(data.length - 1, 1); const y = pad + (h - pad * 2) * (1 - (v - min) / ((max - min) || 1)); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.strokeStyle = 'rgba(59,130,246,.95)'; ctx.lineWidth = 3; ctx.stroke(); const g = ctx.createLinearGradient(0, 0, 0, h - pad); g.addColorStop(0, 'rgba(59,130,246,.28)'); g.addColorStop(1, 'rgba(59,130,246,.02)'); ctx.lineTo(w - pad, h - pad); ctx.lineTo(pad, h - pad); ctx.closePath(); ctx.fillStyle = g; ctx.fill(); }
-  function drawBars(canvas, data) { if (!canvas) return; const ctx = canvas.getContext('2d'); const dpr = devicePixelRatio || 1; const r = canvas.getBoundingClientRect(); const w = Math.max(r.width, 280), h = Math.max(r.height, 220); canvas.width = w * dpr; canvas.height = h * dpr; ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h); const pad = 28, gap = 12, bw = (w - pad * 2 - gap * (data.length - 1)) / data.length; data.forEach((v, i) => { const bh = (h - pad * 2) * (v / 100), x = pad + i * (bw + gap), y = h - pad - bh, g = ctx.createLinearGradient(0, y, 0, h - pad); g.addColorStop(0, 'rgba(139,92,246,.9)'); g.addColorStop(1, 'rgba(59,130,246,.45)'); ctx.fillStyle = g; ctx.fillRect(x, y, bw, bh); }); }
-  function drawDonut(canvas, parts) { if (!canvas) return; const ctx = canvas.getContext('2d'); const dpr = devicePixelRatio || 1; const r = canvas.getBoundingClientRect(); const w = Math.max(r.width, 280), h = Math.max(r.height, 220); canvas.width = w * dpr; canvas.height = h * dpr; ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h); const total = parts.reduce((s, p) => s + p.value, 0); let a = -Math.PI / 2; const cx = w / 2, cy = h / 2 + 6, rr = Math.min(w, h) / 4; parts.forEach((p) => { const ang = (p.value / total) * Math.PI * 2; ctx.beginPath(); ctx.arc(cx, cy, rr, a, a + ang); ctx.lineWidth = 22; ctx.strokeStyle = p.color; ctx.stroke(); a += ang; }); ctx.fillStyle = '#0f172a'; ctx.font = '700 16px DM Sans'; ctx.textAlign = 'center'; ctx.fillText('Score Mix', cx, cy); ctx.font = '500 12px DM Sans'; ctx.fillText('Distribution', cx, cy + 18); }
+  function drawLine(canvas, data) { if (!canvas) return; const palette = chartPalette(); const ctx = canvas.getContext('2d'); const dpr = devicePixelRatio || 1; const r = canvas.getBoundingClientRect(); const w = Math.max(r.width, 280), h = Math.max(r.height, 220); canvas.width = w * dpr; canvas.height = h * dpr; ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h); const pad = 30, max = Math.max(...data, 1), min = Math.min(...data, 0); ctx.strokeStyle = palette.grid; for (let i = 0; i < 4; i++) { const y = pad + ((h - pad * 2) / 3) * i; ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - pad, y); ctx.stroke(); } ctx.beginPath(); data.forEach((v, i) => { const x = pad + (i * (w - pad * 2)) / Math.max(data.length - 1, 1); const y = pad + (h - pad * 2) * (1 - (v - min) / ((max - min) || 1)); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.strokeStyle = palette.line; ctx.lineWidth = 3; ctx.stroke(); const g = ctx.createLinearGradient(0, 0, 0, h - pad); g.addColorStop(0, palette.lineFillStart); g.addColorStop(1, palette.lineFillEnd); ctx.lineTo(w - pad, h - pad); ctx.lineTo(pad, h - pad); ctx.closePath(); ctx.fillStyle = g; ctx.fill(); }
+  function drawBars(canvas, data) { if (!canvas) return; const palette = chartPalette(); const ctx = canvas.getContext('2d'); const dpr = devicePixelRatio || 1; const r = canvas.getBoundingClientRect(); const w = Math.max(r.width, 280), h = Math.max(r.height, 220); canvas.width = w * dpr; canvas.height = h * dpr; ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h); const pad = 28, gap = 12, bw = (w - pad * 2 - gap * (data.length - 1)) / data.length; data.forEach((v, i) => { const bh = (h - pad * 2) * (v / 100), x = pad + i * (bw + gap), y = h - pad - bh, g = ctx.createLinearGradient(0, y, 0, h - pad); g.addColorStop(0, palette.barTop); g.addColorStop(1, palette.barBottom); ctx.fillStyle = g; ctx.fillRect(x, y, bw, bh); }); }
+  function drawDonut(canvas, parts) { if (!canvas) return; const palette = chartPalette(); const ctx = canvas.getContext('2d'); const dpr = devicePixelRatio || 1; const r = canvas.getBoundingClientRect(); const w = Math.max(r.width, 280), h = Math.max(r.height, 220); canvas.width = w * dpr; canvas.height = h * dpr; ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h); const total = parts.reduce((s, p) => s + p.value, 0); let a = -Math.PI / 2; const cx = w / 2, cy = h / 2 + 6, rr = Math.min(w, h) / 4; parts.forEach((p) => { const ang = (p.value / total) * Math.PI * 2; ctx.beginPath(); ctx.arc(cx, cy, rr, a, a + ang); ctx.lineWidth = 22; ctx.strokeStyle = p.color; ctx.stroke(); a += ang; }); ctx.fillStyle = palette.text; ctx.font = '700 16px Inter, Segoe UI, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('Score Mix', cx, cy); ctx.font = '500 12px Inter, Segoe UI, sans-serif'; ctx.fillText('Distribution', cx, cy + 18); }
   function refresh() {
     renderNotifications();
     renderSchedule();
@@ -2283,19 +2541,14 @@
           </div>
           ${resumeInfo}
         `,
-        foot: `
-          <button class="btn ghost" data-close-modal type="button">Close</button>
-          <button class="btn primary" data-action="${e.status === 'upcoming' ? 'exam-schedule' : 'exam-start'}" data-code="${e.examCode}" type="button">
-            ${e.status === 'resume' ? 'Resume Exam' : e.status === 'upcoming' ? 'View Schedule' : 'Start Exam'}
-          </button>`
+        foot: '<button class="btn ghost" data-close-modal type="button">Close</button>'
       });
       return;
     }
     if (type === 'exam-detail') {
       const e = st.data.exams.find(x => x.examCode === code);
       if (!e) return;
-      const totalQuestions = toNumber(e.totalQuestions, toNumber(e.easyQuestionCount) + toNumber(e.mediumQuestionCount) + toNumber(e.difficultQuestionCount));
-      modal({ kicker:'Exam Details', title:`${e.examCode} - ${e.subject}`, body:`<div class="detail-grid"><div><span>Status</span><strong>${e.status}</strong></div><div><span>Duration</span><strong>${toNumber(e.durationMinutes)} min</strong></div><div><span>Questions</span><strong>${totalQuestions}</strong></div><div><span>Negative Marks</span><strong>${toNumber(e.negativeMarks)}</strong></div><div><span>Schedule</span><strong>${formatExamDateTime(e)}</strong></div></div><p class="card-copy">${e.description || 'No description available.'}</p>`, foot:`<button class="btn ghost" data-close-modal type="button">Close</button><button class="btn primary" data-action="exam-start" data-code="${e.examCode}" type="button">Open Exam</button>` });
+      openExamDetailModal(e);
       return;
     }
     if (type === 'exam-start') {
@@ -2303,6 +2556,12 @@
       if (!e) return;
       openExamVerification(e, 'start');
       toast('Verification started', 'Complete the secure pre-exam checks to continue.', 'info');
+      return;
+    }
+    if (type === 'exam-reexam-ready') {
+      const e = st.data.exams.find((x) => x.examCode === code);
+      if (!e) return;
+      openReexamReadyModal(e);
       return;
     }
     if (type === 'exam-register') {
@@ -2322,12 +2581,27 @@
     if (type === 'exam-enter') {
       const e = st.data.exams.find((x) => x.examCode === code);
       if (!e) return;
+      if (!st.examAttemptIds[code]) {
+        startVerifiedExam(code).catch((error) => {
+          console.error('Failed to prepare exam entry:', error);
+          toast('Unable to enter exam', error?.message || 'Please try again.', 'warn');
+        });
+        return;
+      }
       openExamAccess(e);
       return;
     }
     if (type === 'exam-enter-confirm') {
       closeModal();
-      navigateToExamPage(code);
+      navigateToExamPage(code).catch((error) => {
+        console.error('Failed to navigate to exam page:', error);
+        toast('Navigation failed', error?.message || 'Please try again.', 'warn');
+      });
+      return;
+    }
+    if (type === 'exam-reexam-enter') {
+      closeModal();
+      startVerifiedExam(code);
       return;
     }
     if (type === 'result-view') {
@@ -2462,7 +2736,10 @@
       const open = el.profileMenu.classList.toggle('open');
       el.profileMenuBtn.setAttribute('aria-expanded', String(open));
     });
-    el.notifBtn.addEventListener('click', () => el.notifyDrop.classList.toggle('open'));
+    el.notifBtn.addEventListener('click', () => {
+      el.notifyDrop.classList.remove('open');
+      setSection('notifications');
+    });
     el.detailModalClose.addEventListener('click', closeModal);
     el.detailModal.addEventListener('click', (e) => { if (e.target === el.detailModal) closeModal(); });
     handleSidebarNavigation();
@@ -2536,6 +2813,7 @@
     }));
     $('resultsFilter').addEventListener('change', renderResultsTable);
     $('resultsSearch').addEventListener('input', renderResultsTable);
+    $('resultsFilterBtn')?.addEventListener('click', cycleResultsFilter);
     $('resultsResetBtn').addEventListener('click', (e) => {
       runButtonFeedback(e.currentTarget, 'Resetting...', () => {
         $('resultsFilter').value = 'all';
@@ -2594,39 +2872,61 @@
             moveVerificationStep(st.examUi.step - 1);
             return;
           }
-          if (step === 'next') {
-            if (st.examUi.step === 1 && !isStep1Valid()) return toast('Missing fields', 'Complete the student details before continuing.', 'warn');
-            if (st.examUi.step === 2 && !isStep2Valid()) return toast('Image required', 'Upload or capture a verification image.', 'warn');
-            if (st.examUi.step === 3 && !isStep3Valid()) return toast('Rules not accepted', 'Please confirm the exam rules.', 'warn');
-            if (st.examUi.step === 4 && !isStep4Valid()) return toast('Terms not accepted', 'Please agree to the terms and conditions.', 'warn');
-            if (st.examUi.step < 5) {
-              moveVerificationStep(st.examUi.step + 1);
-              return;
-            }
-            if ((st.examUi.mode || 'start') === 'register' && st.examUi.step === 5) {
-              moveVerificationStep(6);
-              return;
-            }
-            if ((st.examUi.mode || 'start') === 'register' && st.examUi.step === 6) {
-              moveVerificationStep(7);
-              return;
-            }
-            if (st.examUi.mode === 'register' && st.examUi.step === 7 && !isStep6Valid()) {
-              return toast('Confirmation required', 'Please confirm the reviewed registration details.', 'warn');
-            }
-            if (!canStartExam()) {
-              toast('Verification incomplete', 'Please complete all required checks.', 'warn');
-              return;
-            }
-            const exam = getActiveVerificationExam();
-            if (!exam) return;
-            if ((st.examUi.mode || 'start') === 'register') {
-              if (!isStep6Valid()) return toast('Confirmation required', 'Please confirm the reviewed registration details.', 'warn');
-              completeExamRegistration(exam.examCode).catch((error) => {
-                console.error('Failed to complete exam registration:', error);
-                toast('Registration failed', error?.message || 'Unable to register exam right now.', 'warn');
-              });
-              return;
+        if (step === 'next') {
+          if (st.examUi.step === 1 && !isStep1Valid()) return toast('Missing fields', 'Complete the student details before continuing.', 'warn');
+          if (st.examUi.step === 2 && !isStep2Valid()) return toast('Image required', 'Upload or capture a verification image.', 'warn');
+          if (st.examUi.step === 3 && !isStep3Valid()) return toast('Rules not accepted', 'Please confirm the exam rules.', 'warn');
+          if (st.examUi.step === 4 && !isStep4Valid()) return toast('Terms not accepted', 'Please agree to the terms and conditions.', 'warn');
+          if (st.examUi.step === 5 && !isStep5Valid()) return toast('Declaration required', 'Please confirm the declaration before continuing.', 'warn');
+          if (st.examUi.step < 5) {
+            moveVerificationStep(st.examUi.step + 1);
+            return;
+          }
+          if ((st.examUi.mode || 'start') !== 'start' && st.examUi.step === 5) {
+            moveVerificationStep(6);
+            return;
+          }
+          if ((st.examUi.mode || 'start') === 'register' && st.examUi.step === 6) {
+            moveVerificationStep(7);
+            return;
+          }
+          if (st.examUi.mode === 'register-phase2' && st.examUi.step === 6) {
+            moveVerificationStep(7);
+            return;
+          }
+          if (st.examUi.mode === 'register-phase2' && st.examUi.step === 7 && !isStep7Valid()) {
+            return toast('Verification code required', 'Enter a valid 6-digit phase 2 verification code.', 'warn');
+          }
+          if (st.examUi.mode === 'register-phase2' && st.examUi.step === 7) {
+            moveVerificationStep(8);
+            return;
+          }
+          if (st.examUi.mode === 'register' && st.examUi.step === 7 && !isStep6Valid()) {
+            return toast('Confirmation required', 'Please confirm the reviewed registration details.', 'warn');
+          }
+          if (st.examUi.mode === 'register-phase2' && st.examUi.step === 8 && !isStep8Valid()) {
+            return toast('Final confirmation required', 'Please confirm the phase 2 registration before submitting.', 'warn');
+          }
+          if (!canStartExam()) {
+            toast('Verification incomplete', 'Please complete all required checks.', 'warn');
+            return;
+          }
+          const exam = getActiveVerificationExam();
+          if (!exam) return;
+          if ((st.examUi.mode || 'start') === 'register') {
+            if (!isStep6Valid()) return toast('Confirmation required', 'Please confirm the reviewed registration details.', 'warn');
+            completeExamRegistration(exam.examCode).catch((error) => {
+              console.error('Failed to complete exam registration:', error);
+              toast('Registration failed', error?.message || 'Unable to register exam right now.', 'warn');
+            });
+            return;
+          }
+          if (st.examUi.mode === 'register-phase2') {
+            completeExamRegistration(exam.examCode).catch((error) => {
+              console.error('Failed to complete exam registration:', error);
+              toast('Registration failed', error?.message || 'Unable to register exam right now.', 'warn');
+            });
+            return;
             }
             startVerifiedExam(exam.examCode).catch((error) => {
               console.error('Failed to start verified exam:', error);
@@ -2641,6 +2941,14 @@
           const action = upload.dataset.verificationAction;
           if (action === 'upload') $('examImageUploadInput')?.click();
           if (action === 'capture') $('examImageCaptureInput')?.click();
+          if (action === 'send-phase2-email') {
+            const exam = getActiveVerificationExam();
+            if (!exam) {
+              toast('Exam not found', 'Unable to find the active exam for phase 2 email.', 'warn');
+              return;
+            }
+            sendPhase2VerificationEmail(exam.examCode, upload);
+          }
         }
       });
       el.examVerificationModal.addEventListener('input', (e) => handleVerificationInput(e.target));
@@ -2652,6 +2960,13 @@
       const a = e.target.closest('[data-action]');
       if (a) {
         e.preventDefault();
+        if (a.dataset.action === 'exam-card-menu-toggle') {
+          toggleExamCardMenu(a);
+          return;
+        }
+        if (a.dataset.action === 'exam-detail' || a.dataset.action === 'exam-instructions') {
+          closeExamCardMenus();
+        }
         runActionWithFeedback(a);
         return;
       }
@@ -2660,9 +2975,10 @@
       if (e.target.matches('[data-close-modal]')) closeModal();
       if (!el.profileDd.contains(e.target)) { el.profileMenu.classList.remove('open'); el.profileMenuBtn.setAttribute('aria-expanded', 'false'); }
       if (!el.notifBtn.contains(e.target) && !el.notifyDrop.contains(e.target)) el.notifyDrop.classList.remove('open');
+      if (!e.target.closest('.exam-card-menu')) closeExamCardMenus();
       if (!el.sidebar.contains(e.target) && !el.toggle.contains(e.target) && isMobile()) closeSidebar();
     });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeExamVerification(); el.profileMenu.classList.remove('open'); el.notifyDrop.classList.remove('open'); closeSidebar(); } });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeExamVerification(); closeExamCardMenus(); el.profileMenu.classList.remove('open'); el.notifyDrop.classList.remove('open'); closeSidebar(); } });
     window.addEventListener('resize', () => { if (isMobile()) el.sidebar.classList.remove('collapsed'); renderAnalyticsCharts(); renderExamCatalog(); renderMyExams(); renderNotifications(); renderSchedule(); renderProctoringStatus(); if (st.sec === 'leaderboard') renderLeaderboard(); updateSidebarToggle(); });
     themeQuery.addEventListener?.('change', () => { if (st.theme === 'system') applyTheme('system'); });
   }

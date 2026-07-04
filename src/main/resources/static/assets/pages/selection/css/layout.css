@@ -152,7 +152,7 @@ body {
 
 .selection-header h1 {
   font-family: var(--font-display);
-  font-size: clamp(2.5rem, 5vw, 4.2rem);
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
   font-weight: 800;
   letter-spacing: -0.03em;
   margin: 0 0 16px;
@@ -364,8 +364,8 @@ body {
 
 .role-card h3 {
   font-family: var(--font-display);
-  font-size: 2.2rem; /* Increased from 1.8rem */
-  font-weight: 800; /* Increased from 700 */
+  font-size: 1.5rem; /* Reduced from 2.2rem */
+  font-weight: 700; /* Reduced from 800 */
   margin: 0 0 20px;
   letter-spacing: -0.02em;
   color: var(--text-primary);
@@ -618,7 +618,7 @@ body {
 
 .performance-hub h2 {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-size: clamp(1.5rem, 3vw, 2rem);
   color: var(--text-primary);
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -680,7 +680,7 @@ body {
 
 .hub-val {
   font-family: var(--font-mono);
-  font-size: 2.2rem;
+  font-size: 1.8rem;
   font-weight: 800;
   color: var(--text-primary);
   letter-spacing: -0.02em;

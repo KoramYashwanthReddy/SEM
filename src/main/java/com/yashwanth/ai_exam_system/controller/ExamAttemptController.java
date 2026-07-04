@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import jakarta.validation.Valid;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -68,21 +69,23 @@ public class ExamAttemptController {
     // ✅ START EXAM
     @PostMapping("/start")
     @PreAuthorize("hasRole('STUDENT')")
-    public ExamAttempt startExam(@Valid @RequestBody StartExamRequest request, Authentication auth) {
+    public ResponseEntity<Map<String, Object>> startExam(@Valid @RequestBody StartExamRequest request, Authentication auth) {
         Long authenticatedStudentId = resolveAuthenticatedStudentId(auth);
         if (request.getStudentId() != null && !authenticatedStudentId.equals(request.getStudentId())) {
             throw new ForbiddenException("You can only start your own exam attempt");
         }
 
-        return examAttemptService.startExam(
+        ExamAttempt attempt = examAttemptService.startExam(
                 authenticatedStudentId,
                 request.getExamCode());
+
+        return ResponseEntity.ok(toAttemptResponse(attempt));
     }
 
     // ✅ SAVE ANSWER
     @PostMapping("/submit-answer")
     @PreAuthorize("hasRole('STUDENT')")
-    public String submitAnswer(@Valid @RequestBody SubmitAnswerRequest request, Authentication auth) {
+    public ResponseEntity<Map<String, Object>> submitAnswer(@Valid @RequestBody SubmitAnswerRequest request, Authentication auth) {
         Long authenticatedStudentId = resolveAuthenticatedStudentId(auth);
         ExamAttempt attempt = attemptRepository.findById(request.getAttemptId())
                 .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
@@ -90,26 +93,32 @@ public class ExamAttemptController {
             throw new ForbiddenException("You can only submit answers for your own attempt");
         }
 
-        examAttemptService.submitAnswer(
-                request.getAttemptId(),
-                request.getQuestionId(),
-                request.getAnswer(),
-                request.getMarkForReview());
+        examAttemptService.submitAnswer(request);
 
-        return "Answer saved successfully";
+        Map<String, Object> response = new HashMap<>();
+        response.put("saved", true);
+        response.put("attemptId", request.getAttemptId());
+        response.put("questionId", request.getQuestionId());
+        response.put("markForReview", Boolean.TRUE.equals(request.getMarkForReview()));
+        return ResponseEntity.ok(response);
     }
 
     // 🚀 FINAL SUBMIT
     @PostMapping("/submit/{attemptId}")
     @PreAuthorize("hasRole('STUDENT')")
-    public String submitExam(@PathVariable Long attemptId, Authentication auth) {
+    public ResponseEntity<Map<String, Object>> submitExam(@PathVariable Long attemptId, Authentication auth) {
         Long authenticatedStudentId = resolveAuthenticatedStudentId(auth);
         ExamAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
         if (!authenticatedStudentId.equals(attempt.getStudentId())) {
             throw new ForbiddenException("You can only submit your own attempt");
         }
-        return examService.submitExam(attemptId);
+        String message = examService.submitExam(attemptId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("submitted", true);
+        response.put("attemptId", attemptId);
+        response.put("message", message);
+        return ResponseEntity.ok(response);
     }
 
     // ✅ GET RESULT
@@ -157,26 +166,31 @@ public class ExamAttemptController {
     // 🔥 RESUME EXAM
     @GetMapping("/resume/{attemptId}")
     @PreAuthorize("hasAnyRole('STUDENT','TEACHER','ADMIN')")
-    public ExamAttempt resumeExam(@PathVariable Long attemptId, Authentication auth) {
+    public ResponseEntity<Map<String, Object>> resumeExam(@PathVariable Long attemptId, Authentication auth) {
         ExamAttempt attempt = examAttemptService.getAttempt(attemptId);
         ensureAttemptAccess(attempt, auth, true, true);
-        return attempt;
+        return ResponseEntity.ok(toAttemptResponse(attempt));
     }
 
     // 🔥 FORCE SUBMIT (TIMER / ADMIN)
     @PostMapping("/force-submit/{attemptId}")
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
-    public String forceSubmit(@PathVariable Long attemptId, Authentication auth) {
+    public ResponseEntity<Map<String, Object>> forceSubmit(@PathVariable Long attemptId, Authentication auth) {
         ExamAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
         ensureAttemptAccess(attempt, auth, false, true);
-        return examService.submitExam(attemptId);
+        String message = examService.submitExam(attemptId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("submitted", true);
+        response.put("attemptId", attemptId);
+        response.put("message", message);
+        return ResponseEntity.ok(response);
     }
 
     // 🔥 CANCEL ATTEMPT
     @PostMapping("/cancel/{attemptId}")
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
-    public String cancelAttempt(
+    public ResponseEntity<Map<String, Object>> cancelAttempt(
             @PathVariable Long attemptId,
             @RequestParam(required = false, defaultValue = "Cancelled by teacher") String reason,
             Authentication auth) {
@@ -186,7 +200,11 @@ public class ExamAttemptController {
         ensureAttemptAccess(attempt, auth, false, true);
 
         examAttemptService.cancelAttempt(attemptId, reason);
-        return "Attempt cancelled";
+        Map<String, Object> response = new HashMap<>();
+        response.put("cancelled", true);
+        response.put("attemptId", attemptId);
+        response.put("reason", reason);
+        return ResponseEntity.ok(response);
     }
 
     // =========================================================
@@ -220,13 +238,17 @@ public class ExamAttemptController {
     // 🔥 HEARTBEAT (ANTI CHEATING KEEP ALIVE)
     @PostMapping("/heartbeat/{attemptId}")
     @PreAuthorize("hasRole('STUDENT')")
-    public String heartbeat(@PathVariable Long attemptId, Authentication auth) {
+    public ResponseEntity<Map<String, Object>> heartbeat(@PathVariable Long attemptId, Authentication auth) {
         ExamAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
         ensureAttemptAccess(attempt, auth, true, false);
 
         examAttemptService.updateHeartbeat(attemptId);
-        return "Heartbeat updated";
+        Map<String, Object> response = new HashMap<>();
+        response.put("updated", true);
+        response.put("attemptId", attemptId);
+        response.put("message", "Heartbeat updated");
+        return ResponseEntity.ok(response);
     }
 
     // ✅ LOAD SAVED ANSWERS
@@ -245,7 +267,7 @@ public class ExamAttemptController {
     // 🔥 MARK REVIEW ONLY
     @PostMapping("/mark-review")
     @PreAuthorize("hasRole('STUDENT')")
-    public String markReview(@Valid @RequestBody SubmitAnswerRequest request, Authentication auth) {
+    public ResponseEntity<Map<String, Object>> markReview(@Valid @RequestBody SubmitAnswerRequest request, Authentication auth) {
         ExamAttempt attempt = attemptRepository.findById(request.getAttemptId())
                 .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
         ensureAttemptAccess(attempt, auth, true, false);
@@ -254,7 +276,11 @@ public class ExamAttemptController {
                 request.getAttemptId(),
                 request.getQuestionId());
 
-        return "Marked for review";
+        Map<String, Object> response = new HashMap<>();
+        response.put("marked", true);
+        response.put("attemptId", request.getAttemptId());
+        response.put("questionId", request.getQuestionId());
+        return ResponseEntity.ok(response);
     }
 
     private Map<String, Object> toAttemptMap(ExamAttempt attempt) {
@@ -336,6 +362,26 @@ public class ExamAttemptController {
         }
 
         throw new ForbiddenException("Insufficient permission for this attempt action");
+    }
+
+    private Map<String, Object> toAttemptResponse(ExamAttempt attempt) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", attempt.getId());
+        response.put("attemptId", attempt.getId());
+        response.put("examId", attempt.getExamId());
+        response.put("examCode", attempt.getExamCode());
+        response.put("studentId", attempt.getStudentId());
+        response.put("status", attempt.getStatus() != null ? attempt.getStatus().name() : "STARTED");
+        response.put("attemptNumber", attempt.getAttemptNumber());
+        response.put("startTime", attempt.getStartTime());
+        response.put("endTime", attempt.getEndTime());
+        response.put("expiryTime", attempt.getExpiryTime());
+        response.put("durationMinutes", attempt.getDurationMinutes());
+        response.put("active", attempt.getActive());
+        response.put("score", attempt.getScore());
+        response.put("percentage", attempt.getPercentage());
+        response.put("timeTakenSeconds", attempt.getTimeTakenSeconds());
+        return response;
     }
 
     private User resolveAuthenticatedUser(Authentication auth) {

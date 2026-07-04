@@ -45,11 +45,22 @@ public class ExamEvaluationService {
         int easyCorrect = 0, mediumCorrect = 0, difficultCorrect = 0;
         int easyWrong = 0, mediumWrong = 0, difficultWrong = 0;
 
-        for (StudentAnswer studentAnswer : answers) {
+        List<Question> questions = questionRepository.findByExamCodeAndActiveTrue(examCode);
 
-            Question question = questionRepository
-                    .findById(studentAnswer.getQuestionId())
-                    .orElseThrow(() -> new RuntimeException("Question not found"));
+        for (Question question : questions) {
+            StudentAnswer studentAnswer = answerRepository
+                    .findByAttemptIdAndQuestionId(attemptId, question.getId())
+                    .orElseGet(() -> {
+                        StudentAnswer sa = new StudentAnswer();
+                        sa.setAttemptId(attemptId);
+                        sa.setQuestionId(question.getId());
+                        sa.setStatus("NOT_ANSWERED");
+                        sa.setAnswer("");
+                        sa.setVisited(false);
+                        sa.setIsCorrect(false);
+                        sa.setMarksObtained(0);
+                        return sa;
+                    });
 
             String correctAnswer = question.getCorrectAnswer();
             String studentAnswerValue = studentAnswer.getAnswer();
@@ -72,6 +83,7 @@ public class ExamEvaluationService {
                 unanswered++;
                 studentAnswer.setIsCorrect(false);
                 studentAnswer.setMarksObtained(0);
+                answerRepository.save(studentAnswer);
                 continue;
             }
 
@@ -79,10 +91,8 @@ public class ExamEvaluationService {
                     studentAnswerValue.trim().equalsIgnoreCase(correctAnswer.trim());
 
             if (isCorrect) {
-
                 studentAnswer.setIsCorrect(true);
                 studentAnswer.setMarksObtained(questionMarks);
-
                 obtainedMarks += questionMarks;
                 correct++;
 
@@ -94,10 +104,8 @@ public class ExamEvaluationService {
                     difficultCorrect++;
 
             } else {
-
                 studentAnswer.setIsCorrect(false);
                 studentAnswer.setMarksObtained(0);
-
                 wrong++;
 
                 if (level == DifficultyLevel.EASY)
@@ -107,20 +115,23 @@ public class ExamEvaluationService {
                 else
                     difficultWrong++;
             }
+            answerRepository.save(studentAnswer);
         }
-
-        answerRepository.saveAll(answers);
 
         double percentage = totalMarks == 0 ? 0 : (obtainedMarks * 100.0) / totalMarks;
 
         boolean passed = percentage >= 40;
 
-        ExamResult result = new ExamResult();
-        result.setAttemptId(attemptId);
-        result.setStudentId(studentId);
-        result.setExamCode(examCode);
+        ExamResult result = resultRepository.findByAttemptId(attemptId)
+                .orElseGet(() -> {
+                    ExamResult er = new ExamResult();
+                    er.setAttemptId(attemptId);
+                    er.setStudentId(studentId);
+                    er.setExamCode(examCode);
+                    return er;
+                });
 
-        result.setTotalQuestions(answers.size());
+        result.setTotalQuestions(questions.size());
         result.setCorrectAnswers(correct);
         result.setWrongAnswers(wrong);
 

@@ -26,6 +26,7 @@ import com.yashwanth.ai_exam_system.exception.BadRequestException;
 import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRegistrationRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRepository;
+import com.yashwanth.ai_exam_system.repository.ExamResultRepository;
 import com.yashwanth.ai_exam_system.repository.QuestionRepository;
 import com.yashwanth.ai_exam_system.repository.StudentAnswerRepository;
 
@@ -39,6 +40,7 @@ public class ExamAttemptService {
     private final ExamEvaluationService evaluationService;
     private final ExamRepository examRepository;
     private final ExamRegistrationRepository examRegistrationRepository;
+    private final ExamResultRepository resultRepository;
 
     public ExamAttemptService(
             ExamAttemptRepository attemptRepository,
@@ -46,7 +48,8 @@ public class ExamAttemptService {
             QuestionRepository questionRepository,
             ExamEvaluationService evaluationService,
             ExamRepository examRepository,
-            ExamRegistrationRepository examRegistrationRepository) {
+            ExamRegistrationRepository examRegistrationRepository,
+            ExamResultRepository resultRepository) {
 
         this.attemptRepository = attemptRepository;
         this.answerRepository = answerRepository;
@@ -54,6 +57,7 @@ public class ExamAttemptService {
         this.evaluationService = evaluationService;
         this.examRepository = examRepository;
         this.examRegistrationRepository = examRegistrationRepository;
+        this.resultRepository = resultRepository;
     }
 
     // ================= START EXAM =================
@@ -110,8 +114,11 @@ public class ExamAttemptService {
     }
 
     // ================= SAVE ANSWER =================
-    public void submitAnswer(Long attemptId, Long questionId,
-            String answer, Boolean markForReview) {
+    public void submitAnswer(com.yashwanth.ai_exam_system.dto.SubmitAnswerRequest request) {
+        Long attemptId = request.getAttemptId();
+        Long questionId = request.getQuestionId();
+        String answer = request.getAnswer();
+        Boolean markForReview = request.getMarkForReview();
 
         ExamAttempt attempt = getAttempt(attemptId);
 
@@ -138,6 +145,40 @@ public class ExamAttemptService {
             studentAnswer.setStatus("ANSWERED");
         }
 
+        // Save additional production metadata
+        if (request.getVisited() != null) {
+            studentAnswer.setVisited(request.getVisited());
+        }
+        if (request.getAutoSaved() != null) {
+            studentAnswer.setAutoSaved(request.getAutoSaved());
+        }
+        if (request.getTimeSpentSeconds() != null) {
+            studentAnswer.setTimeSpentSeconds(request.getTimeSpentSeconds());
+        }
+        if (request.getAnswerChanged() != null) {
+            studentAnswer.setAnswerChanged(request.getAnswerChanged());
+        }
+        if (request.getTabSwitchCount() != null) {
+            studentAnswer.setTabSwitchCount(request.getTabSwitchCount());
+        }
+        if (request.getFullscreenExitCount() != null) {
+            studentAnswer.setFullscreenExitCount(request.getFullscreenExitCount());
+        }
+        if (request.getCodingLanguage() != null) {
+            studentAnswer.setCodingLanguage(request.getCodingLanguage());
+        }
+        if (request.getCodeAnswer() != null) {
+            studentAnswer.setCodeAnswer(request.getCodeAnswer());
+        }
+
+        // Set difficulty and topic from question details if possible
+        questionRepository.findById(questionId).ifPresent(q -> {
+            if (q.getDifficultyLevel() != null) {
+                studentAnswer.setDifficulty(q.getDifficultyLevel().toString());
+            }
+            studentAnswer.setTopic(q.getTopic());
+        });
+
         studentAnswer.setLastUpdated(LocalDateTime.now());
         answerRepository.save(studentAnswer);
     }
@@ -147,10 +188,18 @@ public class ExamAttemptService {
 
         ExamAttempt attempt = getAttempt(attemptId);
 
-        ExamResult result = evaluationService.evaluateExam(
-                attemptId,
-                attempt.getStudentId(),
-                attempt.getExamCode());
+        // Try to fetch existing result first to avoid redundant evaluation
+        Optional<ExamResult> existingResult = resultRepository.findByAttemptId(attemptId);
+
+        ExamResult result;
+        if (existingResult.isPresent()) {
+            result = existingResult.get();
+        } else {
+            result = evaluationService.evaluateExam(
+                    attemptId,
+                    attempt.getStudentId(),
+                    attempt.getExamCode());
+        }
 
         List<Question> questions = questionRepository.findByExamCodeAndActiveTrue(attempt.getExamCode());
 
@@ -160,14 +209,16 @@ public class ExamAttemptService {
 
         int obtainedMarks = (int) result.getScore();
 
-        long timeTaken = Duration.between(
-                attempt.getStartTime(),
-                LocalDateTime.now()).getSeconds();
+        long timeTaken = attempt.getTimeTakenSeconds() != null && attempt.getTimeTakenSeconds() > 0
+                ? attempt.getTimeTakenSeconds()
+                : Duration.between(attempt.getStartTime(), LocalDateTime.now()).getSeconds();
 
         attempt.setTimeTakenSeconds(timeTaken);
         attempt.setObtainedMarks(obtainedMarks);
         attempt.setTotalMarks(totalMarks);
-        attempt.setEndTime(LocalDateTime.now());
+        if (attempt.getEndTime() == null) {
+            attempt.setEndTime(LocalDateTime.now());
+        }
         attempt.setStatus(AttemptStatus.EVALUATED);
 
         attemptRepository.save(attempt);

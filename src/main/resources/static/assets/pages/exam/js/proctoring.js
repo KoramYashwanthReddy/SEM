@@ -66,7 +66,7 @@ class ProctoringSystem {
   init() {
     // Visibility change (Tab switch)
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
+      if (document.hidden && this.isExamStarted()) {
         this.triggerWarning('Tab switch detected. You must stay on the exam page.', 'general');
       }
     });
@@ -75,7 +75,7 @@ class ProctoringSystem {
     window.addEventListener('blur', () => {
       // Small timeout to prevent false positives when interacting with browser UI
       setTimeout(() => {
-        if (!document.hasFocus()) {
+        if (!document.hasFocus() && this.isExamStarted()) {
           this.triggerWarning('Window focus lost. Please do not interact with other applications.', 'general');
         }
       }, 500);

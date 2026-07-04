@@ -89,10 +89,28 @@ public class Exam {
     private LocalDateTime endTime;
 
     // ================= REGISTRATION PHASES =================
+    //
+    //  TIMELINE:
+    //  |<----------- Phase 1 ----------->|<-- Phase 2 -->|
+    //  T-24h                            T-1h             T (exam start)
+    //
+    //  Phase 1 : standard registration window (opens 24 h before, closes 1 h before).
+    //  Phase 2 : enhanced-verification window (opens 1 h before, closes at exam start).
+    //
+    //  SMART FALLTHROUGH for late-published exams:
+    //  ┌──────────────────────┬────────────────────────────────────────────────────┐
+    //  │ Time until exam      │ Behaviour                                          │
+    //  ├──────────────────────┼────────────────────────────────────────────────────┤
+    //  │ > 24 h               │ Phase 1 opens at T-24h, Phase 2 at T-1h            │
+    //  │ 1 h < t ≤ 24 h       │ Phase 1 opens immediately (reg start is past now)  │
+    //  │ 5/10/.../50/60 min   │ Phase 2 active immediately (phase2Start is past)   │
+    //  │ Exam start (T=0)     │ Registration closed                                │
+    //  └──────────────────────┴────────────────────────────────────────────────────┘
+    //
     private Boolean registrationOpen = false;
-    private LocalDateTime registrationStartTime; // 25 hours before startTime
-    private LocalDateTime phase1EndTime; // 30 minutes before startTime
-    private LocalDateTime phase2StartTime; // 30 minutes before startTime
+    private LocalDateTime registrationStartTime; // T-24h (registration opens)
+    private LocalDateTime phase1EndTime;          // T-1h  (Phase 1 closes / Phase 2 opens)
+    private LocalDateTime phase2StartTime;        // T-1h  (Phase 2 opens, until T)
     private Boolean phase2VerificationRequired = true;
 
     // ================= AUDIT =================
@@ -122,16 +140,19 @@ public class Exam {
         if (registrationOpen == null) registrationOpen = false;
         if (phase2VerificationRequired == null) phase2VerificationRequired = true;
 
-        // Auto-calculate registration phase times when startTime is set
+        // Auto-calculate registration phase boundary times.
+        // These are FIXED markers relative to startTime.
+        // isRegistrationOpen / isInPhase1 / isInPhase2 logic handles
+        // the "late publish" scenarios automatically at query time.
         if (startTime != null) {
             if (registrationStartTime == null) {
-                registrationStartTime = startTime.minusHours(25);
+                registrationStartTime = startTime.minusHours(24); // Phase 1 opens
             }
             if (phase1EndTime == null) {
-                phase1EndTime = startTime.minusMinutes(30);
+                phase1EndTime = startTime.minusHours(1);          // Phase 1 closes
             }
             if (phase2StartTime == null) {
-                phase2StartTime = startTime.minusMinutes(30);
+                phase2StartTime = startTime.minusHours(1);        // Phase 2 opens
             }
         }
     }
@@ -178,40 +199,58 @@ public class Exam {
 
     // ================= REGISTRATION PHASE HELPERS =================
 
+    /**
+     * Registration is open from T-24h until exam start (T).
+     * If the exam was published < 24 h before start, registration opens immediately
+     * because registrationStartTime (= T-24h) is already in the past.
+     */
     public boolean isRegistrationOpen() {
         if (!Boolean.TRUE.equals(registrationOpen) || !isPublished() || !isActive()) {
             return false;
         }
         LocalDateTime now = LocalDateTime.now();
+        // Fallback: 24 h before exam if not stored
         LocalDateTime registrationOpenAt = registrationStartTime != null
                 ? registrationStartTime
-                : (startTime != null ? startTime.minusHours(25) : createdAt);
-        LocalDateTime registrationCloseAt = startTime;
+                : (startTime != null ? startTime.minusHours(24) : createdAt);
+        LocalDateTime registrationCloseAt = startTime; // closes exactly at exam start
         if (registrationOpenAt == null || registrationCloseAt == null) {
             return false;
         }
         return !now.isBefore(registrationOpenAt) && now.isBefore(registrationCloseAt);
     }
 
+    /**
+     * Phase 1 runs from registration open until T-1h.
+     * If exam is < 1 h away when published, this returns false immediately
+     * and isInPhase2() returns true instead.
+     */
     public boolean isInPhase1() {
         if (!isRegistrationOpen()) return false;
         LocalDateTime now = LocalDateTime.now();
+        // Phase 1 closes 1 h before exam (fallback if not stored)
         LocalDateTime phase1CloseAt = phase1EndTime != null
                 ? phase1EndTime
-                : (startTime != null ? startTime.minusMinutes(30) : null);
+                : (startTime != null ? startTime.minusHours(1) : null);
         return phase1CloseAt != null && now.isBefore(phase1CloseAt);
     }
 
+    /**
+     * Phase 2 runs from T-1h until exam start (T).
+     * If exam is published with < 1 h to go, phase2OpenAt is already in the past,
+     * so this returns true immediately — correct behaviour for last-minute exams.
+     */
     public boolean isInPhase2() {
         if (!isRegistrationOpen()) return false;
         LocalDateTime now = LocalDateTime.now();
+        // Phase 2 opens 1 h before exam (fallback if not stored)
         LocalDateTime phase2OpenAt = phase2StartTime != null
                 ? phase2StartTime
-                : (startTime != null ? startTime.minusMinutes(30) : null);
+                : (startTime != null ? startTime.minusHours(1) : null);
         return phase2OpenAt != null
                 && startTime != null
-                && !now.isBefore(phase2OpenAt)
-                && now.isBefore(startTime);
+                && !now.isBefore(phase2OpenAt)  // now >= T-1h
+                && now.isBefore(startTime);      // now < T
     }
 
     public boolean requiresPhase2Verification() {
