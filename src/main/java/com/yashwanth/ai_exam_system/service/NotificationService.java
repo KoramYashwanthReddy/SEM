@@ -46,28 +46,36 @@ public class NotificationService {
 
     // ================= STUDENT WARNING =================
     public void notifyStudent(Long studentId, String message) {
+        notifyStudent(studentId, "STUDENT_WARNING", "Student Warning", message, "medium", null);
+    }
+
+    public void notifyStudent(Long studentId,
+                              String type,
+                              String title,
+                              String message,
+                              String severity,
+                              Map<String, Object> metadata) {
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("type", "STUDENT_WARNING");
+        payload.put("type", type);
+        payload.put("title", title);
         payload.put("message", message);
+        payload.put("severity", severity);
         payload.put("timestamp", System.currentTimeMillis());
+        if (metadata != null && !metadata.isEmpty()) {
+            payload.put("metadata", metadata);
+        }
 
         messagingTemplate.convertAndSend(
                 "/topic/student/" + studentId,
                 payload
         );
 
-        System.out.println("STUDENT WARNING: " + message);
+        System.out.println("STUDENT ALERT: " + title + " | " + message);
     }
 
     // ================= EXAM CANCELLED ALERT =================
     public void notifyExamCancelled(Long studentId, String message) {
-
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("type", "EXAM_CANCELLED");
-        payload.put("message", message);
-        payload.put("timestamp", System.currentTimeMillis());
-
         adminNotificationService.createNotification(
                 "CHEATING",
                 "Exam Cancelled",
@@ -77,9 +85,13 @@ public class NotificationService {
                 null
         );
 
-        messagingTemplate.convertAndSend(
-                "/topic/student/" + studentId,
-                payload
+        notifyStudent(
+                studentId,
+                "EXAM_CANCELLED",
+                "Exam Cancelled",
+                message,
+                "critical",
+                null
         );
 
         System.out.println("EXAM CANCELLED: " + message);

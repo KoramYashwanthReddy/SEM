@@ -75,12 +75,45 @@ const getExamAttemptId = () => {
 };
 const EVENT_THROTTLE_MS = 1200;
 const eventThrottleBucket = new Map();
+const STUDENT_NOTIFICATION_STORAGE_KEY = 'student-ui-notifications';
 const shouldThrottleEvent = (key) => {
   const now = Date.now();
   const prev = eventThrottleBucket.get(key) || 0;
   if (now - prev < EVENT_THROTTLE_MS) return true;
   eventThrottleBucket.set(key, now);
   return false;
+};
+const loadStudentNotifications = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STUDENT_NOTIFICATION_STORAGE_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+};
+const saveStudentNotifications = (items) => {
+  localStorage.setItem(STUDENT_NOTIFICATION_STORAGE_KEY, JSON.stringify(Array.isArray(items) ? items : []));
+};
+const escapeHtml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+const pushStudentNotification = (notification) => {
+  const items = loadStudentNotifications();
+  items.unshift({
+    id: `notif-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    type: notification.type || 'exam',
+    title: notification.title || 'Exam alert',
+    message: notification.message || '',
+    source: notification.source || 'Proctoring Engine',
+    severity: notification.severity || 'high',
+    read: false,
+    timestamp: new Date().toISOString(),
+    meta: notification.meta || {}
+  });
+  saveStudentNotifications(items.slice(0, 50));
 };
 const logExamEvent = async (payload = {}) => {
   const attemptId = Number(payload.attemptId || getExamAttemptId());
@@ -184,7 +217,14 @@ const enableStartButtonWhenConsented = () => {
   const consent = document.getElementById('setup-consent-chk');
   const startBtn = document.getElementById('start-exam-btn');
   if (!startBtn) return;
-  const updateState = () => { startBtn.disabled = consent ? !consent.checked : false; };
+  if (window.proctorSystem && typeof window.proctorSystem.validateFinalSetup === 'function') {
+    window.proctorSystem.validateFinalSetup();
+    return;
+  }
+  const updateState = () => {
+    startBtn.disabled = consent ? !consent.checked : false;
+    startBtn.textContent = consent && consent.checked ? 'Start Exam' : 'Waiting for permissions...';
+  };
   if (consent) consent.addEventListener('change', updateState);
   updateState();
   startBtn.addEventListener('click', () => {
@@ -284,7 +324,10 @@ class ExamController {
     
     // Time Up Modal
     this.timeUpModal = document.getElementById('time-up-modal');
+    this.timeUpModalTitle = document.getElementById('time-up-modal-title');
+    this.timeUpModalBody = document.getElementById('time-up-modal-body');
     this.timeUpOkBtn = document.getElementById('time-up-ok-btn');
+    this.lastAutoSubmitReason = 'TIMER_EXPIRED';
 
     this.init();
   }
@@ -295,7 +338,7 @@ class ExamController {
     this.nav = new ExamNavigation(this);
     
     // 5 minute timer
-    this.timer = new ExamTimer(300, 'exam-timer', () => this.submitExam(true));
+    this.timer = new ExamTimer(300, 'exam-timer', () => this.submitExam(true, { autoReason: 'TIMER_EXPIRED' }));
     // Timer start is now handled by ProctoringSystem upon clicking "Start Examination"
     // this.timer.start();
 
@@ -331,7 +374,7 @@ class ExamController {
     }
     if (this.timeUpOkBtn) {
        this.timeUpOkBtn.addEventListener('click', () => {
-          this.renderFinalSuccess(true);
+          this.renderFinalSuccess(true, { autoReason: this.lastAutoSubmitReason || 'TIMER_EXPIRED' });
        });
     }
 
@@ -359,6 +402,53 @@ class ExamController {
         ...metadata
       },
       dedupeKey
+    });
+  }
+
+  setAutoSubmitModalContent(mode, context = {}) {
+    if (!this.timeUpModal || !this.timeUpOkBtn) return;
+    const isCheating = mode === 'cheating';
+    const violation = context.violation || {};
+    const reason = violation.reason || context.reason || 'A proctoring violation';
+    const strike = Number(violation.strike || context.strike || 0);
+    const limit = Number(violation.limit || context.limit || 0);
+
+    if (this.timeUpModalTitle) {
+      this.timeUpModalTitle.textContent = isCheating ? 'Cheating Limit Reached' : 'Time Limit Reached!';
+    }
+    if (this.timeUpModalBody) {
+      this.timeUpModalBody.innerHTML = isCheating
+        ? `
+          <p>You have exceeded the allowed proctoring limit for this exam.</p>
+          <p style="color:var(--text-primary);font-weight:600;margin-top:10px;">${escapeHtml(reason)}${strike && limit ? ` (${strike}/${limit} strikes)` : ''}</p>
+          <p style="margin-top:10px;">Your attempt has been submitted automatically and has been flagged for review by the student, teacher, and admin dashboards.</p>
+        `
+        : `
+          <p>You have reached the maximum time allowed for this examination.</p>
+          <p style="color:var(--text-primary);font-weight:600;margin-top:10px;">Your answers have been automatically recorded and the exam is now submitted.</p>
+        `;
+    }
+    this.timeUpOkBtn.textContent = isCheating ? 'View Cheating Result' : 'Confirm & View Result';
+  }
+
+  recordCheatingNotification(context = {}) {
+    const violation = context.violation || {};
+    const reason = violation.reason || context.reason || 'Proctoring limit reached';
+    const category = violation.category || context.category || 'general';
+    const strike = Number(violation.strike || context.strike || 0);
+    const limit = Number(violation.limit || context.limit || 0);
+    pushStudentNotification({
+      type: 'exam',
+      title: 'Cheating Limit Reached',
+      message: `${reason}${strike && limit ? ` (${strike}/${limit} strikes)` : ''}. Your exam was submitted automatically and flagged for review.`,
+      source: 'Proctoring Engine',
+      severity: 'critical',
+      meta: {
+        category,
+        strike,
+        limit,
+        autoReason: 'PROCTORING_LIMIT_REACHED'
+      }
     });
   }
 
@@ -972,7 +1062,9 @@ class ExamController {
     });
   }
 
-  async submitExam(isAuto = false) {
+  async submitExam(isAuto = false, options = {}) {
+    const autoReason = String(options.autoReason || (isAuto ? 'TIMER_EXPIRED' : '')).toUpperCase() || 'MANUAL';
+    this.lastAutoSubmitReason = autoReason;
     const timeTaken = this.timer ? this.timer.getElapsedTime() : { formatted: 'N/A' };
     this.timer.stop();
     this.submitModal.classList.remove('active');
@@ -1002,8 +1094,10 @@ class ExamController {
           }
         }
         if (submitError) throw submitError;
-        this.logAction(isAuto ? 'EXAM_AUTO_SUBMITTED' : 'EXAM_SUBMITTED', isAuto ? 'Exam auto submitted due to timer/proctoring rule' : 'Exam submitted by student', {
-          autoSubmitted: Boolean(isAuto)
+        this.logAction(isAuto ? 'EXAM_AUTO_SUBMITTED' : 'EXAM_SUBMITTED', isAuto ? (autoReason === 'PROCTORING_LIMIT_REACHED' ? 'Exam auto submitted due to proctoring limit' : 'Exam auto submitted due to timer') : 'Exam submitted by student', {
+          autoSubmitted: Boolean(isAuto),
+          autoReason,
+          violation: options.violation || null
         }, 'exam-submit');
       } catch (error) {
         console.error('Final submit failed:', error);
@@ -1013,6 +1107,11 @@ class ExamController {
     }
 
     if (isAuto) {
+       this.setAutoSubmitModalContent(autoReason === 'PROCTORING_LIMIT_REACHED' ? 'cheating' : 'timer', options);
+       if (autoReason === 'PROCTORING_LIMIT_REACHED') {
+         this.recordCheatingNotification(options);
+         showToast('Proctoring limit reached. Your attempt was submitted for review.', 'error');
+       }
        if (this.timeUpModal) this.timeUpModal.classList.add('active');
     } else {
        this.renderFinalSuccess(false, timeTaken);

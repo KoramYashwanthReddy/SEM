@@ -511,10 +511,37 @@ public class StudentDashboardService {
         map.put("easyWrong", result.getEasyWrong());
         map.put("mediumWrong", result.getMediumWrong());
         map.put("difficultWrong", result.getDifficultWrong());
-        map.put("timeTakenSeconds", result.getTimeTakenSeconds());
+        map.put("timeTakenSeconds", resolveResultTimeTakenSeconds(result));
         map.put("submittedAt", result.getSubmittedAt());
         map.put("evaluatedAt", result.getEvaluatedAt());
         map.put("grade", result.getGrade());
         return map;
+    }
+
+    private long resolveResultTimeTakenSeconds(com.yashwanth.ai_exam_system.entity.ExamResult result) {
+        if (result == null) {
+            return 0L;
+        }
+        Long stored = result.getTimeTakenSeconds();
+        if (stored != null && stored > 0) {
+            return stored;
+        }
+
+        if (result.getAttemptId() != null) {
+            ExamAttempt attempt = attemptRepository.findById(result.getAttemptId()).orElse(null);
+            if (attempt != null) {
+                if (attempt.getTimeTakenSeconds() != null && attempt.getTimeTakenSeconds() > 0) {
+                    return attempt.getTimeTakenSeconds();
+                }
+                if (attempt.getStartTime() != null && attempt.getEndTime() != null
+                        && attempt.getEndTime().isAfter(attempt.getStartTime())) {
+                    return java.time.Duration.between(attempt.getStartTime(), attempt.getEndTime()).getSeconds();
+                }
+                if (attempt.getDurationMinutes() != null && attempt.getDurationMinutes() > 0) {
+                    return attempt.getDurationMinutes() * 60L;
+                }
+            }
+        }
+        return 0L;
     }
 }

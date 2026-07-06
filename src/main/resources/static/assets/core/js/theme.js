@@ -5,7 +5,7 @@
 const ThemeController = (() => {
   const STORAGE_KEY = 'nexam_theme';
   const MODES = ['dark', 'light', 'system'];
-  const DEFAULT_MODE = 'system';
+  const DEFAULT_MODE = 'light';
   let currentMode = DEFAULT_MODE;
   let systemMedia = null;
   let initialized = false;

@@ -1,5 +1,5 @@
 (() => {
-  const K = { p:'student-ui-profile', s:'student-ui-settings', sec:'student-ui-section', q:'student-ui-search', t:'student-ui-theme', er:'student-ui-exam-reg', es:'student-ui-exam-sessions', ea:'student-ui-exam-attempts', nn:'student-ui-notifications' };
+  const K = { p:'student-ui-profile', s:'student-ui-settings', sec:'student-ui-section', q:'student-ui-search', t:'student-ui-theme', er:'student-ui-exam-reg', es:'student-ui-exam-sessions', ea:'student-ui-exam-attempts', ev:'student-ui-exam-verification', nn:'student-ui-notifications' };
   const API_BASE = /^https?:/i.test(window.location.origin) ? window.location.origin : 'http://localhost:8080';
   const AUTH_KEYS = ['token', 'accessToken', 'jwt', 'authToken', 'access_token'];
   const $ = (id) => document.getElementById(id);
@@ -140,16 +140,26 @@
     q: localStorage.getItem(K.q) || '',
     theme: localStorage.getItem(K.t) || 'light',
     currentUserId: '',
-    leaderboard: {
-      mode: 'global',
-      sort: 'rank',
-      q: ''
+    results: {
+      page: 1,
+      pageSize: 10
     },
-    profile: load(K.p, { fullName:'', email:'', phone:'', collegeName:'', department:'', year:'', rollNumber:'', section:'' }),
+      leaderboard: {
+        mode: 'global',
+        sort: 'rank',
+        q: ''
+      },
+      analytics: {
+        trendFilter: 'this-month',
+        passFilter: 'all-exams',
+        mixFilter: 'all-exams'
+      },
+      profile: load(K.p, { fullName:'', email:'', phone:'', collegeName:'', department:'', year:'', rollNumber:'', section:'' }),
     settings: load(K.s, { emailAlerts:true, examReminders:true, compactDensity:false, highContrast:false }),
     examRegistration: load(K.er, {}),
     examSessions: load(K.es, {}),
     examAttemptIds: load(K.ea, {}),
+    examVerification: load(K.ev, {}),
     profileEditorPhotoDraft: '',
     examUi: {
       minuteToken: '',
@@ -231,7 +241,6 @@
         duration: '-'
       }))
     };
-    st.data.analytics = dashboard.analytics || st.data.analytics;
     const backendAttempts = Array.isArray(payload.attempts) ? payload.attempts : [];
     const attemptSummaryByCode = new Map();
     backendAttempts.forEach((attempt) => {
@@ -394,6 +403,7 @@
     if (Array.isArray(payload.leaderboardGlobal)) {
       st.data.leaderboard.global = normalizeLeaderboardRows(payload.leaderboardGlobal);
     }
+    st.data.analytics = normalizeAnalyticsSnapshot(payload.analytics || dashboard.analytics || st.data.analytics, st.data.results);
 
     save(K.p, st.profile);
     save(K.ea, st.examAttemptIds);
@@ -495,7 +505,10 @@
   const bestResultForExam = (examCode) => {
     const code = String(examCode || '').trim();
     if (!code) return null;
-    const rows = (st.data.results || []).filter((row) => String(row?.examCode || '').trim() === code);
+    const resultRows = Array.isArray(st.data.results) ? st.data.results : [];
+    const dashRows = Array.isArray(st.data.dash?.attempts) ? st.data.dash.attempts : [];
+    const sourceRows = [...resultRows, ...dashRows];
+    const rows = sourceRows.filter((row) => String(row?.examCode || '').trim() === code);
     if (!rows.length) return null;
     return rows.slice().sort((a, b) => {
       const scoreDiff = Number(b.score || 0) - Number(a.score || 0);
@@ -514,22 +527,31 @@
     const registered = !!st.examRegistration[exam.examCode];
     const result = bestResultForExam(exam.examCode);
     const attemptsRemaining = calculateAttemptsRemaining(exam);
+    const attemptsUsed = Number(exam?.attemptsUsed || 0);
+    const hasAttemptHistory = Boolean(
+      attemptsUsed > 0
+      || exam?.resumeAttemptId
+      || st.examSessions[exam.examCode]
+      || result
+    );
     const expired = now > endAt.getTime() || String(exam?.status || '').toLowerCase() === 'closed';
     const attemptsDepleted = attemptsRemaining <= 0;
     const closed = expired || attemptsDepleted;
+    const passed = !!(result && (result.passed || String(result.result || '').toUpperCase() === 'PASS'));
+    const failed = !!(result && !passed);
     const resumeEligible = !closed && (
       !!exam.resumeAttemptId
       || !!st.examSessions[exam.examCode]
+      || (hasAttemptHistory && !result)
       || String(exam?.status || '').toLowerCase() === 'resume'
     );
     const sessionStarted = !closed && (
       !!exam.resumeAttemptId
       || !!st.examSessions[exam.examCode]
+      || (hasAttemptHistory && !result)
       || resumeEligible
       || String(exam?.status || '').toLowerCase() === 'resume'
     );
-    const failed = !!(result && !result.passed);
-    const completed = closed;
     const reexamEligible = !closed && failed && attemptsRemaining > 0;
 
     // Use backend-provided registration phase times
@@ -551,6 +573,7 @@
     const verificationOpen = now >= verificationOpenAt && now < startAt.getTime();
     const live = now >= startAt.getTime() && now <= endAt.getTime();
     const upcoming = now < startAt.getTime();
+    const completed = closed || (passed && !live);
     const minutesUntil = Math.ceil((startAt.getTime() - now) / 60000);
     const minutesUntilVerification = Math.ceil((verificationOpenAt - now) / 60000);
     const minutesUntilRegistrationClose = Math.ceil((registrationCloseAt - now) / 60000);
@@ -592,23 +615,23 @@
     const state = examRuntimeState(exam);
     if (view === 'my') {
       if (!state.registered) return null;
-      if (state.completed) {
-        return { label: state.expired ? 'Closed' : 'Completed', action: 'exam-detail', tone: 'ghost', hint: state.expired ? 'Session closed.' : 'Attempt limit reached or result finalized.', disabled: true };
-      }
       if (state.resumeEligible || state.sessionStarted) {
-        return { label: 'Resume Exam', action: 'exam-enter', tone: 'primary', hint: 'Saved session ready to continue.', disabled: false };
+        return { label: 'Resume Exam', action: 'exam-access', tone: 'primary', hint: 'Saved session ready to continue.', disabled: false };
       }
       if (state.reexamEligible) {
         return { label: 'Re-Exam', action: 'exam-reexam-ready', tone: 'primary', hint: 'Eligible for another verified attempt.', disabled: false };
       }
+      if (state.completed) {
+        return { label: state.expired ? 'Closed' : 'Completed', action: 'exam-detail', tone: 'ghost', hint: state.expired ? 'Session closed.' : 'Attempt limit reached or result finalized.', disabled: true };
+      }
       if (state.live) {
-        return { label: 'Enter Exam', action: 'exam-enter', tone: 'primary', hint: 'Exam is live now.', disabled: false };
+        return { label: 'Enter Exam', action: 'exam-access', tone: 'primary', hint: 'Exam is live now.', disabled: false };
       }
       if (state.expired) {
         return { label: 'Expired', action: 'exam-detail', tone: 'ghost', hint: 'Session closed.', disabled: true };
       }
       if (state.verificationOpen) {
-        return { label: 'Enter Exam', action: 'exam-start', tone: 'primary', hint: 'Verification is available now.', disabled: false };
+        return { label: 'Enter Exam', action: 'exam-access', tone: 'primary', hint: 'You are registered. Open the exam access hover.', disabled: false };
       }
       if (state.preStartLock) {
         return {
@@ -641,6 +664,15 @@
           disabled: false
         };
       }
+      if (state.upcoming && !state.expired && !state.result) {
+        return {
+          label: 'Upcoming',
+          action: 'exam-detail',
+          tone: 'warning',
+          hint: `Registration opens in ${Math.max(state.minutesUntil, 0)} min.`,
+          disabled: true
+        };
+      }
       if (state.preStartLock || state.verificationOpen || state.live) {
         return {
           label: 'Registration Closed',
@@ -655,13 +687,13 @@
       return { label: 'Closed', action: 'exam-detail', tone: 'ghost', hint: 'Registration closed.', disabled: true };
     }
     if (state.sessionStarted || state.live) {
-      return { label: 'Enter Exam', action: 'exam-enter', tone: 'primary', hint: 'Exam is live or ready to continue.', disabled: false };
+      return { label: 'Enter Exam', action: 'exam-access', tone: 'primary', hint: 'Exam is live or ready to continue.', disabled: false };
     }
     if (state.expired || state.result) {
       return { label: 'Closed', action: 'exam-detail', tone: 'ghost', hint: 'Expired or completed.', disabled: true };
     }
     if (state.verificationOpen) {
-      return { label: 'Start Exam', action: 'exam-start', tone: 'primary', hint: 'Verification is available now.', disabled: false };
+      return { label: 'Enter Exam', action: 'exam-access', tone: 'primary', hint: 'You are registered. Open the exam access hover.', disabled: false };
     }
     if (state.preStartLock) {
       return {
@@ -685,22 +717,22 @@
   function myExamGroup(exam) {
     const state = examRuntimeState(exam);
     if (!state.registered) return null;
-    if (state.completed || state.expired) return 'completed';
     if (state.sessionStarted || state.resumeEligible) return 'resume';
     if (state.reexamEligible) return 'reexam';
+    if (state.completed || state.expired) return 'completed';
     return 'registered';
   }
   function examVisibleLabel(exam, view = 'catalog') {
     const state = examRuntimeState(exam);
     if (view === 'my') {
-      if (state.completed) return state.expired ? 'CLOSED' : 'COMPLETED';
       if (state.sessionStarted || state.resumeEligible) return 'SESSION SAVED';
-      if (state.failed) return 'RE-EXAM';
+      if (state.reexamEligible || state.failed) return 'RE-EXAM';
+      if (state.completed) return state.expired ? 'CLOSED' : 'COMPLETED';
       if (state.live) return 'LIVE';
       if (state.preStartLock) return 'VERIFICATION SOON';
       return 'REGISTERED';
     }
-    if (!state.registered) return state.registrationOpen ? 'UNREGISTERED' : 'REG CLOSED';
+    if (!state.registered) return state.registrationOpen ? 'UNREGISTERED' : state.upcoming ? 'UPCOMING' : 'REG CLOSED';
     if (state.expired || state.result) return 'CLOSED';
     if (state.live) return 'LIVE';
     return state.verificationOpen ? 'START SOON' : state.preStartLock ? 'VERIFICATION SOON' : 'UPCOMING';
@@ -708,14 +740,14 @@
   function examGroupTone(exam, view = 'catalog') {
     const state = examRuntimeState(exam);
     if (view === 'my') {
-      if (state.completed) return 'neutral';
       if (state.sessionStarted || state.resumeEligible) return 'warning';
-      if (state.failed) return 'danger';
+      if (state.reexamEligible || state.failed) return 'danger';
+      if (state.completed) return 'neutral';
       if (state.live) return 'success';
       if (state.preStartLock) return 'neutral';
       return 'success';
     }
-    if (!state.registered) return state.registrationOpen ? 'danger' : 'neutral';
+    if (!state.registered) return state.registrationOpen ? 'danger' : state.upcoming ? 'warning' : 'neutral';
     if (state.expired || state.result) return 'neutral';
     if (state.live) return 'success';
     return state.verificationOpen ? 'warning' : 'neutral';
@@ -833,11 +865,18 @@
   }
   function renderVerificationBadge(exam) {
     if (!exam?.verificationRequired) return '';
+    if (isExamVerificationComplete(exam.examCode)) {
+      return `
+        <div class="exam-pill verification-badge verification-badge--complete" title="Identity verification completed">
+          ${svg('shield')}
+          <span>Verification Completed</span>
+        </div>`;
+    }
     return `
-      <span class="exam-pill verification-badge" title="Complete identity verification before starting exam">
+      <div class="exam-pill verification-badge" data-action="exam-start" data-code="${exam.examCode}" title="Complete identity verification before starting exam">
         ${svg('shield')}
         <span>Verification Required</span>
-      </span>`;
+      </div>`;
   }
   function renderProctoringIndicator(exam) {
     if (!exam?.proctoringEnabled) return '';
@@ -1073,6 +1112,7 @@
   const busyCopy = {
     'exam-instructions': 'Loading instructions...',
     'exam-start': 'Preparing exam...',
+    'exam-access': 'Opening exam access...',
     'exam-register': 'Registering student...',
     'exam-reexam-ready': 'Preparing re-exam...',
     'exam-enter': 'Opening exam...',
@@ -1107,7 +1147,7 @@
     if (btn?.dataset.loadingText) return btn.dataset.loadingText;
     return busyCopy[type] || 'Please wait...';
   }
-  function bind() { Object.assign(el, { sidebar:$('sidebar'), toggle:$('toggle-sidebar'), logout:$('logoutBtn'), sideNav:$('sideNav'), sidebarAvatar:$('sidebarAvatar'), sidebarName:$('sidebarName'), sidebarRole:$('sidebarRole'), topAvatar:$('topAvatar'), topName:$('topName'), topSearch:$('top-nav-search'), notifBtn:$('notifBtn'), notifCount:$('notifCount'), notifNavCount:$('notifNavCount'), notifyDrop:$('notifyDrop'), notifyDropCount:$('notifyDropCount'), notifyList:$('notifyList'), notificationTypeFilter:$('notificationTypeFilter'), markAllReadBtn:$('markAllReadBtn'), clearNotificationsBtn:$('clearNotificationsBtn'), unreadNotificationCount:$('unreadNotificationCount'), notificationStream:$('notificationStream'), scheduleDateFilter:$('scheduleDateFilter'), scheduleList:$('scheduleList'), scheduleTimeline:$('scheduleTimeline'), scheduleTodayLabel:$('scheduleTodayLabel'), proctoringStatusGrid:$('proctoringStatusGrid'), proctoringSummaryPanel:$('proctoringSummaryPanel'), faqAccordion:$('faqAccordion'), contactSupportForm:$('contactSupportForm'), reportIssueForm:$('reportIssueForm'), supportTabs:$$('[data-support-tab]'), supportPanels:$$('[data-support-panel]'), profileDd:$('profileDd'), profileMenuBtn:$('profileMenuBtn'), profileMenu:$('profileMenu'), profileLogout:$('profileLogout'), themeToggle:$('themeToggle'), themeButtons:$$('[data-theme-mode]', $('themeToggle')), dashStatsGrid:$('dashStatsGrid'), recentAttemptsBody:$('recentAttemptsBody'), performanceTrendChart:$('performanceTrendChart'), chartPlaceholder:$('chartPlaceholder'), refreshDashboard:$('refreshDashboard'), dashboardActionBtn:$('dashboardActionBtn'), attemptsResetBtn:$('attemptsResetBtn'), examSearch:$('examSearch'), examFilter:$('examFilter'), refreshExamsBtn:$('refreshExamsBtn'), examTabs:$$('[data-tab]'), summaryPill:$('summaryPill'), examStatusLegend:$('examStatusLegend'), unregisteredGrid:$('unregisteredGrid'), upcomingGrid:$('upcomingGrid'), closedGrid:$('closedGrid'), unregisteredCount:$('unregisteredCount'), upcomingCount:$('upcomingCount'), closedCount:$('closedCount'), myExamSearch:$('myExamSearch'), myExamFilter:$('myExamFilter'), myExamTabs:$$('[data-my-tab]'), myExamSummaryPill:$('myExamSummaryPill'), registeredGrid:$('registeredGrid'), resumeMyGrid:$('resumeMyGrid'), completedGrid:$('completedGrid'), reexamGrid:$('reexamGrid'), registeredCount:$('registeredCount'), resumeMyCount:$('resumeMyCount'), completedMyCount:$('completedMyCount'), reexamCount:$('reexamCount'), resultsSummaryGrid:$('resultsSummaryGrid'), resultsFilter:$('resultsFilter'), resultsFilterBtn:$('resultsFilterBtn'), resultsSearch:$('resultsSearch'), resultsResetBtn:$('resultsResetBtn'), resultsBody:$('resultsBody'), certificatesSummaryGrid:$('certificatesSummaryGrid'), certificatesFilter:$('certificatesFilter'), certificatesSearch:$('certificatesSearch'), certificatesResetBtn:$('certificatesResetBtn'), certificatesGrid:$('certificatesGrid'), leaderboardModeToggle:$('leaderboardModeToggle'), leaderboardModeButtons:$$('[data-leaderboard-mode]', $('leaderboardModeToggle')), leaderboardSearch:$('leaderboardSearch'), leaderboardSort:$('leaderboardSort'), leaderboardRefresh:$('leaderboardRefresh'), leaderboardSummaryGrid:$('leaderboardSummaryGrid'), yourRankCard:$('yourRankCard'), podiumGrid:$('podiumGrid'), leaderboardBody:$('leaderboardBody'), analyticsCards:$('analyticsCards'), analyticsLineChart:$('analyticsLineChart'), analyticsBarChart:$('analyticsBarChart'), analyticsDonutChart:$('analyticsDonutChart'), editProfileBtn:$('editProfileBtn'), profileForm:$('profileForm'), profilePhotoPreview:$('profilePhotoPreview'), profilePhotoName:$('profilePhotoName'), profileEditorModal:$('profileEditorModal'), profileEditorClose:$('profileEditorClose'), profileEditorForm:$('profileEditorForm'), profileEditorCancel:$('profileEditorCancel'), profileEditorSave:$('profileEditorSave'), profileEditorPhotoInput:$('profileEditorPhotoInput'), profileEditorPhotoUploadBtn:$('profileEditorPhotoUploadBtn'), profileEditorPhotoRemoveBtn:$('profileEditorPhotoRemoveBtn'), profileEditorPhotoPreview:$('profileEditorPhotoPreview'), profileEditorPhotoCircle:$('profileEditorPhotoCircle'), profileEditorPhotoName:$('profileEditorPhotoName'), detailModal:$('detailModal'), detailModalKicker:$('detailModalKicker'), detailModalTitle:$('detailModalTitle'), detailModalBody:$('detailModalBody'), detailModalFoot:$('detailModalFoot'), detailModalClose:$('detailModalClose'), examVerificationModal:$('examVerificationModal'), examVerificationClose:$('examVerificationClose'), examVerificationTitle:$('examVerificationTitle'), examVerificationSubtitle:$('examVerificationSubtitle'), examVerificationBody:$('examVerificationBody'), examVerificationFoot:$('examVerificationFoot'), examStepper:$('examStepper'), examSecurityIndicators:$('examSecurityIndicators'), toastStack:$('toastStack'), liveClock:$('liveClock') }); }
+  function bind() { Object.assign(el, { sidebar:$('sidebar'), toggle:$('toggle-sidebar'), logout:$('logoutBtn'), sideNav:$('sideNav'), sidebarAvatar:$('sidebarAvatar'), sidebarName:$('sidebarName'), sidebarRole:$('sidebarRole'), topAvatar:$('topAvatar'), topName:$('topName'), topSearch:$('top-nav-search'), notifBtn:$('notifBtn'), notifCount:$('notifCount'), notifNavCount:$('notifNavCount'), notifyDrop:$('notifyDrop'), notifyDropCount:$('notifyDropCount'), notifyList:$('notifyList'), notificationTypeFilter:$('notificationTypeFilter'), markAllReadBtn:$('markAllReadBtn'), clearNotificationsBtn:$('clearNotificationsBtn'), unreadNotificationCount:$('unreadNotificationCount'), notificationStream:$('notificationStream'), scheduleDateFilter:$('scheduleDateFilter'), scheduleList:$('scheduleList'), scheduleTimeline:$('scheduleTimeline'), scheduleTodayLabel:$('scheduleTodayLabel'), proctoringStatusGrid:$('proctoringStatusGrid'), proctoringSummaryPanel:$('proctoringSummaryPanel'), faqAccordion:$('faqAccordion'), contactSupportForm:$('contactSupportForm'), reportIssueForm:$('reportIssueForm'), supportTabs:$$('[data-support-tab]'), supportPanels:$$('[data-support-panel]'), profileDd:$('profileDd'), profileMenuBtn:$('profileMenuBtn'), profileMenu:$('profileMenu'), profileLogout:$('profileLogout'), themeToggle:$('themeToggle'), themeButtons:$$('[data-theme-mode]', $('themeToggle')), dashStatsGrid:$('dashStatsGrid'), recentAttemptsBody:$('recentAttemptsBody'), performanceTrendChart:$('performanceTrendChart'), chartPlaceholder:$('chartPlaceholder'), refreshDashboard:$('refreshDashboard'), dashboardActionBtn:$('dashboardActionBtn'), attemptsResetBtn:$('attemptsResetBtn'), examSearch:$('examSearch'), examFilter:$('examFilter'), refreshExamsBtn:$('refreshExamsBtn'), examTabs:$$('[data-tab]'), summaryPill:$('summaryPill'), examStatusLegend:$('examStatusLegend'), unregisteredGrid:$('unregisteredGrid'), upcomingGrid:$('upcomingGrid'), closedGrid:$('closedGrid'), unregisteredCount:$('unregisteredCount'), upcomingCount:$('upcomingCount'), closedCount:$('closedCount'), myExamSearch:$('myExamSearch'), myExamFilter:$('myExamFilter'), myExamTabs:$$('[data-my-tab]'), myExamSummaryPill:$('myExamSummaryPill'), registeredGrid:$('registeredGrid'), resumeMyGrid:$('resumeMyGrid'), completedGrid:$('completedGrid'), reexamGrid:$('reexamGrid'), registeredCount:$('registeredCount'), resumeMyCount:$('resumeMyCount'), completedMyCount:$('completedMyCount'), reexamCount:$('reexamCount'), resultsSummaryGrid:$('resultsSummaryGrid'), resultsFilter:$('resultsFilter'), resultsFilterBtn:$('resultsFilterBtn'), resultsSearch:$('resultsSearch'), resultsResetBtn:$('resultsResetBtn'), resultsBody:$('resultsBody'), resultsPageInfo:$('resultsPageInfo'), resultsPagination:$('resultsPagination'), certificatesSummaryGrid:$('certificatesSummaryGrid'), certificatesFilter:$('certificatesFilter'), certificatesSearch:$('certificatesSearch'), certificatesResetBtn:$('certificatesResetBtn'), certificatesGrid:$('certificatesGrid'), leaderboardModeToggle:$('leaderboardModeToggle'), leaderboardModeButtons:$$('[data-leaderboard-mode]', $('leaderboardModeToggle')), leaderboardSearch:$('leaderboardSearch'), leaderboardSort:$('leaderboardSort'), leaderboardRefresh:$('leaderboardRefresh'), leaderboardSummaryGrid:$('leaderboardSummaryGrid'), yourRankCard:$('yourRankCard'), podiumGrid:$('podiumGrid'), leaderboardBody:$('leaderboardBody'), analyticsCards:$('analyticsCards'), analyticsLineChart:$('analyticsLineChart'), analyticsBarChart:$('analyticsBarChart'), analyticsDonutChart:$('analyticsDonutChart'), analyticsTrendFilter:$('analyticsTrendFilter'), analyticsPassFilter:$('analyticsPassFilter'), analyticsMixFilter:$('analyticsMixFilter'), editProfileBtn:$('editProfileBtn'), profileForm:$('profileForm'), profilePhotoPreview:$('profilePhotoPreview'), profilePhotoName:$('profilePhotoName'), profileEditorModal:$('profileEditorModal'), profileEditorClose:$('profileEditorClose'), profileEditorForm:$('profileEditorForm'), profileEditorCancel:$('profileEditorCancel'), profileEditorSave:$('profileEditorSave'), profileEditorPhotoInput:$('profileEditorPhotoInput'), profileEditorPhotoUploadBtn:$('profileEditorPhotoUploadBtn'), profileEditorPhotoRemoveBtn:$('profileEditorPhotoRemoveBtn'), profileEditorPhotoPreview:$('profileEditorPhotoPreview'), profileEditorPhotoCircle:$('profileEditorPhotoCircle'), profileEditorPhotoName:$('profileEditorPhotoName'), detailModal:$('detailModal'), detailModalKicker:$('detailModalKicker'), detailModalTitle:$('detailModalTitle'), detailModalBody:$('detailModalBody'), detailModalFoot:$('detailModalFoot'), detailModalClose:$('detailModalClose'), examVerificationModal:$('examVerificationModal'), examVerificationClose:$('examVerificationClose'), examVerificationTitle:$('examVerificationTitle'), examVerificationSubtitle:$('examVerificationSubtitle'), examVerificationBody:$('examVerificationBody'), examVerificationFoot:$('examVerificationFoot'), examStepper:$('examStepper'), examSecurityIndicators:$('examSecurityIndicators'), toastStack:$('toastStack'), liveClock:$('liveClock') }); }
   function hydrateIcons(root = document) {
     $$('[data-icon]', root).forEach((node) => {
       const name = node.dataset.icon;
@@ -1223,6 +1263,10 @@
   }
   function openExamVerification(exam, mode = 'start') {
     if (!exam) return;
+    if ((mode || 'start') === 'start' && isExamVerificationComplete(exam.examCode)) {
+      toast('Verification completed', 'This exam has already been verified. You can continue with the exam flow.', 'info');
+      return;
+    }
     st.examUi.activeCode = exam.examCode;
     st.examUi.mode = mode;
     st.examUi.step = 1;
@@ -1244,6 +1288,25 @@
   }
   function getActiveVerificationExam() {
     return st.data.exams.find((exam) => exam.examCode === st.examUi.activeCode) || null;
+  }
+  function verificationKey(code) {
+    return String(code || '').trim();
+  }
+  function isExamVerificationComplete(code) {
+    const key = verificationKey(code);
+    if (!key) return false;
+    const hasLocalMarker = Boolean(st.examVerification[key]);
+    const hasAttemptMarker = Boolean(st.examAttemptIds[key]);
+    const hasSessionMarker = Boolean(st.examSessions[key]);
+    const exam = st.data.exams.find((item) => String(item.examCode || '').trim() === key);
+    const hasResumeMarker = Boolean(exam?.resumeAttemptId);
+    return hasLocalMarker || hasAttemptMarker || hasSessionMarker || hasResumeMarker;
+  }
+  function markExamVerificationComplete(code) {
+    const key = verificationKey(code);
+    if (!key) return;
+    st.examVerification[key] = true;
+    save(K.ev, st.examVerification);
   }
   function isStep1Valid() {
     const f = st.examUi.form || {};
@@ -1671,6 +1734,7 @@
     }
     st.examRegistration[code] = true;
     save(K.er, st.examRegistration);
+    markExamVerificationComplete(code);
     closeExamVerification();
     renderExamCatalog();
     renderMyExams();
@@ -1731,6 +1795,7 @@
     }
     st.examSessions[code] = Date.now();
     save(K.es, st.examSessions);
+    markExamVerificationComplete(code);
     const exam = st.data.exams.find((item) => item.examCode === code);
     if (exam && attemptId != null) {
       exam.resumeAttemptId = attemptId;
@@ -1825,17 +1890,101 @@
       passed: Number(attempt.percentage || 0) >= 40
     }));
   }
-  function buildAnalyticsSnapshot() {
-    const rows = getAnalyticsRows();
-    const attemptedExams = rows.length;
-    const percentages = rows.map((row) => Number(row.percentage || 0));
-    const scores = rows.map((row) => Number(row.score || 0));
+  function analyticsWindowDays(filterValue = 'all-exams') {
+    const key = String(filterValue || '').toLowerCase();
+    if (key === 'this-month') return 30;
+    if (key === 'last-3-months') return 90;
+    return Infinity;
+  }
+  function analyticsDateKey(value) {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toISOString().slice(0, 10);
+  }
+  function analyticsWindowRows(rows, filterValue = 'all-exams') {
+    const windowDays = analyticsWindowDays(filterValue);
+    if (!Number.isFinite(windowDays)) return rows.slice();
+    const threshold = Date.now() - (windowDays * 24 * 60 * 60 * 1000);
+    return rows.filter((row) => {
+      const ts = new Date(row.submittedAt || row.evaluatedAt || row.updatedAt || row.createdAt || 0).getTime();
+      return Number.isFinite(ts) && ts >= threshold;
+    });
+  }
+  function analyticsTrendSeries(rows, filterValue = 'all-exams') {
+    const filtered = analyticsWindowRows(rows, filterValue).slice().sort((a, b) => {
+      const aTime = new Date(a.submittedAt || a.evaluatedAt || a.updatedAt || a.createdAt || 0).getTime();
+      const bTime = new Date(b.submittedAt || b.evaluatedAt || b.updatedAt || b.createdAt || 0).getTime();
+      return aTime - bTime;
+    });
+    const buckets = new Map();
+    filtered.forEach((row) => {
+      const key = analyticsDateKey(row.submittedAt || row.evaluatedAt || row.updatedAt || row.createdAt);
+      if (!key) return;
+      buckets.set(key, (buckets.get(key) || 0) + 1);
+    });
+    const keys = Array.from(buckets.keys()).sort();
+    const compactKeys = keys.length > 5 ? keys.slice(-5) : keys;
+    const labels = compactKeys.map((key) => {
+      const d = new Date(`${key}T00:00:00`);
+      return d.toLocaleDateString([], { month: 'short', day: '2-digit' });
+    });
+    const values = compactKeys.map((key) => buckets.get(key) || 0);
+    return { labels, values, keys: compactKeys, filtered };
+  }
+  function analyticsPassSeries(rows, filterValue = 'all-exams') {
+    const filtered = analyticsWindowRows(rows, filterValue);
+    const passed = filtered.filter((row) => Boolean(row.passed) || Number(row.percentage || 0) >= 40).length;
+    const failed = filtered.filter((row) => !((Boolean(row.passed) || Number(row.percentage || 0) >= 40)) && Number(row.percentage || 0) > 0).length;
+    const unfinished = Math.max(filtered.length - passed - failed, 0);
+    return {
+      labels: ['Passed', 'Failed', 'Not Finished'],
+      values: [passed, failed, unfinished],
+      filtered
+    };
+  }
+  function analyticsMixSeries(rows, filterValue = 'all-exams') {
+    const filtered = analyticsWindowRows(rows, filterValue);
+    const buckets = filtered.reduce((acc, row) => {
+      const pctValue = Number(row.percentage || 0);
+      if (pctValue >= 80) acc.high += 1;
+      else if (pctValue >= 60) acc.good += 1;
+      else if (pctValue >= 40) acc.mid += 1;
+      else acc.poor += 1;
+      return acc;
+    }, { high: 0, good: 0, mid: 0, poor: 0 });
+    return {
+      parts: [
+        { label: '80 - 100', value: buckets.high, color: '#7c3aed' },
+        { label: '60 - 79', value: buckets.good, color: '#60a5fa' },
+        { label: '40 - 59', value: buckets.mid, color: '#fbbf24' },
+        { label: '0 - 39', value: buckets.poor, color: '#ff5f87' }
+      ],
+      buckets,
+      filtered
+    };
+  }
+  function analyticsMixLegendItems(series) {
+    const total = Math.max(series.filtered.length, 1);
+    return [
+      { label: '80 - 100 (Excellent)', count: series.buckets.high, color: '#7c3aed' },
+      { label: '60 - 79 (Good)', count: series.buckets.good, color: '#60a5fa' },
+      { label: '40 - 59 (Average)', count: series.buckets.mid, color: '#fbbf24' },
+      { label: '0 - 39 (Poor)', count: series.buckets.poor, color: '#ff5f87' }
+    ].map((item) => {
+      const percent = Math.round((item.count * 100) / total);
+      return { ...item, percent };
+    });
+  }
+  function computeAnalyticsSnapshot(rows = getAnalyticsRows()) {
+    const sourceRows = Array.isArray(rows) ? rows : [];
+    const attemptedExams = sourceRows.length;
+    const percentages = sourceRows.map((row) => Number(row.percentage || 0));
     const averageScore = attemptedExams ? percentages.reduce((sum, value) => sum + value, 0) / attemptedExams : 0;
     const highestScore = percentages.length ? Math.max(...percentages) : 0;
     const lowestScore = percentages.length ? Math.min(...percentages) : 0;
-    const passRate = attemptedExams ? (rows.filter((row) => Boolean(row.passed) || Number(row.percentage || 0) >= 40).length * 100.0) / attemptedExams : 0;
+    const passRate = attemptedExams ? (sourceRows.filter((row) => Boolean(row.passed) || Number(row.percentage || 0) >= 40).length * 100.0) / attemptedExams : 0;
     const trend = percentages.length ? percentages.slice(-8) : [0, 0, 0, 0];
-    const scoreMix = rows.reduce((acc, row) => {
+    const scoreMix = sourceRows.reduce((acc, row) => {
       const pctValue = Number(row.percentage || 0);
       if (pctValue >= 80) acc.high += 1;
       else if (pctValue >= 50) acc.mid += 1;
@@ -1844,21 +1993,43 @@
     }, { high: 0, mid: 0, low: 0 });
     return { attemptedExams, averageScore, highestScore, lowestScore, passRate, trend, scoreMix };
   }
-  function renderAnalyticsCards() {
-    const analytics = buildAnalyticsSnapshot();
-    st.data.analytics = {
-      attemptedExams: analytics.attemptedExams,
-      averageScore: analytics.averageScore,
-      highestScore: analytics.highestScore,
-      lowestScore: analytics.lowestScore,
-      passRate: analytics.passRate
+  function normalizeAnalyticsSnapshot(source, rows = getAnalyticsRows()) {
+    const computed = computeAnalyticsSnapshot(rows);
+    const analytics = source && typeof source === 'object' ? source : {};
+    const scoreMix = analytics.scoreMix && typeof analytics.scoreMix === 'object'
+      ? analytics.scoreMix
+      : computed.scoreMix;
+    return {
+      attemptedExams: Number(analytics.attemptedExams ?? computed.attemptedExams ?? 0),
+      averageScore: Number(analytics.averageScore ?? computed.averageScore ?? 0),
+      highestScore: Number(analytics.highestScore ?? computed.highestScore ?? 0),
+      lowestScore: Number(analytics.lowestScore ?? computed.lowestScore ?? 0),
+      passRate: Number(analytics.passRate ?? computed.passRate ?? 0),
+      trend: Array.isArray(analytics.trend) ? analytics.trend : computed.trend,
+      scoreMix: {
+        high: Number(scoreMix.high ?? computed.scoreMix.high ?? 0),
+        mid: Number(scoreMix.mid ?? computed.scoreMix.mid ?? 0),
+        low: Number(scoreMix.low ?? computed.scoreMix.low ?? 0)
+      }
     };
+  }
+  function renderAnalyticsCards() {
+    const analytics = normalizeAnalyticsSnapshot(st.data.analytics, getAnalyticsRows());
+    st.data.analytics = analytics;
     el.analyticsCards.innerHTML = [
-      ['Attempted Exams', analytics.attemptedExams, 'dashboard'],
-      ['Average Score', pct(analytics.averageScore), 'analytics'],
-      ['Highest Score', fmtScore(analytics.highestScore), 'star'],
-      ['Lowest Score', fmtScore(analytics.lowestScore), 'results']
-    ].map(([t, v, i]) => `<article class="stat-card"><div class="stat-icon">${svg(i)}</div><div class="stat-copy"><span class="stat-label">${t}</span><strong class="stat-value">${v}</strong></div></article>`).join('');
+      ['Attempted Exams', analytics.attemptedExams, 'dashboard', 'purple', 'Total exams attempted'],
+      ['Average Score', pct(analytics.averageScore), 'analytics', 'blue', 'Average across all exams'],
+      ['Highest Score', fmtScore(analytics.highestScore), 'star', 'green', 'Your best score'],
+      ['Lowest Score', fmtScore(analytics.lowestScore), 'results', 'amber', 'Your lowest score']
+    ].map(([t, v, i, tone, hint]) => `
+      <article class="stat-card stat-${tone}">
+        <div class="stat-icon">${svg(i)}</div>
+        <div class="stat-copy">
+          <span class="stat-label">${t}</span>
+          <strong class="stat-value">${v}</strong>
+          <small class="stat-hint">${hint}</small>
+        </div>
+      </article>`).join('');
   }
   function renderDashboardTable() { const q = st.q.trim().toLowerCase(); const rows = st.data.dash.attempts.filter(r => !q || [r.examCode,r.badge,r.status].some(v => String(v).toLowerCase().includes(q))); el.recentAttemptsBody.innerHTML = rows.length ? rows.map(r => `<tr class="clickable-row" data-detail="attempt" data-code="${r.examCode}"><td><strong>${r.examCode}</strong></td><td>${r.obtainedMarks}</td><td>${r.totalMarks}</td><td>${pct(r.percentage)}</td><td><span class="badge ${badge[r.badge] || 'neutral'}">${r.badge}</span></td></tr>`).join('') : `<tr><td colspan="5" class="empty-state">No recent attempts found.</td></tr>`; }
   function examEmptyState(title, description) {
@@ -1874,31 +2045,44 @@
     if (!access) return '';
     const state = examRuntimeState(exam);
     const result = state.result;
+    const verificationCompleted = isExamVerificationComplete(exam.examCode);
     const verificationBadge = renderVerificationBadge(exam);
     const startAt = getExamDate(exam);
     const attemptUsed = Math.min(Number(exam.attemptsUsed || 0), Number(exam.maxAttempts || 0));
     const attemptMax = Math.max(Number(exam.maxAttempts || 0), 1);
     const attemptRemaining = calculateAttemptsRemaining(exam);
     const attemptPercent = clamp((attemptUsed / attemptMax) * 100, 0, 100);
-    const topStatus = state.completed ? 'CLOSED' : state.live ? 'LIVE' : state.resumeEligible ? 'RESUME' : state.verificationOpen ? 'AVAILABLE' : 'CLOSED';
-    const topStatusTone = state.completed ? 'closed' : state.live ? 'available' : state.resumeEligible ? 'resume' : state.verificationOpen ? 'upcoming' : 'closed';
+    const topStatus = state.completed ? 'CLOSED' : verificationCompleted ? 'VERIFIED' : state.live ? 'LIVE' : state.resumeEligible ? 'RESUME' : state.verificationOpen ? 'AVAILABLE' : state.upcoming && !state.expired ? 'UPCOMING' : 'CLOSED';
+    const topStatusTone = state.completed ? 'closed' : verificationCompleted ? 'success' : state.live ? 'available' : state.resumeEligible ? 'resume' : state.verificationOpen ? 'upcoming' : state.upcoming && !state.expired ? 'upcoming' : 'closed';
     const examDate = formatDate(startAt);
     const endDate = formatDate(state.endAt);
     const accessNote = state.live
-      ? 'Exam is currently available.'
+      ? (verificationCompleted ? 'Verification completed. Exam is currently available.' : 'Exam is currently available.')
       : state.expired
         ? 'Exam is not accessible now.'
         : state.resumeEligible
           ? 'Saved session ready to continue.'
-          : 'Registration closed.';
-    const footerTitle = state.completed ? 'Closed' : state.live ? 'Live' : state.resumeEligible ? 'Resume Session' : 'Closed';
+          : !state.registered && state.registrationOpen
+            ? 'Registration open.'
+            : !state.registered && state.upcoming
+              ? 'Upcoming exam.'
+              : state.verificationOpen
+                ? (verificationCompleted ? 'Verification completed.' : 'Verification window open.')
+                : 'Registration closed.';
+    const footerTitle = state.completed ? 'Closed' : state.live ? 'Live' : state.resumeEligible ? 'Resume Session' : !state.registered && state.registrationOpen ? 'Register Now' : !state.registered && state.upcoming ? 'Upcoming' : 'Closed';
     const footerBody = state.completed
       ? 'This exam is currently closed.'
       : state.live
-        ? 'This exam is live now.'
+        ? (verificationCompleted ? 'Verification completed. Enter the exam workspace.' : 'This exam is live now.')
         : state.resumeEligible
           ? 'This exam can be resumed from the saved session.'
-          : 'This exam is currently closed.';
+          : !state.registered && state.registrationOpen
+            ? 'Registration is open for this exam window.'
+            : !state.registered && state.upcoming
+              ? 'This exam will open later.'
+              : state.verificationOpen
+                ? 'Verification is open for eligible candidates.'
+                : 'This exam is currently closed.';
     const myExamMenu = view === 'my' ? `
       <div class="exam-card-menu">
         <button class="btn ghost exam-card-menu-btn" type="button" data-action="exam-card-menu-toggle" aria-expanded="false" aria-label="More exam actions">&#8942;</button>
@@ -1909,7 +2093,7 @@
       </div>` : '';
     return `
       <article class="exam-card ${view === 'my' ? 'my-exam-card' : ''}" data-status="${exam.status}" data-exam-view="${view}" data-exam-code="${exam.examCode}" data-action="exam-detail" role="button" tabindex="0">
-        <div class="exam-card-shell">
+          <div class="exam-card-shell">
           <div class="exam-card-head">
             <div class="exam-card-icon-wrap" aria-hidden="true">
               <span class="exam-card-icon">${svg('exams')}</span>
@@ -1933,16 +2117,26 @@
             <span class="exam-code-pill exam-code-pill--muted">${state.completed ? 'CLOSED' : state.live ? 'LIVE' : state.resumeEligible ? 'RESUME' : 'SCHEDULED'}</span>
           </div>
 
-          ${verificationBadge ? `
-            <div class="exam-verify-banner" data-action="exam-detail" data-code="${exam.examCode}">
+          ${verificationBadge ? (
+            verificationCompleted
+              ? `
+            <div class="exam-verify-banner exam-verify-banner--complete">
+              <div class="exam-verify-icon">${svg('shield')}</div>
+              <div class="exam-verify-copy">
+                <strong>Verification Completed</strong>
+                <span>You have already completed identity verification for this exam.</span>
+              </div>
+            </div>`
+              : `
+            <div class="exam-verify-banner" data-action="exam-start" data-code="${exam.examCode}">
               <div class="exam-verify-icon">${svg('shield')}</div>
               <div class="exam-verify-copy">
                 <strong>Verification Required</strong>
                 <span>Please complete identity verification to access this exam.</span>
               </div>
               <span class="exam-verify-chevron">${svg('chevron')}</span>
-            </div>
-          ` : ''}
+            </div>`
+          ) : ''}
 
           <div class="exam-attempts-panel ${state.completed ? 'is-closed' : state.resumeEligible ? 'is-resume' : 'is-open'}">
             <div class="exam-attempts-icon">${svg('exams')}</div>
@@ -1986,6 +2180,13 @@
               <span>${footerBody}</span>
             </div>
           </div>
+
+          ${view === 'my' ? `
+            <div class="exam-actions-shell">
+              <button class="btn ghost" type="button" data-action="exam-detail" data-code="${exam.examCode}">Details</button>
+              <button class="btn primary" type="button" data-action="${access.action}" data-code="${exam.examCode}" ${access.disabled ? 'disabled aria-disabled="true"' : ''}>${escapeHtml(access.label)}</button>
+            </div>
+          ` : ''}
         </div>
       </article>`;
   }
@@ -2069,25 +2270,13 @@
     const avg = total ? rows.reduce((sum, row) => sum + Number(row.percentage || 0), 0) / total : 0;
     const high = total ? Math.max(...rows.map((row) => Number(row.percentage || 0))) : 0;
     const pass = total ? (rows.filter((row) => row.passed).length / total) * 100 : 0;
-    const trendLine = (points) => {
-      const width = 120;
-      const height = 36;
-      const min = Math.min(...points, 0);
-      const max = Math.max(...points, 1);
-      const coords = points.map((value, index) => {
-        const x = (index / Math.max(points.length - 1, 1)) * width;
-        const y = height - ((value - min) / ((max - min) || 1)) * (height - 4) - 2;
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      }).join(' ');
-      return `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${coords}" /></svg>`;
-    };
     const cards = [
-      ['Total Exams', total, 'dashboard', 'blue', 'Submitted result entries', [4, 5, 4, 6, 5, 7, 6, 8]],
-      ['Average Percentage', pct(avg), 'analytics', 'purple', 'Across all completed attempts', [3, 3, 4, 4, 5, 4, 6, 7]],
-      ['Highest Score', pct(high), 'star', 'green', 'Top score achieved', [2, 3, 3, 4, 4, 6, 7, 6]],
-      ['Pass Rate', pct(pass), 'results', 'amber', 'Successful submissions', [2, 2, 2, 3, 3, 4, 5, 6]]
+      ['Total Exams', total, 'dashboard', 'blue', 'Submitted result entries'],
+      ['Average Percentage', pct(avg), 'analytics', 'purple', 'Across all completed attempts'],
+      ['Highest Score', pct(high), 'star', 'green', 'Top score achieved'],
+      ['Pass Rate', pct(pass), 'results', 'amber', 'Successful submissions']
     ];
-    el.resultsSummaryGrid.innerHTML = cards.map(([label, value, icon, tone, hint, trend]) => `
+    el.resultsSummaryGrid.innerHTML = cards.map(([label, value, icon, tone, hint]) => `
       <article class="summary-card summary-${tone}">
         <div class="summary-icon">${svg(icon)}</div>
         <div class="summary-copy">
@@ -2095,9 +2284,81 @@
           <strong class="summary-value">${value}</strong>
           <small class="summary-hint">${hint}</small>
         </div>
-        <div class="summary-trend">${trendLine(trend)}</div>
       </article>
     `).join('');
+  }
+  function getFilteredResultsRows() {
+    const q = (el.resultsSearch.value.trim() || st.q).toLowerCase();
+    return st.data.results
+      .slice()
+      .sort(sortBySubmittedAtDesc)
+      .filter((r) => (!q || [r.examCode, r.resultStatus, formatDate(r.submittedAt)].some((v) => String(v).toLowerCase().includes(q))) && resultsFilterValue(r));
+  }
+  function buildPaginationWindow(totalPages, currentPage) {
+    if (totalPages <= 1) return [1];
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages = [1];
+    const windowStart = Math.max(2, currentPage - 1);
+    const windowEnd = Math.min(totalPages - 1, currentPage + 1);
+    if (windowStart > 2) pages.push('ellipsis-start');
+    for (let page = windowStart; page <= windowEnd; page += 1) pages.push(page);
+    if (windowEnd < totalPages - 1) pages.push('ellipsis-end');
+    pages.push(totalPages);
+    return pages;
+  }
+  function renderResultsPagination(totalRows) {
+    const pageSize = Math.max(1, Number(st.results.pageSize || 10));
+    const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+    st.results.page = clamp(Number(st.results.page || 1), 1, totalPages);
+    const page = st.results.page;
+    const start = totalRows ? ((page - 1) * pageSize) + 1 : 0;
+    const end = totalRows ? Math.min(page * pageSize, totalRows) : 0;
+    if (el.resultsPageInfo) {
+      el.resultsPageInfo.textContent = `Showing ${start} to ${end} of ${totalRows} results`;
+    }
+    if (!el.resultsPagination) return;
+    if (totalPages <= 1) {
+      el.resultsPagination.innerHTML = '';
+      return;
+    }
+    const items = buildPaginationWindow(totalPages, page);
+    const pageButton = (label, targetPage, extraClass = '') => `
+      <button type="button" class="results-page-btn ${extraClass}" data-results-page="${targetPage}" ${targetPage === page ? 'aria-current="page"' : ''}>${label}</button>
+    `;
+    el.resultsPagination.innerHTML = [
+      pageButton('‹', Math.max(1, page - 1), `nav-btn ${page === 1 ? 'disabled' : ''}`),
+      ...items.map((item) => (typeof item === 'number'
+        ? pageButton(String(item), item, item === page ? 'active' : '')
+        : '<span class="results-page-ellipsis">…</span>')),
+      pageButton('›', Math.min(totalPages, page + 1), `nav-btn ${page === totalPages ? 'disabled' : ''}`)
+    ].join('');
+  }
+  function renderResultsPagination(totalRows) {
+    const pageSize = Math.max(1, Number(st.results.pageSize || 10));
+    const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+    st.results.page = clamp(Number(st.results.page || 1), 1, totalPages);
+    const page = st.results.page;
+    const start = totalRows ? ((page - 1) * pageSize) + 1 : 0;
+    const end = totalRows ? Math.min(page * pageSize, totalRows) : 0;
+    if (el.resultsPageInfo) {
+      el.resultsPageInfo.textContent = `Showing ${start} to ${end} of ${totalRows} results`;
+    }
+    if (!el.resultsPagination) return;
+    if (totalPages <= 1) {
+      el.resultsPagination.innerHTML = '';
+      return;
+    }
+    const pages = buildPaginationWindow(totalPages, page);
+    const pageButton = (label, targetPage, extraClass = '') => `
+      <button type="button" class="results-page-btn ${extraClass}" data-results-page="${targetPage}" ${targetPage === page ? 'aria-current="page"' : ''}>${label}</button>
+    `;
+    el.resultsPagination.innerHTML = [
+      pageButton('&lsaquo;', Math.max(1, page - 1), `nav-btn ${page === 1 ? 'disabled' : ''}`),
+      ...pages.map((item) => (typeof item === 'number'
+        ? pageButton(String(item), item, item === page ? 'active' : '')
+        : '<span class="results-page-ellipsis">&hellip;</span>')),
+      pageButton('&rsaquo;', Math.min(totalPages, page + 1), `nav-btn ${page === totalPages ? 'disabled' : ''}`)
+    ].join('');
   }
   function resultsFilterValue(row) {
     const f = el.resultsFilter.value;
@@ -2114,17 +2375,17 @@
     const current = values.indexOf(el.resultsFilter.value);
     const next = values[(current + 1) % values.length];
     el.resultsFilter.value = next;
+    st.results.page = 1;
     renderResultsTable();
     toast('Filter updated', `Showing ${next === 'all' ? 'all results' : next.replace(/^\w/, (m) => m.toUpperCase())}.`, 'info');
   }
   function renderResultsTable() {
-    const q = (el.resultsSearch.value.trim() || st.q).toLowerCase();
-    const f = el.resultsFilter.value;
-    const rows = st.data.results
-      .slice()
-      .sort(sortBySubmittedAtDesc)
-      .filter((r) => (!q || [r.examCode, r.resultStatus, formatDate(r.submittedAt)].some((v) => String(v).toLowerCase().includes(q))) && resultsFilterValue(r));
-    const output = f === 'recent' ? rows.slice(0, 3) : rows;
+    const rows = getFilteredResultsRows();
+    const pageSize = Math.max(1, Number(st.results.pageSize || 10));
+    const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+    st.results.page = clamp(Number(st.results.page || 1), 1, totalPages);
+    const startIndex = (st.results.page - 1) * pageSize;
+    const output = rows.slice(startIndex, startIndex + pageSize);
     el.resultsBody.innerHTML = output.length ? output.map((r) => `
       <tr class="clickable-row result-row" data-detail="result" data-code="${r.id ?? r.attemptId ?? r.examCode}">
         <td><strong>${r.examCode}</strong></td>
@@ -2143,10 +2404,19 @@
           </button>
         </td>
       </tr>`).join('') : `<tr class="empty-row"><td colspan="10" class="empty-state"><strong>No results match the selected filters.</strong><span>Try clearing the search or choose a different status.</span></td></tr>`;
+    renderResultsPagination(rows.length);
   }
   const gradeOrder = { 'A+': 5, A: 4, 'B+': 3, B: 2, 'C+': 1, C: 0 };
   const certStatusLabel = (revoked) => (revoked ? 'REVOKED' : 'VERIFIED');
   const certStatusClass = (revoked) => (revoked ? 'fail' : 'pass');
+  const certToneClass = (cert) => {
+    if (cert?.revoked) return 'tone-revoked';
+    const grade = String(cert?.grade || '').toUpperCase();
+    if (grade === 'A+' || Number(cert?.score || 0) >= 90) return 'tone-green';
+    if (grade === 'A' || Number(cert?.score || 0) >= 80) return 'tone-teal';
+    if (grade === 'B+' || Number(cert?.score || 0) >= 70) return 'tone-purple';
+    return 'tone-blue';
+  };
   const latestCertificate = (rows) => rows.slice().sort((a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime())[0];
   function renderCertificateSummary() {
     const rows = st.data.certs || [];
@@ -2188,7 +2458,7 @@
       });
     const output = f === 'recent' ? rows.slice(0, 4) : rows;
     el.certificatesGrid.innerHTML = output.length ? output.map((c) => `
-      <article class="card cert-card certificate-card" data-cert="${c.certificateId}">
+      <article class="card cert-card certificate-card ${certToneClass(c)}" data-cert="${c.certificateId}">
         <div class="cert-head">
           <div>
             <h3 class="cert-title">${c.examTitle}</h3>
@@ -2241,8 +2511,8 @@
     const top = rows.reduce((acc, row) => (row.percentage > (acc?.percentage ?? -Infinity) ? row : acc), rows[0] || null);
     const avg = total ? rows.reduce((sum, row) => sum + Number(row.percentage || 0), 0) / total : 0;
     const cards = [
-      { label: 'Top Score', value: top ? pct(top.percentage) : '-', icon: 'star', tone: 'blue', hint: top ? top.studentName : 'No students yet' },
-      { label: 'Total Participants', value: total, icon: 'dashboard', tone: 'purple', hint: `${st.leaderboard.mode === 'global' ? 'Global' : 'Exam'} cohort` },
+      { label: 'Top Score', value: top ? pct(top.percentage) : '-', icon: 'star', tone: 'purple', hint: top ? top.studentName : 'No students yet' },
+      { label: 'Total Participants', value: total, icon: 'dashboard', tone: 'blue', hint: `${st.leaderboard.mode === 'global' ? 'Global' : 'Exam'} cohort` },
       { label: 'Average Score', value: pct(avg), icon: 'analytics', tone: 'green', hint: 'Average across current filter' }
     ];
     el.leaderboardSummaryGrid.innerHTML = cards.map((card) => `
@@ -2358,19 +2628,52 @@
     renderTable(sorted);
   }
   function renderAnalyticsCharts() {
-    const analytics = buildAnalyticsSnapshot();
-    const trend = analytics.trend.length ? analytics.trend : [0, 0, 0, 0];
-    const bars = trend.map((value) => clamp(Math.round(Number(value || 0)), 0, 100));
-    const passRate = clamp(Number(analytics.passRate || 0), 0, 100);
-    const failRate = clamp(100 - passRate, 0, 100);
-    drawLine($('performanceTrendChart'), st.data.dash.trend.length ? st.data.dash.trend : trend);
-    drawLine($('analyticsLineChart'), trend);
-    drawBars($('analyticsBarChart'), bars);
-    drawDonut($('analyticsDonutChart'), [
-      { label:'Pass', value: passRate, color:'#3b82f6' },
-      { label:'Fail', value: failRate, color:'#8b5cf6' },
-      { label:'Review', value: analytics.attemptedExams ? Math.max(0, 100 - passRate - failRate) : 0, color:'#22c55e' }
-    ]);
+    const rows = getAnalyticsRows();
+    const trendFilter = st.analytics.trendFilter || 'this-month';
+    const passFilter = st.analytics.passFilter || 'all-exams';
+    const mixFilter = st.analytics.mixFilter || 'all-exams';
+    if (el.analyticsTrendFilter && el.analyticsTrendFilter.value !== trendFilter) el.analyticsTrendFilter.value = trendFilter;
+    if (el.analyticsPassFilter && el.analyticsPassFilter.value !== passFilter) el.analyticsPassFilter.value = passFilter;
+    if (el.analyticsMixFilter && el.analyticsMixFilter.value !== mixFilter) el.analyticsMixFilter.value = mixFilter;
+    const trendSeries = analyticsTrendSeries(rows, trendFilter);
+    const passSeries = analyticsPassSeries(rows, passFilter);
+    const mixSeries = analyticsMixSeries(rows, mixFilter);
+    const mixLegend = analyticsMixLegendItems(mixSeries);
+    const latestAttempt = trendSeries.filtered.length ? trendSeries.filtered.slice().sort((a, b) => new Date(b.submittedAt || b.evaluatedAt || b.updatedAt || b.createdAt || 0).getTime() - new Date(a.submittedAt || a.evaluatedAt || a.updatedAt || a.createdAt || 0).getTime())[0] : null;
+    const passTotal = Math.max(passSeries.filtered.length, 1);
+    const passRate = clamp((passSeries.values[0] * 100) / passTotal, 0, 100);
+    const mixTotal = Math.max(mixSeries.filtered.length, 1);
+    const highPct = clamp((mixSeries.buckets.high * 100) / mixTotal, 0, 100);
+    drawLine($('performanceTrendChart'), st.data.dash.trend.length ? st.data.dash.trend : trendSeries.values);
+    drawLine($('analyticsLineChart'), trendSeries.values, trendSeries.labels);
+    drawBars($('analyticsBarChart'), passSeries.values, passSeries.labels);
+    drawDonut($('analyticsDonutChart'), mixSeries.parts);
+    const mixLegendEl = $('analyticsMixLegend');
+    const attemptFoot = $('analyticsAttemptFoot');
+    const passFoot = $('analyticsPassFoot');
+    const mixFoot = $('analyticsMixFoot');
+    const peakIndex = trendSeries.values.length ? trendSeries.values.reduce((best, value, index, arr) => (value > arr[best] ? index : best), 0) : -1;
+    const peakKey = trendSeries.keys?.[peakIndex];
+    const peakDate = peakKey ? formatDate(`${peakKey}T00:00:00`) : 'May 15, 2026';
+    if (attemptFoot) attemptFoot.querySelector('p').innerHTML = `You attempted the most exams on <strong>${peakDate}</strong>`;
+    if (passFoot) passFoot.querySelector('p').innerHTML = `<strong>Pass Rate</strong> <span>${pct(passRate)} of students passed</span>`;
+    if (mixFoot) mixFoot.querySelector('p').innerHTML = `<strong>${pct(highPct)}</strong> <span>of students scored between 80 - 100</span>`;
+    if (mixLegendEl) {
+      mixLegendEl.innerHTML = mixLegend.map((item) => `
+        <div class="chart-legend-item">
+          <span class="chart-legend-copy">
+            <span class="chart-legend-dot" style="background:${item.color}"></span>
+            <strong>${item.label}</strong>
+          </span>
+          <span>${item.percent}% (${item.count})</span>
+        </div>
+      `).join('');
+    }
+    const updatedEl = $('analyticsLastUpdated');
+    if (updatedEl) {
+      const latestSource = rows.slice().sort((a, b) => new Date(b.submittedAt || b.evaluatedAt || b.updatedAt || b.createdAt || 0).getTime() - new Date(a.submittedAt || a.evaluatedAt || a.updatedAt || a.createdAt || 0).getTime())[0];
+      updatedEl.textContent = latestSource ? formatFullDateTime(latestSource.submittedAt || latestSource.evaluatedAt || latestSource.updatedAt || latestSource.createdAt) : 'May 29, 2026 03:22 PM';
+    }
     if (el.chartPlaceholder) el.chartPlaceholder.classList.add('hidden');
   }
   function renderAllTables() { renderDashboardTable(); renderResultsSummary(); renderResultsTable(); renderLeaderboard(); renderCertificateSummary(); renderCertificates(); renderExamCatalog(); renderMyExams(); }
@@ -2420,9 +2723,115 @@
     el.leaderboardBody.innerHTML = '<tr><td colspan="5"><div class="card-skeleton"><div class="line large skeleton"></div></div></td></tr>';
     el.analyticsCards.innerHTML = '<div class="card stat-skel skeleton"></div>'.repeat(4);
   }
-  function drawLine(canvas, data) { if (!canvas) return; const palette = chartPalette(); const ctx = canvas.getContext('2d'); const dpr = devicePixelRatio || 1; const r = canvas.getBoundingClientRect(); const w = Math.max(r.width, 280), h = Math.max(r.height, 220); canvas.width = w * dpr; canvas.height = h * dpr; ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h); const pad = 30, max = Math.max(...data, 1), min = Math.min(...data, 0); ctx.strokeStyle = palette.grid; for (let i = 0; i < 4; i++) { const y = pad + ((h - pad * 2) / 3) * i; ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - pad, y); ctx.stroke(); } ctx.beginPath(); data.forEach((v, i) => { const x = pad + (i * (w - pad * 2)) / Math.max(data.length - 1, 1); const y = pad + (h - pad * 2) * (1 - (v - min) / ((max - min) || 1)); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.strokeStyle = palette.line; ctx.lineWidth = 3; ctx.stroke(); const g = ctx.createLinearGradient(0, 0, 0, h - pad); g.addColorStop(0, palette.lineFillStart); g.addColorStop(1, palette.lineFillEnd); ctx.lineTo(w - pad, h - pad); ctx.lineTo(pad, h - pad); ctx.closePath(); ctx.fillStyle = g; ctx.fill(); }
-  function drawBars(canvas, data) { if (!canvas) return; const palette = chartPalette(); const ctx = canvas.getContext('2d'); const dpr = devicePixelRatio || 1; const r = canvas.getBoundingClientRect(); const w = Math.max(r.width, 280), h = Math.max(r.height, 220); canvas.width = w * dpr; canvas.height = h * dpr; ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h); const pad = 28, gap = 12, bw = (w - pad * 2 - gap * (data.length - 1)) / data.length; data.forEach((v, i) => { const bh = (h - pad * 2) * (v / 100), x = pad + i * (bw + gap), y = h - pad - bh, g = ctx.createLinearGradient(0, y, 0, h - pad); g.addColorStop(0, palette.barTop); g.addColorStop(1, palette.barBottom); ctx.fillStyle = g; ctx.fillRect(x, y, bw, bh); }); }
-  function drawDonut(canvas, parts) { if (!canvas) return; const palette = chartPalette(); const ctx = canvas.getContext('2d'); const dpr = devicePixelRatio || 1; const r = canvas.getBoundingClientRect(); const w = Math.max(r.width, 280), h = Math.max(r.height, 220); canvas.width = w * dpr; canvas.height = h * dpr; ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h); const total = parts.reduce((s, p) => s + p.value, 0); let a = -Math.PI / 2; const cx = w / 2, cy = h / 2 + 6, rr = Math.min(w, h) / 4; parts.forEach((p) => { const ang = (p.value / total) * Math.PI * 2; ctx.beginPath(); ctx.arc(cx, cy, rr, a, a + ang); ctx.lineWidth = 22; ctx.strokeStyle = p.color; ctx.stroke(); a += ang; }); ctx.fillStyle = palette.text; ctx.font = '700 16px Inter, Segoe UI, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('Score Mix', cx, cy); ctx.font = '500 12px Inter, Segoe UI, sans-serif'; ctx.fillText('Distribution', cx, cy + 18); }
+  function drawLine(canvas, data, labels = []) {
+    if (!canvas) return;
+    const palette = chartPalette();
+    const ctx = canvas.getContext('2d');
+    const dpr = devicePixelRatio || 1;
+    const r = canvas.getBoundingClientRect();
+    const w = Math.max(r.width, 280);
+    const h = Math.max(r.height, 220);
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+    const pad = { top: 24, right: 20, bottom: 42, left: 30 };
+    const plotW = w - pad.left - pad.right;
+    const plotH = h - pad.top - pad.bottom;
+    const safeData = (data && data.length ? data : [0]).map((value) => Number(value || 0));
+    const max = Math.max(...safeData, 1);
+    const min = Math.min(...safeData, 0);
+    ctx.strokeStyle = palette.grid;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 4; i++) {
+      const y = pad.top + (plotH / 3) * i;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(w - pad.right, y);
+      ctx.stroke();
+    }
+    const points = safeData.map((v, i) => {
+      const x = pad.left + (i * plotW) / Math.max(safeData.length - 1, 1);
+      const y = pad.top + plotH * (1 - ((v - min) / ((max - min) || 1)));
+      return { x, y };
+    });
+    if (points.length) {
+      ctx.beginPath();
+      points.forEach((point, index) => {
+        if (index === 0) ctx.moveTo(point.x, point.y);
+        else ctx.lineTo(point.x, point.y);
+      });
+      ctx.strokeStyle = palette.line;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      const fill = ctx.createLinearGradient(0, pad.top, 0, h - pad.bottom);
+      fill.addColorStop(0, palette.lineFillStart);
+      fill.addColorStop(1, palette.lineFillEnd);
+      ctx.lineTo(points[points.length - 1].x, h - pad.bottom);
+      ctx.lineTo(points[0].x, h - pad.bottom);
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.fillStyle = palette.line;
+      points.forEach((point) => {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+    if (labels.length) {
+      ctx.fillStyle = palette.text;
+      ctx.font = '500 10px Inter, Segoe UI, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      labels.forEach((label, index) => {
+        if (!label) return;
+        const x = pad.left + (index * plotW) / Math.max(labels.length - 1, 1);
+        ctx.fillText(label, x, h - pad.bottom + 10);
+      });
+    }
+  }
+  function drawBars(canvas, data, labels = []) {
+    if (!canvas) return;
+    const palette = chartPalette();
+    const ctx = canvas.getContext('2d');
+    const dpr = devicePixelRatio || 1;
+    const r = canvas.getBoundingClientRect();
+    const w = Math.max(r.width, 280);
+    const h = Math.max(r.height, 220);
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+    const pad = { top: 20, right: 18, bottom: 48, left: 24 };
+    const plotW = w - pad.left - pad.right;
+    const plotH = h - pad.top - pad.bottom;
+    const safeData = (data && data.length ? data : [0]).map((value) => Number(value || 0));
+    const gap = 20;
+    const bw = (plotW - gap * (safeData.length - 1)) / Math.max(safeData.length, 1);
+    const max = Math.max(...safeData, 1);
+    safeData.forEach((value, index) => {
+      const barH = plotH * (value / max);
+      const x = pad.left + index * (bw + gap);
+      const y = pad.top + (plotH - barH);
+      const gradient = ctx.createLinearGradient(0, y, 0, pad.top + plotH);
+      gradient.addColorStop(0, palette.barTop);
+      gradient.addColorStop(1, palette.barBottom);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(x, y, bw, barH);
+      ctx.fillStyle = palette.text;
+      ctx.font = '700 11px Inter, Segoe UI, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(String(value), x + bw / 2, y - 8);
+      if (labels[index]) {
+        ctx.font = '500 10px Inter, Segoe UI, sans-serif';
+        ctx.textBaseline = 'top';
+        ctx.fillText(labels[index], x + bw / 2, h - pad.bottom + 10);
+      }
+    });
+  }
+  function drawDonut(canvas, parts) { if (!canvas) return; const palette = chartPalette(); const ctx = canvas.getContext('2d'); const dpr = devicePixelRatio || 1; const r = canvas.getBoundingClientRect(); const w = Math.max(r.width, 280), h = Math.max(r.height, 220); canvas.width = w * dpr; canvas.height = h * dpr; ctx.scale(dpr, dpr); ctx.clearRect(0, 0, w, h); const total = Math.max(parts.reduce((s, p) => s + p.value, 0), 1); let a = -Math.PI / 2; const cx = w / 2, cy = h / 2 + 6, rr = Math.min(w, h) / 4; parts.forEach((p) => { const ang = (p.value / total) * Math.PI * 2; ctx.beginPath(); ctx.arc(cx, cy, rr, a, a + ang); ctx.lineWidth = 22; ctx.strokeStyle = p.color; ctx.stroke(); a += ang; }); ctx.fillStyle = palette.text; ctx.font = '700 16px Inter, Segoe UI, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('Score Mix', cx, cy); ctx.font = '500 12px Inter, Segoe UI, sans-serif'; ctx.fillText('Distribution', cx, cy + 18); }
   function refresh() {
     renderNotifications();
     renderSchedule();
@@ -2615,9 +3024,9 @@
       <div class="certificate-preview-artwork">
         <div class="certificate-preview-topbar">
           <div class="certificate-brand-lockup">
-            <div class="certificate-brand-mark">AI</div>
+            <div class="certificate-brand-mark">SEM</div>
             <div>
-              <strong>AI EXAM SYSTEM</strong>
+              <strong>SMART EXAMINATION MONITOR</strong>
               <span>Official Certificate Preview</span>
             </div>
           </div>
@@ -2632,7 +3041,7 @@
         <h2 class="certificate-preview-name">${escapeHtml(c.studentName || 'Student')}</h2>
         <p class="certificate-preview-bodycopy">
           has successfully completed the <strong>${escapeHtml(c.examTitle || c.examCode || 'Online Examination')}</strong>
-          conducted by <strong>AI Exam System</strong>.
+          conducted by <strong>Smart Examination Monitor</strong>.
         </p>
         <div class="certificate-preview-metrics">
           <div><span>Exam</span><strong>${escapeHtml(c.examTitle || c.examCode || '-')}</strong></div>
@@ -2646,8 +3055,8 @@
             <small>Verify online</small>
           </div>
           <div class="certificate-preview-signature">
-            <span>Dr. AI Admin</span>
-            <small>Chief Administrator, AI Exam System</small>
+            <span>SEM Admin</span>
+            <small>Chief Administrator, Smart Examination Monitor</small>
           </div>
         </div>
       </div>`;
@@ -2880,6 +3289,12 @@
       const e = st.data.exams.find(x => x.examCode === code);
       if (!e) return;
       openExamDetailModal(e);
+      return;
+    }
+    if (type === 'exam-access') {
+      const e = st.data.exams.find((x) => x.examCode === code);
+      if (!e) return;
+      openExamAccess(e);
       return;
     }
     if (type === 'exam-start') {
@@ -3223,16 +3638,25 @@
       el.myExamTabs.forEach((tab) => tab.classList.toggle('active', tab === btn));
       renderMyExams();
     }));
-    $('resultsFilter').addEventListener('change', renderResultsTable);
-    $('resultsSearch').addEventListener('input', renderResultsTable);
+    $('resultsFilter').addEventListener('change', () => { st.results.page = 1; renderResultsTable(); });
+    $('resultsSearch').addEventListener('input', () => { st.results.page = 1; renderResultsTable(); });
     $('resultsFilterBtn')?.addEventListener('click', cycleResultsFilter);
     $('resultsResetBtn').addEventListener('click', (e) => {
       runButtonFeedback(e.currentTarget, 'Resetting...', () => {
         $('resultsFilter').value = 'all';
         $('resultsSearch').value = '';
+        st.results.page = 1;
         renderResultsTable();
         toast('Results reset', 'Result filters cleared.', 'info');
       }, 420);
+    });
+    $('resultsPagination')?.addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-results-page]');
+      if (!btn || btn.classList.contains('disabled')) return;
+      const nextPage = Number(btn.dataset.resultsPage || 1);
+      if (!Number.isFinite(nextPage) || nextPage === st.results.page) return;
+      st.results.page = nextPage;
+      renderResultsTable();
     });
     $('certificatesFilter').addEventListener('change', () => { renderCertificateSummary(); renderCertificates(); });
     $('certificatesSearch').addEventListener('input', () => { renderCertificateSummary(); renderCertificates(); });
@@ -3256,6 +3680,18 @@
         refreshData();
         toast('Leaderboard refreshed', 'Student positions were reshuffled locally.', 'info');
       }, 520);
+    });
+    el.analyticsTrendFilter?.addEventListener('change', (e) => {
+      st.analytics.trendFilter = e.target.value || 'this-month';
+      renderAnalyticsCharts();
+    });
+    el.analyticsPassFilter?.addEventListener('change', (e) => {
+      st.analytics.passFilter = e.target.value || 'all-exams';
+      renderAnalyticsCharts();
+    });
+    el.analyticsMixFilter?.addEventListener('change', (e) => {
+      st.analytics.mixFilter = e.target.value || 'all-exams';
+      renderAnalyticsCharts();
     });
     el.editProfileBtn?.addEventListener('click', (e) => runButtonFeedback(e.currentTarget, 'Opening editor...', () => openProfileEditor(), 360));
     el.profileEditorClose?.addEventListener('click', closeProfileEditor);

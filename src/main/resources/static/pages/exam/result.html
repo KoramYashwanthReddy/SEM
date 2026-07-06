@@ -1,336 +1,922 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Exam Results Summary</title>
-  
+  <title>SEM | Result Summary</title>
+
   <link rel="stylesheet" href="../../assets/pages/exam/css/themes.css">
   <link rel="stylesheet" href="../../assets/pages/exam/css/base.css">
   <link rel="stylesheet" href="../../assets/pages/exam/css/layout.css">
   <link rel="stylesheet" href="../../assets/pages/exam/css/components.css">
   <link rel="stylesheet" href="../../assets/pages/exam/css/responsive.css">
+  <script src="../../assets/core/js/theme.js"></script>
 
   <style>
     body {
-      background: var(--bg-primary);
-      color: var(--text-primary);
       min-height: 100vh;
+      margin: 0;
+      color: var(--text-primary);
+      background:
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent 26%),
+        radial-gradient(circle at top right, rgba(34, 197, 94, 0.11), transparent 24%),
+        radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.10), transparent 24%),
+        linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-primary) 100%);
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(120deg, rgba(255, 255, 255, 0.03), transparent 30%),
+        linear-gradient(300deg, rgba(255, 255, 255, 0.03), transparent 30%);
+      opacity: 0.9;
+    }
+
+    .result-page {
+      position: relative;
+      z-index: 1;
+      width: min(1320px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 1rem 0 2rem;
+    }
+
+    .result-topbar {
       display: flex;
       align-items: center;
-      justify-content: center;
-      padding: 2rem;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      background: var(--bg-secondary);
+      box-shadow: var(--shadow-sm);
+      backdrop-filter: blur(14px);
     }
-    .result-container {
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      color: #fff;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
+      flex: 0 0 auto;
+    }
+
+    .brand-copy {
+      min-width: 0;
+    }
+
+    .brand-copy h1 {
+      margin: 0;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-copy p {
+      margin: 0.2rem 0 0;
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+    }
+
+    .topbar-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.55rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pill strong {
+      color: var(--text-primary);
+    }
+
+    .theme-switch {
+      display: inline-flex;
+      border: 1px solid var(--border-color);
+      border-radius: 999px;
+      overflow: hidden;
+      background: var(--bg-secondary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .theme-btn {
+      border: 0;
+      background: transparent;
+      color: var(--text-secondary);
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 0.65rem 0.95rem;
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .theme-btn.active {
+      background: var(--text-primary);
+      color: var(--bg-secondary);
+    }
+
+    .theme-btn:not(.active):hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr);
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 1rem;
+      min-width: 0;
+    }
+
+    .card {
+      position: relative;
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-lg);
-      padding: 3rem;
-      max-width: 800px;
-      width: 100%;
-      text-align: center;
+      border-radius: 24px;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      height: 100%;
     }
-    .check-icon {
-      font-size: 4rem;
-      color: var(--success-color);
-      margin-bottom: 1.5rem;
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: 6px;
+      height: 100%;
+      background: linear-gradient(180deg, #2563eb, #22c55e, #f59e0b);
     }
-    .score-hero {
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-color);
-      padding: 2rem;
-      border-radius: 12px;
-      margin: 2rem 0;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.5rem;
+
+    .hero-card {
+      padding: 1.6rem;
     }
-    .score-stat {
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .hero-copy {
+      min-width: 0;
+    }
+
+    .eyebrow {
+      margin: 0 0 0.4rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      font-weight: 800;
+    }
+
+    #result-title {
+      margin: 0;
+      font-size: clamp(2rem, 3vw, 3rem);
+      line-height: 1.05;
+      letter-spacing: -0.05em;
+    }
+
+    #result-msg {
+      margin: 0.95rem 0 0;
+      max-width: 48rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      font-size: 0.98rem;
+    }
+
+    .status-stack {
       display: flex;
       flex-direction: column;
-      align-items: center;
+      gap: 0.6rem;
+      align-items: flex-end;
+      flex: 0 0 auto;
     }
-    .stat-label {
-      font-size: 0.75rem;
-      color: var(--text-tertiary);
-      text-transform: uppercase;
-      margin-bottom: 0.5rem;
-      font-weight: 600;
+
+    .status-stack .pill {
+      white-space: nowrap;
     }
-    .stat-value {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: var(--primary-color);
-    }
-    .grid-panels {
+
+    .hero-icon {
+      width: 84px;
+      height: 84px;
+      border-radius: 24px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-      text-align: left;
+      place-items: center;
+      font-size: 2.3rem;
+      background: linear-gradient(180deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.04));
+      border: 1px solid rgba(37, 99, 235, 0.16);
+      color: #2563eb;
     }
-    .panel {
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 1.5rem;
+
+    .hero-icon.pass {
+      background: linear-gradient(180deg, rgba(34, 197, 94, 0.14), rgba(34, 197, 94, 0.05));
+      border-color: rgba(34, 197, 94, 0.18);
+      color: #16a34a;
     }
-    .panel h5 {
-      margin: 0 0 1rem 0;
-      font-size: 0.9rem;
-      color: var(--text-primary);
+
+    .hero-icon.fail {
+      background: linear-gradient(180deg, rgba(239, 68, 68, 0.14), rgba(239, 68, 68, 0.05));
+      border-color: rgba(239, 68, 68, 0.18);
+      color: #dc2626;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.5rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 0.5rem;
+      border: 1px solid transparent;
     }
+
+    .status-badge.pass {
+      color: #0f7a31;
+      background: rgba(34, 197, 94, 0.12);
+      border-color: rgba(34, 197, 94, 0.2);
+    }
+
+    .status-badge.fail {
+      color: #b42318;
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .status-badge.neutral {
+      color: var(--text-secondary);
+      background: var(--bg-primary);
+      border-color: var(--border-color);
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.9rem;
+      margin-top: 1.2rem;
+    }
+
+    .score-card {
+      padding: 1rem 1rem 0.95rem;
+      border-radius: 18px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .score-label {
+      display: block;
+      margin-bottom: 0.35rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      font-weight: 900;
+    }
+
+    .score-value {
+      font-size: clamp(1.4rem, 2.4vw, 2.4rem);
+      line-height: 1.1;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    .score-value.primary {
+      color: #2563eb;
+    }
+
+    .score-value.success {
+      color: var(--success-color);
+    }
+
+    .score-value.warning {
+      color: var(--warning-color);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .panel {
+      padding: 1.2rem;
+    }
+
+    .panel h3 {
+      margin: 0 0 1rem;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .summary-rows {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: center;
+      padding: 0.85rem 0.95rem;
+      border-radius: 16px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .summary-row span {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .summary-row strong {
+      font-size: 0.96rem;
+      color: var(--text-primary);
+      text-align: right;
+    }
+
     .detail-grid {
       display: grid;
       grid-template-columns: 1fr auto;
-      row-gap: 0.75rem;
-      font-size: 0.9rem;
+      gap: 0.8rem 1rem;
+      align-items: center;
     }
+
     .detail-grid span {
       color: var(--text-secondary);
+      font-size: 0.92rem;
     }
+
     .detail-grid strong {
       color: var(--text-primary);
+      font-weight: 900;
+      font-size: 0.94rem;
+      text-align: right;
     }
-    .btn-row {
-      margin-top: 2rem;
+
+    .insight-box {
+      border-radius: 18px;
+      padding: 1rem;
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+      line-height: 1.65;
+      font-size: 0.92rem;
+    }
+
+    .insight-box p:last-child {
+      margin-bottom: 0;
+    }
+
+    .info-list {
+      display: grid;
+      gap: 0.7rem;
+    }
+
+    .info-item {
       display: flex;
-      justify-content: center;
+      justify-content: space-between;
+      gap: 0.9rem;
+      padding: 0.8rem 0.9rem;
+      border-radius: 14px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .info-item span {
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+    }
+
+    .info-item strong {
+      color: var(--text-primary);
+      font-size: 0.92rem;
+      text-align: right;
+    }
+
+    .footer-bar {
+      display: flex;
+      justify-content: space-between;
       gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+      padding: 1rem 0.25rem 0;
     }
-    .pass-badge {
-      display: inline-block;
-      padding: 0.35rem 1rem;
-      border-radius: 20px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      margin-bottom: 1rem;
+
+    .footer-note {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.5;
     }
-    .pass-badge.pass {
-      background: rgba(40, 167, 69, 0.1);
-      color: var(--success-color);
-      border: 1px solid var(--success-color);
+
+    #return-student-btn {
+      min-width: 240px;
+      border-radius: 14px;
+      box-shadow: 0 12px 24px rgba(37, 99, 235, 0.2);
     }
-    .pass-badge.fail {
-      background: rgba(220, 53, 69, 0.1);
-      color: var(--danger-color);
-      border: 1px solid var(--danger-color);
+
+    .redirect-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .summary-row strong,
+    .info-item strong {
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 1120px) {
+      .result-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (min-width: 1121px) {
+      .result-grid > aside.stack {
+        position: sticky;
+        top: 1rem;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .result-page {
+        width: min(100% - 1rem, 1320px);
+        padding-top: 0.5rem;
+      }
+
+      .result-topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .hero-top {
+        flex-direction: column;
+      }
+
+      .status-stack {
+        align-items: flex-start;
+      }
+
+      .score-grid,
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #return-student-btn {
+        width: 100%;
+      }
     }
   </style>
 </head>
 <body>
-
-<div class="result-container">
-  <div class="check-icon" id="status-icon">✓</div>
-  <h2 id="result-title" style="margin-bottom: 0.25rem;">Exam Submitted Successfully!</h2>
-  <div id="status-badge-container"></div>
-  <p id="result-msg" style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1.5rem;">
-    Your exam answers have been securely submitted and evaluated.
-  </p>
-
-  <div class="score-hero">
-    <div class="score-stat">
-      <span class="stat-label">Percentage</span>
-      <span class="stat-value" id="res-percentage">0.0%</span>
-    </div>
-    <div class="score-stat">
-      <span class="stat-label">Score Obtained</span>
-      <span class="stat-value" id="res-score">0 / 0</span>
-    </div>
-    <div class="score-stat">
-      <span class="stat-label">Time Spent</span>
-      <span class="stat-value" id="res-time">0m 0s</span>
-    </div>
-  </div>
-
-  <div class="grid-panels">
-    <div class="panel">
-      <h5>Answer Breakdown</h5>
-      <div class="detail-grid">
-        <span>Total Questions</span><strong id="breakdown-total">0</strong>
-        <span>Correct Answers</span><strong id="breakdown-correct">0</strong>
-        <span>Wrong Answers</span><strong id="breakdown-wrong">0</strong>
-        <span>Unanswered</span><strong id="breakdown-unanswered">0</strong>
+  <div class="result-page">
+    <header class="result-topbar">
+      <div class="brand-block">
+        <div class="brand-mark">SEM</div>
+        <div class="brand-copy">
+          <h1>Student Result Summary</h1>
+          <p id="summary-subtitle">Secure exam outcome with score, breakdown, and submission details.</p>
+        </div>
       </div>
-    </div>
-    <div class="panel">
-      <h5>Difficulty Split</h5>
-      <div class="detail-grid">
-        <span>Easy Correct</span><strong id="diff-easy">0</strong>
-        <span>Medium Correct</span><strong id="diff-medium">0</strong>
-        <span>Hard Correct</span><strong id="diff-hard">0</strong>
+
+      <div class="topbar-meta">
+        <div class="pill" id="topbar-attempt-pill">Attempt <strong id="attempt-pill-id">#--</strong></div>
+        <div class="pill" id="topbar-exam-pill">Exam <strong id="attempt-pill-code">--</strong></div>
+        <div class="redirect-chip">Auto return in <strong id="redirect-countdown">7s</strong></div>
+        <div class="theme-switch" id="theme-switch">
+          <button type="button" class="theme-btn" data-theme="light">Light</button>
+          <button type="button" class="theme-btn" data-theme="system">System</button>
+          <button type="button" class="theme-btn" data-theme="dark">Dark</button>
+        </div>
       </div>
+    </header>
+
+    <main class="result-grid">
+      <section class="stack">
+        <article class="card hero-card">
+          <div class="hero-top">
+            <div class="hero-copy">
+              <p class="eyebrow">Exam Result</p>
+              <h2 id="result-title">Loading result...</h2>
+              <div id="status-badge-container" style="margin-top:0.75rem;"></div>
+              <p id="result-msg">Fetching your performance summary and evaluation details.</p>
+            </div>
+            <div class="status-stack">
+              <div class="hero-icon" id="status-icon">◌</div>
+            </div>
+          </div>
+
+          <div class="score-grid">
+            <div class="score-card">
+              <span class="score-label">Percentage</span>
+              <span class="score-value primary" id="res-percentage">0.0%</span>
+            </div>
+            <div class="score-card">
+              <span class="score-label">Score Obtained</span>
+              <span class="score-value success" id="res-score">0 / 0</span>
+            </div>
+            <div class="score-card">
+              <span class="score-label">Time Spent</span>
+              <span class="score-value warning" id="res-time">0m 00s</span>
+            </div>
+          </div>
+        </article>
+
+        <div class="stats-grid">
+          <article class="card panel">
+            <h3>Answer Breakdown</h3>
+            <div class="summary-rows">
+              <div class="summary-row"><span>Total Questions</span><strong id="breakdown-total">0</strong></div>
+              <div class="summary-row"><span>Correct Answers</span><strong id="breakdown-correct">0</strong></div>
+              <div class="summary-row"><span>Wrong Answers</span><strong id="breakdown-wrong">0</strong></div>
+              <div class="summary-row"><span>Unanswered</span><strong id="breakdown-unanswered">0</strong></div>
+            </div>
+          </article>
+
+          <article class="card panel">
+            <h3>Difficulty Split</h3>
+            <div class="summary-rows">
+              <div class="summary-row"><span>Easy Correct</span><strong id="diff-easy">0</strong></div>
+              <div class="summary-row"><span>Medium Correct</span><strong id="diff-medium">0</strong></div>
+              <div class="summary-row"><span>Hard Correct</span><strong id="diff-hard">0</strong></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <aside class="stack">
+        <article class="card panel">
+          <h3>Attempt Snapshot</h3>
+          <div class="info-list">
+            <div class="info-item"><span>Exam Code</span><strong id="info-exam-code">--</strong></div>
+            <div class="info-item"><span>Attempt ID</span><strong id="info-attempt-id">--</strong></div>
+            <div class="info-item"><span>Status</span><strong id="info-status">--</strong></div>
+            <div class="info-item"><span>Grade</span><strong id="info-grade">--</strong></div>
+            <div class="info-item"><span>Submitted At</span><strong id="info-submitted-at">--</strong></div>
+            <div class="info-item"><span>Evaluated At</span><strong id="info-evaluated-at">--</strong></div>
+          </div>
+        </article>
+
+        <article class="card panel">
+          <h3>Performance Insight</h3>
+          <div class="info-list">
+            <div class="info-item"><span>Accuracy</span><strong id="info-accuracy">--</strong></div>
+            <div class="info-item"><span>Completion</span><strong id="info-completion">--</strong></div>
+            <div class="info-item"><span>Answered</span><strong id="info-answered">--</strong></div>
+            <div class="info-item"><span>Unanswered Rate</span><strong id="info-unanswered-rate">--</strong></div>
+          </div>
+          <div class="insight-box" id="insight-box" style="margin-top:0.9rem;">
+            Your exam insights will appear here after evaluation.
+          </div>
+        </article>
+
+        <article class="card panel">
+          <h3>Submission Timeline</h3>
+          <div class="info-list">
+            <div class="info-item"><span>Result</span><strong id="info-result">--</strong></div>
+            <div class="info-item"><span>Grade Letter</span><strong id="info-grade-letter">--</strong></div>
+            <div class="info-item"><span>Average Per Question</span><strong id="info-average">--</strong></div>
+            <div class="info-item"><span>Total Marks</span><strong id="info-total-marks">--</strong></div>
+          </div>
+        </article>
+      </aside>
+    </main>
+
+    <div class="footer-bar">
+      <div class="footer-note" id="footer-note">
+        You will be returned to the student dashboard automatically.
+      </div>
+      <button class="btn btn-primary" id="return-student-btn" type="button">Return to Student Dashboard</button>
     </div>
   </div>
 
-  <div class="btn-row">
-    <button class="btn btn-primary" id="return-student-btn" type="button">Return to Student Dashboard</button>
-  </div>
-</div>
-
-<script>
-  const normalizeToken = (raw) => {
-    if (!raw) return '';
-    let value = String(raw).trim();
-    if (!value) return '';
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1).trim();
-    }
-    if (/^bearer\s+/i.test(value)) {
-      value = value.replace(/^bearer\s+/i, '').trim();
-    }
-    return value;
-  };
-
-  const getAuthToken = () => {
-    const AUTH_KEYS = ['token', 'accessToken', 'jwt', 'authToken', 'access_token'];
-    for (const key of AUTH_KEYS) {
-      const localValue = normalizeToken(localStorage.getItem(key));
-      if (localValue) return localValue;
-      const sessionValue = normalizeToken(sessionStorage.getItem(key));
-      if (sessionValue) return sessionValue;
-    }
-    return '';
-  };
-
-  const explicitBase = (window.__API_BASE_URL__ || localStorage.getItem('apiBaseUrl') || '').trim();
-  const origin = window.location.origin || '';
-  const isLocalFrontend = /:\/\/(localhost|127\.0\.0\.1)(:3000|:5173|:5500)?$/i.test(origin);
-  const API_BASE = explicitBase
-    ? explicitBase.replace(/\/+$/, '')
-    : (isLocalFrontend || origin.startsWith('file:') ? 'http://localhost:8080' : origin);
-
-  const apiRequest = async (path, options = {}) => {
-    if (window.API && typeof window.API.request === 'function') {
-      return window.API.request(`/api${path}`, options);
-    }
-    const headers = { Accept: 'application/json', ...(options.headers || {}) };
-    const token = getAuthToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
-    if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
-      headers['Content-Type'] = 'application/json';
-    }
-
-    const res = await fetch(`${API_BASE}/api${path}`, {
-      credentials: 'same-origin',
-      ...options,
-      headers
-    });
-
-    const text = await res.text();
-    if (!res.ok) {
-      let body = text;
-      try { body = JSON.parse(text); } catch (_) {}
-      const message = body && typeof body === 'object'
-        ? (body.message || body.error || body.detail || body.cause)
-        : (typeof body === 'string' ? body : '');
-      throw new Error(message || `Request failed (${res.status})`);
-    }
-
-    if (!text) return null;
-    try {
-      const json = JSON.parse(text);
-      if (json && typeof json === 'object' && json.status === 'SUCCESS' && json.data !== undefined) {
-        return json.data;
+  <script>
+    const normalizeToken = (raw) => {
+      if (!raw) return '';
+      let value = String(raw).trim();
+      if (!value) return '';
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1).trim();
       }
-      return json;
-    } catch (_) {
-      return text;
-    }
-  };
+      if (/^bearer\s+/i.test(value)) {
+        value = value.replace(/^bearer\s+/i, '').trim();
+      }
+      return value;
+    };
 
-  const formatDuration = (seconds = 0) => {
-    const total = Math.max(0, Math.floor(Number(seconds) || 0));
-    const mins = Math.floor(total / 60);
-    const secs = total % 60;
-    return `${mins}m ${secs.toString().padStart(2, '0')}s`;
-  };
+    const getAuthToken = () => {
+      const AUTH_KEYS = ['token', 'accessToken', 'jwt', 'authToken', 'access_token'];
+      for (const key of AUTH_KEYS) {
+        const localValue = normalizeToken(localStorage.getItem(key));
+        if (localValue) return localValue;
+        const sessionValue = normalizeToken(sessionStorage.getItem(key));
+        if (sessionValue) return sessionValue;
+      }
+      return '';
+    };
 
-  const resolvePercentage = (score, percentage, totalMarks = 0) => {
-    const pctValue = Number(percentage);
-    if (Number.isFinite(pctValue) && pctValue > 0) return pctValue;
-    const total = Number(totalMarks);
-    const obtained = Number(score);
-    if (Number.isFinite(total) && total > 0 && Number.isFinite(obtained)) {
-      return (obtained * 100.0) / total;
-    }
-    if (Number.isFinite(obtained) && obtained > 0) return Math.min(100, obtained);
-    return 0;
-  };
+    const explicitBase = (window.__API_BASE_URL__ || localStorage.getItem('apiBaseUrl') || '').trim();
+    const origin = window.location.origin || '';
+    const isLocalFrontend = /:\/\/(localhost|127\.0\.0\.1)(:3000|:5173|:5500)?$/i.test(origin);
+    const API_BASE = explicitBase
+      ? explicitBase.replace(/\/+$/, '')
+      : (isLocalFrontend || origin.startsWith('file:') ? 'http://localhost:8080' : origin);
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    const params = new URLSearchParams(window.location.search);
-    const attemptId = params.get('attemptId');
+    const apiRequest = async (path, options = {}) => {
+      if (window.API && typeof window.API.request === 'function') {
+        return window.API.request(`/api${path}`, options);
+      }
+      const headers = { Accept: 'application/json', ...(options.headers || {}) };
+      const token = getAuthToken();
+      if (token) headers.Authorization = `Bearer ${token}`;
+      if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+      }
 
-    if (!attemptId) {
-      alert("Attempt ID is missing.");
-      return;
-    }
+      const res = await fetch(`${API_BASE}/api${path}`, {
+        credentials: 'same-origin',
+        ...options,
+        headers
+      });
 
-    try {
-      const r = await apiRequest(`/exam/result/${attemptId}`, { method: 'GET' });
-      if (!r || typeof r !== 'object') throw new Error('Failed to load exam results.');
+      const text = await res.text();
+      if (!res.ok) {
+        let body = text;
+        try { body = JSON.parse(text); } catch (_) {}
+        const message = body && typeof body === 'object'
+          ? (body.message || body.error || body.detail || body.cause)
+          : (typeof body === 'string' ? body : '');
+        throw new Error(message || `Request failed (${res.status})`);
+      }
 
-      // Populate Stats first so pass/fail can use the corrected percentage
-      const score = Number(r.obtainedMarks ?? r.score ?? 0);
-      const totalMarks = Number(r.totalMarks ?? r.totalQuestions ?? 0);
-      const percentage = resolvePercentage(score, r.percentage, totalMarks);
+      if (!text) return null;
+      try {
+        const json = JSON.parse(text);
+        if (json && typeof json === 'object' && json.status === 'SUCCESS' && json.data !== undefined) {
+          return json.data;
+        }
+        return json;
+      } catch (_) {
+        return text;
+      }
+    };
 
-      // Update Title & Badge
-      const isPassed = percentage >= 40 || r.passed || String(r.result).toUpperCase() === 'PASS';
-      const statusIcon = document.getElementById('status-icon');
-      const resultTitle = document.getElementById('result-title');
+    const escapeHtml = (value) => String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+    const formatDuration = (seconds = 0) => {
+      const total = Math.max(0, Math.floor(Number(seconds) || 0));
+      const mins = Math.floor(total / 60);
+      const secs = total % 60;
+      return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+    };
+
+    const formatDateTime = (value) => {
+      if (!value) return '--';
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return '--';
+      return d.toLocaleString([], {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+
+    const resolvePercentage = (score, percentage, totalMarks = 0) => {
+      const pctValue = Number(percentage);
+      if (Number.isFinite(pctValue) && pctValue > 0) return pctValue;
+      const total = Number(totalMarks);
+      const obtained = Number(score);
+      if (Number.isFinite(total) && total > 0 && Number.isFinite(obtained)) {
+        return (obtained * 100.0) / total;
+      }
+      if (Number.isFinite(obtained) && obtained > 0) return Math.min(100, obtained);
+      return 0;
+    };
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    };
+
+    const renderStatus = (passed, cancelled, statusText) => {
+      const icon = document.getElementById('status-icon');
+      const title = document.getElementById('result-title');
       const badgeContainer = document.getElementById('status-badge-container');
 
-      if (isPassed) {
-        statusIcon.textContent = '✓';
-        statusIcon.style.color = 'var(--success-color)';
-        resultTitle.textContent = 'Exam Passed Successfully!';
-        badgeContainer.innerHTML = `<span class="pass-badge pass">PASS</span>`;
-      } else {
-        statusIcon.textContent = '✗';
-        statusIcon.style.color = 'var(--danger-color)';
-        resultTitle.textContent = 'Exam Completed';
-        badgeContainer.innerHTML = `<span class="pass-badge fail">FAIL</span>`;
+      if (cancelled) {
+        if (icon) {
+          icon.className = 'hero-icon fail';
+          icon.textContent = '!';
+        }
+        if (title) title.textContent = 'Result Marked for Review';
+        if (badgeContainer) badgeContainer.innerHTML = '<span class="status-badge fail">Review Required</span>';
+        return;
       }
 
-      document.getElementById('res-percentage').textContent = `${percentage.toFixed(1)}%`;
-      document.getElementById('res-score').textContent = `${score} / ${totalMarks || score}`;
-      document.getElementById('res-time').textContent = formatDuration(r.timeTakenSeconds);
+      if (passed) {
+        if (icon) {
+          icon.className = 'hero-icon pass';
+          icon.textContent = '✓';
+        }
+        if (title) title.textContent = 'Exam Passed Successfully!';
+        if (badgeContainer) badgeContainer.innerHTML = '<span class="status-badge pass">Pass</span>';
+        return;
+      }
 
-      // Populate Panels
-      document.getElementById('breakdown-total').textContent = r.totalQuestions || (Number(r.correctAnswers || 0) + Number(r.wrongAnswers || 0) + Number(r.unansweredQuestions || 0));
-      document.getElementById('breakdown-correct').textContent = r.correctAnswers ?? 0;
-      document.getElementById('breakdown-wrong').textContent = r.wrongAnswers ?? 0;
-      document.getElementById('breakdown-unanswered').textContent = r.unansweredQuestions ?? 0;
+      if (icon) {
+        icon.className = 'hero-icon fail';
+        icon.textContent = '✕';
+      }
+      if (title) title.textContent = statusText || 'Exam Completed';
+      if (badgeContainer) badgeContainer.innerHTML = '<span class="status-badge fail">Fail</span>';
+    };
 
-      document.getElementById('diff-easy').textContent = r.easyCorrect ?? 0;
-      document.getElementById('diff-medium').textContent = r.mediumCorrect ?? 0;
-      document.getElementById('diff-hard').textContent = r.difficultCorrect ?? 0;
+    document.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(window.location.search);
+      const attemptId = params.get('attemptId');
+      let countdownTimer = null;
+      let redirectTimer = null;
+      let secondsLeft = 7;
 
+      const countdownEl = document.getElementById('redirect-countdown');
+      const footerNote = document.getElementById('footer-note');
       const returnBtn = document.getElementById('return-student-btn');
+
+      const navigateBack = () => {
+        window.location.href = '../student-ui.html';
+      };
+
+      const stopRedirect = () => {
+        if (countdownTimer) clearInterval(countdownTimer);
+        if (redirectTimer) clearTimeout(redirectTimer);
+      };
+
       if (returnBtn) {
         returnBtn.addEventListener('click', () => {
-          window.location.href = '../student-ui.html';
+          stopRedirect();
+          navigateBack();
         });
       }
 
-      setTimeout(() => {
-        window.location.href = '../student-ui.html';
-      }, 7000);
+      if (!attemptId) {
+        document.getElementById('result-title').textContent = 'Attempt ID Missing';
+        document.getElementById('result-msg').textContent = 'Return to the student dashboard and open the result using a valid attempt link.';
+        if (footerNote) footerNote.textContent = 'No attempt ID was provided in the current URL.';
+        return;
+      }
 
-    } catch (err) {
-      console.error(err);
-      document.getElementById('result-title').textContent = 'Result Unavailable';
-      document.getElementById('result-msg').textContent = err.message || 'Unable to fetch result from backend. Please return to the Student Console.';
-      document.querySelector('.btn-row').innerHTML = '<button class="btn btn-primary" type="button" onclick="window.location.href=\'../student-ui.html\'">Return to Student Dashboard</button>';
-    }
-  });
-</script>
+      try {
+        const r = await apiRequest(`/exam/result/${attemptId}`, { method: 'GET' });
+        if (!r || typeof r !== 'object') throw new Error('Failed to load exam results.');
+
+        const score = Number(r.obtainedMarks ?? r.score ?? 0);
+        const totalMarks = Number(r.totalMarks ?? r.totalQuestions ?? 0);
+        const totalQuestions = Number(r.totalQuestions ?? 0);
+        const correct = Number(r.correctAnswers ?? 0);
+        const wrong = Number(r.wrongAnswers ?? 0);
+        const unanswered = Number(r.unansweredQuestions ?? 0);
+        const percentage = resolvePercentage(score, r.percentage, totalMarks);
+        const grade = String(r.grade || 'N/A');
+        const passed = Boolean(r.passed) || percentage >= 40 || String(r.result).toUpperCase() === 'PASS';
+        const cancelled = String(r.result || '').toUpperCase().includes('CANCEL');
+        const answered = Math.max(totalQuestions - unanswered, correct + wrong);
+        const accuracy = (correct + wrong) > 0 ? (correct * 100) / (correct + wrong) : 0;
+        const completion = totalQuestions > 0 ? (answered * 100) / totalQuestions : 0;
+        const unansweredRate = totalQuestions > 0 ? (unanswered * 100) / totalQuestions : 0;
+        const avgPerQuestion = totalQuestions > 0 ? (score / totalQuestions) : 0;
+        const resultStatus = String(r.resultStatus || r.result || (passed ? 'PASS' : 'FAIL')).toUpperCase();
+        const submittedAt = formatDateTime(r.submittedAt);
+        const evaluatedAt = formatDateTime(r.evaluatedAt);
+
+        renderStatus(passed, cancelled, resultStatus === 'PASS' ? 'Exam Passed Successfully!' : 'Exam Completed');
+
+        document.getElementById('result-msg').innerHTML = cancelled
+          ? 'This attempt was flagged for review. Please check your notifications for the final status.'
+          : passed
+            ? 'Your exam answers were securely submitted, evaluated, and marked as successful.'
+            : 'Your exam answers were securely submitted and evaluated. Review the weak areas below and try again if reattempts are available.';
+
+        setText('res-percentage', `${percentage.toFixed(1)}%`);
+        setText('res-score', `${score} / ${totalMarks || score}`);
+        setText('res-time', formatDuration(r.timeTakenSeconds));
+        setText('breakdown-total', String(totalQuestions || (correct + wrong + unanswered)));
+        setText('breakdown-correct', String(correct));
+        setText('breakdown-wrong', String(wrong));
+        setText('breakdown-unanswered', String(unanswered));
+        setText('diff-easy', String(r.easyCorrect ?? 0));
+        setText('diff-medium', String(r.mediumCorrect ?? 0));
+        setText('diff-hard', String(r.difficultCorrect ?? 0));
+
+        setText('attempt-pill-id', `#${attemptId}`);
+        setText('attempt-pill-code', String(r.examCode || '--'));
+        setText('info-exam-code', String(r.examCode || '--'));
+        setText('info-attempt-id', String(attemptId));
+        setText('info-status', resultStatus);
+        setText('info-grade', grade);
+        setText('info-submitted-at', submittedAt);
+        setText('info-evaluated-at', evaluatedAt);
+        setText('info-accuracy', `${accuracy.toFixed(1)}%`);
+        setText('info-completion', `${completion.toFixed(1)}%`);
+        setText('info-answered', `${answered} / ${totalQuestions || answered}`);
+        setText('info-unanswered-rate', `${unansweredRate.toFixed(1)}%`);
+        setText('info-result', resultStatus);
+        setText('info-grade-letter', grade);
+        setText('info-average', totalQuestions > 0 ? `${avgPerQuestion.toFixed(2)} marks/question` : '--');
+        setText('info-total-marks', String(totalMarks || score));
+
+        const insights = [];
+        if (passed) insights.push(`Strong result: you crossed the pass threshold with ${percentage.toFixed(1)}% and a grade of ${grade}.`);
+        else insights.push(`You scored ${percentage.toFixed(1)}%, so the attempt did not cross the pass threshold.`);
+        if (unanswered > 0) insights.push(`${unanswered} question${unanswered === 1 ? '' : 's'} were left unanswered.`);
+        if (wrong > 0) insights.push(`${wrong} answer${wrong === 1 ? '' : 's'} were marked wrong.`);
+        insights.push(`The exam was evaluated against ${totalQuestions || 'the'} questions with a total mark value of ${totalMarks || 'N/A'}.`);
+        document.getElementById('insight-box').innerHTML = insights.map((line) => `<p style="margin:0 0 0.65rem;">${escapeHtml(line)}</p>`).join('');
+
+        const note = cancelled
+          ? 'This attempt was marked for cheating review. The student, teacher, and admin notification streams receive the violation details automatically.'
+          : passed
+            ? 'A certificate can be generated if your exam policy allows it.'
+            : 'Review the performance cards and prepare for the next attempt.';
+        if (footerNote) footerNote.textContent = note;
+
+        countdownTimer = setInterval(() => {
+          secondsLeft -= 1;
+          if (countdownEl) countdownEl.textContent = `${Math.max(secondsLeft, 0)}s`;
+          if (secondsLeft <= 0) {
+            stopRedirect();
+            navigateBack();
+          }
+        }, 1000);
+        redirectTimer = setTimeout(() => {
+          stopRedirect();
+          navigateBack();
+        }, 7000);
+      } catch (err) {
+        console.error(err);
+        document.getElementById('status-icon').className = 'hero-icon fail';
+        document.getElementById('status-icon').textContent = '!';
+        document.getElementById('result-title').textContent = 'Result Unavailable';
+        document.getElementById('result-msg').textContent = err.message || 'Unable to fetch exam results. Please return to the student dashboard.';
+        document.getElementById('status-badge-container').innerHTML = '<span class="status-badge fail">Unavailable</span>';
+        document.getElementById('insight-box').textContent = 'We could not load the result payload from the backend.';
+        document.getElementById('footer-note').textContent = 'Please return to the student dashboard and try again.';
+        stopRedirect();
+      }
+    });
+  </script>
 </body>
 </html>

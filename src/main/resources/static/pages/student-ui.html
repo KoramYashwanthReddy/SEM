@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student UI | SEM AI Exam System</title>
+  <title>Student UI | Smart Examination Monitor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -19,8 +19,8 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="brand">
-          <span class="brand-badge">AI</span>
-          <span class="brand-text">Student Portal</span>
+          <span class="brand-badge">SEM</span>
+          <span class="brand-text">Smart Examination Monitor</span>
         </div>
         <button id="toggle-sidebar" class="icon-btn sidebar-toggle" type="button" aria-label="Toggle sidebar">
           <span class="svg-icon" data-icon="menu"></span>
@@ -311,7 +311,7 @@
         <section id="results" class="section">
           <div class="section-head">
             <div class="header-titles">
-              <h1 class="page-title">My <span class="text-gradient">Results</span></h1>
+              <h1 class="page-title">My Results</h1>
               <p class="page-desc">Performance and exam results with score analytics and submission history.</p>
             </div>
             <div class="head-actions">
@@ -332,11 +332,13 @@
           <div class="results-summary-grid" id="resultsSummaryGrid"></div>
 
           <div class="toolbar results-toolbar">
-            <div class="toolbar-copy">
-              <strong>Result History</strong>
-              <span>Sorted by the most recent submissions and filtered locally.</span>
+            <div class="toolbar-copy results-toolbar-copy">
+              <span class="toolbar-copy-icon svg-icon" data-icon="clock"></span>
+              <div class="toolbar-copy-text">
+                <strong>Result History</strong>
+                <span>Sorted by the most recent submissions and filtered locally.</span>
+              </div>
             </div>
-            <button id="resultsFilterBtn" class="btn ghost small icon-only" type="button" aria-label="Cycle result filter" title="Cycle result filter"><span class="svg-icon" data-icon="filter"></span></button>
             <button id="resultsResetBtn" class="btn ghost small" type="button"><span class="svg-icon" data-icon="refresh"></span>Reset</button>
           </div>
 
@@ -360,13 +362,17 @@
                 <tbody id="resultsBody"></tbody>
               </table>
             </div>
+            <div class="results-footer">
+              <div class="results-page-info" id="resultsPageInfo">Showing 0 to 0 of 0 results</div>
+              <div class="results-pagination" id="resultsPagination" aria-label="Results pagination"></div>
+            </div>
           </article>
         </section>
 
         <section id="certificates" class="section">
           <div class="section-head">
             <div class="header-titles">
-              <h1 class="page-title">My <span class="text-gradient">Certificates</span></h1>
+              <h1 class="page-title">My Certificates</h1>
               <p class="page-desc">Earned certificates, achievements, and verification history.</p>
             </div>
             <div class="head-actions">
@@ -397,7 +403,7 @@
         <section id="leaderboard" class="section">
           <div class="section-head">
             <div class="header-titles">
-              <h1 class="page-title"><span class="text-gradient">Leaderboard</span></h1>
+              <h1 class="page-title">Leaderboard</h1>
               <p class="page-desc">Global and exam ranking insights with live local sorting and user highlight.</p>
             </div>
             <div class="head-actions">
@@ -444,24 +450,84 @@
         <section id="analytics" class="section">
           <div class="section-head">
             <div class="header-titles">
-              <h1 class="page-title">Performance <span class="text-gradient">Analytics</span></h1>
+              <h1 class="page-title">Performance Analytics</h1>
               <p class="page-desc">Summary cards and chart placeholders for deeper student performance insights.</p>
             </div>
           </div>
           <div class="stats-grid analytics-grid" id="analyticsCards"></div>
           <div class="chart-grid three">
             <article class="card chart-card">
-              <div class="card-head"><h3>Attempt Distribution</h3></div>
+              <div class="card-head chart-card-head">
+                <div class="chart-head-copy">
+                  <div class="chart-head-icon icon-violet"><span class="svg-icon" data-icon="analytics"></span></div>
+                  <div>
+                    <h3>Attempt Distribution</h3>
+                    <p class="card-copy">Number of exams attempted over time</p>
+                  </div>
+                </div>
+                <select id="analyticsTrendFilter" class="inline-select chart-filter">
+                  <option value="this-month">This Month</option>
+                  <option value="last-3-months">Last 3 Months</option>
+                  <option value="all-time">All Time</option>
+                </select>
+              </div>
               <canvas id="analyticsLineChart"></canvas>
+              <div class="chart-foot chart-foot-violet" id="analyticsAttemptFoot">
+                <span class="chart-foot-icon"><span class="svg-icon" data-icon="analytics"></span></span>
+                <p>You attempted the most exams on <strong>May 15, 2026</strong></p>
+              </div>
             </article>
             <article class="card chart-card">
-              <div class="card-head"><h3>Pass Rate</h3></div>
+              <div class="card-head chart-card-head">
+                <div class="chart-head-copy">
+                  <div class="chart-head-icon icon-green"><span class="svg-icon" data-icon="results"></span></div>
+                  <div>
+                    <h3>Pass Rate</h3>
+                    <p class="card-copy">Comparison of passed vs failed</p>
+                  </div>
+                </div>
+                <select id="analyticsPassFilter" class="inline-select chart-filter">
+                  <option value="all-exams">All Exams</option>
+                  <option value="this-month">This Month</option>
+                  <option value="last-3-months">Last 3 Months</option>
+                </select>
+              </div>
               <canvas id="analyticsBarChart"></canvas>
+              <div class="chart-foot chart-foot-green" id="analyticsPassFoot">
+                <span class="chart-foot-icon"><span class="svg-icon" data-icon="results"></span></span>
+                <p><strong>Pass Rate</strong> <span>63.0% of students passed</span></p>
+              </div>
             </article>
             <article class="card chart-card">
-              <div class="card-head"><h3>Score Mix</h3></div>
+              <div class="card-head chart-card-head">
+                <div class="chart-head-copy">
+                  <div class="chart-head-icon icon-purple"><span class="svg-icon" data-icon="star"></span></div>
+                  <div>
+                    <h3>Score Mix</h3>
+                    <p class="card-copy">Distribution of scores</p>
+                  </div>
+                </div>
+                <select id="analyticsMixFilter" class="inline-select chart-filter">
+                  <option value="all-exams">All Exams</option>
+                  <option value="this-month">This Month</option>
+                  <option value="last-3-months">Last 3 Months</option>
+                </select>
+              </div>
               <canvas id="analyticsDonutChart"></canvas>
+              <div class="chart-legend" id="analyticsMixLegend"></div>
+              <div class="chart-foot chart-foot-purple" id="analyticsMixFoot">
+                <span class="chart-foot-icon"><span class="svg-icon" data-icon="star"></span></span>
+                <p><strong>45%</strong> <span>of students scored between 80 - 100</span></p>
+              </div>
             </article>
+          </div>
+          <div class="analytics-note">
+            <span class="analytics-note-icon"><span class="svg-icon" data-icon="results"></span></span>
+            <p>Analytics are updated in real time as new exam results are processed.</p>
+            <div class="analytics-note-meta">
+              <span>Last updated: <strong id="analyticsLastUpdated">May 29, 2026 03:22 PM</strong></span>
+              <span class="analytics-note-clock"><span class="svg-icon" data-icon="clock"></span></span>
+            </div>
           </div>
         </section>
 

@@ -3,18 +3,18 @@
    ============================================================ */
 
 :root {
-  --role-accent: #00f2ff;
-  --role-glow: rgba(0, 242, 255, 0.35);
-  --role-gradient: linear-gradient(135deg, #00f2ff 0%, #006ae5 100%);
-  --admin-panel-bg: rgba(0, 242, 255, 0.04);
-  --grid-line: rgba(0, 242, 255, 0.08);
+  --role-accent: #2563eb;
+  --role-glow: rgba(37, 99, 235, 0.18);
+  --role-gradient: linear-gradient(135deg, #2563eb 0%, #7c3aed 55%, #db2777 100%);
+  --admin-panel-bg: rgba(37, 99, 235, 0.06);
+  --grid-line: rgba(37, 99, 235, 0.08);
 }
 
 [data-theme="light"] {
-  --role-accent: #0284c7;
-  --role-glow: rgba(2, 132, 199, 0.2);
-  --admin-panel-bg: rgba(2, 132, 199, 0.03);
-  --grid-line: rgba(2, 132, 199, 0.06);
+  --role-accent: #1d4ed8;
+  --role-glow: rgba(29, 78, 216, 0.16);
+  --admin-panel-bg: rgba(29, 78, 216, 0.04);
+  --grid-line: rgba(29, 78, 216, 0.06);
 }
 
 /* Base Card Symmetry */
@@ -23,14 +23,14 @@
   width: min(1180px, 95vw);
   border-radius: 32px;
   overflow: hidden;
-  box-shadow: 0 40px 120px rgba(0,0,0,0.6);
-  border: 1px solid rgba(0, 242, 255, 0.15);
+  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.12);
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s ease;
 }
 
 .card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 50px 140px rgba(0,0,0,0.7), 0 0 30px rgba(0, 242, 255, 0.1);
+  box-shadow: 0 38px 110px rgba(37, 99, 235, 0.12), 0 0 30px rgba(37, 99, 235, 0.08);
 }
 
 @keyframes adminEntrance {
@@ -45,7 +45,7 @@
 
 /* Security Panel Branding */
 .card-left {
-  background: linear-gradient(160deg, rgba(0, 242, 255, 0.08) 0%, rgba(0,0,0,0) 80%);
+  background: linear-gradient(160deg, rgba(37, 99, 235, 0.08) 0%, rgba(255,255,255,0) 80%);
   position: relative;
   overflow: hidden;
 }
@@ -59,8 +59,8 @@
     linear-gradient(var(--grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 40px 40px;
-  mask-image: radial-gradient(circle at 20% 30%, black, transparent 80%);
-  -webkit-mask-image: radial-gradient(circle at 20% 30%, black, transparent 80%);
+  mask-image: radial-gradient(circle at 20% 30%, #000, transparent 80%);
+  -webkit-mask-image: radial-gradient(circle at 20% 30%, #000, transparent 80%);
   opacity: 0.5;
   pointer-events: none;
 }
@@ -88,7 +88,7 @@
 .role-indicator {
   background: var(--admin-panel-bg);
   color: var(--role-accent);
-  border: 1px solid rgba(0, 242, 255, 0.2);
+  border: 1px solid rgba(37, 99, 235, 0.18);
   margin-bottom: 32px;
   text-transform: uppercase;
   letter-spacing: 0.05rem;
@@ -98,7 +98,7 @@
   display: inline-block;
   padding: 6px 16px;
   background: var(--admin-panel-bg);
-  border: 1px solid rgba(0, 242, 255, 0.2);
+  border: 1px solid rgba(37, 99, 235, 0.18);
   color: var(--role-accent);
   border-radius: 999px;
   font-family: var(--font-mono);
@@ -123,7 +123,7 @@
 
 .benefit-icon-admin {
   background: var(--admin-panel-bg);
-  border: 1px solid rgba(0, 242, 255, 0.2);
+  border: 1px solid rgba(37, 99, 235, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -150,12 +150,12 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: rgba(0,0,0,0.05);
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.03), rgba(124, 58, 237, 0.02));
   transition: background 0.4s ease;
 }
 
 .card:hover .card-right {
-  background: rgba(0, 242, 255, 0.02);
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.05), rgba(219, 39, 119, 0.03));
 }
 
 .btn-primary {
@@ -202,8 +202,8 @@
 }
 
 .stardust-admin {
-  background-image: radial-gradient(white, transparent 5%);
-  opacity: 0.05;
+  background-image: radial-gradient(var(--accent-blue), transparent 5%);
+  opacity: 0.06;
 }
 
 .login-link a {
@@ -243,9 +243,9 @@
 }
 
 .theme-btn.active {
-  background: var(--bg-card) !important;
-  color: var(--accent-blue) !important;
-  box-shadow: var(--shadow-card) !important;
+  background: var(--gradient-accent) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.16) !important;
   opacity: 1 !important;
 }
 

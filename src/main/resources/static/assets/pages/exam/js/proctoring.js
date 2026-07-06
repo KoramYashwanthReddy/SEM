@@ -4,6 +4,7 @@ class ProctoringSystem {
   constructor() {
     this.warningModal = document.getElementById('warning-modal');
     this.warningText = document.getElementById('warning-text');
+    this.warningTitle = document.getElementById('warning-modal-title');
     this.dismissBtn = document.getElementById('dismiss-warning-btn');
     this.fullscreenBtn = document.getElementById('fullscreen-btn');
     
@@ -18,6 +19,8 @@ class ProctoringSystem {
     this.logCountVoice = document.getElementById('log-count-voice');
     
     this.mustSubmit = false;
+    this.lastViolation = null;
+    this.finalViolationLogged = false;
     this.camReady = false;
     this.micReady = false;
     this.userVisible = false;
@@ -96,7 +99,10 @@ class ProctoringSystem {
         if (this.mustSubmit) {
            showToast('Proctoring limits exceeded. Force submitting exam...', 'error');
            if (window.examController) {
-               window.examController.submitExam(true);
+               window.examController.submitExam(true, {
+                 autoReason: 'PROCTORING_LIMIT_REACHED',
+                 violation: this.lastViolation || null
+               });
            }
         }
       });
@@ -140,6 +146,7 @@ class ProctoringSystem {
     // triggering unreliable audio-based warnings.
     this.micReady = true;
     this.updateSetupStatus('mic', true);
+    this.validateFinalSetup();
     
     // Add anti-cheat listeners
     this.initAntiCheat();
@@ -147,10 +154,10 @@ class ProctoringSystem {
     // Final check for startup button
     if (this.startBtn) {
       this.startBtn.addEventListener('click', () => {
-         if (this.camReady && this.consentChk && this.consentChk.checked) {
+         if (this.isSetupReady()) {
             this.recordEvent('EXAM_PROCTORING_STARTED', 'Proctoring checks completed and exam started', {
               camReady: true,
-              micReady: false,
+              micReady: this.micReady,
               identityVerified: Boolean(this.userVisible)
             }, 'proctor-start');
             // Request Fullscreen (Mandatory)
@@ -175,10 +182,25 @@ class ProctoringSystem {
     }
   }
 
+  isSetupReady() {
+     return Boolean(this.camReady && this.micReady && this.userVisible && this.consentChk && this.consentChk.checked);
+  }
+
+  getStartButtonLabel() {
+     if (this.isSetupReady()) return 'Start Exam';
+     if (!this.camReady) return 'Waiting for camera...';
+     if (!this.micReady) return 'Waiting for microphone...';
+     if (!this.userVisible) return 'Verifying identity...';
+     if (!this.consentChk || !this.consentChk.checked) return 'Accept terms to continue';
+     return 'Waiting for permissions...';
+  }
+
   validateFinalSetup() {
      if (!this.startBtn) return;
-     const isReady = this.camReady && this.userVisible && this.consentChk && this.consentChk.checked;
+     const isReady = this.isSetupReady();
      this.startBtn.disabled = !isReady;
+     this.startBtn.textContent = this.getStartButtonLabel();
+     this.startBtn.setAttribute('aria-disabled', String(!isReady));
   }
 
   triggerWarning(reason, category = 'general') {
@@ -195,6 +217,16 @@ class ProctoringSystem {
       max = this.maxGeneralWarnings;
     }
     
+    const violationType = this.resolveViolationType(reason, category);
+    this.lastViolation = {
+      reason,
+      category,
+      categoryLabel,
+      strike: count,
+      limit: max,
+      violationType
+    };
+
     // Construct specific message
     let displayMessage = `Specific Violation: ${reason}\n\n`;
     displayMessage += `Violation Category: ${categoryLabel}\n`;
@@ -203,12 +235,35 @@ class ProctoringSystem {
     if (count === max - 1) {
        displayMessage += 'WARNING: This is your final chance for this category!';
     } else if (count >= max) {
-       displayMessage = `CRITICAL LIMIT REACHED\n\nReason: ${reason}\n\nYour exam is being automatically submitted due to repeated proctoring violations.`;
+       displayMessage = `Cheating limit reached.\n\nReason: ${reason}\n\nYour exam is being automatically submitted and marked for review because the allowed proctoring limit was exceeded.`;
        this.mustSubmit = true;
+       if (!this.finalViolationLogged) {
+         this.finalViolationLogged = true;
+         this.recordEvent(
+           'PROCTORING_LIMIT_REACHED',
+           `Cheating limit reached after repeated ${categoryLabel.toLowerCase()} violations`,
+           {
+             category,
+             strike: count,
+             limit: max,
+             final: true,
+             reason,
+             violationType
+           },
+           `final:${category}:${violationType}`
+         );
+       }
     }
     
+    if (this.warningTitle) {
+      this.warningTitle.innerText = count >= max ? 'Cheating Limit Reached' : 'Proctoring Warning';
+      this.warningTitle.classList.add('text-danger');
+    }
     if (this.warningText) {
        this.warningText.innerText = displayMessage;
+    }
+    if (this.dismissBtn) {
+      this.dismissBtn.innerText = count >= max ? 'Submit Exam' : 'Acknowledge';
     }
     if (this.warningModal) {
        this.warningModal.classList.add('active');
@@ -219,12 +274,21 @@ class ProctoringSystem {
     
     // Log securely to fake backend
     console.warn(`[Proctor Log] Category: ${category}, Strike: ${count}/${max}, Reason: ${reason}`);
-    this.recordEvent(
-      this.resolveViolationType(reason, category),
-      reason,
-      { category, strike: count, limit: max },
-      `${category}:${reason}`
-    );
+    if (count < max) {
+      this.recordEvent(
+        violationType,
+        reason,
+        {
+          category,
+          strike: count,
+          limit: max,
+          final: false,
+          reason,
+          violationType
+        },
+        `${category}:${reason}`
+      );
+    }
   }
 
   addLogToPanel(reason, category, count, max) {

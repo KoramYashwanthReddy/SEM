@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teacher Dashboard | AI Exam System</title>
+  <title>Teacher Dashboard | Smart Examination Monitor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -118,34 +118,6 @@
             <canvas id="difficultyChart"></canvas><div id="legendDifficulty" class="chart-legend"></div>
           </article>
         </div>
-
-        <div class="split-grid two dashboard-widgets">
-          <article class="card"><div class="card-head"><h3>Upcoming Exams</h3></div><ul id="upcomingExamsList" class="feed-list"></ul></article>
-          <article class="card"><div class="card-head"><h3>Top Performing Students</h3></div><ul id="topStudentsList" class="feed-list"></ul></article>
-          <article class="card"><div class="card-head"><h3>Recent Attempts</h3></div><ul id="recentAttemptsList" class="feed-list"></ul></article>
-          <article class="card"><div class="card-head"><h3>Risk Distribution</h3></div><ul id="riskDistributionList" class="feed-list"></ul></article>
-          <article class="card"><div class="card-head"><h3>Average Time Taken</h3></div><div id="avgTimeTakenBox" class="metric-box">-</div></article>
-          <article class="card"><div class="card-head"><h3>Pass Percentage</h3></div><div id="passPercentageBox" class="metric-box">-</div></article>
-        </div>
-
-        <div class="split-grid">
-          <article class="card">
-            <div class="card-head"><h3>Recent Exams</h3><button id="viewAllRecentExams" class="btn ghost small" data-section-jump="exams">View All</button></div>
-            <div class="table-wrap"><table><thead><tr><th>Exam Code</th><th>Title</th><th>Status</th><th>Attempts</th></tr></thead><tbody id="recentExamsBody"></tbody></table></div>
-          </article>
-          <article class="card">
-            <div class="card-head"><h3>High Risk Students</h3></div>
-            <ul id="highRiskList" class="feed-list"></ul>
-          </article>
-          <article class="card">
-            <div class="card-head"><h3>Live Exam Monitor</h3><button id="viewLiveMonitor" class="btn ghost small">View Live</button></div>
-            <ul id="liveMonitorList" class="feed-list"></ul>
-          </article>
-          <article class="card">
-            <div class="card-head"><h3>Cheating Alerts Panel</h3><button id="investigateAlertsBtn" class="btn ghost small">Investigate</button></div>
-            <ul id="alertsList" class="feed-list"></ul>
-          </article>
-        </div>
       </section>
 
       <section id="exams" class="section">
@@ -155,13 +127,6 @@
             <button id="exportExamsBtn" class="btn ghost"><i class="fa-solid fa-file-export"></i>Export CSV</button>
             <button id="openExamModalBtn" class="btn primary"><i class="fa-solid fa-plus"></i>Create New Exam</button>
           </div>
-        </div>
-        <div class="card bulk-toolbar">
-          <label><input id="selectAllExams" type="checkbox"> Select All</label>
-          <button id="bulkPublishBtn" class="btn ghost small" disabled>Bulk Publish</button>
-          <button id="bulkDeleteBtn" class="btn ghost small" disabled>Bulk Delete</button>
-          <button id="bulkExportBtn" class="btn ghost small" disabled>Bulk Export</button>
-          <span id="selectedCountLabel">0 selected</span>
         </div>
         <div class="toolbar card">
           <input id="examSearch" type="text" placeholder="Search by title or exam code...">
@@ -178,15 +143,10 @@
             <button id="exTabDraft" class="tab-btn" data-exam-tab="Draft">Draft</button>
           </div>
         </div>
-        <div class="card table-card">
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th><input id="headExamCheck" type="checkbox"></th><th>Exam Title</th><th>Exam Code</th><th>Created By</th><th>Duration</th><th>Total Questions</th><th>Passing Marks</th><th>Attempts Count</th><th>Start Time</th><th>End Time</th><th>Created Date</th><th>Status</th><th>Actions</th></tr></thead>
-              <tbody id="examsTableBody"></tbody>
-            </table>
-          </div>
+        <div class="card exams-cards-card">
+          <div id="examsCards" class="exams-grid"></div>
         </div>
-        <div class="card pagination-advanced">
+        <div id="examsPagination" class="card pagination-advanced">
           <div>
             Show
             <select id="examPageSize"><option>5</option><option selected>7</option><option>10</option><option>20</option></select>
@@ -316,6 +276,8 @@
             <input id="leaderboardStudentSearch" type="text" placeholder="Search student">
           </div>
         </div>
+        <div id="leaderboardSummaryGrid" class="leaderboard-summary-grid"></div>
+        <div id="leaderboardHeroCard" class="card leaderboard-hero-card"></div>
         <div class="card table-card leaderboard-table-card">
           <div id="leaderboardLoading" class="leaderboard-loading hidden">
             <div class="lb-skeleton-row"></div>
@@ -409,25 +371,17 @@
 
       <section id="certificates" class="section">
         <div class="section-head"><h1>Certificates <span>Issued</span></h1></div>
-        <div class="card table-card certificates-table-card">
-          <div class="table-wrap certificates-table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Certificate ID</th>
-                  <th>Student Name</th>
-                  <th>Exam Title</th>
-                  <th>Score</th>
-                  <th>Grade</th>
-                  <th>Issued Date</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="certificatesBody"></tbody>
-            </table>
+        <div id="certificatesSummary" class="summary-grid certificates-summary-grid"></div>
+        <div class="card section-toolbar certificates-toolbar">
+          <div>
+            <h3>Certificate Gallery</h3>
+            <p>Issued credentials, verification state, and quick actions in a card layout.</p>
           </div>
+          <button id="certificatesRefreshBtn" type="button" class="btn ghost" data-no-buffer="true">
+            <i class="fa-solid fa-rotate-right"></i>Refresh
+          </button>
         </div>
+        <div id="certificatesGrid" class="certificates-grid"></div>
       </section>
 
       <section id="profile" class="section">

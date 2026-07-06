@@ -5,12 +5,12 @@
 :root {
   --role-accent: var(--accent-purple);
   --role-glow: var(--glow-purple);
-  --role-gradient: linear-gradient(135deg, var(--accent-purple), #d946ef);
+  --role-gradient: linear-gradient(135deg, var(--accent-purple), #db2777);
 }
 
 [data-theme="light"] {
   --role-accent: #7c3aed;
-  --role-glow: rgba(124, 58, 237, 0.2);
+  --role-glow: rgba(124, 58, 237, 0.16);
 }
 
 .pulse-dot { background: var(--role-accent); }
@@ -23,14 +23,14 @@
   width: min(1180px, 95vw);
   border-radius: 32px;
   overflow: hidden;
-  box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.08);
   animation: none !important;
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s ease;
 }
 
 .card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 50px 140px rgba(0,0,0,0.6), 0 0 30px rgba(139, 92, 246, 0.1);
+  box-shadow: 0 38px 110px rgba(124, 58, 237, 0.12), 0 0 30px rgba(219, 39, 119, 0.08);
 }
 
 .card-columns {
@@ -39,7 +39,7 @@
 }
 
 .card-left {
-  background: linear-gradient(160deg, rgba(139, 92, 246, 0.08) 0%, rgba(0,0,0,0) 80%);
+  background: linear-gradient(160deg, rgba(124, 58, 237, 0.08) 0%, rgba(255,255,255,0) 80%);
   position: relative;
   overflow: hidden;
 }
@@ -58,7 +58,7 @@
 .role-indicator {
   background: rgba(139, 92, 246, 0.1);
   color: var(--role-accent);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(124, 58, 237, 0.18);
   margin-bottom: 32px;
 }
 
@@ -67,7 +67,7 @@
   display: inline-block;
   padding: 6px 16px;
   background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(124, 58, 237, 0.18);
   color: var(--role-accent);
   border-radius: 999px;
   font-family: var(--font-mono);
@@ -92,7 +92,7 @@
 
 .benefit-icon-terminal {
   background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(124, 58, 237, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -122,7 +122,7 @@
 }
 
 .card:hover .card-right {
-  background: rgba(139, 92, 246, 0.02);
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.04), rgba(219, 39, 119, 0.02));
 }
 
 .btn-primary {

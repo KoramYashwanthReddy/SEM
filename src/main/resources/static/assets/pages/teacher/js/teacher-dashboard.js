@@ -92,7 +92,6 @@ ensureAuthGuard();
       editingExamId: null,
       examTab: "all",
       dashDateRange: "7d",
-      selectedExams: new Set(),
       openExamMenuId: null,
       openCertificateMenuId: null,
       selectedExamId: null,
@@ -314,9 +313,6 @@ ensureAuthGuard();
     const idMap = {
       openExamModalBtn: "Opening exam form...",
       exportExamsBtn: "Exporting exams...",
-      bulkPublishBtn: "Publishing selected exams...",
-      bulkDeleteBtn: "Deleting selected exams...",
-      bulkExportBtn: "Exporting selected exams...",
       examJumpBtn: "Loading page...",
       exportDashboardBtn: "Exporting dashboard report...",
       refreshDashboard: "Refreshing dashboard...",
@@ -647,6 +643,9 @@ ensureAuthGuard();
     },
     async analyticsClass(examCode) {
       return this.request(`/api/analytics/class/${encodeURIComponent(examCode)}`, { method: "GET" });
+    },
+    async teacherExamAttempts(examCode) {
+      return this.request(`/api/teacher/exams/${resolveExamRoute(examCode)}/attempts`, { method: "GET" });
     },
     async aiAnalysisStudent(studentId, examCode = "") {
       const q = examCode && examCode !== "all" ? `?examCode=${encodeURIComponent(examCode)}` : "";
@@ -1576,71 +1575,65 @@ ensureAuthGuard();
     `).join("");
   }
 
-  function renderDashboardFeeds() {
-    const recent = [...state.data.exams].slice(0, 5);
-    dom.recentExamsBody.innerHTML = recent.length ? recent.map((e) => `
-      <tr><td>${e.examCode}</td><td>${e.title}</td><td><span class="status-pill ${e.status === "Published" ? "status-published" : "status-draft"}">${e.status}</span></td><td>${attemptsForExam(e).length}</td></tr>
-    `).join("") : `<tr><td colspan="4"><div class="no-data">No exams available.</div></td></tr>`;
-
-    const risky = state.data.attempts.filter((a) => a.cheatingScore >= 65).slice(0, 6);
-    dom.highRiskList.innerHTML = risky.length ? risky.map((a) => `<li><strong>${a.studentName}</strong> - ${a.examTitle || examTitle(a.examId)} <span class="status-pill status-risk">${a.riskLevel}</span></li>`).join("") : "<li class='no-data'>No risk alerts.</li>";
-    const liveExams = state.data.exams.filter((e) => e.status === "Published").slice(0, 6);
-    dom.liveMonitorList.innerHTML = liveExams.length ? liveExams.map((e) => `<li>${e.title} is live with <strong>${attemptsForExam(e).length}</strong> attempts</li>`).join("") : "<li class='no-data'>No live exams.</li>";
-    dom.alertsList.innerHTML = risky.length ? risky.slice(0, 6).map((a) => `<li>Cheating score <strong>${a.cheatingScore}</strong> by ${a.studentName}</li>`).join("") : "<li class='no-data'>No alerts.</li>";
-
-    const upcoming = [...state.data.exams].sort((a, b) => new Date(a.startTime) - new Date(b.startTime)).slice(0, 5);
-    dom.upcomingExamsList.innerHTML = upcoming.length ? upcoming.map((e) => `<li><strong>${e.title}</strong><br><small>${fmtDateTime(e.startTime)}</small></li>`).join("") : "<li class='no-data'>No upcoming exams.</li>";
-    const topStudents = [...state.data.attempts].sort((a, b) => b.percentage - a.percentage).slice(0, 5);
-    dom.topStudentsList.innerHTML = topStudents.length ? topStudents.map((a) => `<li><strong>${a.studentName}</strong> - ${a.percentage}%</li>`).join("") : "<li class='no-data'>No student data.</li>";
-    const recentAttempts = [...state.data.attempts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
-    dom.recentAttemptsList.innerHTML = recentAttempts.length ? recentAttempts.map((a) => `<li>${a.studentName} • ${a.examTitle || examTitle(a.examId)} • ${a.score}</li>`).join("") : "<li class='no-data'>No recent attempts.</li>";
-    const riskGroups = ["LOW", "MEDIUM", "HIGH", "CRITICAL"].map((lvl) => `${lvl}: ${state.data.attempts.filter((a) => a.riskLevel === lvl).length}`);
-    dom.riskDistributionList.innerHTML = riskGroups.map((x) => `<li>${x}</li>`).join("");
-    const avgTime = state.data.attempts.length ? Math.round(state.data.attempts.reduce((n, a) => n + Number.parseInt(a.timeTaken, 10), 0) / state.data.attempts.length) : 0;
-    dom.avgTimeTakenBox.textContent = `${avgTime} min`;
-    const passPct = state.data.attempts.length ? Math.round((state.data.attempts.filter((a) => a.percentage >= 40).length / state.data.attempts.length) * 100) : 0;
-    dom.passPercentageBox.textContent = `${passPct}%`;
+    function renderDashboardFeeds() {
+    if (dom.recentExamsBody) {
+      const recent = [...state.data.exams].slice(0, 5);
+      dom.recentExamsBody.innerHTML = recent.length ? recent.map((e) => `
+        <tr><td>${e.examCode}</td><td>${e.title}</td><td><span class="status-pill ${e.status === "Published" ? "status-published" : "status-draft"}">${e.status}</span></td><td>${attemptsForExam(e).length}</td></tr>
+      `).join("") : `<tr><td colspan="4"><div class="no-data">No exams available.</div></td></tr>`;
+    }
   }
 
   function renderExams() {
     const exams = filteredExams();
     const { rows, totalPages } = paginate(exams, "exams");
-    dom.examsTableBody.innerHTML = rows.map((e) => `
-      <tr>
-        <td><input type="checkbox" class="exam-row-check" data-exam-check="${e.id}" ${state.ui.selectedExams.has(e.id) ? "checked" : ""}></td>
-        <td class="exam-title-cell"><strong>${e.title}</strong>${e.questionsUploaded ? `<small><i class="fa-solid fa-check"></i> Questions Uploaded (${questionCount(e.id)})</small>` : ""}</td>
-        <td>${e.examCode}</td>
-        <td>${e.createdBy || state.teacher.name}</td>
-        <td>${e.duration} min</td>
-        <td>${questionCount(e.id)}</td>
-        <td>${e.passingMarks}</td>
-        <td>${attemptsForExam(e).length}</td>
-        <td>${fmtDateTime(e.startTime)}</td>
-        <td>${fmtDateTime(e.endTime)}</td>
-        <td>${fmtDateTime(e.createdDate || e.startTime)}</td>
-        <td><span class="status-pill ${e.status === "Published" ? "status-published" : "status-draft"}">${e.status}</span></td>
-        <td>
-          <div class="exam-actions-inline">
-            <button class="btn small action-primary" data-exam-action="analytics" data-id="${e.id}">Analytics</button>
-            <button class="btn small action-outline" data-exam-action="questions" data-id="${e.id}">Questions</button>
-            <button class="btn small action-outline" data-exam-action="attempts" data-id="${e.id}">Attempts</button>
-            <div class="exam-more">
-              <button class="btn small action-more" data-exam-menu-toggle="${e.id}" aria-label="More actions" aria-expanded="${idKey(state.ui.openExamMenuId) === idKey(e.id) ? "true" : "false"}">
-                <i class="fa-solid fa-ellipsis-vertical"></i>
-              </button>
-            </div>
+    const rowsHtml = rows.map((e) => {
+      const statusClass = e.status === "Published" ? "status-published" : "status-draft";
+      return `
+      <article class="exam-card" data-exam-card="${e.id}">
+        <div class="exam-card-top">
+          <span class="status-pill ${statusClass}">${e.status}</span>
+        </div>
+
+        <div class="exam-card-head">
+          <div class="exam-card-title-block">
+            <h3>${e.title}</h3>
+            <p>${e.subject || "General"} - ${e.examCode}</p>
+            ${e.questionsUploaded ? `<small><i class="fa-solid fa-circle-check"></i> Questions Uploaded (${questionCount(e.id)})</small>` : `<small><i class="fa-regular fa-clock"></i> Draft exam ready for questions</small>`}
           </div>
-        </td>
-      </tr>
-    `).join("") || `<tr><td colspan="13"><div class="no-data">No exams match your filters.</div></td></tr>`;
+          <div class="exam-card-score">
+            <span>Attempts</span>
+            <strong>${attemptsForExam(e).length}</strong>
+          </div>
+        </div>
+
+        <div class="exam-card-meta">
+          <div class="exam-meta-item"><span>Exam Code</span><strong>${e.examCode}</strong></div>
+          <div class="exam-meta-item"><span>Created By</span><strong>${e.createdBy || state.teacher.name}</strong></div>
+          <div class="exam-meta-item"><span>Duration</span><strong>${e.duration} min</strong></div>
+          <div class="exam-meta-item"><span>Total Questions</span><strong>${questionCount(e.id)}</strong></div>
+          <div class="exam-meta-item"><span>Passing Marks</span><strong>${e.passingMarks}</strong></div>
+          <div class="exam-meta-item"><span>Created Date</span><strong>${fmtDateTime(e.createdDate || e.startTime)}</strong></div>
+          <div class="exam-meta-item"><span>Start Time</span><strong>${fmtDateTime(e.startTime)}</strong></div>
+          <div class="exam-meta-item"><span>End Time</span><strong>${fmtDateTime(e.endTime)}</strong></div>
+        </div>
+
+        <div class="exam-actions-inline exam-card-actions">
+          <button class="btn small action-primary" data-exam-action="view" data-id="${e.id}">View</button>
+          <button class="btn small action-outline" data-exam-action="analytics" data-id="${e.id}">Analytics</button>
+          <button class="btn small action-outline" data-exam-action="questions" data-id="${e.id}">Questions</button>
+          <button class="btn small action-outline" data-exam-action="attempts" data-id="${e.id}">Attempts</button>
+          <div class="exam-more">
+            <button class="btn small action-more" data-exam-menu-toggle="${e.id}" aria-label="More actions" aria-expanded="${idKey(state.ui.openExamMenuId) === idKey(e.id) ? "true" : "false"}">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+          </div>
+        </div>
+      </article>`;
+    }).join("");
+    dom.examsCards.innerHTML = rowsHtml || `<div class="no-data exams-empty-state">No exams match your filters.</div>`;
     if (dom.examRecordsCounter) dom.examRecordsCounter.textContent = `${exams.length} records`;
     if (dom.examJumpPage) dom.examJumpPage.value = String(state.ui.pagination.exams.page);
-    if (dom.selectedCountLabel) dom.selectedCountLabel.textContent = `${state.ui.selectedExams.size} selected`;
-    if (dom.selectAllExams) dom.selectAllExams.checked = exams.length > 0 && exams.every((e) => state.ui.selectedExams.has(e.id));
-    if (dom.headExamCheck && dom.selectAllExams) dom.headExamCheck.checked = dom.selectAllExams.checked;
-    if (dom.bulkPublishBtn) dom.bulkPublishBtn.disabled = state.ui.selectedExams.size === 0;
-    if (dom.bulkDeleteBtn) dom.bulkDeleteBtn.disabled = state.ui.selectedExams.size === 0;
-    if (dom.bulkExportBtn) dom.bulkExportBtn.disabled = state.ui.selectedExams.size === 0;
     upsertPagination("examsPagination", "exams", totalPages);
     renderExamSelectors();
   }
@@ -1719,8 +1712,8 @@ ensureAuthGuard();
 
           <div class="exam-stage-pane" data-stage="3">
             <div class="exam-form-title">Schedule & Options</div>
-            <label>Start Time<input id="mxStartTime" class="form-control-like" type="datetime-local" value="${start}" required></label>
-            <label>End Time<input id="mxEndTime" class="form-control-like" type="datetime-local" value="${end}" required></label>
+            <label>Start Date &amp; Time<input id="mxStartTime" class="form-control-like" type="datetime-local" value="${start}" required></label>
+            <label>End Date &amp; Time<input id="mxEndTime" class="form-control-like" type="datetime-local" value="${end}" required></label>
             <label class="toggle wide">Shuffle Questions<input id="mxShuffleQuestions" type="checkbox" ${isEdit && exam.shuffleQuestions ? "checked" : ""}><span></span></label>
             <label class="toggle wide">Shuffle Options<input id="mxShuffleOptions" type="checkbox" ${isEdit && exam.shuffleOptions ? "checked" : ""}><span></span></label>
           </div>
@@ -1765,7 +1758,15 @@ ensureAuthGuard();
       });
       const startVal = document.getElementById("mxStartTime").value;
       const endVal = document.getElementById("mxEndTime").value;
-      const validRange = startVal && endVal ? new Date(endVal) > new Date(startVal) : false;
+      const startDate = startVal ? new Date(startVal) : null;
+      const endDate = endVal ? new Date(endVal) : null;
+      const validRange = Boolean(
+        startDate &&
+        endDate &&
+        !Number.isNaN(startDate.getTime()) &&
+        !Number.isNaN(endDate.getTime()) &&
+        endDate.getTime() > startDate.getTime()
+      );
       publishBtn.disabled = !(allFilled && validRange);
     };
     requiredFieldIds.forEach((id) => {
@@ -1816,8 +1817,8 @@ ensureAuthGuard();
       easyQuestionCount: Number(document.getElementById("mxEasyCount").value || 0),
       mediumQuestionCount: Number(document.getElementById("mxMediumCount").value || 0),
       difficultQuestionCount: Number(document.getElementById("mxHardCount").value || 0),
-      startTime: `${document.getElementById("mxStartTime").value}:00`,
-      endTime: `${document.getElementById("mxEndTime").value}:00`,
+      startTime: document.getElementById("mxStartTime").value,
+      endTime: document.getElementById("mxEndTime").value,
       shuffleQuestions: document.getElementById("mxShuffleQuestions").checked,
       shuffleOptions: document.getElementById("mxShuffleOptions").checked,
       status
@@ -1826,7 +1827,13 @@ ensureAuthGuard();
       toast("Fill all required exam fields.", "error");
       return;
     }
-    if (payload.endTime <= payload.startTime) {
+    const startDateTime = new Date(payload.startTime);
+    const endDateTime = new Date(payload.endTime);
+    if (Number.isNaN(startDateTime.getTime()) || Number.isNaN(endDateTime.getTime())) {
+      toast("Please enter a valid start and end date/time.", "error");
+      return;
+    }
+    if (endDateTime.getTime() <= startDateTime.getTime()) {
       toast("End time must be after start time.", "error");
       return;
     }
@@ -2202,7 +2209,7 @@ ensureAuthGuard();
               <strong>Hover a row to inspect the full data</strong>
               <span>${rawRows.length ? `${rawRows.length} raw rows` : "No raw sheet data"}</span>
             </div>
-            <div class="questions-hover-empty">Move your pointer over any question row and we’ll show every column here, including values hidden off to the right.</div>
+            <div class="questions-hover-empty">Move your pointer over any question row and weÃ¢â‚¬â„¢ll show every column here, including values hidden off to the right.</div>
           </div>
           ${rawRows.length ? `
             <div class="questions-block">
@@ -2401,7 +2408,7 @@ ensureAuthGuard();
         <div class="evidence-head">
           <div>
             <h3>Cheating Evidence</h3>
-            <p><strong>${item.studentName}</strong> • ${examName}</p>
+            <p><strong>${item.studentName}</strong> Ã¢â‚¬Â¢ ${examName}</p>
           </div>
           <button id="evCloseIcon" class="upload-close" aria-label="Close">&times;</button>
         </div>
@@ -2492,7 +2499,7 @@ ensureAuthGuard();
       panel.innerHTML = `
         <div class="evidence-timeline">
           ${rows.map((r) => `
-            <article class="evidence-card sev-${r.sevClass} ${r.imageUrl ? "evidence-card-image" : ""}" data-preview-url="${r.imageUrl || ""}" data-preview-meta="${fmtDateTime(r.timestamp)} • ${r.severity}">
+            <article class="evidence-card sev-${r.sevClass} ${r.imageUrl ? "evidence-card-image" : ""}" data-preview-url="${r.imageUrl || ""}" data-preview-meta="${fmtDateTime(r.timestamp)} Ã¢â‚¬Â¢ ${r.severity}">
               <div class="evidence-card-head">
                 <span class="evidence-icon"><i class="fa-solid ${evidenceIconClass(r.type)}"></i></span>
                 <span class="evidence-time">${fmtDateTime(r.timestamp)}</span>
@@ -2850,8 +2857,9 @@ ensureAuthGuard();
 
   function analyticsArray(data) {
     if (!data) return [];
+    if (Array.isArray(data?.data)) return data.data;
     if (Array.isArray(data)) return data;
-    const keys = ["rows", "results", "attempts", "students", "records", "items", "data", "list", "content"];
+    const keys = ["rows", "results", "attempts", "students", "records", "items", "list", "content"];
     for (const key of keys) {
       if (Array.isArray(data?.[key])) return data[key];
     }
@@ -2859,19 +2867,21 @@ ensureAuthGuard();
   }
 
   function normalizeAnalyticsRow(raw, idx = 0) {
-    const score = Number(raw?.score ?? 0);
-    const percentage = Number(raw?.percentage ?? (Number(raw?.totalQuestions) > 0 ? ((Number(raw?.correctAnswers) || 0) / Number(raw?.totalQuestions)) * 100 : score));
-    const cheatingScore = Number(raw?.cheatingScore ?? 0);
-    const flagged = Boolean(raw?.flaggedForCheating ?? raw?.flagged ?? cheatingScore > 70);
+    const score = Number(raw?.score ?? raw?.obtainedMarks ?? 0);
     const totalQuestions = Number(raw?.totalQuestions ?? 0);
     const correctAnswers = Number(raw?.correctAnswers ?? 0);
+    const percentageValue = raw?.percentage ?? (Number.isFinite(Number(raw?.obtainedMarks)) && Number.isFinite(Number(raw?.totalMarks)) && Number(raw?.totalMarks) > 0
+      ? (Number(raw?.obtainedMarks) / Number(raw?.totalMarks)) * 100
+      : (totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : score));
+    const cheatingScore = Number(raw?.cheatingScore ?? 0);
+    const flagged = Boolean(raw?.flaggedForCheating ?? raw?.flagged ?? raw?.cheatingFlag ?? cheatingScore > 70);
     return {
       id: String(raw?.attemptId || raw?.id || idx),
       studentName: String(raw?.studentName || raw?.student?.name || `Student ${idx + 1}`),
       score: Number.isFinite(score) ? score : 0,
-      percentage: Number.isFinite(percentage) ? clamp(Math.round(percentage), 0, 100) : 0,
+      percentage: Number.isFinite(percentageValue) ? clamp(Math.round(percentageValue), 0, 100) : 0,
       submittedAt: raw?.submittedAt || raw?.startTime || raw?.createdAt || new Date().toISOString(),
-      passed: raw?.passed !== undefined ? Boolean(raw.passed) : percentage >= 40,
+      passed: raw?.passed !== undefined ? Boolean(raw.passed) : (Number.isFinite(percentageValue) ? percentageValue >= 40 : score >= 40),
       flaggedForCheating: flagged,
       easyCorrect: Number(raw?.easyCorrect ?? 0),
       mediumCorrect: Number(raw?.mediumCorrect ?? 0),
@@ -2914,7 +2924,7 @@ ensureAuthGuard();
       .map((r) => Number(r.score || 0));
     const trendLabels = [...rows]
       .sort((a, b) => new Date(a.submittedAt) - new Date(b.submittedAt))
-      .map((r) => `${r.studentName} • ${fmtDateTime(r.submittedAt)} • ${r.score}`);
+      .map((r) => `${r.studentName} Ã¢â‚¬Â¢ ${fmtDateTime(r.submittedAt)} Ã¢â‚¬Â¢ ${r.score}`);
     const accuracy = [...rows]
       .map((r) => ({
         name: r.studentName,
@@ -2984,11 +2994,14 @@ ensureAuthGuard();
     setAnalyticsLoadingUI(true);
     const runner = (async () => {
       try {
-        const [examReq, classReq] = await Promise.allSettled([api.analyticsExam(examCode), api.analyticsClass(examCode)]);
-        if (examReq.status === "rejected" && classReq.status === "rejected") throw new Error("both_failed");
-        const examRes = examReq.status === "fulfilled" ? examReq.value : null;
-        const classRes = classReq.status === "fulfilled" ? classReq.value : null;
-        const rawRows = analyticsArray(examRes).concat(analyticsArray(classRes)).map((r, idx) => normalizeAnalyticsRow(r, idx));
+        const [attemptRes, summaryRes] = await Promise.allSettled([
+          api.teacherExamAttempts(examCode),
+          api.analyticsExam(examCode)
+        ]);
+        if (attemptRes.status === "rejected" && summaryRes.status === "rejected") throw new Error("both_failed");
+        const attemptPayload = attemptRes.status === "fulfilled" ? attemptRes.value : null;
+        const summaryPayload = summaryRes.status === "fulfilled" ? summaryRes.value : null;
+        const rawRows = analyticsArray(attemptPayload).map((r, idx) => normalizeAnalyticsRow(r, idx));
         const seen = new Set();
         const rows = rawRows.filter((r) => {
           const rowKey = `${r.id}|${r.studentName}|${r.submittedAt}`;
@@ -2999,6 +3012,28 @@ ensureAuthGuard();
         const dateFiltered = applyAnalyticsDateFilter(rows);
         state.data.analytics.rows = dateFiltered;
         state.data.analytics.summary = dateFiltered.length ? buildAnalyticsSummary(dateFiltered) : null;
+        if (!state.data.analytics.summary && summaryPayload) {
+          const avg = Number(summaryPayload?.data?.averageScore ?? summaryPayload?.data?.average ?? 0);
+          const highest = Number(summaryPayload?.data?.highest ?? summaryPayload?.data?.highestScore ?? 0);
+          const lowest = Number(summaryPayload?.data?.lowest ?? summaryPayload?.data?.lowestScore ?? 0);
+          const totalStudents = Number(summaryPayload?.data?.totalStudents ?? summaryPayload?.data?.totalAttempts ?? 0);
+          state.data.analytics.summary = {
+            avg,
+            highest,
+            lowest,
+            passPct: 0,
+            totalStudents,
+            passCount: 0,
+            failCount: 0,
+            distribution: [0, 0, 0, 0, 0],
+            trend: [],
+            trendLabels: [],
+            accuracy: [],
+            safeCount: 0,
+            flaggedCount: 0,
+            difficulty: [0, 0, 0]
+          };
+        }
         state.ui.analytics.cache[key] = {
           rows: state.data.analytics.rows,
           summary: state.data.analytics.summary,
@@ -3164,6 +3199,71 @@ ensureAuthGuard();
     if (dom.leaderboardSortIcon) dom.leaderboardSortIcon.className = `fa-solid ${icon}`;
     if (dom.leaderboardModeExam) dom.leaderboardModeExam.classList.toggle("active", state.ui.leaderboard.mode === "exam");
     if (dom.leaderboardModeGlobal) dom.leaderboardModeGlobal.classList.toggle("active", state.ui.leaderboard.mode === "global");
+    const totalParticipants = rows.length;
+    const topRow = rows[0] || null;
+    const averageScore = totalParticipants ? Math.round(rows.reduce((sum, r) => sum + Number(r.score || 0), 0) / totalParticipants) : 0;
+    const topPercentage = topRow ? Number(topRow.percentage || 0) : 0;
+    const currentModeLabel = state.ui.leaderboard.mode === "global" ? "Global" : "Exam";
+
+    if (dom.leaderboardSummaryGrid) {
+      dom.leaderboardSummaryGrid.innerHTML = topRow ? `
+        <article class="card leaderboard-mini-card leaderboard-mini-top">
+          <div class="leaderboard-mini-icon"><i class="fa-regular fa-star"></i></div>
+          <div class="leaderboard-mini-copy">
+            <small>Top Score</small>
+            <strong>${topPercentage}%</strong>
+            <span>${topRow.studentName}</span>
+          </div>
+        </article>
+        <article class="card leaderboard-mini-card">
+          <div class="leaderboard-mini-icon"><i class="fa-solid fa-users"></i></div>
+          <div class="leaderboard-mini-copy">
+            <small>Total Participants</small>
+            <strong>${totalParticipants}</strong>
+            <span>${currentModeLabel} cohort</span>
+          </div>
+        </article>
+        <article class="card leaderboard-mini-card">
+          <div class="leaderboard-mini-icon"><i class="fa-solid fa-chart-simple"></i></div>
+          <div class="leaderboard-mini-copy">
+            <small>Average Score</small>
+            <strong>${averageScore}%</strong>
+            <span>Across current filter</span>
+          </div>
+        </article>
+      ` : `
+        <article class="card leaderboard-mini-card leaderboard-mini-empty"><div class="leaderboard-mini-copy"><small>No leaderboard data</small><strong>-</strong><span>Try a different exam</span></div></article>
+      `;
+    }
+
+    if (dom.leaderboardHeroCard) {
+      dom.leaderboardHeroCard.innerHTML = topRow ? `
+        <div class="leaderboard-hero-head">
+          <div>
+            <small>Your Rank</small>
+            <h3>#${topRow.rank || 1} ${topRow.studentName}</h3>
+            <p>${currentModeLabel} leaderboard position for the active dataset.</p>
+          </div>
+          <span class="status-pill status-published">Top Performer</span>
+        </div>
+        <div class="leaderboard-hero-metrics">
+          <article class="leaderboard-hero-metric">
+            <span>Score</span>
+            <strong>${Number(topRow.score || 0)}</strong>
+          </article>
+          <article class="leaderboard-hero-metric">
+            <span>Percentage</span>
+            <strong>${topPercentage}%</strong>
+          </article>
+          <article class="leaderboard-hero-metric">
+            <span>Mode</span>
+            <strong>${currentModeLabel}</strong>
+          </article>
+        </div>
+      ` : `
+        <div class="leaderboard-empty-panel">No leaderboard data available for the selected filters.</div>
+      `;
+    }
 
     if (!rows.length) {
       const message = state.ui.leaderboard.mode === "exam"
@@ -3173,16 +3273,29 @@ ensureAuthGuard();
       return;
     }
 
-    dom.leaderboardBody.innerHTML = rows.map((r) => {
-      const rank = Number(r.rank || 0);
+    dom.leaderboardBody.innerHTML = rows.map((r, idx) => {
+      const rank = Number(r.rank || idx + 1);
       const topCls = rank === 1 ? "top-gold" : rank === 2 ? "top-silver" : rank === 3 ? "top-bronze" : "";
       const pct = Number(r.percentage || 0);
       return `
         <tr class="leaderboard-row ${topCls}">
           <td><span class="rank-pill">${rank}</span></td>
-          <td>${r.studentName}</td>
+          <td>
+            <div class="leaderboard-student-cell">
+              <span class="leaderboard-avatar">${String(r.studentName || "?").trim().charAt(0).toUpperCase()}</span>
+              <div>
+                <strong>${r.studentName}</strong>
+                ${rank === 1 ? '<span class="leaderboard-tag">Top performer</span>' : ""}
+              </div>
+            </div>
+          </td>
           <td>${r.score}</td>
-          <td><span class="percent-pill ${percentageClass(pct)}">${pct}%</span></td>
+          <td>
+            <div class="leaderboard-pct-wrap">
+              <span class="percent-pill ${percentageClass(pct)}">${pct}%</span>
+              <div class="leaderboard-progress"><span style="width:${clamp(pct, 0, 100)}%"></span></div>
+            </div>
+          </td>
         </tr>
       `;
     }).join("");
@@ -3386,7 +3499,7 @@ ensureAuthGuard();
     dom.weakTopics.innerHTML = model.weakTopics.map((w) => `
       <li class="ai-weak-item">
         <div><strong>${w.topic}</strong> <span class="status-pill ${w.weaknessClass}">${w.weaknessLevel}</span></div>
-        <small>Accuracy: ${w.accuracy}% • Difficulty: ${w.difficulty} • Priority: ${w.priorityScore}</small>
+        <small>Accuracy: ${w.accuracy}% Ã¢â‚¬Â¢ Difficulty: ${w.difficulty} Ã¢â‚¬Â¢ Priority: ${w.priorityScore}</small>
         <p>${w.recommendation}</p>
       </li>
     `).join("") || "<li class='no-data'>No weak topics available.</li>";
@@ -3458,6 +3571,57 @@ ensureAuthGuard();
     return cert.revoked
       ? `<span class="status-pill cert-status cert-revoked">Revoked</span>`
       : `<span class="status-pill cert-status cert-issued">Issued</span>`;
+  }
+
+  function certificateSummaryCards(certificates) {
+    const items = Array.isArray(certificates) ? certificates : [];
+    const total = items.length;
+    const revoked = items.filter((c) => Boolean(c.revoked)).length;
+    const verified = Math.max(0, total - revoked);
+    const latest = items
+      .slice()
+      .sort((a, b) => new Date(b.issuedAt || 0).getTime() - new Date(a.issuedAt || 0).getTime())[0] || null;
+
+    const cards = [
+      {
+        label: "Total Certificates",
+        value: total,
+        caption: "Issued certificate records",
+        icon: "fa-certificate",
+        tone: "violet"
+      },
+      {
+        label: "Verified",
+        value: verified,
+        caption: "Currently active certificates",
+        icon: "fa-shield-check",
+        tone: "green"
+      },
+      {
+        label: "Latest Issued",
+        value: latest ? latest.certificateId : "-",
+        caption: latest ? `${latest.examTitle} · ${fmtDateTime(latest.issuedAt)}` : "No certificate yet",
+        icon: "fa-id-badge",
+        tone: "blue"
+      },
+      {
+        label: "Revoked",
+        value: revoked,
+        caption: "Inactive certificate records",
+        icon: "fa-circle-xmark",
+        tone: "orange"
+      }
+    ];
+    return cards.map((card) => `
+      <article class="summary-card certificate-summary-card tone-${card.tone}">
+        <div class="summary-icon"><i class="fa-solid ${card.icon}"></i></div>
+        <div class="summary-copy">
+          <h3>${card.label}</h3>
+          <strong>${card.value}</strong>
+          <p>${card.caption}</p>
+        </div>
+      </article>
+    `).join("");
   }
 
   function certificateQrMarkup(cert) {
@@ -3683,36 +3847,52 @@ ensureAuthGuard();
   }
 
   function renderCertificates() {
-    dom.certificatesBody.innerHTML = state.data.certificates.map((raw, idx) => {
-      const c = normalizeCertificate(raw, idx);
+    const certificates = state.data.certificates.map((raw, idx) => normalizeCertificate(raw, idx));
+    if (dom.certificatesSummary) dom.certificatesSummary.innerHTML = certificateSummaryCards(certificates);
+    if (!dom.certificatesGrid) return;
+    dom.certificatesGrid.innerHTML = certificates.map((c) => {
       const cid = c.certificateId;
       return `
-      <tr>
-        <td>${c.certificateId}</td>
-        <td>${c.studentName}</td>
-        <td>${c.examTitle}</td>
-        <td>${c.score}</td>
-        <td>${c.grade}</td>
-        <td>${fmtDateTime(c.issuedAt)}</td>
-        <td>${certificateStatusBadge(c)}</td>
-        <td>
-          <div class="cert-actions">
-            <button class="btn ghost small" data-cert-action="view" data-id="${cid}" data-no-buffer="true">View</button>
-            <button class="btn ghost small" data-cert-action="download" data-id="${cid}" data-no-buffer="true">Download</button>
-            <div class="cert-more ${state.ui.openCertificateMenuId === cid ? "open" : ""}">
-              <button class="btn ghost small cert-more-btn" data-cert-menu-toggle="${cid}" aria-label="More actions">
-                <i class="fa-solid fa-ellipsis-vertical"></i>
-              </button>
-              <div class="cert-more-menu">
-                <button data-cert-action="verify" data-id="${cid}" data-no-buffer="true">Verify Certificate</button>
-                <button class="destructive" data-cert-action="revoke" data-id="${cid}" ${c.revoked ? "disabled" : ""} data-no-buffer="true">Revoke Certificate</button>
-              </div>
+      <article class="card certificate-card ${c.revoked ? "is-revoked" : "is-issued"}">
+        <div class="certificate-card-head">
+          <div class="certificate-card-title">
+            <p>${c.examTitle}</p>
+            <h3>${c.certificateId}</h3>
+            <div class="certificate-card-sub">
+              <span class="certificate-card-chip">${c.studentName}</span>
+              <span class="certificate-card-chip">${c.grade}</span>
+              ${certificateStatusBadge(c)}
             </div>
           </div>
-        </td>
-      </tr>
+          <div class="certificate-score-pill">
+            <small>Score</small>
+            <strong>${Number.isFinite(Number(c.score)) ? c.score : "-"}</strong>
+          </div>
+        </div>
+        <div class="certificate-card-grid">
+          <div><small>Student Name</small><strong>${c.studentName}</strong></div>
+          <div><small>College Name</small><strong>${c.collegeName}</strong></div>
+          <div><small>Department</small><strong>${c.department}</strong></div>
+          <div><small>Roll Number</small><strong>${c.rollNumber}</strong></div>
+          <div><small>Issued Date</small><strong>${fmtDateTime(c.issuedAt)}</strong></div>
+          <div><small>Exam Title</small><strong>${c.examTitle}</strong></div>
+        </div>
+        <div class="certificate-card-footer">
+          <button class="btn ghost small" data-cert-action="view" data-id="${cid}" data-no-buffer="true">View</button>
+          <button class="btn ghost small" data-cert-action="download" data-id="${cid}" data-no-buffer="true">Download</button>
+          <div class="cert-more ${state.ui.openCertificateMenuId === cid ? "open" : ""}">
+            <button class="btn ghost small cert-more-btn" data-cert-menu-toggle="${cid}" aria-label="More actions">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+            <div class="cert-more-menu">
+              <button data-cert-action="verify" data-id="${cid}" data-no-buffer="true">Verify Certificate</button>
+              <button class="destructive" data-cert-action="revoke" data-id="${cid}" ${c.revoked ? "disabled" : ""} data-no-buffer="true">Revoke Certificate</button>
+            </div>
+          </div>
+        </div>
+      </article>
     `;
-    }).join("") || `<tr><td colspan="8"><div class="no-data">No certificates available.</div></td></tr>`;
+    }).join("") || `<div class="no-data certificate-empty">No certificates available.</div>`;
   }
 
   function renderNotifications() {
@@ -4144,14 +4324,6 @@ ensureAuthGuard();
         return handleExamAction(examBtn.dataset.examAction, examBtn.dataset.id);
       }
 
-      const examCheck = e.target.closest("[data-exam-check]");
-      if (examCheck) {
-        const id = examCheck.dataset.examCheck;
-        if (examCheck.checked) state.ui.selectedExams.add(id); else state.ui.selectedExams.delete(id);
-        renderExams();
-        return;
-      }
-
       const attemptBtn = e.target.closest("[data-attempt-action]");
       if (attemptBtn) {
         const id = attemptBtn.dataset.id;
@@ -4287,7 +4459,7 @@ ensureAuthGuard();
         if (!att) return;
         openModal(`
           <h3>Action Menu</h3>
-          <p>${att.studentName} • ${examTitle(att.examId)}</p>
+          <p>${att.studentName} Ã¢â‚¬Â¢ ${examTitle(att.examId)}</p>
           <div class="actions" style="justify-content:flex-start;flex-wrap:wrap">
             <button class="btn ghost" id="pmWarn">Warn Student</button>
             <button class="btn ghost" id="pmCancel">Cancel Attempt</button>
@@ -4540,58 +4712,7 @@ ensureAuthGuard();
       a.click();
       URL.revokeObjectURL(a.href);
       toast("CSV exported.");
-    });
-    on(dom.selectAllExams, "change", () => {
-      state.ui.selectedExams.clear();
-      if (dom.selectAllExams.checked) filteredExams().forEach((e) => state.ui.selectedExams.add(e.id));
-      renderExams();
-    });
-    on(dom.headExamCheck, "change", () => {
-      state.ui.selectedExams.clear();
-      if (dom.headExamCheck.checked) filteredExams().forEach((e) => state.ui.selectedExams.add(e.id));
-      renderExams();
-    });
-    on(dom.bulkPublishBtn, "click", () => {
-      state.data.exams.forEach((e) => {
-        if (state.ui.selectedExams.has(e.id) && e.questionsUploaded) {
-          e.status = "Published";
-        }
-      });
-      toast("Bulk publish completed.");
-      renderAll();
-    });
-    on(dom.bulkDeleteBtn, "click", async () => {
-      if (state.ui.selectedExams.size === 0) return;
-      const ok = await confirmTextDialog({ title: "Bulk Delete", message: "Type BULK DELETE to remove selected exams.", expectedText: "BULK DELETE", actionLabel: "Delete" });
-      if (!ok) return;
-      await withLoading(async () => {
-        const examsToDelete = state.data.exams.filter((e) => state.ui.selectedExams.has(e.id));
-        for (const exam of examsToDelete) {
-          await api.deleteExam(exam.examCode || exam.id);
-        }
-        state.data.exams = state.data.exams.filter((e) => !state.ui.selectedExams.has(e.id));
-        state.data.questions = state.data.questions.filter((q) => !state.ui.selectedExams.has(q.examId));
-        state.data.attempts = state.data.attempts.filter((a) => !state.ui.selectedExams.has(a.examId));
-        state.data.certificates = state.data.certificates.filter((c) => !state.ui.selectedExams.has(c.examId));
-        state.ui.selectedExams.clear();
-        renderAll();
-        addNotification(`Deleted ${examsToDelete.length} selected exams.`);
-      });
-    });
-    on(dom.bulkExportBtn, "click", () => {
-      const selectedRows = state.data.exams.filter((e) => state.ui.selectedExams.has(e.id));
-      if (!selectedRows.length) return;
-      const csv = [["Exam Title", "Exam Code", "Status"], ...selectedRows.map((e) => [e.title, e.examCode, e.status])]
-        .map((r) => r.join(",")).join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "bulk-selected-exams.csv";
-      a.click();
-      URL.revokeObjectURL(a.href);
-      toast("Selected exams exported.");
-    });
-    on(dom.examPageSize, "change", () => {
+    });    on(dom.examPageSize, "change", () => {
       state.ui.pagination.exams.perPage = Number(dom.examPageSize.value);
       state.ui.pagination.exams.page = 1;
       renderExams();
@@ -4626,6 +4747,10 @@ ensureAuthGuard();
         addNotification(`Dashboard refreshed (${state.api.online ? "API live" : "mock mode"}).`);
         renderAll();
       });
+    });
+    on(dom.certificatesRefreshBtn, "click", async () => {
+      await loadCertificatesData();
+      toast("Certificates refreshed.");
     });
 
     on(dom.profileEditBtn, "click", () => {
@@ -4881,17 +5006,10 @@ ensureAuthGuard();
       populateTeacher();
       setProfileEditMode(false);
 
-      const examsTableCard = dom.examsTableBody?.closest(".table-card");
       const attemptsTableCard = dom.attemptsTableBody?.closest(".table-card");
       dom.examMorePortal = document.createElement("div");
       dom.examMorePortal.className = "exam-more-portal";
       document.body.appendChild(dom.examMorePortal);
-      if (examsTableCard && !document.getElementById("examsPagination")) {
-        const pg = document.createElement("div");
-        pg.id = "examsPagination";
-        pg.className = "pagination";
-        examsTableCard.appendChild(pg);
-      }
       if (attemptsTableCard && !document.getElementById("attemptsPagination")) {
         const pg = document.createElement("div");
         pg.id = "attemptsPagination";

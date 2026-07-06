@@ -3,6 +3,7 @@ package com.yashwanth.ai_exam_system.service;
 import com.yashwanth.ai_exam_system.entity.*;
 import com.yashwanth.ai_exam_system.repository.ExamResultRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRepository;
+import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.QuestionRepository;
 import com.yashwanth.ai_exam_system.repository.StudentAnswerRepository;
 
@@ -20,6 +21,7 @@ public class ExamEvaluationService {
     private final QuestionRepository questionRepository;
     private final ExamResultRepository resultRepository;
     private final ExamRepository examRepository;
+    private final ExamAttemptRepository attemptRepository;
     private final ExamQuestionSelectionService questionSelectionService;
 
     public ExamEvaluationService(
@@ -27,12 +29,14 @@ public class ExamEvaluationService {
             QuestionRepository questionRepository,
             ExamResultRepository resultRepository,
             ExamRepository examRepository,
+            ExamAttemptRepository attemptRepository,
             ExamQuestionSelectionService questionSelectionService) {
 
         this.answerRepository = answerRepository;
         this.questionRepository = questionRepository;
         this.resultRepository = resultRepository;
         this.examRepository = examRepository;
+        this.attemptRepository = attemptRepository;
         this.questionSelectionService = questionSelectionService;
     }
 
@@ -166,9 +170,32 @@ public class ExamEvaluationService {
         result.setMediumWrong(mediumWrong);
         result.setDifficultWrong(difficultWrong);
 
-        result.setSubmittedAt(LocalDateTime.now());
-        result.setEvaluatedAt(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        result.setSubmittedAt(now);
+        result.setEvaluatedAt(now);
+
+        long timeTakenSeconds = resolveTimeTakenSeconds(attemptId, now);
+        result.setTimeTakenSeconds(timeTakenSeconds);
 
         return resultRepository.save(result);
+    }
+
+    private long resolveTimeTakenSeconds(Long attemptId, LocalDateTime fallbackEndTime) {
+        return attemptRepository.findById(attemptId)
+                .map(attempt -> {
+                    if (attempt.getTimeTakenSeconds() != null && attempt.getTimeTakenSeconds() > 0) {
+                        return attempt.getTimeTakenSeconds();
+                    }
+                    LocalDateTime startTime = attempt.getStartTime();
+                    LocalDateTime endTime = attempt.getEndTime() != null ? attempt.getEndTime() : fallbackEndTime;
+                    if (startTime != null && endTime != null && endTime.isAfter(startTime)) {
+                        return java.time.Duration.between(startTime, endTime).getSeconds();
+                    }
+                    if (attempt.getDurationMinutes() != null && attempt.getDurationMinutes() > 0) {
+                        return attempt.getDurationMinutes() * 60L;
+                    }
+                    return 0L;
+                })
+                .orElse(0L);
     }
 }

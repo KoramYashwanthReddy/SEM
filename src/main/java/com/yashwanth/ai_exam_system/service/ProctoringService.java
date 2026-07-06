@@ -74,7 +74,7 @@ public class ProctoringService {
         attempt.setCheatingScore(newScore);
         attempt.setLastAiCheckTime(LocalDateTime.now());
 
-        handleThresholds(attempt, newScore);
+        handleThresholds(attempt, newScore, request, normalizedType, eventScore);
 
         attemptRepository.save(attempt);
 
@@ -123,9 +123,15 @@ public class ProctoringService {
     }
 
     // ================= THRESHOLD ENGINE =================
-    private void handleThresholds(ExamAttempt attempt, int score) {
+    private void handleThresholds(ExamAttempt attempt,
+                                  int score,
+                                  ProctoringEventRequest request,
+                                  String normalizedType,
+                                  int eventScore) {
 
         Long studentId = attempt.getStudentId();
+        String violationSummary = buildViolationSummary(request, normalizedType);
+        boolean finalViolation = isFinalViolation(request);
 
         // WARNING
         if (score >= WARNING_THRESHOLD && score < ALERT_THRESHOLD) {
@@ -136,10 +142,18 @@ public class ProctoringService {
 
                 notificationService.notifyStudent(
                         studentId,
-                        "Warning: Suspicious activity detected"
+                        "Warning: " + violationSummary
                 );
 
-                notifyTeacher(attempt, "WARNING", "Student warning issued", "A suspicious activity warning was sent");
+                notifyTeacher(
+                        attempt,
+                        "WARNING",
+                        "Student warning issued",
+                        "Suspicious activity detected for attempt " + attempt.getId()
+                                + " | " + violationSummary
+                                + " | score=" + score
+                                + " | eventScore=" + eventScore
+                );
             }
         }
 
@@ -151,12 +165,23 @@ public class ProctoringService {
                     "High Risk Attempt",
                     "High cheating risk | attempt="
                             + attempt.getId()
-                            + " score=" + score,
+                            + " | " + violationSummary
+                            + " | score=" + score,
                     "Proctoring Engine",
                     "high"
             );
 
-            notifyTeacher(attempt, "CHEATING", "High Risk Attempt", "High cheating risk detected for attempt " + attempt.getId());
+            notifyTeacher(
+                    attempt,
+                    "CHEATING",
+                    "High Risk Attempt",
+                    "High cheating risk detected for attempt "
+                            + attempt.getId()
+                            + " | "
+                            + violationSummary
+                            + " | score="
+                            + score
+            );
         }
 
         // CANCEL
@@ -164,16 +189,28 @@ public class ProctoringService {
 
             if (!Boolean.TRUE.equals(attempt.getCancelled())) {
 
-                attempt.markCancelled("AI cheating detection");
+                attempt.markCancelled("AI cheating detection: " + violationSummary);
 
                 attempt.setStatus(AttemptStatus.INVALIDATED);
 
                 notificationService.notifyExamCancelled(
                         studentId,
-                        "Exam cancelled due to cheating detection"
+                        "Exam cancelled due to cheating detection: "
+                                + violationSummary
+                                + (finalViolation ? " [final proctoring limit reached]" : "")
                 );
 
-                notifyTeacher(attempt, "CHEATING", "Attempt Cancelled", "Attempt " + attempt.getId() + " was cancelled for cheating");
+                notifyTeacher(
+                        attempt,
+                        "CHEATING",
+                        "Attempt Cancelled",
+                        "Attempt "
+                                + attempt.getId()
+                                + " was cancelled for cheating | "
+                                + violationSummary
+                                + " | finalScore="
+                                + score
+                );
 
                 logger.warn("Exam auto cancelled | attempt={}", attempt.getId());
             }
@@ -300,12 +337,55 @@ public class ProctoringService {
         return normalized.isBlank() ? "ACTION_UNKNOWN" : normalized;
     }
 
+    private String buildViolationSummary(ProctoringEventRequest request, String normalizedType) {
+        String details = safeTrim(request != null ? request.getDetails() : null);
+        if (hasText(details)) {
+            return details;
+        }
+        return switch (normalizedType) {
+            case "TAB_SWITCH" -> "Tab switch detected";
+            case "WINDOW_BLUR" -> "Window focus lost";
+            case "EXIT_FULLSCREEN" -> "Fullscreen mode exited";
+            case "COPY_PASTE" -> "Copy or paste action detected";
+            case "FORBIDDEN_SHORTCUT" -> "Restricted keyboard shortcut detected";
+            case "NO_FACE" -> "No face detected";
+            case "MIC_LOST" -> "Microphone lost";
+            case "MULTIPLE_FACES" -> "Multiple faces detected";
+            case "MULTIPLE_VOICES" -> "Multiple voices detected";
+            case "CAMERA_LOST" -> "Camera feed lost";
+            default -> "Suspicious activity detected";
+        };
+    }
+
+    private boolean isFinalViolation(ProctoringEventRequest request) {
+        String details = safeLower(request != null ? request.getDetails() : null);
+        String metadata = safeLower(request != null ? request.getMetadata() : null);
+        return details.contains("limit reached")
+                || details.contains("final chance")
+                || details.contains("auto submitted due to proctoring limit")
+                || metadata.contains("\"final\":true")
+                || metadata.contains("\"finalized\":true");
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private String safeTrim(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String safeLower(String value) {
+        return value == null ? "" : value.trim().toLowerCase();
+    }
+
     private int resolveSeverity(String eventType) {
         return switch (eventType) {
             case "TAB_SWITCH", "WINDOW_BLUR" -> 5;
             case "EXIT_FULLSCREEN", "COPY_PASTE", "FORBIDDEN_SHORTCUT" -> 7;
             case "NO_FACE", "MIC_LOST" -> 8;
             case "MULTIPLE_FACES", "MULTIPLE_VOICES", "CAMERA_LOST" -> 9;
+            case "PROCTORING_LIMIT_REACHED" -> 10;
             default -> 1;
         };
     }
@@ -316,6 +396,7 @@ public class ProctoringService {
             case "EXIT_FULLSCREEN", "COPY_PASTE", "FORBIDDEN_SHORTCUT" -> 25;
             case "NO_FACE", "MIC_LOST" -> 30;
             case "MULTIPLE_FACES", "MULTIPLE_VOICES", "CAMERA_LOST" -> 40;
+            case "PROCTORING_LIMIT_REACHED" -> 100;
             default -> 0;
         };
     }

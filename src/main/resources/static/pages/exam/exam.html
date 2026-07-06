@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Enterprise AI Exam System</title>
+  <title>SEM | Smart Examination Monitor</title>
   
   <link rel="stylesheet" href="../../assets/pages/exam/css/themes.css">
   <link rel="stylesheet" href="../../assets/pages/exam/css/base.css">
@@ -139,7 +139,7 @@
 
   <header class="exam-header">
     <div class="header-left">
-      <div class="exam-title">AI Certification Exam 2026</div>
+      <div class="exam-title">SEM Certification Exam 2026</div>
       <div class="exam-badge" id="section-name">Section: Core Concepts</div>
     </div>
     
@@ -392,7 +392,7 @@
   <div class="modal-content">
     <div class="modal-header" style="text-align: center;">
       <div class="warning-icon">⚠️</div>
-      <h3 class="modal-title text-danger">Proctoring Warning</h3>
+      <h3 class="modal-title text-danger" id="warning-modal-title">Proctoring Warning</h3>
     </div>
     <div class="modal-body" style="text-align: center;">
       <p id="warning-text">You have switched tabs or lost focus on the exam window. This action has been recorded.</p>
@@ -424,8 +424,8 @@
 <div class="modal-overlay" id="time-up-modal">
   <div class="modal-content" style="text-align:center;">
     <div style="font-size:4rem;color:var(--warning-color);margin-bottom:1rem;">⌛</div>
-    <h3 class="modal-title">Time Limit Reached!</h3>
-    <div class="modal-body">
+    <h3 class="modal-title" id="time-up-modal-title">Time Limit Reached!</h3>
+    <div class="modal-body" id="time-up-modal-body">
       <p>You have reached the maximum time allowed for this examination.</p>
       <p style="color:var(--text-primary);font-weight:600;margin-top:10px;">Your answers have been automatically recorded and the exam is now submitted.</p>
     </div>
