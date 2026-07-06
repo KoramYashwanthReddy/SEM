@@ -711,5 +711,327 @@ body {
   }
 }
 
+/* =========================
+   MINIMAL REFINEMENT LAYER
+   ========================= */
+
+body.selection-page {
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.14), transparent 24%),
+    radial-gradient(circle at top right, rgba(168, 85, 247, 0.12), transparent 22%),
+    radial-gradient(circle at 50% 85%, rgba(236, 72, 153, 0.09), transparent 28%),
+    linear-gradient(180deg, var(--bg-primary) 0%, color-mix(in srgb, var(--bg-primary) 94%, white 6%) 100%);
+  color: var(--text-primary);
+}
+
+body.selection-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,0.08), transparent 28%),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.18), transparent 34%);
+  opacity: 0.55;
+  z-index: 0;
+}
+
+body.selection-page .page {
+  isolation: isolate;
+}
+
+body.selection-page .center {
+  padding-top: 96px;
+  padding-bottom: 64px;
+}
+
+body.selection-page .topbar {
+  padding: 24px 40px;
+  backdrop-filter: blur(16px);
+}
+
+body.selection-page .brand {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.62);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+}
+
+body.selection-page .brand-text {
+  font-size: 1.05rem;
+  letter-spacing: -0.03em;
+}
+
+body.selection-page .selection-header {
+  max-width: 760px;
+  margin-bottom: 40px;
+}
+
+body.selection-page .selection-header h1 {
+  margin-bottom: 12px;
+  font-size: clamp(2.4rem, 4vw, 4rem);
+  letter-spacing: -0.06em;
+  color: var(--text-primary);
+  -webkit-text-fill-color: initial;
+  background: linear-gradient(135deg, var(--text-primary), color-mix(in srgb, var(--text-primary) 78%, var(--accent-blue) 22%));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+body.selection-page .selection-header p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+body.selection-page .role-grid {
+  gap: 24px;
+  width: min(1240px, 94vw);
+}
+
+body.selection-page .role-card {
+  padding: 40px 34px 34px;
+  border-radius: 32px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.66));
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow:
+    0 22px 44px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(255,255,255,0.45) inset;
+  transform: translateY(14px);
+  opacity: 0;
+  animation: roleCardIn 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition:
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 260ms ease,
+    background 260ms ease;
+}
+
+body.selection-page #card-student { animation-delay: 90ms; }
+body.selection-page #card-teacher { animation-delay: 180ms; }
+body.selection-page #card-admin { animation-delay: 270ms; }
+
+@keyframes roleCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.98);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+body.selection-page .role-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.10), transparent 32%);
+  opacity: 0;
+  transition: opacity 260ms ease;
+  pointer-events: none;
+}
+
+body.selection-page .role-card:hover {
+  transform: translateY(-10px) scale(1.015);
+  border-color: rgba(59, 130, 246, 0.24);
+  box-shadow:
+    0 28px 60px rgba(15, 23, 42, 0.12),
+    0 18px 36px rgba(59, 130, 246, 0.08);
+}
+
+body.selection-page .role-card:hover::before {
+  opacity: 1;
+}
+
+body.selection-page .role-icon-box {
+  width: 86px;
+  height: 86px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.94), rgba(245,247,252,0.92));
+  border: 1px solid rgba(148, 163, 184, 0.20);
+  box-shadow:
+    0 12px 26px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255,255,255,0.9);
+  margin-bottom: 22px;
+  transition:
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 260ms ease,
+    border-color 260ms ease;
+}
+
+body.selection-page .role-card:hover .role-icon-box {
+  transform: translateY(-4px) scale(1.05);
+}
+
+body.selection-page .role-card h3 {
+  font-size: 1.35rem;
+  margin-bottom: 12px;
+}
+
+body.selection-page .role-copy {
+  min-height: 52px;
+  margin: 0 0 8px;
+  color: var(--text-secondary);
+  font-size: 0.98rem;
+  line-height: 1.65;
+}
+
+body.selection-page .role-features {
+  margin: 18px 0 28px;
+  gap: 10px;
+}
+
+body.selection-page .role-features li {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+body.selection-page .role-features li span {
+  position: relative;
+}
+
+body.selection-page .role-features li span::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  width: 0;
+  height: 1px;
+  background: currentColor;
+  transition: width 220ms ease;
+}
+
+body.selection-page .role-card:hover .role-features li span::after {
+  width: 100%;
+}
+
+body.selection-page .btn {
+  width: 100%;
+  min-height: 56px;
+  padding: 0 28px;
+  border-radius: 18px;
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 220ms ease,
+    filter 220ms ease;
+}
+
+body.selection-page .btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.24) 45%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 520ms ease;
+}
+
+body.selection-page .btn:hover::after {
+  transform: translateX(120%);
+}
+
+body.selection-page .btn:hover {
+  transform: translateY(-3px);
+  filter: saturate(1.05);
+}
+
+body.selection-page .btn-primary {
+  box-shadow:
+    0 16px 34px rgba(79, 70, 229, 0.24),
+    inset 0 1px 0 rgba(255,255,255,0.22);
+}
+
+body.selection-page .btn-primary:focus-visible,
+body.selection-page .brand:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.28);
+  outline-offset: 3px;
+}
+
+body.selection-page .btn.loading {
+  transform: translateY(-2px) scale(0.99);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.selection-page *,
+  body.selection-page *::before,
+  body.selection-page *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+body.selection-page {
+  overflow-x: hidden;
+}
+
+body.selection-page.js-enhanced .page {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 420ms ease,
+    transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.selection-page.js-enhanced.is-ready .page {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+body.selection-page .bg-orb {
+  animation: orbFloat 14s ease-in-out infinite;
+  filter: blur(8px);
+}
+
+body.selection-page .orb-2 {
+  animation-duration: 18s;
+  animation-direction: alternate-reverse;
+}
+
+@keyframes orbFloat {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -14px, 0) scale(1.03);
+  }
+}
+
+body.selection-page .selection-header,
+body.selection-page .role-grid {
+  will-change: transform, opacity;
+}
+
+body.selection-page .role-card {
+  will-change: transform, box-shadow;
+}
+
+body.selection-page .role-card.card-selected {
+  transform: translateY(-8px) scale(1.01);
+  box-shadow:
+    0 30px 70px rgba(15, 23, 42, 0.16),
+    0 0 0 1px rgba(59, 130, 246, 0.16);
+}
+
+body.selection-page .btn.loading {
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+body.selection-page.js-enhanced.is-exiting .page {
+  opacity: 0.2;
+  transform: translateY(6px) scale(0.995);
+}
+
 
 

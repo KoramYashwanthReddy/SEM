@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,16 +43,18 @@ public class ExamAttemptService {
     private final ExamRegistrationRepository examRegistrationRepository;
     private final ExamResultRepository resultRepository;
     private final ExamQuestionSelectionService questionSelectionService;
+    private final CertificateService certificateService;
 
     public ExamAttemptService(
             ExamAttemptRepository attemptRepository,
             StudentAnswerRepository answerRepository,
             QuestionRepository questionRepository,
-            ExamEvaluationService evaluationService,
+            @Lazy ExamEvaluationService evaluationService,
             ExamRepository examRepository,
             ExamRegistrationRepository examRegistrationRepository,
             ExamResultRepository resultRepository,
-            ExamQuestionSelectionService questionSelectionService) {
+            ExamQuestionSelectionService questionSelectionService,
+            @Lazy CertificateService certificateService) {
 
         this.attemptRepository = attemptRepository;
         this.answerRepository = answerRepository;
@@ -61,6 +64,7 @@ public class ExamAttemptService {
         this.examRegistrationRepository = examRegistrationRepository;
         this.resultRepository = resultRepository;
         this.questionSelectionService = questionSelectionService;
+        this.certificateService = certificateService;
     }
 
     // ================= START EXAM =================
@@ -235,6 +239,23 @@ public class ExamAttemptService {
         attempt.setStatus(AttemptStatus.EVALUATED);
 
         attemptRepository.save(attempt);
+
+        if (Boolean.TRUE.equals(result.getPassed())) {
+            double certificateScore = result.getPercentage();
+            if (certificateScore <= 0) {
+                certificateScore = result.getScore();
+            }
+            try {
+                certificateService.ensureCertificateIssued(
+                        attempt.getStudentId(),
+                        attempt.getExamCode(),
+                        exam.getTitle(),
+                        certificateScore,
+                        "");
+            } catch (Exception ignored) {
+                // Certificate issuance is best-effort here; the UI will still load the result.
+            }
+        }
 
         ExamResultResponse response = new ExamResultResponse();
         response.setTotalMarks(totalMarks);

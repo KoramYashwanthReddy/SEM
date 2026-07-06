@@ -1,0 +1,68 @@
+:root {
+  --app-logo-url: url('/assets/core/img/logo.png');
+  --app-logo-size: clamp(42px, 4vw, 58px);
+}
+
+.brand-icon,
+.brand-badge,
+.logo-badge,
+.brand-mark,
+.logo-icon,
+.cert-logo-icon,
+.footer-brand-logo,
+.brand-icon-selection {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--app-logo-size);
+  height: var(--app-logo-size);
+  aspect-ratio: 1 / 1;
+  padding: 0 !important;
+  border-radius: 18px;
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  background-color: #ffffff !important;
+  background-image: var(--app-logo-url) !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: contain !important;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(37, 99, 235, 0.08);
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  text-indent: -9999px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.brand-icon-selection {
+  --app-logo-size: 48px;
+}
+
+.brand,
+.logo-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-text,
+.logo-text {
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.brand-text {
+  color: #0f172a;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --app-logo-size: 44px;
+  }
+
+  .brand-text,
+  .logo-text {
+    font-size: 0.95rem;
+  }
+}

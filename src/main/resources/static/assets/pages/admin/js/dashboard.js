@@ -3331,22 +3331,110 @@ window.openCertView = function(id) {
     const c = window.allCertificates.find(x => x.id === id);
     if(!c) return;
     
-    document.getElementById('certModalPhoto').src = c.avatar;
-    document.getElementById('certModalName').textContent = c.name;
-    document.getElementById('certModalDept').textContent = c.dept;
-    document.getElementById('certModalCollege').textContent = c.college;
-    document.getElementById('certModalRoll').textContent = c.roll;
-    document.getElementById('certModalSec').textContent = c.section;
-    document.getElementById('certModalExam').textContent = c.exam;
-    
-    document.getElementById('certModalScore').textContent = c.score;
-    const gradeEl = document.getElementById('certModalGrade');
-    gradeEl.className = `cert-grade-badge cert-grade-${c.grade.replace('+','\\+')}`;
-    gradeEl.textContent = c.grade;
-    
-    document.getElementById('certModalID').textContent = c.id;
-    document.getElementById('certModalDate').textContent = c.date;
-    document.getElementById('certModalQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=verify:${c.id}`;
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[ch]);
+
+    const markup = `
+      <div class="certificate-preview-artwork">
+        <!-- Corner brackets -->
+        <div class="corner-bracket top-left"></div>
+        <div class="corner-bracket top-right"></div>
+        <div class="corner-bracket bottom-left"></div>
+        <div class="corner-bracket bottom-right"></div>
+        
+        <!-- Dot grids -->
+        <div class="dot-grid left-grid"></div>
+        <div class="dot-grid right-grid"></div>
+        
+        <!-- Background waves SVG -->
+        <div class="wave-background">
+          <svg viewBox="0 0 200 400" preserveAspectRatio="none">
+            <path d="M120 0 C 150 100, 80 200, 160 300 T 120 400" fill="none" stroke="rgba(59, 48, 219, 0.04)" stroke-width="1.5"></path>
+            <path d="M140 0 C 170 100, 100 200, 180 300 T 140 400" fill="none" stroke="rgba(59, 48, 219, 0.04)" stroke-width="1.5"></path>
+            <path d="M160 0 C 190 100, 120 200, 200 300 T 160 400" fill="none" stroke="rgba(59, 48, 219, 0.04)" stroke-width="1.5"></path>
+          </svg>
+        </div>
+
+        <div class="certificate-preview-topbar">
+          <div class="certificate-brand-lockup">
+            <div class="certificate-brand-logo">
+              <div class="logo-shield">
+                <span class="star">★</span>
+                <span class="dot"></span>
+              </div>
+            </div>
+            <div class="brand-text">
+              <strong class="brand-name">SEM</strong>
+              <span class="brand-title">SMART EXAM MONITOR</span>
+              <span class="brand-motto">Examine. Evaluate. Excel.</span>
+            </div>
+          </div>
+          <div class="certificate-badge-pill">
+            <div class="badge-icon">★</div>
+            <div class="badge-copy">
+              <strong>EXAM COMPLETED</strong>
+              <span>Successfully Certified</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="certificate-main-content">
+          <p class="certificate-preview-subtitle">This is to certify that</p>
+          <h2 class="certificate-preview-name">${escapeHtml(c.name || 'Student')}</h2>
+          
+          <div class="name-divider">
+            <span class="line"></span>
+            <span class="diamond">♦</span>
+            <span class="line"></span>
+          </div>
+
+          <div class="certificate-preview-title">
+            <span>Certificate of</span>
+            <strong>Excellence</strong>
+          </div>
+          
+          <p class="certificate-preview-bodycopy">
+            has successfully completed the examination in<br>
+            <strong class="subject-title">${escapeHtml(c.exam || 'Online Examination')}</strong><br>
+            with a score of <strong class="score-highlight">${c.score}/100</strong> on ${escapeHtml(c.date)}
+          </p>
+
+          <div class="bottom-divider">
+            <span class="line"></span>
+            <span class="diamond">♦</span>
+            <span class="line"></span>
+          </div>
+        </div>
+
+        <div class="certificate-preview-footer">
+          <div class="certificate-footer-qr-col">
+            <div class="qr-box-wrapper">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=verify:${c.id}" class="qr-image" alt="QR Code">
+            </div>
+            <small class="scan-verify-text">SCAN TO VERIFY</small>
+          </div>
+
+          <div class="certificate-footer-signature-col">
+            <span class="signature-cursive">Exam Authority</span>
+            <div class="signature-line"></div>
+            <span class="sign-title">EXAM AUTHORITY</span>
+            <small class="sign-subtitle">SEM Platform - Examinations</small>
+          </div>
+
+          <div class="certificate-footer-id-col">
+            <span class="id-label">CERTIFICATE ID</span>
+            <strong class="id-value">${escapeHtml(c.id)}</strong>
+            <span class="issue-date-label">Issued: ${escapeHtml(c.date)}</span>
+          </div>
+        </div>
+      </div>`;
+
+    document.getElementById('adminCertPreviewFrame').innerHTML = markup;
     
     const dlbtn = document.getElementById('certModalDownloadBtn');
     dlbtn.style.display = c.active ? 'inline-flex' : 'none';

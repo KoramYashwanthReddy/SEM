@@ -13,6 +13,7 @@
   <!-- CSS Global -->
   <link rel="stylesheet" href="../assets/core/css/themes.css">
   <link rel="stylesheet" href="../assets/pages/home/css/animations.css">
+  <link rel="stylesheet" href="/assets/core/css/brand.css">
   
   <!-- CSS Page Specific -->
   <link rel="stylesheet" href="../assets/pages/admin/css/dashboard.css?v=20260702a">
@@ -2206,46 +2207,16 @@
            <button class="modal-close" onclick="closeModal('certificateViewModal')">×</button>
         </div>
         <div class="modal-body">
-            <div style="display:flex; gap:24px; margin-bottom:24px;">
-                <img id="certModalPhoto" src="" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid var(--border-subtle)">
-                <div style="flex:1">
-                    <h3 id="certModalName" style="font-size:24px; font-weight:800; margin-bottom:4px"></h3>
-                    <div id="certModalDept" style="color:var(--text-secondary); margin-bottom:12px; font-family:'JetBrains Mono'"></div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:13px">
-                        <div><b>College:</b> <span id="certModalCollege"></span></div>
-                        <div><b>Roll No:</b> <span id="certModalRoll"></span></div>
-                        <div><b>Section:</b> <span id="certModalSec"></span></div>
-                        <div><b>Exam:</b> <span id="certModalExam"></span></div>
-                    </div>
-                </div>
-            </div>
-            
-            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-tertiary); border-radius:12px; padding:20px; border:1px solid var(--border-subtle)">
-                <div style="text-align:center">
-                    <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:800">Score</div>
-                    <div id="certModalScore" style="font-size:24px; font-weight:800; color:var(--accent-blue)"></div>
-                </div>
-                <div style="text-align:center">
-                    <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:800">Grade</div>
-                    <div id="certModalGrade"></div>
-                </div>
-                <div style="text-align:center">
-                    <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:800">Certificate ID</div>
-                    <div id="certModalID" style="font-family:'JetBrains Mono'; font-weight:700"></div>
-                </div>
-                <div style="text-align:center">
-                    <div style="font-size:11px; color:var(--text-tertiary); text-transform:uppercase; font-weight:800">Issue Date</div>
-                    <div id="certModalDate" style="font-weight:700; color:var(--text-primary)"></div>
-                </div>
-                <div>
-                   <img id="certModalQR" src="" style="width:64px; height:64px; border-radius:8px">
-                </div>
-            </div>
-            
-            <div style="margin-top:24px; display:flex; gap:12px; justify-content:flex-end">
-                <button class="btn btn-ghost" onclick="closeModal('certificateViewModal')">Close</button>
-                <button class="btn btn-primary" id="certModalDownloadBtn" onclick="downloadCert()"><i class="fas fa-download"></i> Download PDF</button>
-            </div>
+             <div class="certificate-preview-shell" style="max-width: 800px; margin: 0 auto 20px;">
+                 <div class="certificate-preview-frame" id="adminCertPreviewFrame">
+                     <!-- Populated dynamically via JS -->
+                 </div>
+             </div>
+             
+             <div style="margin-top:24px; display:flex; gap:12px; justify-content:flex-end">
+                 <button class="btn btn-ghost" onclick="closeModal('certificateViewModal')">Close</button>
+                 <button class="btn btn-primary" id="certModalDownloadBtn" onclick="downloadCert()"><i class="fas fa-download"></i> Download PDF</button>
+             </div>
         </div>
      </div>
   </div>

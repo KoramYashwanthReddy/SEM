@@ -8,14 +8,17 @@ import com.lowagie.text.pdf.*;
 import com.yashwanth.ai_exam_system.entity.Certificate;
 import com.yashwanth.ai_exam_system.entity.ExamResult;
 import com.yashwanth.ai_exam_system.entity.StudentProfile;
+import com.yashwanth.ai_exam_system.entity.User;
 import com.yashwanth.ai_exam_system.repository.CertificateRepository;
 import com.yashwanth.ai_exam_system.repository.ExamResultRepository;
 import com.yashwanth.ai_exam_system.repository.StudentProfileRepository;
+import com.yashwanth.ai_exam_system.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.awt.*;
 import java.io.ByteArrayOutputStream;
@@ -28,7 +31,7 @@ import java.util.UUID;
 @Service
 public class CertificateService {
 
-    private static final int CERTIFICATE_TEMPLATE_VERSION = 3;
+    private static final int CERTIFICATE_TEMPLATE_VERSION = 4;
 
     private static final java.awt.Color NAVY = new java.awt.Color(10, 28, 58);
     private static final java.awt.Color GOLD = new java.awt.Color(209, 160, 58);
@@ -42,6 +45,7 @@ public class CertificateService {
     private final ExamResultRepository examResultRepository;
     private final QrCodeService qrCodeService;
     private final StudentProfileRepository studentProfileRepository;
+    private final UserRepository userRepository;
     private final EmailService emailService;
     private final String fallbackBaseUrl;
 
@@ -50,6 +54,7 @@ public class CertificateService {
             ExamResultRepository examResultRepository,
             QrCodeService qrCodeService,
             StudentProfileRepository studentProfileRepository,
+            UserRepository userRepository,
             EmailService emailService,
             @Value("${app.frontend.base-url:http://localhost:8080}") String fallbackBaseUrl) {
 
@@ -57,6 +62,7 @@ public class CertificateService {
         this.examResultRepository = examResultRepository;
         this.qrCodeService = qrCodeService;
         this.studentProfileRepository = studentProfileRepository;
+        this.userRepository = userRepository;
         this.emailService = emailService;
         this.fallbackBaseUrl = fallbackBaseUrl;
     }
@@ -69,8 +75,19 @@ public class CertificateService {
             double score,
             String baseUrl
     ) {
+        return generateCertificate(studentId, examCode, examTitle, score, baseUrl, false);
+    }
 
-        StudentProfile profile = getValidatedProfile(studentId);
+    @Transactional
+    public byte[] generateCertificate(
+            Long studentId,
+            String examCode,
+            String examTitle,
+            double score,
+            String baseUrl,
+            boolean forceReissue
+    ) {
+        StudentProfile profile = resolveCertificateProfile(studentId);
         double resolvedScore = resolveBestCertificateScore(studentId, examCode, score);
 
         Certificate existing = certificateRepository
@@ -82,14 +99,21 @@ public class CertificateService {
                 throw new RuntimeException("Certificate is revoked");
             }
             boolean scoreMatches = Math.abs(existing.getScore() - resolvedScore) < 0.0001d;
-            if (existing.getPdfData() != null
-                    && Integer.valueOf(CERTIFICATE_TEMPLATE_VERSION).equals(existing.getTemplateVersion())
-                    && scoreMatches) {
+            boolean templateMatches = Integer.valueOf(CERTIFICATE_TEMPLATE_VERSION).equals(existing.getTemplateVersion());
+            if (!forceReissue && existing.getPdfData() != null && templateMatches && scoreMatches) {
                 return existing.getPdfData();
             }
         }
 
         Certificate cert = existing != null ? existing : new Certificate();
+        boolean freshIssue = forceReissue
+                || existing == null
+                || existing.getPdfData() == null
+                || !Integer.valueOf(CERTIFICATE_TEMPLATE_VERSION).equals(existing.getTemplateVersion())
+                || Math.abs(existing.getScore() - resolvedScore) >= 0.0001d;
+        if (freshIssue) {
+            cert.setIssuedAt(LocalDateTime.now());
+        }
         populateCertificate(cert, profile, examCode, examTitle, resolvedScore, baseUrl);
 
         byte[] pdf = generateAndStoreCertificatePdf(cert, false);
@@ -97,27 +121,58 @@ public class CertificateService {
         return pdf;
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean ensureCertificateIssued(
+            Long studentId,
+            String examCode,
+            String examTitle,
+            double score,
+            String baseUrl
+    ) {
+        if (studentId == null || examCode == null || examCode.isBlank()) {
+            return false;
+        }
+
+        generateCertificate(studentId, examCode, examTitle, score, baseUrl, false);
+        return true;
+    }
+
     // ================= VALIDATION =================
 
-    private StudentProfile getValidatedProfile(Long studentId) {
+    private StudentProfile resolveCertificateProfile(Long studentId) {
+        StudentProfile profile = studentProfileRepository.findByUserId(studentId).orElse(null);
+        User user = userRepository.findById(studentId).orElse(null);
 
-        StudentProfile profile = studentProfileRepository
-                .findByUserId(studentId)
-                .orElseThrow(() -> new RuntimeException("Student profile not found"));
-
-        if (!profile.isActive()) {
-            throw new RuntimeException("User inactive");
+        if (profile == null && user == null) {
+            throw new RuntimeException("Student profile not found");
         }
 
-        if (!profile.isProfileCompleted()) {
-            throw new RuntimeException("Complete profile first");
-        }
+        StudentProfile snapshot = profile != null ? profile : new StudentProfile();
+        snapshot.setUserId(studentId);
 
-        if (profile.getEmail() == null || profile.getEmail().isBlank()) {
-            throw new RuntimeException("Email required");
+        if (!StringUtils.hasText(snapshot.getFullName())) {
+            snapshot.setFullName(user != null && StringUtils.hasText(user.getName()) ? user.getName() : "Student");
         }
+        if (!StringUtils.hasText(snapshot.getEmail())) {
+            snapshot.setEmail(user != null ? user.getEmail() : null);
+        }
+        if (!StringUtils.hasText(snapshot.getCollegeName())) {
+            snapshot.setCollegeName("Unknown College");
+        }
+        if (!StringUtils.hasText(snapshot.getDepartment())) {
+            snapshot.setDepartment(user != null && StringUtils.hasText(user.getDepartment())
+                    ? user.getDepartment()
+                    : "Unknown Department");
+        }
+        if (!StringUtils.hasText(snapshot.getRollNumber())) {
+            snapshot.setRollNumber("N/A");
+        }
+        if (!snapshot.isActive()) {
+            snapshot.setActive(true);
+        }
+        snapshot.setProfileCompleted(true);
 
-        return profile;
+        return snapshot;
     }
 
     // ================= BUILDERS =================
@@ -333,371 +388,347 @@ public class CertificateService {
     }
 
     private byte[] generatePremiumPdf(Certificate cert, byte[] qrImage) {
-
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 
-            Document document = new Document(PageSize.A4.rotate(), 28, 28, 28, 28);
+            // Landscape A4: ~841.89 x 595.28 points
+            Document document = new Document(PageSize.A4.rotate(), 0, 0, 0, 0);
             PdfWriter writer = PdfWriter.getInstance(document, out);
-
             document.open();
 
-            PdfContentByte canvas = writer.getDirectContent();
+            PdfContentByte cb = writer.getDirectContent();
+            float W = document.getPageSize().getWidth();
+            float H = document.getPageSize().getHeight();
 
-            float width = document.getPageSize().getWidth();
-            float height = document.getPageSize().getHeight();
+            // â”€â”€ Color Palette â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            java.awt.Color bgColor     = new java.awt.Color(248, 250, 252);
+            java.awt.Color borderColor = new java.awt.Color(226, 232, 240);
+            java.awt.Color royalBlue   = new java.awt.Color(59,  48,  219);
+            java.awt.Color darkInk     = new java.awt.Color(15,  23,  42);
+            java.awt.Color slateGray   = new java.awt.Color(100, 116, 139);
+            java.awt.Color navyDeep    = new java.awt.Color(28,  15,  112);
+            java.awt.Color navyMid     = new java.awt.Color(92,  44,  213);
+            java.awt.Color dotColor    = new java.awt.Color(203, 213, 225);
+            java.awt.Color orange      = new java.awt.Color(249, 115, 22);
+            java.awt.Color waveColor   = new java.awt.Color(59,  48,  219, 14);
 
-            drawBackground(canvas, width, height);
-            drawFrame(canvas, width, height);
-            drawCornerBands(canvas, width, height);
-            drawBrandBlock(canvas, width, height);
-            drawRightRibbon(canvas, width, height);
-            drawFooterBar(canvas, width, height);
+            // â”€â”€ 1. Background fill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            cb.saveState();
+            cb.setColorFill(bgColor);
+            cb.rectangle(0, 0, W, H);
+            cb.fill();
+            cb.restoreState();
 
-            drawHeading(canvas, width, height, cert);
-            drawStudentName(canvas, width, height, cert);
-            drawNarrative(canvas, width, height, cert);
-            drawInfoStrip(canvas, width, height, cert);
-            drawQrBlock(canvas, document, cert, qrImage, width, height);
-            drawSeal(canvas, width, height);
-            drawSignature(canvas, width, height);
-            drawCertificateId(canvas, width, height, cert);
+            // â”€â”€ 2. Outer border â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            cb.saveState();
+            cb.setColorStroke(borderColor);
+            cb.setLineWidth(1.2f);
+            cb.rectangle(18, 18, W - 36, H - 36);
+            cb.stroke();
+            cb.restoreState();
+
+            // â”€â”€ 3. Corner L-brackets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            float bi = 28f;  // bracket inset from page edge
+            float bs = 44f;  // bracket arm length
+            float bt = 3.0f; // bracket thickness
+            drawCornerBracket(cb, bi,     H - bi, bs, 10f, bt, royalBlue, "TL");
+            drawCornerBracket(cb, W - bi, H - bi, bs, 10f, bt, royalBlue, "TR");
+            drawCornerBracket(cb, bi,     bi,      bs, 10f, bt, royalBlue, "BL");
+            drawCornerBracket(cb, W - bi, bi,      bs, 10f, bt, royalBlue, "BR");
+
+            // â”€â”€ 4. Dot grids (6Ã—4 on each side) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            float dotSpacing = 9f;
+            float dotGridY   = H * 0.38f;
+            cb.saveState();
+            cb.setColorFill(dotColor);
+            for (int r = 0; r < 4; r++) {
+                for (int c = 0; c < 6; c++) {
+                    // Left grid
+                    cb.circle(bi + 8 + c * dotSpacing, dotGridY + r * dotSpacing, 1.4f);
+                    cb.fill();
+                    // Right grid
+                    cb.circle(W - bi - 8 - c * dotSpacing, dotGridY + r * dotSpacing, 1.4f);
+                    cb.fill();
+                }
+            }
+            cb.restoreState();
+
+            // â”€â”€ 5. Decorative wave lines (right side) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            cb.saveState();
+            cb.setColorStroke(waveColor);
+            cb.setLineWidth(1.5f);
+            for (int i = 0; i < 8; i++) {
+                float ox = W * 0.55f + i * 22f;
+                cb.moveTo(ox, H - 20);
+                cb.curveTo(ox + 45, H * 0.62f, ox - 35, H * 0.38f, ox + 25, 20);
+                cb.stroke();
+            }
+            cb.restoreState();
+
+            // â”€â”€ 6. Brand block (top-left) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            float logoX = 54f;
+            float logoY = H - 72f;
+            drawBrandLogo(cb, logoX, logoY, royalBlue, orange, darkInk);
+            // Vertical divider
+            cb.saveState();
+            cb.setColorStroke(borderColor);
+            cb.setLineWidth(1f);
+            cb.moveTo(logoX + 30, H - 50);
+            cb.lineTo(logoX + 30, H - 88);
+            cb.stroke();
+            cb.restoreState();
+            float brandTxtX = logoX + 38f;
+            addText(cb, "SEM",                     brandTxtX, H - 62,  22f,  Font.HELVETICA, Font.BOLD,   royalBlue, PdfContentByte.ALIGN_LEFT);
+            addText(cb, "SMART EXAM MONITOR",       brandTxtX, H - 73,  7.5f, Font.HELVETICA, Font.BOLD,   darkInk,   PdfContentByte.ALIGN_LEFT);
+            addText(cb, "Examine. Evaluate. Excel.", brandTxtX, H - 83,  7f,   Font.HELVETICA, Font.ITALIC, royalBlue, PdfContentByte.ALIGN_LEFT);
+
+            // â”€â”€ 7. Badge pill (top-right) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            float bW = 196f, bH = 46f;
+            float bX = W - bi - bW - 8;
+            float bY = H - bi - bH - 6;
+            drawBadgePill(cb, bX, bY, bW, bH, navyDeep, navyMid);
+            float iconCX = bX + 26, iconCY = bY + bH / 2;
+            cb.saveState();
+            cb.setColorFill(new java.awt.Color(255, 255, 255, 45));
+            cb.circle(iconCX, iconCY, 13f);
+            cb.fill();
+            cb.restoreState();
+            addText(cb, "\u2605", iconCX, iconCY - 5, 12, Font.HELVETICA, Font.BOLD, Color.WHITE, PdfContentByte.ALIGN_CENTER);
+            addText(cb, "EXAM COMPLETED",    bX + 48, bY + bH / 2 + 4,  9.5f, Font.HELVETICA, Font.BOLD,   Color.WHITE,                       PdfContentByte.ALIGN_LEFT);
+            addText(cb, "Successfully Certified", bX + 48, bY + bH / 2 - 9, 7.5f, Font.HELVETICA, Font.NORMAL, new java.awt.Color(210, 205, 255), PdfContentByte.ALIGN_LEFT);
+
+            // â”€â”€ 8. Main content block â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            float cx = W / 2f;
+            float y  = H - 118f;
+
+            // "THIS IS TO CERTIFY THAT"
+            addText(cb, "THIS IS TO CERTIFY THAT", cx, y, 8.5f, Font.HELVETICA, Font.BOLD, slateGray, PdfContentByte.ALIGN_CENTER);
+            y -= 30;
+
+            // Student name  (28pt)
+            String studentName = cert.getStudentName() == null ? "Student" : cert.getStudentName();
+            addText(cb, studentName, cx, y, 28f, Font.HELVETICA, Font.BOLD, royalBlue, PdfContentByte.ALIGN_CENTER);
+            y -= 20;
+
+            // Diamond rule below name
+            drawDiamondRule(cb, cx, y, 100f, royalBlue, borderColor);
+            y -= 20;
+
+            // "Certificate of"  (20pt dark)
+            addText(cb, "Certificate of", cx, y, 20f, Font.HELVETICA, Font.BOLD, darkInk, PdfContentByte.ALIGN_CENTER);
+            y -= 48;
+
+            // "Excellence"  (52pt royal blue â€“ hero word)
+            addText(cb, "Excellence", cx, y, 52f, Font.HELVETICA, Font.BOLD, royalBlue, PdfContentByte.ALIGN_CENTER);
+            y -= 30;
+
+            // "has successfully completed the examination in"
+            addText(cb, "has successfully completed the examination in", cx, y, 11f, Font.HELVETICA, Font.NORMAL, slateGray, PdfContentByte.ALIGN_CENTER);
+            y -= 18;
+
+            // Exam title  (bold dark)
+            String examTitle = cert.getExamTitle() == null ? "Online Examination" : cert.getExamTitle();
+            addText(cb, examTitle, cx, y, 13f, Font.HELVETICA, Font.BOLD, darkInk, PdfContentByte.ALIGN_CENTER);
+            y -= 18;
+
+            // Score line: normal + bold-blue score + normal
+            String issueDate = cert.getIssuedAt() != null
+                    ? cert.getIssuedAt().format(DateTimeFormatter.ofPattern("dd MMM yyyy"))
+                    : LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy"));
+            String scoreStr    = formatScore(cert.getScore());
+            String scorePre    = "with a score of ";
+            String scoreSuf    = " on " + issueDate;
+            float  preW        = measureTextWidth(scorePre, 11f, Font.HELVETICA, Font.NORMAL);
+            float  scoW        = measureTextWidth(scoreStr, 11f, Font.HELVETICA, Font.BOLD);
+            float  sufW        = measureTextWidth(scoreSuf, 11f, Font.HELVETICA, Font.NORMAL);
+            float  lineW       = preW + scoW + sufW;
+            float  lineX       = cx - lineW / 2f;
+            addText(cb, scorePre,  lineX,                  y, 11f, Font.HELVETICA, Font.NORMAL, slateGray,  PdfContentByte.ALIGN_LEFT);
+            addText(cb, scoreStr,  lineX + preW,           y, 11f, Font.HELVETICA, Font.BOLD,   royalBlue,  PdfContentByte.ALIGN_LEFT);
+            addText(cb, scoreSuf,  lineX + preW + scoW,    y, 11f, Font.HELVETICA, Font.NORMAL, slateGray,  PdfContentByte.ALIGN_LEFT);
+            y -= 26;
+
+            // Dashed diamond rule
+            drawDottedDiamondRule(cb, cx, y, W - 140f, royalBlue, borderColor);
+
+            // â”€â”€ 9. Footer (QR | Signature | Certificate ID) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // Footer baseline: keep all footer content between y=40 and y=145
+            float fBase = 48f;   // bottom of QR box
+
+            // â”€â”€ QR code (bottom-left) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            float qrBoxSz = 88f;   // outer box size (includes padding)
+            float qrImgSz = 76f;   // actual QR image inside
+            float qrPad   = (qrBoxSz - qrImgSz) / 2f;
+            float qrBX    = bi + 14f;
+            float qrBY    = fBase;
+
+            // White bordered box
+            cb.saveState();
+            cb.setColorFill(Color.WHITE);
+            cb.setColorStroke(borderColor);
+            cb.setLineWidth(1.2f);
+            cb.roundRectangle(qrBX, qrBY, qrBoxSz, qrBoxSz, 8f);
+            cb.fillStroke();
+            cb.restoreState();
+
+            // QR image â€“ MUST use cb.addImage for absolute positioning
+            if (qrImage != null && qrImage.length > 0) {
+                try {
+                    Image qr = Image.getInstance(qrImage);
+                    qr.scaleAbsolute(qrImgSz, qrImgSz);
+                    qr.setAbsolutePosition(qrBX + qrPad, qrBY + qrPad);
+                    cb.addImage(qr);   // â† correct method: directly to content stream
+                } catch (Exception ex) {
+                    System.err.println("QR image render failed: " + ex.getMessage());
+                }
+            }
+
+            // "SCAN TO VERIFY" label
+            addText(cb, "SCAN TO VERIFY", qrBX + qrBoxSz / 2f, qrBY - 13f, 7f, Font.HELVETICA, Font.BOLD, darkInk, PdfContentByte.ALIGN_CENTER);
+
+            // â”€â”€ Signature (center) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            float sigCX = cx;
+            float sigY  = fBase + qrBoxSz * 0.65f;   // vertically centered in QR area
+
+            addText(cb, "Exam Authority", sigCX, sigY + 14, 18f, Font.TIMES_ROMAN, Font.ITALIC, darkInk, PdfContentByte.ALIGN_CENTER);
+            // Royal-blue underline
+            cb.saveState();
+            cb.setColorStroke(royalBlue);
+            cb.setLineWidth(1.2f);
+            cb.moveTo(sigCX - 70, sigY + 5);
+            cb.lineTo(sigCX + 70, sigY + 5);
+            cb.stroke();
+            cb.restoreState();
+            addText(cb, "EXAM AUTHORITY",            sigCX, sigY - 8,  7.5f, Font.HELVETICA, Font.BOLD,   darkInk,   PdfContentByte.ALIGN_CENTER);
+            addText(cb, "SEM Platform - Examinations", sigCX, sigY - 20, 7.5f, Font.HELVETICA, Font.NORMAL, slateGray, PdfContentByte.ALIGN_CENTER);
+
+            // â”€â”€ Certificate ID block (right) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            float idCX = W - bi - 95f;
+            float idY  = fBase + qrBoxSz * 0.65f;
+
+            addText(cb, "CERTIFICATE ID",            idCX, idY + 14, 7f,   Font.HELVETICA, Font.NORMAL, slateGray, PdfContentByte.ALIGN_CENTER);
+            addText(cb, safeText(cert.getCertificateId()), idCX, idY - 4,  13f,  Font.HELVETICA, Font.BOLD,   darkInk,   PdfContentByte.ALIGN_CENTER);
+            addText(cb, "Issued: " + issueDate,      idCX, idY - 19, 8.5f, Font.HELVETICA, Font.NORMAL, darkInk,   PdfContentByte.ALIGN_CENTER);
 
             document.close();
             return out.toByteArray();
 
         } catch (Exception e) {
-            throw new RuntimeException("PDF generation failed", e);
+            throw new RuntimeException("PDF generation failed: " + e.getMessage(), e);
         }
     }
 
-    private void addCenteredText(Document doc, String text, Font font)
-            throws DocumentException {
-        Paragraph p = new Paragraph(text, font);
-        p.setAlignment(Element.ALIGN_CENTER);
-        doc.add(p);
+    /**
+     * Draw an L-shaped corner bracket with a rounded inner corner.
+     * corner = "TL", "TR", "BL", "BR"
+     */
+    private void drawCornerBracket(PdfContentByte cb, float cx, float cy, float size, float radius, float thick, java.awt.Color color, String corner) {
+        cb.saveState();
+        cb.setColorStroke(color);
+        cb.setLineWidth(thick);
+        cb.setLineCap(PdfContentByte.LINE_CAP_ROUND);
+
+        boolean isLeft = corner.endsWith("L");
+        boolean isTop  = corner.startsWith("T");
+
+        float sx = isLeft ? cx : cx - size;
+        float sy = isTop  ? cy - size : cy;
+
+        float vx   = isLeft  ? sx : sx + size;
+        float arcX = isLeft  ? sx + radius : sx + size - radius;
+        float arcY = isTop   ? sy + size - radius : sy + radius;
+        float hy   = isTop   ? sy + size : sy;
+        float hEnd = isLeft  ? sx + size - radius : sx + radius;
+
+        cb.moveTo(vx, isTop ? sy + radius : sy + size - radius);
+        cb.lineTo(vx, arcY);
+        cb.curveTo(vx, hy, vx, hy, arcX, hy);
+        cb.lineTo(hEnd, hy);
+        cb.stroke();
+        cb.restoreState();
     }
 
-    private void drawBackground(PdfContentByte canvas, float width, float height) {
-        canvas.saveState();
-        canvas.setColorFill(PAPER);
-        canvas.rectangle(0, 0, width, height);
-        canvas.fill();
-        canvas.restoreState();
-
-        canvas.saveState();
-        canvas.setColorStroke(PAPER_ALT);
-        canvas.setLineWidth(0.5f);
-        for (int i = -80; i < (int) width + 120; i += 20) {
-            canvas.moveTo(i, 0);
-            canvas.lineTo(i + 120, height);
-            canvas.stroke();
-        }
-        canvas.restoreState();
+    /**
+     * Draw the SEM brand logo: open-book wings + orange dot + blue star.
+     */
+    private void drawBrandLogo(PdfContentByte cb, float cx, float cy, java.awt.Color blue, java.awt.Color orange, java.awt.Color ink) {
+        cb.saveState();
+        // Left wing
+        cb.setColorFill(blue);
+        cb.moveTo(cx - 2, cy + 4);
+        cb.lineTo(cx - 20, cy + 20);
+        cb.lineTo(cx - 20, cy + 7);
+        cb.lineTo(cx - 2, cy - 4);
+        cb.closePath();
+        cb.fill();
+        // Right wing
+        cb.moveTo(cx + 2, cy + 4);
+        cb.lineTo(cx + 20, cy + 20);
+        cb.lineTo(cx + 20, cy + 7);
+        cb.lineTo(cx + 2, cy - 4);
+        cb.closePath();
+        cb.fill();
+        // Orange center circle
+        cb.setColorFill(orange);
+        cb.circle(cx, cy + 18, 5.5f);
+        cb.fill();
+        // Blue star dot on top
+        cb.setColorFill(blue);
+        cb.circle(cx, cy + 32, 3f);
+        cb.fill();
+        cb.restoreState();
     }
 
-    private void drawFrame(PdfContentByte canvas, float width, float height) {
-        canvas.saveState();
-        canvas.setColorStroke(NAVY);
-        canvas.setLineWidth(2.2f);
-        canvas.rectangle(14, 14, width - 28, height - 28);
-        canvas.stroke();
-        canvas.setColorStroke(GOLD);
-        canvas.setLineWidth(1.0f);
-        canvas.rectangle(20, 20, width - 40, height - 40);
-        canvas.stroke();
-        canvas.restoreState();
+    /**
+     * Draw a two-tone pill badge (left half darker, right half lighter).
+     */
+    private void drawBadgePill(PdfContentByte cb, float x, float y, float w, float h, java.awt.Color c1, java.awt.Color c2) {
+        cb.saveState();
+        cb.setColorFill(c1);
+        cb.roundRectangle(x, y, w, h, h / 2f);
+        cb.fill();
+        // Lighter overlay on right half
+        cb.setColorFill(c2);
+        cb.roundRectangle(x + w * 0.42f, y, w * 0.58f, h, h / 2f);
+        cb.fill();
+        cb.restoreState();
     }
 
-    private void drawCornerBands(PdfContentByte canvas, float width, float height) {
-        canvas.saveState();
-        canvas.setColorFill(NAVY);
-        canvas.moveTo(0, 0);
-        canvas.lineTo(0, height);
-        canvas.lineTo(165, height);
-        canvas.lineTo(220, height - 55);
-        canvas.lineTo(220, 65);
-        canvas.lineTo(165, 0);
-        canvas.closePathFillStroke();
-
-        canvas.setColorFill(GOLD);
-        canvas.moveTo(0, 0);
-        canvas.lineTo(24, 0);
-        canvas.lineTo(200, height - 56);
-        canvas.lineTo(176, height - 56);
-        canvas.closePathFillStroke();
-
-        canvas.setColorFill(NAVY);
-        canvas.moveTo(width, 0);
-        canvas.lineTo(width - 120, 0);
-        canvas.lineTo(width - 175, 55);
-        canvas.lineTo(width - 175, height);
-        canvas.lineTo(width, height);
-        canvas.closePathFillStroke();
-
-        canvas.setColorFill(GOLD);
-        canvas.moveTo(width, 0);
-        canvas.lineTo(width - 24, 0);
-        canvas.lineTo(width - 199, height - 56);
-        canvas.lineTo(width - 175, height - 56);
-        canvas.closePathFillStroke();
-        canvas.restoreState();
+    /**
+     * Horizontal rule with a solid diamond centre.
+     */
+    private void drawDiamondRule(PdfContentByte cb, float cx, float cy, float halfW, java.awt.Color diamondColor, java.awt.Color lineColor) {
+        cb.saveState();
+        cb.setColorStroke(lineColor);
+        cb.setLineWidth(0.9f);
+        cb.moveTo(cx - halfW, cy); cb.lineTo(cx - 7, cy); cb.stroke();
+        cb.moveTo(cx + 7, cy);     cb.lineTo(cx + halfW, cy); cb.stroke();
+        cb.setColorFill(diamondColor);
+        cb.moveTo(cx, cy + 5); cb.lineTo(cx + 5, cy); cb.lineTo(cx, cy - 5); cb.lineTo(cx - 5, cy);
+        cb.closePath(); cb.fill();
+        cb.restoreState();
     }
 
-    private void drawBrandBlock(PdfContentByte canvas, float width, float height) {
-        canvas.saveState();
-        canvas.setColorFill(NAVY);
-        canvas.roundRectangle(28, height - 198, 160, 150, 18);
-        canvas.fill();
-        canvas.setColorStroke(GOLD);
-        canvas.setLineWidth(1.5f);
-        canvas.roundRectangle(28, height - 198, 160, 150, 18);
-        canvas.stroke();
+    /**
+     * Dashed horizontal rule with a solid diamond centre.
+     */
+    private void drawDottedDiamondRule(PdfContentByte cb, float cx, float cy, float totalW, java.awt.Color diamondColor, java.awt.Color lineColor) {
+        cb.saveState();
+        cb.setColorStroke(lineColor);
+        cb.setLineWidth(0.9f);
+        cb.setLineDash(3f, 3f);
+        cb.moveTo(cx - totalW / 2f, cy); cb.lineTo(cx - 7, cy); cb.stroke();
+        cb.moveTo(cx + 7, cy); cb.lineTo(cx + totalW / 2f, cy); cb.stroke();
+        cb.setLineDash(0);
+        cb.setColorFill(diamondColor);
+        cb.moveTo(cx, cy + 5); cb.lineTo(cx + 5, cy); cb.lineTo(cx, cy - 5); cb.lineTo(cx - 5, cy);
+        cb.closePath(); cb.fill();
+        cb.restoreState();
+    }
 
-        BaseFont bf;
+    private void addText(PdfContentByte canvas, String text, float x, float y, float size,
+                         int family, int style, java.awt.Color color, int align) {
         try {
-            bf = BaseFont.createFont(BaseFont.HELVETICA_BOLD, BaseFont.WINANSI, BaseFont.EMBEDDED);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        try {
-            Image logo = loadImage("static/assets/core/img/logo.png");
-            logo.scaleToFit(72, 72);
-            logo.setAbsolutePosition(72, height - 110);
-            canvas.addImage(logo);
-        } catch (Exception ignored) {
-            // Fallback to text branding if the logo asset is unavailable.
-        }
-
-        canvas.beginText();
-        canvas.setColorFill(Color.WHITE);
-        canvas.setFontAndSize(bf, 20);
-        canvas.showTextAligned(PdfContentByte.ALIGN_CENTER, "AI EXAM", 108, height - 150, 0);
-        canvas.setFontAndSize(bf, 18);
-        canvas.showTextAligned(PdfContentByte.ALIGN_CENTER, "SYSTEM", 108, height - 172, 0);
-        canvas.endText();
-
-        canvas.setColorStroke(GOLD_LIGHT);
-        canvas.setLineWidth(1f);
-        canvas.moveTo(52, height - 140);
-        canvas.lineTo(164, height - 140);
-        canvas.stroke();
-        canvas.restoreState();
-    }
-
-    private void drawRightRibbon(PdfContentByte canvas, float width, float height) {
-        float ribbonX = width - 122;
-        float ribbonW = 96;
-        float ribbonTop = height - 8;
-        canvas.saveState();
-        canvas.setColorFill(NAVY);
-        canvas.rectangle(ribbonX, 72, ribbonW, ribbonTop - 72);
-        canvas.fill();
-        canvas.setColorStroke(GOLD);
-        canvas.setLineWidth(1.3f);
-        canvas.rectangle(ribbonX, 72, ribbonW, ribbonTop - 72);
-        canvas.stroke();
-        canvas.setColorFill(GOLD);
-        canvas.moveTo(ribbonX, 72);
-        canvas.lineTo(ribbonX + ribbonW / 2, 34);
-        canvas.lineTo(ribbonX + ribbonW, 72);
-        canvas.closePathFillStroke();
-        canvas.restoreState();
-
-        drawMedallion(canvas, ribbonX + ribbonW / 2, height - 150, 62,
-                "EXCELLENCE", "IN ONLINE", "ASSESSMENT");
-    }
-
-    private void drawMedallion(PdfContentByte canvas, float cx, float cy, float radius,
-                               String line1, String line2, String line3) {
-        canvas.saveState();
-        canvas.setColorFill(NAVY);
-        canvas.circle(cx, cy, radius);
-        canvas.fillStroke();
-        canvas.setColorStroke(GOLD);
-        canvas.setLineWidth(2f);
-        canvas.circle(cx, cy, radius - 6);
-        canvas.stroke();
-        canvas.setColorStroke(GOLD_LIGHT);
-        canvas.setLineWidth(0.7f);
-        canvas.circle(cx, cy, radius - 16);
-        canvas.stroke();
-
-        BaseFont titleFont;
-        try {
-            titleFont = BaseFont.createFont(BaseFont.HELVETICA_BOLD, BaseFont.WINANSI, BaseFont.EMBEDDED);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        canvas.beginText();
-        canvas.setColorFill(Color.WHITE);
-        canvas.setFontAndSize(titleFont, 10);
-        canvas.showTextAligned(PdfContentByte.ALIGN_CENTER, line1, cx, cy + 10, 0);
-        canvas.showTextAligned(PdfContentByte.ALIGN_CENTER, line2, cx, cy - 4, 0);
-        canvas.showTextAligned(PdfContentByte.ALIGN_CENTER, line3, cx, cy - 18, 0);
-        canvas.endText();
-        canvas.restoreState();
-    }
-
-    private void drawHeading(PdfContentByte canvas, float width, float height, Certificate cert) {
-        addText(canvas, "CERTIFICATE", width / 2, height - 118, 42, Font.TIMES_ROMAN, Font.BOLD, NAVY, PdfContentByte.ALIGN_CENTER);
-        addText(canvas, "OF COMPLETION", width / 2, height - 154, 24, Font.TIMES_ROMAN, Font.BOLD, GOLD, PdfContentByte.ALIGN_CENTER);
-        drawDividerWithCenterDot(canvas, width / 2, height - 174, 168);
-        addText(canvas, "THIS IS TO CERTIFY THAT", width / 2, height - 188, 14, Font.HELVETICA, Font.BOLD, NAVY, PdfContentByte.ALIGN_CENTER);
-    }
-
-    private void drawStudentName(PdfContentByte canvas, float width, float height, Certificate cert) {
-        String studentName = cert.getStudentName() == null ? "Student" : cert.getStudentName();
-        addText(canvas, studentName, width / 2, height - 248, 30, Font.TIMES_ROMAN, Font.BOLDITALIC, INK, PdfContentByte.ALIGN_CENTER);
-        canvas.saveState();
-        canvas.setColorStroke(GOLD);
-        canvas.setLineWidth(1.2f);
-        canvas.moveTo(width / 2 - 170, height - 276);
-        canvas.lineTo(width / 2 + 170, height - 276);
-        canvas.stroke();
-        canvas.restoreState();
-    }
-
-    private void drawNarrative(PdfContentByte canvas, float width, float height, Certificate cert) {
-        String examTitle = cert.getExamTitle() == null ? "the online examination" : cert.getExamTitle();
-        String body = "has successfully completed the " + examTitle + "\n"
-                + "conducted by AI Exam System.\n"
-                + "The candidate has demonstrated satisfactory knowledge,\n"
-                + "consistent performance, and successful completion of the assessment.";
-        addText(canvas, body, width / 2, height - 332, 16, Font.HELVETICA, Font.NORMAL, INK, PdfContentByte.ALIGN_CENTER);
-    }
-
-    private void drawInfoStrip(PdfContentByte canvas, float width, float height, Certificate cert) {
-        float startX = 86;
-        float startY = height - 480;
-        float boxW = 112;
-        float boxH = 78;
-        float gap = 12;
-        String issueDate = cert.getIssuedAt() != null
-                ? cert.getIssuedAt().format(DateTimeFormatter.ofPattern("dd MMM yyyy"))
-                : "-";
-
-        drawInfoBox(canvas, startX, startY, boxW, boxH, "EXAMINATION", safeText(cert.getExamTitle()), false);
-        drawInfoBox(canvas, startX + (boxW + gap), startY, boxW, boxH, "DATE OF ISSUE", issueDate, false);
-        drawInfoBox(canvas, startX + 2 * (boxW + gap), startY, boxW, boxH, "SCORE", formatScore(cert.getScore()), false);
-        drawInfoBox(canvas, startX + 3 * (boxW + gap), startY, boxW, boxH, "GRADE", safeText(cert.getGrade()), false);
-        drawInfoBox(canvas, startX + 4 * (boxW + gap), startY, boxW, boxH, "STATUS", "VERIFIED", true);
-    }
-
-    private void drawInfoBox(PdfContentByte canvas, float x, float y, float w, float h, String label, String value, boolean highlight) {
-        canvas.saveState();
-        canvas.setColorFill(highlight ? SOFT_BLUE : Color.WHITE);
-        canvas.roundRectangle(x, y, w, h, 12);
-        canvas.fillStroke();
-        canvas.setColorStroke(highlight ? GOLD : new Color(208, 215, 224));
-        canvas.setLineWidth(1f);
-        canvas.roundRectangle(x, y, w, h, 12);
-        canvas.stroke();
-        canvas.restoreState();
-
-        addText(canvas, label, x + w / 2, y + h - 20, 10, Font.HELVETICA, Font.BOLD, GOLD, PdfContentByte.ALIGN_CENTER);
-        addText(canvas, value, x + w / 2, y + 25, 14, Font.HELVETICA, Font.BOLD, INK, PdfContentByte.ALIGN_CENTER);
-    }
-
-    private void drawQrBlock(PdfContentByte canvas, Document document, Certificate cert, byte[] qrImage, float width, float height)
-            throws DocumentException, BadElementException, java.io.IOException {
-        Image qr = Image.getInstance(qrImage);
-        qr.scaleAbsolute(88, 88);
-        qr.setAbsolutePosition(72, 70);
-        document.add(qr);
-        drawInfoBox(canvas, 68, 54, 118, 122, "CERTIFICATE ID", safeText(cert.getCertificateId()), true);
-        addText(canvas, "Scan the QR code to verify\nthis certificate online.", 127, 50, 10, Font.HELVETICA, Font.NORMAL, INK, PdfContentByte.ALIGN_CENTER);
-    }
-
-    private void drawSeal(PdfContentByte canvas, float width, float height) {
-        float cx = width / 2;
-        float cy = 96;
-        canvas.saveState();
-        canvas.setColorFill(GOLD);
-        canvas.circle(cx, cy, 48);
-        canvas.fillStroke();
-        canvas.setColorStroke(NAVY);
-        canvas.setLineWidth(2f);
-        canvas.circle(cx, cy, 42);
-        canvas.stroke();
-        canvas.setColorFill(NAVY);
-        canvas.circle(cx, cy, 32);
-        canvas.fill();
-        canvas.setColorStroke(GOLD_LIGHT);
-        canvas.setLineWidth(1f);
-        canvas.circle(cx, cy, 24);
-        canvas.stroke();
-        addText(canvas, "VERIFIED", cx, cy + 11, 10, Font.HELVETICA, Font.BOLD, Color.WHITE, PdfContentByte.ALIGN_CENTER);
-        addText(canvas, "& CERTIFIED", cx, cy - 4, 10, Font.HELVETICA, Font.BOLD, Color.WHITE, PdfContentByte.ALIGN_CENTER);
-        addText(canvas, "AI EXAM SYSTEM", cx, cy - 18, 8, Font.HELVETICA, Font.BOLD, Color.WHITE, PdfContentByte.ALIGN_CENTER);
-        canvas.restoreState();
-    }
-
-    private void drawSignature(PdfContentByte canvas, float width, float height) {
-        float x2 = width - 82;
-        float y = 90;
-        canvas.saveState();
-        canvas.setColorStroke(GOLD);
-        canvas.setLineWidth(1.2f);
-        canvas.moveTo(width - 220, y + 12);
-        canvas.lineTo(x2, y + 12);
-        canvas.stroke();
-        canvas.restoreState();
-
-        addText(canvas, "Dr. AI Admin", width - 150, y + 32, 16, Font.TIMES_ROMAN, Font.BOLD, INK, PdfContentByte.ALIGN_CENTER);
-        addText(canvas, "Chief Administrator", width - 150, y + 12, 11, Font.HELVETICA, Font.BOLD, INK, PdfContentByte.ALIGN_CENTER);
-        addText(canvas, "AI Exam System", width - 150, y - 2, 11, Font.HELVETICA, Font.NORMAL, INK, PdfContentByte.ALIGN_CENTER);
-    }
-
-    private void drawCertificateId(PdfContentByte canvas, float width, float height, Certificate cert) {
-        addText(canvas, "CERTIFICATE ID", 220, 90, 11, Font.HELVETICA, Font.BOLD, INK, PdfContentByte.ALIGN_LEFT);
-        addText(canvas, safeText(cert.getCertificateId()), 220, 72, 11, Font.HELVETICA, Font.NORMAL, INK, PdfContentByte.ALIGN_LEFT);
-        addText(canvas, "AI Exam System", 220, 52, 10, Font.HELVETICA, Font.BOLD, GOLD, PdfContentByte.ALIGN_LEFT);
-    }
-
-    private void drawFooterBar(PdfContentByte canvas, float width, float height) {
-        canvas.saveState();
-        canvas.setColorFill(NAVY);
-        canvas.roundRectangle(140, 8, width - 280, 44, 10);
-        canvas.fill();
-        canvas.restoreState();
-
-        addText(canvas, "SECURE", width / 2 - 180, 34, 11, Font.HELVETICA, Font.BOLD, Color.WHITE, PdfContentByte.ALIGN_CENTER);
-        addText(canvas, "RELIABLE", width / 2, 34, 11, Font.HELVETICA, Font.BOLD, Color.WHITE, PdfContentByte.ALIGN_CENTER);
-        addText(canvas, "TRANSPARENT", width / 2 + 180, 34, 11, Font.HELVETICA, Font.BOLD, Color.WHITE, PdfContentByte.ALIGN_CENTER);
-        addText(canvas, "Your Data is Protected", width / 2 - 180, 18, 9, Font.HELVETICA, Font.NORMAL, GOLD_LIGHT, PdfContentByte.ALIGN_CENTER);
-        addText(canvas, "Accurate & Fair Evaluation", width / 2, 18, 9, Font.HELVETICA, Font.NORMAL, GOLD_LIGHT, PdfContentByte.ALIGN_CENTER);
-        addText(canvas, "Trusted Assessment Process", width / 2 + 180, 18, 9, Font.HELVETICA, Font.NORMAL, GOLD_LIGHT, PdfContentByte.ALIGN_CENTER);
-        addText(canvas, "AI Exam System", width / 2, 10, 8, Font.HELVETICA, Font.BOLD, Color.WHITE, PdfContentByte.ALIGN_CENTER);
-    }
-
-    private void drawDividerWithCenterDot(PdfContentByte canvas, float centerX, float y, float halfWidth) {
-        canvas.saveState();
-        canvas.setColorStroke(GOLD);
-        canvas.setLineWidth(1.1f);
-        canvas.moveTo(centerX - halfWidth, y);
-        canvas.lineTo(centerX - 28, y);
-        canvas.stroke();
-        canvas.circle(centerX, y, 2.2f);
-        canvas.fillStroke();
-        canvas.moveTo(centerX + 28, y);
-        canvas.lineTo(centerX + halfWidth, y);
-        canvas.stroke();
-        canvas.restoreState();
-    }
-
-    private void addText(PdfContentByte canvas,
-                         String text,
-                         float x,
-                         float y,
-                         float size,
-                         int family,
-                         int style,
-                         java.awt.Color color,
-                         int align) {
-        try {
-            String fontName = resolveFontName(family, style);
-            BaseFont bf = BaseFont.createFont(fontName, BaseFont.WINANSI, BaseFont.EMBEDDED);
+            BaseFont bf = BaseFont.createFont(resolveFontName(family, style), BaseFont.WINANSI, BaseFont.EMBEDDED);
             canvas.saveState();
             canvas.beginText();
             canvas.setColorFill(color);
@@ -710,20 +741,27 @@ public class CertificateService {
         }
     }
 
-    private String resolveFontName(int family, int style) {
-        boolean bold = (style & Font.BOLD) == Font.BOLD;
-        boolean italic = (style & Font.ITALIC) == Font.ITALIC || (style & Font.BOLDITALIC) == Font.BOLDITALIC;
+    private float measureTextWidth(String text, float size, int family, int style) {
+        try {
+            BaseFont bf = BaseFont.createFont(resolveFontName(family, style), BaseFont.WINANSI, BaseFont.EMBEDDED);
+            return bf.getWidthPoint(text, size);
+        } catch (Exception e) {
+            return text.length() * size * 0.5f;
+        }
+    }
 
+    private String resolveFontName(int family, int style) {
+        boolean bold   = (style & Font.BOLD)   == Font.BOLD;
+        boolean italic = (style & Font.ITALIC)  == Font.ITALIC;
         if (family == Font.TIMES_ROMAN) {
             if (bold && italic) return BaseFont.TIMES_BOLDITALIC;
-            if (bold) return BaseFont.TIMES_BOLD;
-            if (italic) return BaseFont.TIMES_ITALIC;
+            if (bold)           return BaseFont.TIMES_BOLD;
+            if (italic)         return BaseFont.TIMES_ITALIC;
             return BaseFont.TIMES_ROMAN;
         }
-
         if (bold && italic) return BaseFont.HELVETICA_BOLDOBLIQUE;
-        if (bold) return BaseFont.HELVETICA_BOLD;
-        if (italic) return BaseFont.HELVETICA_OBLIQUE;
+        if (bold)           return BaseFont.HELVETICA_BOLD;
+        if (italic)         return BaseFont.HELVETICA_OBLIQUE;
         return BaseFont.HELVETICA;
     }
 
@@ -733,9 +771,9 @@ public class CertificateService {
 
     private String formatScore(double score) {
         if (Math.floor(score) == score) {
-            return String.format(java.util.Locale.ROOT, "%.0f%%", score);
+            return String.format(java.util.Locale.ROOT, "%.0f/100", score);
         }
-        return String.format(java.util.Locale.ROOT, "%.1f%%", score);
+        return String.format(java.util.Locale.ROOT, "%.1f/100", score);
     }
 
     private Image loadImage(String path) throws Exception {

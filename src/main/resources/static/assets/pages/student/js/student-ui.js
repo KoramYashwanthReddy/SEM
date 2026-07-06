@@ -491,12 +491,19 @@
     'AI-302': { registered: true, offsetMinutes: -90 }
   };
   const getExamDate = (exam) => {
-    const d = new Date(exam?.startAt || 0);
+    const d = new Date(exam?.startAt || exam?.startTime || exam?.examStartTime || 0);
     return Number.isNaN(d.getTime()) ? new Date() : d;
   };
-  const getExamEndDate = (exam) => new Date(getExamDate(exam).getTime() + (Number(exam?.durationMinutes || 0) * 60000));
+  const getExamEndDate = (exam) => {
+    const rawEnd = exam?.endAt || exam?.endTime || exam?.examEndTime;
+    if (rawEnd) {
+      const parsed = new Date(rawEnd);
+      if (!Number.isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date(getExamDate(exam).getTime() + (Number(exam?.durationMinutes || 0) * 60000));
+  };
   const formatExamTime = (exam) => getExamDate(exam).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const formatExamDateTime = (exam) => getExamDate(exam).toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const formatExamDateTime = (exam) => getExamDate(exam).toLocaleString([], { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   const formatFullDateTime = (value) => {
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return '-';
@@ -686,14 +693,17 @@
       }
       return { label: 'Closed', action: 'exam-detail', tone: 'ghost', hint: 'Registration closed.', disabled: true };
     }
-    if (state.sessionStarted || state.live) {
-      return { label: 'Enter Exam', action: 'exam-access', tone: 'primary', hint: 'Exam is live or ready to continue.', disabled: false };
+    if (state.live) {
+      return { label: 'Enter Exam', action: 'exam-access', tone: 'primary', hint: 'Exam is live now.', disabled: false };
     }
     if (state.expired || state.result) {
       return { label: 'Closed', action: 'exam-detail', tone: 'ghost', hint: 'Expired or completed.', disabled: true };
     }
+    if (state.sessionStarted) {
+      return { label: 'Waiting for Start', action: 'exam-detail', tone: 'ghost', hint: `The exam opens at ${formatExamDateTime(exam)}.`, disabled: true };
+    }
     if (state.verificationOpen) {
-      return { label: 'Enter Exam', action: 'exam-access', tone: 'primary', hint: 'You are registered. Open the exam access hover.', disabled: false };
+      return { label: 'Verified', action: 'exam-detail', tone: 'ghost', hint: 'Verification completed. The exam will open at the scheduled start time.', disabled: true };
     }
     if (state.preStartLock) {
       return {
@@ -940,7 +950,7 @@
     }, 1000);
   }
   const sortExamStartAsc = (a, b) => getExamDate(a).getTime() - getExamDate(b).getTime();
-  const sortExamEndDesc = (a, b) => (getExamDate(b).getTime() + Number(b.durationMinutes || 0) * 60000) - (getExamDate(a).getTime() + Number(a.durationMinutes || 0) * 60000);
+  const sortExamEndDesc = (a, b) => getExamEndDate(b).getTime() - getExamEndDate(a).getTime();
   function hydrateExamSchedule() {
     const now = Date.now();
     st.data.exams.forEach((exam) => {
@@ -2054,8 +2064,6 @@
     const attemptPercent = clamp((attemptUsed / attemptMax) * 100, 0, 100);
     const topStatus = state.completed ? 'CLOSED' : verificationCompleted ? 'VERIFIED' : state.live ? 'LIVE' : state.resumeEligible ? 'RESUME' : state.verificationOpen ? 'AVAILABLE' : state.upcoming && !state.expired ? 'UPCOMING' : 'CLOSED';
     const topStatusTone = state.completed ? 'closed' : verificationCompleted ? 'success' : state.live ? 'available' : state.resumeEligible ? 'resume' : state.verificationOpen ? 'upcoming' : state.upcoming && !state.expired ? 'upcoming' : 'closed';
-    const examDate = formatDate(startAt);
-    const endDate = formatDate(state.endAt);
     const accessNote = state.live
       ? (verificationCompleted ? 'Verification completed. Exam is currently available.' : 'Exam is currently available.')
       : state.expired
@@ -2094,99 +2102,58 @@
     return `
       <article class="exam-card ${view === 'my' ? 'my-exam-card' : ''}" data-status="${exam.status}" data-exam-view="${view}" data-exam-code="${exam.examCode}" data-action="exam-detail" role="button" tabindex="0">
           <div class="exam-card-shell">
-          <div class="exam-card-head">
-            <div class="exam-card-icon-wrap" aria-hidden="true">
-              <span class="exam-card-icon">${svg('exams')}</span>
-            </div>
-            <div class="exam-card-title-block">
-              <h3 class="exam-title">${escapeHtml(exam.title || 'Untitled Exam')}</h3>
-              <p class="exam-subject">${escapeHtml(exam.subject || 'Subject')}</p>
-              <span class="exam-title-accent"></span>
-            </div>
-            <div class="exam-card-head-actions">
-              <span class="exam-status-chip ${topStatusTone}">
-                <span class="exam-status-chip-icon">${svg(state.completed ? 'lock' : state.live ? 'clock' : 'shield')}</span>
-                <span>${topStatus}</span>
-              </span>
+            
+            <!-- Compact Header Structure -->
+            <div class="exam-card-badges-row">
+              <div class="badges-left">
+                <span class="exam-status-chip ${topStatusTone}">${svg(state.completed ? 'lock' : state.live ? 'clock' : 'shield')} <span>${topStatus}</span></span>
+                ${verificationBadge ? (
+                  verificationCompleted 
+                  ? `<span class="exam-verify-badge is-ok">${svg('shield')} Verified</span>`
+                  : `<span class="exam-verify-badge is-pending">${svg('shield')} Verify ID</span>`
+                ) : ''}
+              </div>
               ${myExamMenu}
             </div>
-          </div>
 
-          <div class="exam-card-code-row">
-            <span class="exam-code-pill exam-code-pill--primary"><span class="exam-code-pill-icon">${svg('calendar')}</span><span>${escapeHtml(exam.examCode)}</span></span>
-            <span class="exam-code-pill exam-code-pill--muted">${state.completed ? 'CLOSED' : state.live ? 'LIVE' : state.resumeEligible ? 'RESUME' : 'SCHEDULED'}</span>
-          </div>
-
-          ${verificationBadge ? (
-            verificationCompleted
-              ? `
-            <div class="exam-verify-banner exam-verify-banner--complete">
-              <div class="exam-verify-icon">${svg('shield')}</div>
-              <div class="exam-verify-copy">
-                <strong>Verification Completed</strong>
-                <span>You have already completed identity verification for this exam.</span>
-              </div>
-            </div>`
-              : `
-            <div class="exam-verify-banner" data-action="exam-start" data-code="${exam.examCode}">
-              <div class="exam-verify-icon">${svg('shield')}</div>
-              <div class="exam-verify-copy">
-                <strong>Verification Required</strong>
-                <span>Please complete identity verification to access this exam.</span>
-              </div>
-              <span class="exam-verify-chevron">${svg('chevron')}</span>
-            </div>`
-          ) : ''}
-
-          <div class="exam-attempts-panel ${state.completed ? 'is-closed' : state.resumeEligible ? 'is-resume' : 'is-open'}">
-            <div class="exam-attempts-icon">${svg('exams')}</div>
-            <div class="exam-attempts-copy">
-              <h4>Attempts: <strong>${attemptUsed}</strong> / ${attemptMax}</h4>
-              <p>${attemptRemaining > 0 ? `${attemptRemaining} ATTEMPTS LEFT` : 'NO ATTEMPTS LEFT'}</p>
+            <div class="exam-card-title-block">
+              <h3 class="exam-title">${escapeHtml(exam.title || 'Untitled Exam')}</h3>
+              <p class="exam-subject">
+                ${escapeHtml(exam.subject || 'Subject')}
+                <code class="exam-code-inline">${escapeHtml(exam.examCode)}</code>
+              </p>
             </div>
-            <div class="exam-attempts-ring" style="--attempt-pct:${attemptPercent}">
-              <div class="exam-attempts-ring-inner">
-                <strong>${Math.round(attemptPercent)}%</strong>
-                <span>USED</span>
+
+            <!-- Compact Meta Grid -->
+            <div class="exam-meta-grid">
+              <div class="exam-meta-box">
+                <span class="exam-meta-label">Attempts</span>
+                <strong class="exam-meta-value">${attemptUsed} / ${attemptMax}</strong>
+              </div>
+              <div class="exam-meta-box">
+                <span class="exam-meta-label">Start Time</span>
+                <strong class="exam-meta-value">${formatFullDateTime(startAt).replace(/, \d{4}/, '')}</strong>
+              </div>
+              <div class="exam-meta-box">
+                <span class="exam-meta-label">End Time</span>
+                <strong class="exam-meta-value">${formatFullDateTime(state.endAt).replace(/, \d{4}/, '')}</strong>
               </div>
             </div>
-          </div>
 
-          <div class="exam-schedule-grid">
-            <div class="exam-schedule-card">
-              <div class="exam-schedule-icon blue">${svg('calendar')}</div>
-              <span class="exam-schedule-label">START TIME</span>
-              <strong class="exam-schedule-value">${formatExamTime(exam)}</strong>
-              <span class="exam-schedule-sub">${examDate}</span>
+            <!-- Compact Footer Info & Actions -->
+            <div class="exam-footer-row">
+              <div class="exam-footer-state">
+                ${svg(state.completed ? 'lock' : state.live ? 'clock' : 'shield')}
+                <span>${footerTitle}</span>
+              </div>
+              <div class="exam-actions-shell ${view === 'my' ? 'exam-actions-shell--my' : 'exam-actions-shell--catalog'}">
+                ${view !== 'my' ? `
+                  <button class="btn ghost btn-sm" type="button" data-action="exam-detail" data-code="${exam.examCode}">Details</button>
+                ` : ''}
+                <button class="btn ${access.disabled ? 'ghost' : 'primary'} btn-sm" type="button" data-action="${access.action}" data-code="${exam.examCode}" ${access.disabled ? 'disabled aria-disabled="true"' : ''}>${escapeHtml(access.label)}</button>
+              </div>
             </div>
-            <div class="exam-schedule-card">
-              <div class="exam-schedule-icon indigo">${svg('clock')}</div>
-              <span class="exam-schedule-label">END TIME</span>
-              <strong class="exam-schedule-value">${new Date(state.endAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
-              <span class="exam-schedule-sub">${endDate}</span>
-            </div>
-            <div class="exam-schedule-card">
-              <div class="exam-schedule-icon green">${svg('lock')}</div>
-              <span class="exam-schedule-label">ACCESS</span>
-              <strong class="exam-schedule-value">${state.live ? 'Live' : state.expired ? 'Closed' : accessNote}</strong>
-              <span class="exam-schedule-sub">${accessNote}</span>
-            </div>
-          </div>
 
-          <div class="exam-footer-card">
-            <div class="exam-footer-icon">${svg(state.completed ? 'lock' : state.live ? 'clock' : 'shield')}</div>
-            <div class="exam-footer-copy">
-              <strong>${footerTitle}</strong>
-              <span>${footerBody}</span>
-            </div>
-          </div>
-
-          ${view === 'my' ? `
-            <div class="exam-actions-shell">
-              <button class="btn ghost" type="button" data-action="exam-detail" data-code="${exam.examCode}">Details</button>
-              <button class="btn primary" type="button" data-action="${access.action}" data-code="${exam.examCode}" ${access.disabled ? 'disabled aria-disabled="true"' : ''}>${escapeHtml(access.label)}</button>
-            </div>
-          ` : ''}
         </div>
       </article>`;
   }
@@ -2933,8 +2900,8 @@
             <span class="tag ${live ? 'success' : 'neutral'}">${live ? 'LIVE' : 'UPCOMING'}</span>
           </div>
           <div class="schedule-meta">
-            <span>${formatDate(state.startAt)}</span>
-            <span>${formatExamTime(exam)} - ${new Date(state.endAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <span>${formatFullDateTime(state.startAt)}</span>
+            <span>${formatFullDateTime(state.endAt)}</span>
             ${exam.location ? `<span>${escapeHtml(exam.location)}</span>` : '<span>Virtual room</span>'}
           </div>
           <div class="schedule-foot">
@@ -3019,44 +2986,97 @@
   function certificatePreviewMarkup(c) {
     const score = fmtScore(c.score);
     const issued = formatDate(c.issuedAt);
-    const verifiedLabel = c.revoked ? 'Revoked' : 'Verified';
     return `
       <div class="certificate-preview-artwork">
+        <!-- Corner brackets -->
+        <div class="corner-bracket top-left"></div>
+        <div class="corner-bracket top-right"></div>
+        <div class="corner-bracket bottom-left"></div>
+        <div class="corner-bracket bottom-right"></div>
+        
+        <!-- Dot grids -->
+        <div class="dot-grid left-grid"></div>
+        <div class="dot-grid right-grid"></div>
+        
+        <!-- Background waves SVG -->
+        <div class="wave-background">
+          <svg viewBox="0 0 200 400" preserveAspectRatio="none">
+            <path d="M120 0 C 150 100, 80 200, 160 300 T 120 400" fill="none" stroke="rgba(59, 48, 219, 0.04)" stroke-width="1.5"></path>
+            <path d="M140 0 C 170 100, 100 200, 180 300 T 140 400" fill="none" stroke="rgba(59, 48, 219, 0.04)" stroke-width="1.5"></path>
+            <path d="M160 0 C 190 100, 120 200, 200 300 T 160 400" fill="none" stroke="rgba(59, 48, 219, 0.04)" stroke-width="1.5"></path>
+          </svg>
+        </div>
+
         <div class="certificate-preview-topbar">
           <div class="certificate-brand-lockup">
-            <div class="certificate-brand-mark">SEM</div>
-            <div>
-              <strong>SMART EXAMINATION MONITOR</strong>
-              <span>Official Certificate Preview</span>
+            <div class="certificate-brand-logo">
+              <div class="logo-shield">
+                <span class="star">★</span>
+                <span class="dot"></span>
+              </div>
+            </div>
+            <div class="brand-text">
+              <strong class="brand-name">SEM</strong>
+              <span class="brand-title">SMART EXAM MONITOR</span>
+              <span class="brand-motto">Examine. Evaluate. Excel.</span>
             </div>
           </div>
-          <div class="certificate-status-pill ${c.revoked ? 'danger' : 'success'}">${verifiedLabel}</div>
-        </div>
-        <div class="certificate-preview-badge">Excellence in Online Assessment</div>
-        <div class="certificate-preview-title">
-          <span>Certificate</span>
-          <strong>of Completion</strong>
-        </div>
-        <p class="certificate-preview-subtitle">This certifies that</p>
-        <h2 class="certificate-preview-name">${escapeHtml(c.studentName || 'Student')}</h2>
-        <p class="certificate-preview-bodycopy">
-          has successfully completed the <strong>${escapeHtml(c.examTitle || c.examCode || 'Online Examination')}</strong>
-          conducted by <strong>Smart Examination Monitor</strong>.
-        </p>
-        <div class="certificate-preview-metrics">
-          <div><span>Exam</span><strong>${escapeHtml(c.examTitle || c.examCode || '-')}</strong></div>
-          <div><span>Score</span><strong>${score}%</strong></div>
-          <div><span>Grade</span><strong>${escapeHtml(c.grade || '-')}</strong></div>
-          <div><span>Issued</span><strong>${escapeHtml(issued)}</strong></div>
-        </div>
-        <div class="certificate-preview-footer">
-          <div class="certificate-preview-qr">
-            <span>QR</span>
-            <small>Verify online</small>
+          <div class="certificate-badge-pill">
+            <div class="badge-icon">★</div>
+            <div class="badge-copy">
+              <strong>EXAM COMPLETED</strong>
+              <span>Successfully Certified</span>
+            </div>
           </div>
-          <div class="certificate-preview-signature">
-            <span>SEM Admin</span>
-            <small>Chief Administrator, Smart Examination Monitor</small>
+        </div>
+
+        <div class="certificate-main-content">
+          <p class="certificate-preview-subtitle">This is to certify that</p>
+          <h2 class="certificate-preview-name">${escapeHtml(c.studentName || 'Student')}</h2>
+          
+          <div class="name-divider">
+            <span class="line"></span>
+            <span class="diamond">♦</span>
+            <span class="line"></span>
+          </div>
+
+          <div class="certificate-preview-title">
+            <span>Certificate of</span>
+            <strong>Excellence</strong>
+          </div>
+          
+          <p class="certificate-preview-bodycopy">
+            has successfully completed the examination in<br>
+            <strong class="subject-title">${escapeHtml(c.examTitle || c.examCode || 'Online Examination')}</strong><br>
+            with a score of <strong class="score-highlight">${score}/100</strong> on ${escapeHtml(issued)}
+          </p>
+
+          <div class="bottom-divider">
+            <span class="line"></span>
+            <span class="diamond">♦</span>
+            <span class="line"></span>
+          </div>
+        </div>
+
+        <div class="certificate-preview-footer">
+          <div class="certificate-footer-qr-col">
+            <div class="qr-box-wrapper">
+              <img src="/api/certificate/verify/${encodeURIComponent(c.certificateId)}/qr" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=verify:${c.certificateId}'" class="qr-image" alt="QR Code">
+            </div>
+            <small class="scan-verify-text">SCAN TO VERIFY</small>
+          </div>
+
+          <div class="certificate-footer-signature-col">
+            <span class="signature-cursive">Exam Authority</span>
+            <div class="signature-line"></div>
+            <span class="sign-title">EXAM AUTHORITY</span>
+            <small class="sign-subtitle">SEM Platform - Examinations</small>
+          </div>
+
+          <div class="certificate-footer-id-col">
+            <span class="id-label">CERTIFICATE ID</span>
+            <strong class="id-value">${escapeHtml(c.certificateId)}</strong>
+            <span class="issue-date-label">Issued: ${escapeHtml(issued)}</span>
           </div>
         </div>
       </div>`;

@@ -346,7 +346,7 @@ ensureAuthGuard();
     return "Processing...";
   };
   const startButtonBuffer = (btn, busyText = "Processing...") => {
-    if (!btn || btn.classList.contains("is-buffering")) return () => {};
+    if (!btn || btn.classList.contains("is-buffering")) return () => { };
     const prev = {
       html: btn.innerHTML,
       width: btn.style.width,
@@ -496,12 +496,12 @@ ensureAuthGuard();
 
   async function authFetch(path, options = {}, meta = {}) {
     const { silent = false } = meta;
-    
+
     try {
       // Use the centralized API utility
       // Some calls might expect the raw Response object (like for blob/text)
       const useRaw = meta.responseType && meta.responseType !== "auto" && meta.responseType !== "json";
-      
+
       const config = {
         ...options,
         raw: useRaw,
@@ -695,7 +695,7 @@ ensureAuthGuard();
     async certificateVerify(certificateId) {
       const response = await authFetch(`/api/certificate/verify/${encodeURIComponent(certificateId)}`, { method: "GET" }, { throwOnError: false, silent: true });
       let payload = {};
-      try { payload = await parseResponse(response, "json"); } catch (_e) {}
+      try { payload = await parseResponse(response, "json"); } catch (_e) { }
       return { status: response.status, ok: response.ok, payload };
     },
     async certificateRevoke(certificateId) {
@@ -866,7 +866,7 @@ ensureAuthGuard();
     state.data.notifications.unshift({ id: uid("n"), text });
     state.data.notifications = state.data.notifications.slice(0, 25);
     renderNotifications();
-    window.TeacherNotificationHub?.push?.(text)?.catch?.(() => {});
+    window.TeacherNotificationHub?.push?.(text)?.catch?.(() => { });
   }
 
   function openModal(contentHtml) {
@@ -882,6 +882,7 @@ ensureAuthGuard();
     dom.modalContainer.classList.remove("questions-modal-host");
     dom.modalContainer.classList.remove("evidence-modal-host");
     dom.modalContainer.classList.remove("certificate-modal-host");
+    dom.modalContainer.classList.remove("exam-modal-host");
     dom.modalContainer.classList.add("hidden");
     dom.modalContainer.innerHTML = "";
   }
@@ -962,7 +963,7 @@ ensureAuthGuard();
     if (sectionId === "analytics") {
       requestAnimationFrame(() => {
         renderAnalytics();
-      if (!state.data.analytics.summary && state.ui.analytics.examCode) loadAnalyticsData(false);
+        if (!state.data.analytics.summary && state.ui.analytics.examCode) loadAnalyticsData(false);
       });
     }
   }
@@ -1575,7 +1576,7 @@ ensureAuthGuard();
     `).join("");
   }
 
-    function renderDashboardFeeds() {
+  function renderDashboardFeeds() {
     if (dom.recentExamsBody) {
       const recent = [...state.data.exams].slice(0, 5);
       dom.recentExamsBody.innerHTML = recent.length ? recent.map((e) => `
@@ -1588,47 +1589,80 @@ ensureAuthGuard();
     const exams = filteredExams();
     const { rows, totalPages } = paginate(exams, "exams");
     const rowsHtml = rows.map((e) => {
-      const statusClass = e.status === "Published" ? "status-published" : "status-draft";
+    const statusClass = e.status === "Published" ? "status-published" : "status-draft";
+      const attemptCount = attemptsForExam(e).length;
+      const qCount = questionCount(e.id);
       return `
       <article class="exam-card" data-exam-card="${e.id}">
-        <div class="exam-card-top">
-          <span class="status-pill ${statusClass}">${e.status}</span>
-        </div>
 
-        <div class="exam-card-head">
-          <div class="exam-card-title-block">
-            <h3>${e.title}</h3>
-            <p>${e.subject || "General"} - ${e.examCode}</p>
-            ${e.questionsUploaded ? `<small><i class="fa-solid fa-circle-check"></i> Questions Uploaded (${questionCount(e.id)})</small>` : `<small><i class="fa-regular fa-clock"></i> Draft exam ready for questions</small>`}
+        <!-- ── TOP BAR ── -->
+        <div class="ec-top">
+          <div class="ec-top-left">
+            <span class="status-pill ${statusClass}">${e.status}</span>
+            ${e.questionsUploaded
+              ? `<span class="ec-q-badge ec-q-ok"><i class="fa-solid fa-circle-check"></i> ${qCount} Questions</span>`
+              : `<span class="ec-q-badge ec-q-pending"><i class="fa-regular fa-clock"></i> No Questions</span>`}
           </div>
-          <div class="exam-card-score">
+          <div class="ec-attempts-badge">
             <span>Attempts</span>
-            <strong>${attemptsForExam(e).length}</strong>
+            <strong>${attemptCount}</strong>
           </div>
         </div>
 
-        <div class="exam-card-meta">
-          <div class="exam-meta-item"><span>Exam Code</span><strong>${e.examCode}</strong></div>
-          <div class="exam-meta-item"><span>Created By</span><strong>${e.createdBy || state.teacher.name}</strong></div>
-          <div class="exam-meta-item"><span>Duration</span><strong>${e.duration} min</strong></div>
-          <div class="exam-meta-item"><span>Total Questions</span><strong>${questionCount(e.id)}</strong></div>
-          <div class="exam-meta-item"><span>Passing Marks</span><strong>${e.passingMarks}</strong></div>
-          <div class="exam-meta-item"><span>Created Date</span><strong>${fmtDateTime(e.createdDate || e.startTime)}</strong></div>
-          <div class="exam-meta-item"><span>Start Time</span><strong>${fmtDateTime(e.startTime)}</strong></div>
-          <div class="exam-meta-item"><span>End Time</span><strong>${fmtDateTime(e.endTime)}</strong></div>
+        <!-- ── TITLE ── -->
+        <div class="ec-title-row">
+          <div class="ec-title-block">
+            <h3 class="ec-title">${e.title}</h3>
+            <p class="ec-subtitle">${e.subject || "General"} &middot; <code class="ec-code-inline">${e.examCode}</code></p>
+          </div>
         </div>
 
-        <div class="exam-actions-inline exam-card-actions">
-          <button class="btn small action-primary" data-exam-action="view" data-id="${e.id}">View</button>
-          <button class="btn small action-outline" data-exam-action="analytics" data-id="${e.id}">Analytics</button>
-          <button class="btn small action-outline" data-exam-action="questions" data-id="${e.id}">Questions</button>
-          <button class="btn small action-outline" data-exam-action="attempts" data-id="${e.id}">Attempts</button>
+        <!-- ── META GRID ── -->
+        <div class="ec-meta">
+          <div class="ec-meta-item">
+            <span>Duration</span>
+            <strong>${e.duration} min</strong>
+          </div>
+          <div class="ec-meta-item">
+            <span>Pass Marks</span>
+            <strong>${e.passingMarks}</strong>
+          </div>
+          <div class="ec-meta-item">
+            <span>Marks/Q</span>
+            <strong>${e.marksPerQuestion || "—"}</strong>
+          </div>
+          <div class="ec-meta-item">
+            <span>Total Marks</span>
+            <strong>${e.totalMarks || "—"}</strong>
+          </div>
+        </div>
+
+        <!-- ── SCHEDULE ── -->
+        <div class="ec-schedule">
+          <div class="ec-schedule-item">
+            <span>Start</span>
+            <strong>${fmtDateTime(e.startTime)}</strong>
+          </div>
+          <div class="ec-schedule-sep">→</div>
+          <div class="ec-schedule-item">
+            <span>End</span>
+            <strong>${fmtDateTime(e.endTime)}</strong>
+          </div>
+        </div>
+
+        <!-- ── ACTIONS ── -->
+        <div class="ec-actions">
+          <button class="ec-btn-primary" data-exam-action="view" data-id="${e.id}">View</button>
+          <button class="ec-btn-outline" data-exam-action="analytics" data-id="${e.id}">Analytics</button>
+          <button class="ec-btn-outline" data-exam-action="questions" data-id="${e.id}">Questions</button>
+          <button class="ec-btn-outline" data-exam-action="attempts" data-id="${e.id}">Attempts</button>
           <div class="exam-more">
-            <button class="btn small action-more" data-exam-menu-toggle="${e.id}" aria-label="More actions" aria-expanded="${idKey(state.ui.openExamMenuId) === idKey(e.id) ? "true" : "false"}">
+            <button class="ec-btn-more" data-exam-menu-toggle="${e.id}" aria-label="More actions" aria-expanded="${idKey(state.ui.openExamMenuId) === idKey(e.id) ? "true" : "false"}">
               <i class="fa-solid fa-ellipsis-vertical"></i>
             </button>
           </div>
         </div>
+
       </article>`;
     }).join("");
     dom.examsCards.innerHTML = rowsHtml || `<div class="no-data exams-empty-state">No exams match your filters.</div>`;
@@ -1678,72 +1712,295 @@ ensureAuthGuard();
   function openExamFormModal(exam = null) {
     const isEdit = !!exam;
     const start = isEdit ? exam.startTime.slice(0, 16) : "";
-    const end = isEdit ? exam.endTime.slice(0, 16) : "";
+    const end   = isEdit ? exam.endTime.slice(0, 16) : "";
+
+    dom.modalContainer.classList.add("exam-modal-host");
     openModal(`
-      <div class="exam-create-wrap">
-        <h3>${isEdit ? "Edit Exam" : "Create New Exam"}</h3>
-        <p>${isEdit ? "Update exam details below." : "Fill details and create a draft first. Publish after uploading questions."}</p>
-        <div class="exam-stage-nav">
-          <button type="button" class="stage-chip is-active" data-stage-go="1">1. Basic</button>
-          <button type="button" class="stage-chip" data-stage-go="2">2. Marks</button>
-          <button type="button" class="stage-chip" data-stage-go="3">3. Schedule</button>
+      <div class="ecm-shell">
+
+        <!-- ── LEFT INFO PANEL ── -->
+        <div class="ecm-left" id="ecmLeft">
+          <div class="ecm-left-inner">
+            <div class="ecm-stage-badge" id="ecmStageBadge">1 / 4</div>
+            <div class="ecm-left-icon" id="ecmLeftIcon">📋</div>
+            <h2 class="ecm-left-title" id="ecmLeftTitle">Basic Info</h2>
+            <p class="ecm-left-desc" id="ecmLeftDesc">Give your exam a clear title, subject and description so students know exactly what to expect.</p>
+            <ul class="ecm-tips" id="ecmTips">
+              <li>Use a descriptive title like "CS101 – Mid-Term 2025"</li>
+              <li>Set a realistic duration (most exams: 60–120 min)</li>
+              <li>Write a brief description of topics covered</li>
+            </ul>
+            <div class="ecm-left-dots">
+              <span class="ecm-dot is-active" data-dot="1"></span>
+              <span class="ecm-dot" data-dot="2"></span>
+              <span class="ecm-dot" data-dot="3"></span>
+              <span class="ecm-dot" data-dot="4"></span>
+            </div>
+          </div>
         </div>
-        <form id="examHoverForm" class="exam-form-grid">
-          <div class="exam-stage-pane is-active" data-stage="1">
-            <div class="exam-form-title">Basic Information</div>
-            <label class="wide">Title<input id="mxTitle" class="form-control-like" value="${isEdit ? exam.title : ""}" required></label>
-            <label>Subject<input id="mxSubject" class="form-control-like" value="${isEdit ? exam.subject : ""}" required></label>
-            <label>Duration (min)<input id="mxDuration" class="form-control-like" type="number" min="1" value="${isEdit ? exam.duration : 90}" required></label>
-            <label class="wide">Description<textarea id="mxDescription" class="form-control-like" rows="3" required>${isEdit ? exam.description : ""}</textarea></label>
+
+        <!-- ── RIGHT FORM PANEL ── -->
+        <div class="ecm-right">
+          <!-- Header -->
+          <div class="ecm-right-header">
+            <div>
+              <h3 class="ecm-right-title">${isEdit ? "Edit Exam" : "Create New Exam"}</h3>
+              <p class="ecm-right-sub">${isEdit ? "Update exam details below." : "Fill in all four stages, then create a draft."}</p>
+            </div>
+            <button type="button" class="ecm-close-btn" id="mxCancel" title="Close">&#10005;</button>
           </div>
 
-          <div class="exam-stage-pane" data-stage="2">
-            <div class="exam-form-title">Marks & Attempts</div>
-            <label>Total Marks<input id="mxTotalMarks" class="form-control-like" type="number" min="1" value="${isEdit ? exam.totalMarks : 100}" required></label>
-            <label>Passing Marks<input id="mxPassingMarks" class="form-control-like" type="number" min="0" value="${isEdit ? exam.passingMarks : 40}" required></label>
-            <label>Max Attempts<input id="mxMaxAttempts" class="form-control-like" type="number" min="1" value="${isEdit ? exam.maxAttempts : 1}" required></label>
-            <label>Marks Per Question<input id="mxMarksPerQuestion" class="form-control-like" type="number" min="1" value="${isEdit ? exam.marksPerQuestion : 2}" required></label>
-            <label>Negative Marks<input id="mxNegativeMarks" class="form-control-like" type="number" min="0" value="${isEdit ? exam.negativeMarks : 0}" required></label>
-            <div class="exam-form-title">Difficulty Distribution</div>
-            <label>Easy Count<input id="mxEasyCount" class="form-control-like" type="number" min="0" value="${isEdit ? exam.easyCount : 0}" required></label>
-            <label>Medium Count<input id="mxMediumCount" class="form-control-like" type="number" min="0" value="${isEdit ? exam.mediumCount : 0}" required></label>
-            <label>Hard Count<input id="mxHardCount" class="form-control-like" type="number" min="0" value="${isEdit ? exam.hardCount : 0}" required></label>
+          <!-- Stage Nav -->
+          <div class="exam-stage-nav ecm-stage-nav">
+            <button type="button" class="stage-chip is-active" data-stage-go="1">
+              <span class="stage-num">1</span>
+              <span class="stage-label">Basic</span>
+            </button>
+            <div class="stage-line"></div>
+            <button type="button" class="stage-chip" data-stage-go="2">
+              <span class="stage-num">2</span>
+              <span class="stage-label">Marks</span>
+            </button>
+            <div class="stage-line"></div>
+            <button type="button" class="stage-chip" data-stage-go="3">
+              <span class="stage-num">3</span>
+              <span class="stage-label">Schedule</span>
+            </button>
+            <div class="stage-line"></div>
+            <button type="button" class="stage-chip" data-stage-go="4">
+              <span class="stage-num">4</span>
+              <span class="stage-label">Options</span>
+            </button>
           </div>
 
-          <div class="exam-stage-pane" data-stage="3">
-            <div class="exam-form-title">Schedule & Options</div>
-            <label>Start Date &amp; Time<input id="mxStartTime" class="form-control-like" type="datetime-local" value="${start}" required></label>
-            <label>End Date &amp; Time<input id="mxEndTime" class="form-control-like" type="datetime-local" value="${end}" required></label>
-            <label class="toggle wide">Shuffle Questions<input id="mxShuffleQuestions" type="checkbox" ${isEdit && exam.shuffleQuestions ? "checked" : ""}><span></span></label>
-            <label class="toggle wide">Shuffle Options<input id="mxShuffleOptions" type="checkbox" ${isEdit && exam.shuffleOptions ? "checked" : ""}><span></span></label>
+          <!-- Form panes -->
+          <form id="examHoverForm" class="ecm-form">
+
+            <!-- Stage 1: Basic -->
+            <div class="ecm-pane is-active" data-stage="1">
+              <div class="ecm-field-group">
+                <label class="ecm-label ecm-full">
+                  <span>Exam Title</span>
+                  <input id="mxTitle" class="ecm-input" placeholder="e.g. CS101 – Mid-Term 2025" value="${isEdit ? exam.title : ""}" required>
+                </label>
+                <label class="ecm-label">
+                  <span>Subject</span>
+                  <input id="mxSubject" class="ecm-input" placeholder="e.g. Computer Science" value="${isEdit ? exam.subject : ""}" required>
+                </label>
+                <label class="ecm-label">
+                  <span>Duration (min)</span>
+                  <input id="mxDuration" class="ecm-input" type="number" min="1" placeholder="90" value="${isEdit ? exam.duration : 90}" required>
+                </label>
+                <label class="ecm-label ecm-full">
+                  <span>Description</span>
+                  <textarea id="mxDescription" class="ecm-input ecm-textarea" rows="4" placeholder="Brief description of topics, rules and instructions…" required>${isEdit ? exam.description : ""}</textarea>
+                </label>
+              </div>
+            </div>
+
+            <!-- Stage 2: Marks -->
+            <div class="ecm-pane" data-stage="2">
+              <div class="ecm-section-label">Marks &amp; Attempts</div>
+              <div class="ecm-field-group">
+                <label class="ecm-label">
+                  <span>Total Marks</span>
+                  <input id="mxTotalMarks" class="ecm-input" type="number" min="1" value="${isEdit ? exam.totalMarks : 100}" required>
+                </label>
+                <label class="ecm-label">
+                  <span>Passing Marks</span>
+                  <input id="mxPassingMarks" class="ecm-input" type="number" min="0" value="${isEdit ? exam.passingMarks : 40}" required>
+                </label>
+                <label class="ecm-label">
+                  <span>Max Attempts</span>
+                  <input id="mxMaxAttempts" class="ecm-input" type="number" min="1" value="${isEdit ? exam.maxAttempts : 1}" required>
+                </label>
+                <label class="ecm-label">
+                  <span>Marks Per Question</span>
+                  <input id="mxMarksPerQuestion" class="ecm-input" type="number" min="1" value="${isEdit ? exam.marksPerQuestion : 2}" required>
+                </label>
+                <label class="ecm-label">
+                  <span>Negative Marks</span>
+                  <input id="mxNegativeMarks" class="ecm-input" type="number" min="0" value="${isEdit ? exam.negativeMarks : 0}" required>
+                </label>
+              </div>
+              <div class="ecm-section-label">Difficulty Distribution</div>
+              <div class="ecm-field-group">
+                <label class="ecm-label">
+                  <span>Easy Questions</span>
+                  <input id="mxEasyCount" class="ecm-input" type="number" min="0" value="${isEdit ? exam.easyCount : 0}" required>
+                </label>
+                <label class="ecm-label">
+                  <span>Medium Questions</span>
+                  <input id="mxMediumCount" class="ecm-input" type="number" min="0" value="${isEdit ? exam.mediumCount : 0}" required>
+                </label>
+                <label class="ecm-label">
+                  <span>Hard Questions</span>
+                  <input id="mxHardCount" class="ecm-input" type="number" min="0" value="${isEdit ? exam.hardCount : 0}" required>
+                </label>
+              </div>
+            </div>
+
+            <!-- Stage 3: Schedule -->
+            <div class="ecm-pane" data-stage="3">
+              <div class="ecm-field-group">
+                <label class="ecm-label ecm-full">
+                  <span>Start Date &amp; Time</span>
+                  <input id="mxStartTime" class="ecm-input" type="datetime-local" value="${start}" required>
+                </label>
+                <label class="ecm-label ecm-full">
+                  <span>End Date &amp; Time</span>
+                  <input id="mxEndTime" class="ecm-input" type="datetime-local" value="${end}" required>
+                </label>
+                <div class="ecm-schedule-hint">
+                  <span class="ecm-hint-icon">ℹ️</span>
+                  <span>Students can only access the exam within the scheduled window. The exam auto-submits when time expires.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stage 4: Options -->
+            <div class="ecm-pane" data-stage="4">
+              <div class="ecm-section-label">Randomisation</div>
+              <div class="ecm-toggle-group">
+                <div class="ecm-toggle-card">
+                  <div class="ecm-toggle-info">
+                    <span class="ecm-toggle-icon">🔀</span>
+                    <div>
+                      <strong>Shuffle Questions</strong>
+                      <small>Every student gets a unique question order</small>
+                    </div>
+                  </div>
+                  <label class="ecm-switch">
+                    <input id="mxShuffleQuestions" type="checkbox" ${isEdit && exam.shuffleQuestions ? "checked" : ""}>
+                    <span class="ecm-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ecm-toggle-card">
+                  <div class="ecm-toggle-info">
+                    <span class="ecm-toggle-icon">🎲</span>
+                    <div>
+                      <strong>Shuffle Options</strong>
+                      <small>MCQ answer choices are randomised per student</small>
+                    </div>
+                  </div>
+                  <label class="ecm-switch">
+                    <input id="mxShuffleOptions" type="checkbox" ${isEdit && exam.shuffleOptions ? "checked" : ""}>
+                    <span class="ecm-switch-track"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="ecm-section-label">Default Exam Settings</div>
+              <div class="ecm-info-tiles">
+                <div class="ecm-info-tile">
+                  <span>🔒</span>
+                  <div>
+                    <strong>Proctored Mode</strong>
+                    <small>Webcam + tab-switch monitoring active</small>
+                  </div>
+                </div>
+                <div class="ecm-info-tile">
+                  <span>⏱️</span>
+                  <div>
+                    <strong>Auto-Submit</strong>
+                    <small>Submits automatically when time expires</small>
+                  </div>
+                </div>
+                <div class="ecm-info-tile">
+                  <span>📊</span>
+                  <div>
+                    <strong>Instant Results</strong>
+                    <small>Students see scores right after submission</small>
+                  </div>
+                </div>
+                <div class="ecm-info-tile">
+                  <span>🏅</span>
+                  <div>
+                    <strong>Auto Certificate</strong>
+                    <small>Issued automatically on passing</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </form>
+
+          <!-- Footer actions -->
+          <div class="ecm-footer">
+            <div class="ecm-footer-nav">
+              <button id="mxPrev" type="button" class="ecm-nav-btn">&#8592; Previous</button>
+              <button id="mxNext" type="button" class="ecm-nav-btn ecm-nav-next">Next &#8594;</button>
+            </div>
+            <div class="ecm-footer-actions">
+              <button id="mxDraft" type="button" class="btn ghost">Save Draft</button>
+              <button id="mxPublish" type="button" class="btn primary">${isEdit ? "Update / Publish" : "Create Draft"}</button>
+            </div>
           </div>
-        </form>
-        <div class="exam-stage-actions">
-          <button id="mxPrev" type="button" class="btn ghost">Previous</button>
-          <button id="mxNext" type="button" class="btn ghost">Next</button>
         </div>
-      </div>
-      <div class="actions exam-create-actions">
-        <button id="mxCancel" type="button" class="btn ghost">Cancel</button>
-        <button id="mxDraft" type="button" class="btn ghost">Save Draft</button>
-        <button id="mxPublish" type="button" class="btn primary">${isEdit ? "Update / Publish" : "Create Draft"}</button>
       </div>
     `);
+
+    // ── Stage data for left panel ──
+    const STAGE_META = [
+      {
+        icon: "📋", title: "Basic Info", badge: "1 / 4",
+        desc: "Give your exam a clear title, subject and description so students know exactly what to expect.",
+        tips: ["Use a descriptive title like 'CS101 – Mid-Term 2025'", "Set a realistic duration (most exams: 60–120 min)", "Write a brief summary of topics covered"]
+      },
+      {
+        icon: "📊", title: "Marks & Scoring", badge: "2 / 4",
+        desc: "Define the scoring rules, passing threshold, and how many attempts students are allowed.",
+        tips: ["Passing marks should be 30–50% of total", "Enable negative marking to discourage guessing", "Balance difficulty: aim for 40% Easy, 40% Medium, 20% Hard"]
+      },
+      {
+        icon: "📅", title: "Schedule", badge: "3 / 4",
+        desc: "Set the exact window during which students can start the exam. It auto-submits at the end time.",
+        tips: ["Allow at least 15 min buffer before start", "Ensure end time > start time + duration", "Avoid scheduling during system maintenance windows"]
+      },
+      {
+        icon: "⚙️", title: "Options", badge: "4 / 4",
+        desc: "Configure randomisation, proctoring, and review which default features are enabled for every exam.",
+        tips: ["Shuffle both questions and options to reduce cheating", "Proctoring and auto-submit are always on", "Certificates are issued automatically on pass"]
+      }
+    ];
+
     let currentStage = 1;
     const syncStage = () => {
-      document.querySelectorAll(".exam-stage-pane").forEach((pane) => pane.classList.toggle("is-active", Number(pane.dataset.stage) === currentStage));
-      document.querySelectorAll(".stage-chip").forEach((chip) => chip.classList.toggle("is-active", Number(chip.dataset.stageGo) === currentStage));
-      document.getElementById("mxPrev").disabled = currentStage === 1;
-      document.getElementById("mxNext").disabled = currentStage === 3;
-    };
-    document.getElementById("mxPrev").addEventListener("click", () => { currentStage = Math.max(1, currentStage - 1); syncStage(); });
-    document.getElementById("mxNext").addEventListener("click", () => { currentStage = Math.min(3, currentStage + 1); syncStage(); });
-    document.querySelectorAll(".stage-chip").forEach((chip) => {
-      chip.addEventListener("click", () => {
-        currentStage = Number(chip.dataset.stageGo);
-        syncStage();
+      const meta = STAGE_META[currentStage - 1];
+      // Update left panel
+      document.getElementById("ecmStageBadge").textContent = meta.badge;
+      document.getElementById("ecmLeftIcon").textContent = meta.icon;
+      document.getElementById("ecmLeftTitle").textContent = meta.title;
+      document.getElementById("ecmLeftDesc").textContent = meta.desc;
+      document.getElementById("ecmTips").innerHTML = meta.tips.map(t => `<li>${t}</li>`).join("");
+      document.querySelectorAll(".ecm-dot").forEach(d => d.classList.toggle("is-active", Number(d.dataset.dot) === currentStage));
+      // Left panel accent colour per stage
+      const leftPanel = document.getElementById("ecmLeft");
+      leftPanel.dataset.stage = currentStage;
+
+      // Update panes
+      document.querySelectorAll(".ecm-pane").forEach(p => p.classList.toggle("is-active", Number(p.dataset.stage) === currentStage));
+      // Update chips
+      document.querySelectorAll(".stage-chip").forEach(chip => {
+        const n = Number(chip.dataset.stageGo);
+        chip.classList.toggle("is-active", n === currentStage);
+        const isCompleted = n < currentStage;
+        chip.classList.toggle("is-completed", isCompleted);
+        const numEl = chip.querySelector(".stage-num");
+        if (numEl) numEl.innerHTML = isCompleted ? "&#10003;" : String(n);
       });
+      // Fill lines
+      document.querySelectorAll(".stage-line").forEach((line, idx) => line.classList.toggle("is-filled", idx + 1 < currentStage));
+      // Nav buttons
+      document.getElementById("mxPrev").disabled = currentStage === 1;
+      document.getElementById("mxNext").disabled = currentStage === 4;
+    };
+
+    document.getElementById("mxPrev").addEventListener("click", () => { currentStage = Math.max(1, currentStage - 1); syncStage(); });
+    document.getElementById("mxNext").addEventListener("click", () => { currentStage = Math.min(4, currentStage + 1); syncStage(); });
+    document.querySelectorAll(".stage-chip").forEach(chip => {
+      chip.addEventListener("click", () => { currentStage = Number(chip.dataset.stageGo); syncStage(); });
     });
+
     const publishBtn = document.getElementById("mxPublish");
     const requiredFieldIds = [
       "mxTitle", "mxSubject", "mxDescription", "mxDuration",
@@ -1752,39 +2009,28 @@ ensureAuthGuard();
       "mxStartTime", "mxEndTime"
     ];
     const validateCreateForm = () => {
-      const allFilled = requiredFieldIds.every((id) => {
-        const el = document.getElementById(id);
-        return !!el && String(el.value).trim() !== "";
-      });
+      const allFilled = requiredFieldIds.every(id => { const el = document.getElementById(id); return !!el && String(el.value).trim() !== ""; });
       const startVal = document.getElementById("mxStartTime").value;
-      const endVal = document.getElementById("mxEndTime").value;
+      const endVal   = document.getElementById("mxEndTime").value;
       const startDate = startVal ? new Date(startVal) : null;
-      const endDate = endVal ? new Date(endVal) : null;
-      const validRange = Boolean(
-        startDate &&
-        endDate &&
-        !Number.isNaN(startDate.getTime()) &&
-        !Number.isNaN(endDate.getTime()) &&
-        endDate.getTime() > startDate.getTime()
-      );
+      const endDate   = endVal   ? new Date(endVal)   : null;
+      const validRange = Boolean(startDate && endDate && !Number.isNaN(startDate.getTime()) && !Number.isNaN(endDate.getTime()) && endDate.getTime() > startDate.getTime());
       publishBtn.disabled = !(allFilled && validRange);
     };
-    requiredFieldIds.forEach((id) => {
+    requiredFieldIds.forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
       el.addEventListener("input", validateCreateForm);
       el.addEventListener("change", validateCreateForm);
     });
+
     syncStage();
     validateCreateForm();
     document.getElementById("mxCancel").addEventListener("click", closeModal);
-    document.getElementById("mxDraft").addEventListener("click", async () => {
-      await submitExamFromModal("Draft", exam?.id || null);
-    });
-    document.getElementById("mxPublish").addEventListener("click", async () => {
-      await submitExamFromModal(isEdit ? "Published" : "Draft", exam?.id || null);
-    });
+    document.getElementById("mxDraft").addEventListener("click", async () => { await submitExamFromModal("Draft", exam?.id || null); });
+    document.getElementById("mxPublish").addEventListener("click", async () => { await submitExamFromModal(isEdit ? "Published" : "Draft", exam?.id || null); });
   }
+
 
   async function submitExamFromModal(status, examId = null) {
     if (examModalSubmitting) {
@@ -2166,161 +2412,204 @@ ensureAuthGuard();
         sampleOutput: q.sampleOutput,
         examCode: exam.examCode
       }, index, exam.examCode));
-    const rawTable = rawRows.length
-      ? `<div class="questions-table-wrap raw-scroll" data-preview-kind="raw">
-          <table>
-            <thead><tr>${rawHeaders.map((h) => `<th title="${escapeHtml(h)}">${escapeHtml(h)}</th>`).join("")}</tr></thead>
-            <tbody>${rawRows.map((r, rowIndex) => `<tr data-row-label="Row ${rowIndex + 2}">${rawHeaders.map((h) => {
-              const value = normalizeDisplayText(r[h] ?? "");
-              return `<td title="${escapeHtml(value)}">${escapeHtml(value)}</td>`;
-            }).join("")}</tr>`).join("")}</tbody>
-          </table>
-        </div>`
-      : "";
-    const mappedTable = `<div class="questions-table-wrap mapped-scroll" data-preview-kind="mapped">
-      <table>
-        <thead><tr><th>Question</th><th>Type</th><th>Marks</th><th>Difficulty</th><th>Topic</th></tr></thead>
-        <tbody>
-          ${rows.length ? rows.map((q, index) => {
-            const cells = [
-              normalizeDisplayText(q.questionText || q.text),
-              normalizeDisplayText(q.questionType || q.type),
-              normalizeDisplayText(q.marks),
-              normalizeDisplayText(q.difficulty),
-              normalizeDisplayText(q.topic)
-            ];
-            return `<tr data-row-label="Question ${index + 1}">${cells.map((value) => `<td title="${escapeHtml(value)}">${escapeHtml(value)}</td>`).join("")}</tr>`;
-          }).join("") : `<tr><td colspan="5"><div class="no-data">No uploaded questions found for this exam.</div></td></tr>`}
-        </tbody>
-      </table>
-    </div>`;
+    // Build accordion-style question list
+    const diffColor = (d) => {
+      if (!d) return "#6b7280";
+      const dl = d.toLowerCase();
+      if (dl === "easy") return "#10b981";
+      if (dl === "medium") return "#f59e0b";
+      if (dl === "hard") return "#ef4444";
+      return "#6b7280";
+    };
+    const typeIcon = (t) => {
+      const tl = String(t || "").toLowerCase();
+      if (tl === "mcq") return "🔵";
+      if (tl === "true/false" || tl === "tf" || tl === "truefalse") return "✅";
+      if (tl.includes("code") || tl.includes("program")) return "💻";
+      return "📝";
+    };
+    const optionLabels = ["A", "B", "C", "D", "E", "F"];
+    const optionKeys  = ["optionA","optionB","optionC","optionD","optionE","optionF"];
+
+    const accordionItems = rows.map((q, index) => {
+      const qText   = normalizeDisplayText(q.questionText || q.text || "");
+      const qType   = normalizeDisplayText(q.questionType || q.type || "MCQ");
+      const qMarks  = normalizeDisplayText(q.marks || "");
+      const qDiff   = normalizeDisplayText(q.difficulty || "");
+      const qTopic  = normalizeDisplayText(q.topic || "");
+      const correct = normalizeDisplayText(q.correctAnswer || q.answer || "");
+      const qNum    = index + 1;
+
+      // Collect options
+      const optionsHtml = optionKeys.map((k, i) => {
+        const val = normalizeDisplayText(q[k] || "");
+        if (!val) return "";
+        const isCorrect = correct.trim().toUpperCase() === optionLabels[i] ||
+                          (correct.trim().length > 2 && correct.trim().toLowerCase() === val.toLowerCase());
+        return `<div class="qac-option ${isCorrect ? "is-correct" : ""}">
+          <span class="qac-opt-label">${optionLabels[i]}</span>
+          <span class="qac-opt-text">${escapeHtml(val)}</span>
+          ${isCorrect ? '<span class="qac-tick">✓</span>' : ""}
+        </div>`;
+      }).filter(Boolean).join("");
+
+      // True/False or code question fallback
+      const answersSection = optionsHtml
+        ? `<div class="qac-options">${optionsHtml}</div>`
+        : correct
+          ? `<div class="qac-direct-answer"><span>Answer:</span><strong>${escapeHtml(correct)}</strong></div>`
+          : "";
+
+      return `
+        <div class="qac-item" id="qac-item-${qNum}" data-index="${qNum}">
+          <button type="button" class="qac-header" aria-expanded="false" data-target="qac-body-${qNum}">
+            <span class="qac-num">${qNum}</span>
+            <span class="qac-type-icon">${typeIcon(qType)}</span>
+            <span class="qac-q-text">${escapeHtml(qText || "—")}</span>
+            <div class="qac-chips">
+              <span class="qac-chip" style="color:${diffColor(qDiff)};border-color:${diffColor(qDiff)}20;background:${diffColor(qDiff)}12">${escapeHtml(qDiff) || "?"}</span>
+              <span class="qac-chip">${escapeHtml(qType) || "?"}</span>
+              ${qMarks ? `<span class="qac-chip">⭐ ${escapeHtml(qMarks)}</span>` : ""}
+            </div>
+            <span class="qac-chevron">▾</span>
+          </button>
+          <div class="qac-body" id="qac-body-${qNum}" hidden>
+            <div class="qac-body-inner">
+              ${qTopic || correct ? `
+              <div class="qac-meta-row">
+                ${qTopic ? `<span class="qac-meta-pill">📚 ${escapeHtml(qTopic)}</span>` : ""}
+                ${qDiff  ? `<span class="qac-meta-pill" style="color:${diffColor(qDiff)}">● ${escapeHtml(qDiff)}</span>` : ""}
+                ${qMarks ? `<span class="qac-meta-pill">⭐ ${escapeHtml(qMarks)} mark${Number(qMarks)===1?"":"s"}</span>` : ""}
+                ${correct && !optionsHtml ? "" : correct ? `<span class="qac-meta-pill is-answer">✓ ${escapeHtml(correct)}</span>` : ""}
+              </div>` : ""}
+              ${answersSection}
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+
+    const accordionHtml = rows.length
+      ? `<div class="qac-list">${accordionItems}</div>`
+      : `<div class="qac-empty"><div class="qac-empty-icon">📭</div><p>No questions uploaded for this exam yet.</p></div>`;
+
     openModal(`
-      <div class="questions-modal">
-        <div class="questions-modal-head">
-          <div>
-            <h3>Questions - ${exam.examCode}</h3>
-            <p>${sourceLabel}</p>
+      <div class="questions-modal qm-v2">
+        <div class="qm-header">
+          <div class="qm-header-left">
+            <div class="qm-header-icon">📝</div>
+            <div>
+              <h3>Questions</h3>
+              <p>${escapeHtml(exam.examCode)} · ${sourceLabel}</p>
+            </div>
           </div>
-          <button id="qpCloseIcon" class="upload-close" aria-label="Close">&times;</button>
-        </div>
-        <div class="questions-modal-body">
-          <div class="questions-hover-inspector is-empty" id="questionsHoverInspector">
-            <div class="questions-hover-head">
-              <strong>Hover a row to inspect the full data</strong>
-              <span>${rawRows.length ? `${rawRows.length} raw rows` : "No raw sheet data"}</span>
-            </div>
-            <div class="questions-hover-empty">Move your pointer over any question row and weÃ¢â‚¬â„¢ll show every column here, including values hidden off to the right.</div>
-          </div>
-          ${rawRows.length ? `
-            <div class="questions-block">
-              <div class="questions-block-head">
-                <strong>File Data Preview</strong>
-                <span>${rawRows.length} rows</span>
-              </div>
-              ${rawTable}
-            </div>
-          ` : ""}
-          <div class="questions-block">
-            <div class="questions-block-head">
-              <strong>Mapped Questions</strong>
-              <span>${rows.length} questions</span>
-            </div>
-            ${mappedTable}
+          <div class="qm-header-right">
+            <span class="qm-count-badge">${rows.length} Questions</span>
+            <button id="qpCloseIcon" class="upload-close" aria-label="Close">&times;</button>
           </div>
         </div>
-        <div class="actions questions-modal-actions">
+
+        <div class="qm-toolbar">
+          <input type="text" id="qmSearch" class="qm-search" placeholder="🔍  Search questions…">
+          <div class="qm-filter-chips">
+            <button class="qm-filter active" data-diff="all">All</button>
+            <button class="qm-filter" data-diff="easy" style="color:#10b981">Easy</button>
+            <button class="qm-filter" data-diff="medium" style="color:#f59e0b">Medium</button>
+            <button class="qm-filter" data-diff="hard" style="color:#ef4444">Hard</button>
+          </div>
+          <button class="qm-expand-all" id="qmExpandAll">Expand All</button>
+        </div>
+
+        <div class="qm-body" id="qmBody">
+          ${accordionHtml}
+        </div>
+
+        <div class="qm-footer">
+          <span class="qm-footer-info">${rows.length} questions · Click any row to expand</span>
           <button id="qpClose" class="btn ghost">Close</button>
         </div>
       </div>
     `);
+
     setupQuestionsTableScrollbars();
     dom.modalContainer.classList.add("questions-modal-host");
-    const inspector = document.getElementById("questionsHoverInspector");
-    const setInspector = (label, entries) => {
-      if (!inspector) return;
-      const safeLabel = normalizeDisplayText(label || "Row preview");
-      const questionText = entries.find(([heading]) => String(heading || "").toLowerCase() === "questiontext")?.[1]
-        || entries.find(([heading]) => String(heading || "").toLowerCase() === "question")?.[1]
-        || "";
-      const metaKeys = new Set(["examcode", "questiontype", "difficulty", "marks", "topic"]);
-      const answerKeys = new Set(["optiona", "optionb", "optionc", "optiond", "optione", "optionf", "correctanswer", "sampleinput", "sampleoutput"]);
-      const meta = entries.filter(([heading]) => metaKeys.has(String(heading || "").toLowerCase()));
-      const answers = entries.filter(([heading]) => answerKeys.has(String(heading || "").toLowerCase()));
-      const extra = entries.filter(([heading]) => !metaKeys.has(String(heading || "").toLowerCase()) && !answerKeys.has(String(heading || "").toLowerCase()) && String(heading || "").toLowerCase() !== "questiontext" && String(heading || "").toLowerCase() !== "question");
 
-      inspector.classList.remove("is-empty");
-      inspector.innerHTML = `
-        <div class="questions-hover-head">
-          <div class="questions-hover-head-copy">
-            <strong>${escapeHtml(safeLabel)}</strong>
-            <div class="questions-hover-subtitle">${escapeHtml(normalizeDisplayText(questionText) || "Previewing the selected row.")}</div>
-          </div>
-          <div class="questions-hover-badges">
-            <span class="questions-hover-badge">${entries.length} fields</span>
-            <span class="questions-hover-badge">${meta.length} meta</span>
-            <span class="questions-hover-badge">${answers.length} answers</span>
-          </div>
-        </div>
-        <div class="questions-hover-stack">
-          ${questionText ? `
-            <section class="questions-hover-section questions-hover-section-wide">
-              <div class="questions-hover-section-title">Question</div>
-              <div class="questions-hover-hero">${escapeHtml(normalizeDisplayText(questionText))}</div>
-            </section>
-          ` : ""}
-          ${meta.length ? `
-            <section class="questions-hover-section">
-              <div class="questions-hover-section-title">Quick info</div>
-              <div class="questions-hover-grid questions-hover-grid-meta">${meta.map(([heading, value], idx) => `<div class="questions-hover-item ${idx === 0 ? "is-primary" : ""}"><span>${escapeHtml(heading)}</span><strong>${escapeHtml(normalizeDisplayText(value) || "?")}</strong></div>`).join("")}</div>
-            </section>
-          ` : ""}
-          ${answers.length ? `
-            <section class="questions-hover-section">
-              <div class="questions-hover-section-title">Answers and options</div>
-              <div class="questions-hover-grid questions-hover-grid-answers">${answers.map(([heading, value]) => `<div class="questions-hover-item"><span>${escapeHtml(heading)}</span><strong>${escapeHtml(normalizeDisplayText(value) || "?")}</strong></div>`).join("")}</div>
-            </section>
-          ` : ""}
-          ${extra.length ? `
-            <section class="questions-hover-section">
-              <div class="questions-hover-section-title">More fields</div>
-              <div class="questions-hover-grid questions-hover-grid-extra">${extra.map(([heading, value]) => `<div class="questions-hover-item"><span>${escapeHtml(heading)}</span><strong>${escapeHtml(normalizeDisplayText(value) || "?")}</strong></div>`).join("")}</div>
-            </section>
-          ` : ""}
-        </div>
-      `;
-    };
-    const resetInspector = () => {
-      if (!inspector) return;
-      inspector.classList.add("is-empty");
-      inspector.innerHTML = `
-        <div class="questions-hover-head">
-          <div class="questions-hover-head-copy">
-            <strong>Hover a row to inspect the full data</strong>
-            <div class="questions-hover-subtitle">${rawRows.length ? `${rawRows.length} raw rows available for preview` : "No raw sheet data is available yet"}</div>
-          </div>
-          <div class="questions-hover-badges">
-            <span class="questions-hover-badge">${backendQuestions.length ? "Fetched" : "Cached"}</span>
-            <span class="questions-hover-badge">${rawRows.length ? `${rawRows.length} rows` : `${rows.length} questions`}</span>
-          </div>
-        </div>
-        <div class="questions-hover-empty">Move your pointer over any row and the full record will appear here in grouped cards.</div>
-      `;
-    };
-    const bindHoverPreview = (selector, headers) => {
-      const wrap = document.querySelector(selector);
-      if (!wrap) return;
-      const bodyRows = wrap.querySelectorAll("tbody tr");
-      bodyRows.forEach((tr) => {
-        tr.addEventListener("mouseenter", () => {
-          const cells = Array.from(tr.querySelectorAll("td")).map((td, index) => [headers[index] || `Column ${index + 1}`, td.textContent || ""]);
-          setInspector(tr.dataset.rowLabel || "Row preview", cells);
+    // ── Accordion toggle (only one open at a time) ──
+    let lastOpen = null;
+    document.querySelectorAll(".qac-header").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const bodyId = btn.dataset.target;
+        const body   = document.getElementById(bodyId);
+        const item   = btn.closest(".qac-item");
+        const isOpen = btn.getAttribute("aria-expanded") === "true";
+
+        // Close previously open item
+        if (lastOpen && lastOpen !== body) {
+          lastOpen.hidden = true;
+          lastOpen.closest(".qac-item")?.classList.remove("is-open");
+          lastOpen.previousElementSibling?.setAttribute("aria-expanded", "false");
+        }
+
+        if (isOpen) {
+          body.hidden = true;
+          item.classList.remove("is-open");
+          btn.setAttribute("aria-expanded", "false");
+          lastOpen = null;
+        } else {
+          body.hidden = false;
+          item.classList.add("is-open");
+          btn.setAttribute("aria-expanded", "true");
+          lastOpen = body;
+          // Scroll item into view
+          setTimeout(() => item.scrollIntoView({ behavior: "smooth", block: "nearest" }), 60);
+        }
+      });
+    });
+
+    // ── Search ──
+    const searchInput = document.getElementById("qmSearch");
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        const q = searchInput.value.toLowerCase().trim();
+        document.querySelectorAll(".qac-item").forEach((item) => {
+          const text = item.querySelector(".qac-q-text")?.textContent?.toLowerCase() || "";
+          item.style.display = (!q || text.includes(q)) ? "" : "none";
         });
       });
-      wrap.addEventListener("mouseleave", resetInspector);
-    };
-    bindHoverPreview('.questions-table-wrap.raw-scroll', rawHeaders);
-    bindHoverPreview('.questions-table-wrap.mapped-scroll', ["Question", "Type", "Marks", "Difficulty", "Topic"]);
-    resetInspector();
+    }
+
+    // ── Difficulty filter ──
+    document.querySelectorAll(".qm-filter").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".qm-filter").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        const diff = btn.dataset.diff;
+        document.querySelectorAll(".qac-item").forEach((item) => {
+          if (diff === "all") { item.style.display = ""; return; }
+          const chip = item.querySelector(".qac-chip")?.textContent?.trim().toLowerCase() || "";
+          item.style.display = chip === diff ? "" : "none";
+        });
+      });
+    });
+
+    // ── Expand All / Collapse All ──
+    let allExpanded = false;
+    const expandAllBtn = document.getElementById("qmExpandAll");
+    if (expandAllBtn) {
+      expandAllBtn.addEventListener("click", () => {
+        allExpanded = !allExpanded;
+        document.querySelectorAll(".qac-item").forEach((item) => {
+          const hdr  = item.querySelector(".qac-header");
+          const body = item.querySelector(".qac-body");
+          if (!hdr || !body) return;
+          body.hidden = !allExpanded;
+          item.classList.toggle("is-open", allExpanded);
+          hdr.setAttribute("aria-expanded", String(allExpanded));
+        });
+        expandAllBtn.textContent = allExpanded ? "Collapse All" : "Expand All";
+        lastOpen = null;
+      });
+    }
+
     document.getElementById("qpCloseIcon").addEventListener("click", closeModal);
     document.getElementById("qpClose").addEventListener("click", closeModal);
   }
@@ -3743,7 +4032,7 @@ ensureAuthGuard();
       const contentType = String(res.headers.get("content-type") || "").toLowerCase();
       if (contentType.includes("application/json")) {
         let data = {};
-        try { data = await res.json(); } catch (_e) {}
+        try { data = await res.json(); } catch (_e) { }
         if (String(data?.status || "").toLowerCase() === "revoked" || data?.revoked === true) {
           toast("Certificate revoked", "error");
         } else {
@@ -3770,50 +4059,268 @@ ensureAuthGuard();
     }
   }
 
-  async function handleCertificateRevoke(cert) {
-    if (cert.revoked) return;
-    const ok = await confirmTextDialog({
-      title: "Revoke Certificate",
-      message: `Type REVOKE ${cert.certificateId} to revoke this certificate.`,
-      expectedText: `REVOKE ${cert.certificateId}`,
-      actionLabel: "Revoke"
-    });
-    if (!ok) return;
-    try { await api.certificateRevoke(cert.certificateId); } catch (_e) {}
-    cert.revoked = true;
-    renderCertificates();
-    addNotification(`Certificate ${cert.certificateId} revoked.`);
-    toast("Certificate revoked.");
+  function certificateQrMarkup(cert) {
+      const value = String(cert.qrCodeData || "").trim();
+      if(!value) {
+        return "<div class='qr-fallback'>QR Not Available</div>";
+      }
+    const isImageUrl = /^data:image\//i.test(value)
+        || /\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i.test(value);
+      if(isImageUrl) {
+        return `<img src="${value}" alt="QR Code">`;
+      }
+    return `<div class="qr-fallback"><small>Verification URL</small><code>${value}</code></div>`;
   }
 
+  function certificateById(certificateId) {
+        const cert = state.data.certificates.find((c) => String(c.certificateId || c.id) === String(certificateId));
+        return cert ? normalizeCertificate(cert) : null;
+      }
+
+  function setDownloadButtonState(btn, active) {
+        if (!btn) return;
+        if (active) {
+          if (!btn.dataset.prevHtml) btn.dataset.prevHtml = btn.innerHTML;
+          btn.disabled = true;
+          btn.innerHTML = `<span class="btn-buffer-spinner"></span><span class="btn-buffer-label">Downloading PDF...</span>`;
+          btn.classList.add("is-buffering");
+          return;
+        }
+        btn.disabled = false;
+        if (btn.dataset.prevHtml) btn.innerHTML = btn.dataset.prevHtml;
+        btn.classList.remove("is-buffering");
+        delete btn.dataset.prevHtml;
+      }
+
+  function unwrapCertificatePayload(payload) {
+        if (!payload || typeof payload !== "object") return {};
+        if (payload.certificate && typeof payload.certificate === "object") return payload.certificate;
+        if (payload.data && typeof payload.data === "object") return payload.data;
+        if (payload.result && typeof payload.result === "object") return payload.result;
+        return payload;
+      }
+
+  async function verifyCertificate(certificateId) {
+        const fallbackCert = certificateById(certificateId) || { certificateId: String(certificateId) };
+        try {
+          const { status, ok, payload } = await api.certificateVerify(certificateId);
+          if (status === 410) {
+            toast("Certificate revoked", "error");
+          }
+          if (!ok && status !== 410) {
+            toast("Invalid Certificate", "error");
+            return;
+          }
+          const info = unwrapCertificatePayload(payload);
+          const data = normalizeCertificate({ ...fallbackCert, ...info, certificateId });
+          const payloadStatus = String(info?.status || payload?.status || "").toLowerCase();
+          const isRevoked = status === 410 || Boolean(data.revoked || payloadStatus === "revoked");
+          if (isRevoked && status !== 410) toast("Certificate revoked", "error");
+          const badgeClass = isRevoked ? "cert-revoked" : "cert-issued";
+          const badgeText = isRevoked ? "Certificate Revoked" : "Valid Certificate";
+          const sourceIdx = state.data.certificates.findIndex((c) => String(c.certificateId || c.id) === String(certificateId));
+          if (sourceIdx >= 0) state.data.certificates[sourceIdx] = { ...state.data.certificates[sourceIdx], revoked: isRevoked };
+          openModal(`
+        <h3>Certificate Verified</h3>
+        <div class="certificate-grid" style="margin-top:10px">
+          <div><small>Certificate ID</small><strong>${data.certificateId}</strong></div>
+          <div><small>Student Name</small><strong>${data.studentName || "-"}</strong></div>
+          <div><small>Exam Title</small><strong>${data.examTitle || "-"}</strong></div>
+          <div><small>Score</small><strong>${Number.isFinite(Number(data.score)) ? data.score : "-"}</strong></div>
+          <div><small>Grade</small><strong>${data.grade || "-"}</strong></div>
+          <div><small>Issued Date</small><strong>${fmtDateTime(data.issuedAt)}</strong></div>
+          <div><small>Status</small><strong><span class="status-pill cert-status ${badgeClass}">${badgeText}</span></strong></div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost" id="verifyCloseBtn">Close</button>
+        </div>
+      `);
+          document.getElementById("verifyCloseBtn").addEventListener("click", closeModal);
+          renderCertificates();
+        } catch (_e) {
+          toast("Invalid Certificate", "error");
+        }
+      }
+
+  async function downloadCertificate(certificateId, triggerBtn = null) {
+        setDownloadButtonState(triggerBtn, true);
+        try {
+          const res = await authFetch(
+            `/api/certificate/download/${encodeURIComponent(certificateId)}`,
+            { method: "GET", headers: { Accept: "application/pdf,application/octet-stream,*/*" } },
+            { throwOnError: false, silent: true }
+          );
+          if (res.status === 410) {
+            toast("Certificate revoked", "error");
+            return;
+          }
+          if (!res.ok) {
+            toast("Download failed", "error");
+            return;
+          }
+          const contentType = String(res.headers.get("content-type") || "").toLowerCase();
+          if (contentType.includes("application/json")) {
+            let data = {};
+            try { data = await res.json(); } catch (_e) { }
+            if (String(data?.status || "").toLowerCase() === "revoked" || data?.revoked === true) {
+              toast("Certificate revoked", "error");
+            } else {
+              toast("Download failed", "error");
+            }
+            return;
+          }
+          const blob = await res.blob();
+          if (!blob || !blob.size) {
+            toast("Download failed", "error");
+            return;
+          }
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = `certificate-${certificateId}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(a.href);
+        } catch (_e) {
+          toast("Download failed", "error");
+        } finally {
+          setDownloadButtonState(triggerBtn, false);
+        }
+      }
+
+  async function handleCertificateRevoke(cert) {
+        if (cert.revoked) return;
+        const ok = await confirmTextDialog({
+          title: "Revoke Certificate",
+          message: `Type REVOKE ${cert.certificateId} to revoke this certificate.`,
+          expectedText: `REVOKE ${cert.certificateId}`,
+          actionLabel: "Revoke"
+        });
+        if (!ok) return;
+        try { await api.certificateRevoke(cert.certificateId); } catch (_e) { }
+        cert.revoked = true;
+        renderCertificates();
+        addNotification(`Certificate ${cert.certificateId} revoked.`);
+        toast("Certificate revoked.");
+      }
+
+  function certificatePreviewMarkup(c) {
+        const score = Number.isFinite(Number(c.score)) ? c.score : "-";
+        const issued = fmtDateTime(c.issuedAt);
+        return `
+      <div class="certificate-preview-artwork">
+        <!-- Corner brackets -->
+        <div class="corner-bracket top-left"></div>
+        <div class="corner-bracket top-right"></div>
+        <div class="corner-bracket bottom-left"></div>
+        <div class="corner-bracket bottom-right"></div>
+        
+        <!-- Dot grids -->
+        <div class="dot-grid left-grid"></div>
+        <div class="dot-grid right-grid"></div>
+        
+        <!-- Background waves SVG -->
+        <div class="wave-background">
+          <svg viewBox="0 0 200 400" preserveAspectRatio="none">
+            <path d="M120 0 C 150 100, 80 200, 160 300 T 120 400" fill="none" stroke="rgba(59, 48, 219, 0.04)" stroke-width="1.5"></path>
+            <path d="M140 0 C 170 100, 100 200, 180 300 T 140 400" fill="none" stroke="rgba(59, 48, 219, 0.04)" stroke-width="1.5"></path>
+            <path d="M160 0 C 190 100, 120 200, 200 300 T 160 400" fill="none" stroke="rgba(59, 48, 219, 0.04)" stroke-width="1.5"></path>
+          </svg>
+        </div>
+
+        <div class="certificate-preview-topbar">
+          <div class="certificate-brand-lockup">
+            <div class="certificate-brand-logo">
+              <div class="logo-shield">
+                <span class="star">★</span>
+                <span class="dot"></span>
+              </div>
+            </div>
+            <div class="brand-text">
+              <strong class="brand-name">SEM</strong>
+              <span class="brand-title">SMART EXAM MONITOR</span>
+              <span class="brand-motto">Examine. Evaluate. Excel.</span>
+            </div>
+          </div>
+          <div class="certificate-badge-pill">
+            <div class="badge-icon">★</div>
+            <div class="badge-copy">
+              <strong>EXAM COMPLETED</strong>
+              <span>Successfully Certified</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="certificate-main-content">
+          <p class="certificate-preview-subtitle">This is to certify that</p>
+          <h2 class="certificate-preview-name">${escapeHtml(c.studentName || 'Student')}</h2>
+          
+          <div class="name-divider">
+            <span class="line"></span>
+            <span class="diamond">♦</span>
+            <span class="line"></span>
+          </div>
+
+          <div class="certificate-preview-title">
+            <span>Certificate of</span>
+            <strong>Excellence</strong>
+          </div>
+          
+          <p class="certificate-preview-bodycopy">
+            has successfully completed the examination in<br>
+            <strong class="subject-title">${escapeHtml(c.examTitle || c.examCode || 'Online Examination')}</strong><br>
+            with a score of <strong class="score-highlight">${score}/100</strong> on ${escapeHtml(issued)}
+          </p>
+
+          <div class="bottom-divider">
+            <span class="line"></span>
+            <span class="diamond">♦</span>
+            <span class="line"></span>
+          </div>
+        </div>
+
+        <div class="certificate-preview-footer">
+          <div class="certificate-footer-qr-col">
+            <div class="qr-box-wrapper">
+              <img src="/api/certificate/verify/${encodeURIComponent(c.certificateId)}/qr" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=verify:${c.certificateId}'" class="qr-image" alt="QR Code">
+            </div>
+            <small class="scan-verify-text">SCAN TO VERIFY</small>
+          </div>
+
+          <div class="certificate-footer-signature-col">
+            <span class="signature-cursive">Exam Authority</span>
+            <div class="signature-line"></div>
+            <span class="sign-title">EXAM AUTHORITY</span>
+            <small class="sign-subtitle">SEM Platform - Examinations</small>
+          </div>
+
+          <div class="certificate-footer-id-col">
+            <span class="id-label">CERTIFICATE ID</span>
+            <strong class="id-value">${escapeHtml(c.certificateId)}</strong>
+            <span class="issue-date-label">Issued: ${escapeHtml(issued)}</span>
+          </div>
+        </div>
+      </div>`;
+      }
+
   function openCertificateDetailsModal(cert) {
-    const verifyUrl = certVerificationUrl(cert.certificateId);
-    openModal(`
+        const verifyUrl = certVerificationUrl(cert.certificateId);
+        openModal(`
       <div class="certificate-modal">
         <div class="certificate-head">
           <h3>Certificate Details</h3>
           <button id="certModalCloseIcon" class="upload-close" aria-label="Close">&times;</button>
         </div>
         <div class="certificate-body">
-          <div class="certificate-grid">
-            <div><small>Certificate ID</small><strong>${cert.certificateId}</strong></div>
-            <div><small>Student Name</small><strong>${cert.studentName}</strong></div>
-            <div><small>College Name</small><strong>${cert.collegeName}</strong></div>
-            <div><small>Department</small><strong>${cert.department}</strong></div>
-            <div><small>Roll Number</small><strong>${cert.rollNumber}</strong></div>
-            <div><small>Exam Title</small><strong>${cert.examTitle}</strong></div>
-            <div><small>Score</small><strong>${cert.score}</strong></div>
-            <div><small>Grade</small><strong>${cert.grade}</strong></div>
-            <div><small>Issued Date</small><strong>${fmtDateTime(cert.issuedAt)}</strong></div>
-            <div><small>Status</small><strong>${cert.revoked ? "Revoked" : "Issued"}</strong></div>
+          <div class="certificate-preview-shell" style="max-width: 800px; margin: 0 auto 20px;">
+            <div class="certificate-preview-frame">
+              ${certificatePreviewMarkup(cert)}
+            </div>
           </div>
           <div class="certificate-security">
             <h4>Security</h4>
             <div class="security-grid">
-              <div class="qr-preview">
-                ${certificateQrMarkup(cert)}
-              </div>
-              <div class="verify-url-wrap">
+              <div class="verify-url-wrap" style="flex: 1; min-width: 250px;">
                 <small>Verification URL</small>
                 <code id="certVerifyUrlText">${verifyUrl}</code>
                 <button id="certCopyLinkBtn" class="btn ghost small">Copy Link</button>
@@ -3829,30 +4336,30 @@ ensureAuthGuard();
         </div>
       </div>
     `);
-    dom.modalContainer.classList.add("certificate-modal-host");
-    document.getElementById("certModalCloseIcon").addEventListener("click", closeModal);
-    document.getElementById("certCloseBtn").addEventListener("click", closeModal);
-    document.getElementById("certDownloadBtn").addEventListener("click", (e) => downloadCertificate(cert.certificateId, e.currentTarget));
-    document.getElementById("certVerifyBtn").addEventListener("click", () => verifyCertificate(cert.certificateId));
-    const revokeBtn = document.getElementById("certRevokeBtn");
-    if (revokeBtn) revokeBtn.addEventListener("click", async () => { await handleCertificateRevoke(cert); closeModal(); });
-    document.getElementById("certCopyLinkBtn").addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(verifyUrl);
-        toast("Verification link copied.");
-      } catch (_e) {
-        toast("Unable to copy link.", "error");
+        dom.modalContainer.classList.add("certificate-modal-host");
+        document.getElementById("certModalCloseIcon").addEventListener("click", closeModal);
+        document.getElementById("certCloseBtn").addEventListener("click", closeModal);
+        document.getElementById("certDownloadBtn").addEventListener("click", (e) => downloadCertificate(cert.certificateId, e.currentTarget));
+        document.getElementById("certVerifyBtn").addEventListener("click", () => verifyCertificate(cert.certificateId));
+        const revokeBtn = document.getElementById("certRevokeBtn");
+        if (revokeBtn) revokeBtn.addEventListener("click", async () => { await handleCertificateRevoke(cert); closeModal(); });
+        document.getElementById("certCopyLinkBtn").addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(verifyUrl);
+            toast("Verification link copied.");
+          } catch (_e) {
+            toast("Unable to copy link.", "error");
+          }
+        });
       }
-    });
-  }
 
   function renderCertificates() {
-    const certificates = state.data.certificates.map((raw, idx) => normalizeCertificate(raw, idx));
-    if (dom.certificatesSummary) dom.certificatesSummary.innerHTML = certificateSummaryCards(certificates);
-    if (!dom.certificatesGrid) return;
-    dom.certificatesGrid.innerHTML = certificates.map((c) => {
-      const cid = c.certificateId;
-      return `
+        const certificates = state.data.certificates.map((raw, idx) => normalizeCertificate(raw, idx));
+        if (dom.certificatesSummary) dom.certificatesSummary.innerHTML = certificateSummaryCards(certificates);
+        if (!dom.certificatesGrid) return;
+        dom.certificatesGrid.innerHTML = certificates.map((c) => {
+          const cid = c.certificateId;
+          return `
       <article class="card certificate-card ${c.revoked ? "is-revoked" : "is-issued"}">
         <div class="certificate-card-head">
           <div class="certificate-card-title">
@@ -3892,495 +4399,495 @@ ensureAuthGuard();
         </div>
       </article>
     `;
-    }).join("") || `<div class="no-data certificate-empty">No certificates available.</div>`;
-  }
+        }).join("") || `<div class="no-data certificate-empty">No certificates available.</div>`;
+      }
 
   function renderNotifications() {
-    dom.notificationList.innerHTML = state.data.notifications.map((n) => `<li>${n.text}</li>`).join("") || "<li>No notifications.</li>";
-    dom.notifCount.textContent = String(state.data.notifications.length);
-  }
+        dom.notificationList.innerHTML = state.data.notifications.map((n) => `<li>${n.text}</li>`).join("") || "<li>No notifications.</li>";
+        dom.notifCount.textContent = String(state.data.notifications.length);
+      }
 
   window.TeacherDashboardBridge = {
-    getNotifications() {
-      return state.data.notifications.slice();
-    },
-    setNotifications(items) {
-      state.data.notifications = Array.isArray(items) ? items.slice(0, 25) : [];
-      renderNotifications();
-    },
-    clearNotifications() {
-      state.data.notifications = [];
-      renderNotifications();
-    }
-  };
+        getNotifications() {
+          return state.data.notifications.slice();
+        },
+        setNotifications(items) {
+          state.data.notifications = Array.isArray(items) ? items.slice(0, 25) : [];
+          renderNotifications();
+        },
+        clearNotifications() {
+          state.data.notifications = [];
+          renderNotifications();
+        }
+      };
 
-  function drawLineChart(canvas, values, color) {
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
-    canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
-    ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
-    const cw = canvas.clientWidth;
-    const ch = canvas.clientHeight;
-    ctx.clearRect(0, 0, cw, ch);
-    if (!values.length) return;
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const pad = 20;
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--chart-grid");
-    for (let i = 0; i < 5; i += 1) {
-      const y = pad + ((ch - pad * 2) * i) / 4;
+    function drawLineChart(canvas, values, color) {
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
+      canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
+      ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+      const cw = canvas.clientWidth;
+      const ch = canvas.clientHeight;
+      ctx.clearRect(0, 0, cw, ch);
+      if (!values.length) return;
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const pad = 20;
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--chart-grid");
+      for (let i = 0; i < 5; i += 1) {
+        const y = pad + ((ch - pad * 2) * i) / 4;
+        ctx.beginPath();
+        ctx.moveTo(pad, y);
+        ctx.lineTo(cw - pad, y);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(pad, y);
-      ctx.lineTo(cw - pad, y);
+      values.forEach((v, i) => {
+        const x = pad + ((cw - pad * 2) * i) / Math.max(1, values.length - 1);
+        const y = ch - pad - ((v - min) / Math.max(1, max - min)) * (ch - pad * 2);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
       ctx.stroke();
     }
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    values.forEach((v, i) => {
-      const x = pad + ((cw - pad * 2) * i) / Math.max(1, values.length - 1);
-      const y = ch - pad - ((v - min) / Math.max(1, max - min)) * (ch - pad * 2);
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-  }
 
-  function drawBarChart(canvas, values, color, options = {}) {
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
-    canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
-    ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
-    const cw = canvas.clientWidth;
-    const ch = canvas.clientHeight;
-    ctx.clearRect(0, 0, cw, ch);
-    if (!values?.length || values.every((v) => Number(v || 0) === 0)) {
-      if (options.emptyText) {
+    function drawBarChart(canvas, values, color, options = {}) {
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
+      canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
+      ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+      const cw = canvas.clientWidth;
+      const ch = canvas.clientHeight;
+      ctx.clearRect(0, 0, cw, ch);
+      if (!values?.length || values.every((v) => Number(v || 0) === 0)) {
+        if (options.emptyText) {
+          ctx.fillStyle = "rgba(100,116,139,.9)";
+          ctx.font = "13px DM Sans";
+          ctx.textAlign = "center";
+          ctx.fillText(options.emptyText, cw / 2, ch / 2);
+        }
+        return;
+      }
+      const max = Math.max(1, ...values);
+      const pad = 20;
+      const bw = (cw - pad * 2) / Math.max(1, values.length) - 8;
+      values.forEach((v, i) => {
+        const x = pad + i * (bw + 8);
+        const hh = ((ch - pad * 2) * v) / max;
+        const palette = Array.isArray(color) ? color : null;
+        ctx.fillStyle = palette ? (palette[i % palette.length]) : color;
+        ctx.fillRect(x, ch - pad - hh, bw, hh);
+        if (options.showValues) {
+          ctx.fillStyle = "rgba(51,65,85,.9)";
+          ctx.font = "11px DM Sans";
+          ctx.textAlign = "center";
+          ctx.fillText(String(v), x + (bw / 2), ch - pad - hh - 6);
+        }
+        if (options.labels?.[i]) {
+          ctx.fillStyle = "rgba(71,85,105,.9)";
+          ctx.font = "10px DM Sans";
+          ctx.textAlign = "center";
+          ctx.fillText(String(options.labels[i]), x + (bw / 2), ch - 6);
+        }
+      });
+    }
+
+    function drawPieChart(canvas, values, colors, options = {}) {
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
+      canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
+      ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+      const cw = canvas.clientWidth;
+      const ch = canvas.clientHeight;
+      ctx.clearRect(0, 0, cw, ch);
+      const total = values.reduce((a, b) => a + b, 0) || 1;
+      let start = -Math.PI / 2;
+      values.forEach((v, i) => {
+        const angle = (v / total) * Math.PI * 2;
+        const mid = start + (angle / 2);
+        ctx.beginPath();
+        ctx.moveTo(cw / 2, ch / 2);
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.arc(cw / 2, ch / 2, Math.min(cw, ch) * 0.34, start, start + angle);
+        ctx.closePath();
+        ctx.fill();
+        if (options.showPercentLabels && v > 0) {
+          const pct = Math.round((v / total) * 100);
+          const rx = (cw / 2) + Math.cos(mid) * (Math.min(cw, ch) * 0.23);
+          const ry = (ch / 2) + Math.sin(mid) * (Math.min(cw, ch) * 0.23);
+          ctx.fillStyle = "#0f172a";
+          ctx.font = "700 12px DM Sans";
+          ctx.textAlign = "center";
+          ctx.fillText(`${pct}%`, rx, ry);
+        }
+        start += angle;
+      });
+    }
+
+    function drawStackedBarChart(canvas, values, colors, labels = []) {
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
+      canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
+      ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+      const cw = canvas.clientWidth;
+      const ch = canvas.clientHeight;
+      ctx.clearRect(0, 0, cw, ch);
+      const rawTotal = values.reduce((n, v) => n + Number(v || 0), 0);
+      const total = Math.max(1, rawTotal);
+      if (!rawTotal) {
         ctx.fillStyle = "rgba(100,116,139,.9)";
         ctx.font = "13px DM Sans";
         ctx.textAlign = "center";
-        ctx.fillText(options.emptyText, cw / 2, ch / 2);
+        ctx.fillText("No difficulty data available", cw / 2, ch / 2);
+        return;
       }
-      return;
-    }
-    const max = Math.max(1, ...values);
-    const pad = 20;
-    const bw = (cw - pad * 2) / Math.max(1, values.length) - 8;
-    values.forEach((v, i) => {
-      const x = pad + i * (bw + 8);
-      const hh = ((ch - pad * 2) * v) / max;
-      const palette = Array.isArray(color) ? color : null;
-      ctx.fillStyle = palette ? (palette[i % palette.length]) : color;
-      ctx.fillRect(x, ch - pad - hh, bw, hh);
-      if (options.showValues) {
-        ctx.fillStyle = "rgba(51,65,85,.9)";
-        ctx.font = "11px DM Sans";
-        ctx.textAlign = "center";
-        ctx.fillText(String(v), x + (bw / 2), ch - pad - hh - 6);
-      }
-      if (options.labels?.[i]) {
-        ctx.fillStyle = "rgba(71,85,105,.9)";
-        ctx.font = "10px DM Sans";
-        ctx.textAlign = "center";
-        ctx.fillText(String(options.labels[i]), x + (bw / 2), ch - 6);
-      }
-    });
-  }
-
-  function drawPieChart(canvas, values, colors, options = {}) {
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
-    canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
-    ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
-    const cw = canvas.clientWidth;
-    const ch = canvas.clientHeight;
-    ctx.clearRect(0, 0, cw, ch);
-    const total = values.reduce((a, b) => a + b, 0) || 1;
-    let start = -Math.PI / 2;
-    values.forEach((v, i) => {
-      const angle = (v / total) * Math.PI * 2;
-      const mid = start + (angle / 2);
-      ctx.beginPath();
-      ctx.moveTo(cw / 2, ch / 2);
-      ctx.fillStyle = colors[i % colors.length];
-      ctx.arc(cw / 2, ch / 2, Math.min(cw, ch) * 0.34, start, start + angle);
-      ctx.closePath();
-      ctx.fill();
-      if (options.showPercentLabels && v > 0) {
-        const pct = Math.round((v / total) * 100);
-        const rx = (cw / 2) + Math.cos(mid) * (Math.min(cw, ch) * 0.23);
-        const ry = (ch / 2) + Math.sin(mid) * (Math.min(cw, ch) * 0.23);
-        ctx.fillStyle = "#0f172a";
-        ctx.font = "700 12px DM Sans";
-        ctx.textAlign = "center";
-        ctx.fillText(`${pct}%`, rx, ry);
-      }
-      start += angle;
-    });
-  }
-
-  function drawStackedBarChart(canvas, values, colors, labels = []) {
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
-    canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
-    ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
-    const cw = canvas.clientWidth;
-    const ch = canvas.clientHeight;
-    ctx.clearRect(0, 0, cw, ch);
-    const rawTotal = values.reduce((n, v) => n + Number(v || 0), 0);
-    const total = Math.max(1, rawTotal);
-    if (!rawTotal) {
-      ctx.fillStyle = "rgba(100,116,139,.9)";
-      ctx.font = "13px DM Sans";
-      ctx.textAlign = "center";
-      ctx.fillText("No difficulty data available", cw / 2, ch / 2);
-      return;
-    }
-    const x = 28;
-    const y = Math.round(ch * 0.42);
-    const w = cw - 56;
-    const h = 28;
-    let offset = x;
-    values.forEach((val, i) => {
-      const segW = Math.round((Number(val || 0) / total) * w);
-      ctx.fillStyle = colors[i % colors.length];
-      ctx.fillRect(offset, y, segW, h);
-      offset += segW;
-    });
-    ctx.strokeStyle = "rgba(148,163,184,.45)";
-    ctx.strokeRect(x, y, w, h);
-    ctx.fillStyle = "rgba(71,85,105,.9)";
-    ctx.font = "12px DM Sans";
-    labels.forEach((label, i) => {
-      const ly = y + h + 22 + (i * 16);
-      ctx.fillStyle = colors[i % colors.length];
-      ctx.fillRect(x, ly - 9, 9, 9);
+      const x = 28;
+      const y = Math.round(ch * 0.42);
+      const w = cw - 56;
+      const h = 28;
+      let offset = x;
+      values.forEach((val, i) => {
+        const segW = Math.round((Number(val || 0) / total) * w);
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fillRect(offset, y, segW, h);
+        offset += segW;
+      });
+      ctx.strokeStyle = "rgba(148,163,184,.45)";
+      ctx.strokeRect(x, y, w, h);
       ctx.fillStyle = "rgba(71,85,105,.9)";
-      ctx.fillText(`${label}: ${values[i] || 0}`, x + 14, ly);
-    });
-  }
-
-  function setLegend(container, items) {
-    if (!container) return;
-    container.innerHTML = items.map((it) => `<span style="--legend:${it.color};"><i style="background:${it.color}"></i>${it.label}</span>`).join("");
-    container.querySelectorAll("span").forEach((s) => {
-      const i = s.querySelector("i");
-      if (i) {
-        i.style.display = "inline-block";
-        i.style.width = "10px";
-        i.style.height = "10px";
-        i.style.borderRadius = "50%";
-        i.style.marginRight = "6px";
-      }
-    });
-  }
-
-  function attachCanvasTooltip(canvas, points) {
-    if (!canvas || !dom.chartTooltip) return;
-    canvas.onmousemove = (ev) => {
-      if (!points?.length) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = ev.clientX - rect.left;
-      const idx = Math.max(0, Math.min(points.length - 1, Math.round((x / rect.width) * (points.length - 1))));
-      dom.chartTooltip.textContent = points[idx];
-      dom.chartTooltip.style.left = `${ev.clientX + 12}px`;
-      dom.chartTooltip.style.top = `${ev.clientY + 12}px`;
-      dom.chartTooltip.classList.remove("hidden");
-    };
-    canvas.onmouseleave = () => dom.chartTooltip.classList.add("hidden");
-  }
-
-  function drawAllCharts() {
-    const dashAttempts = getDashboardAttempts();
-    const percentages = dashAttempts.map((a) => a.percentage);
-    drawLineChart(dom.performanceTrendChart, percentages.slice(0, 12), "rgba(59,130,246,0.95)");
-    const countByExam = state.data.exams.map((e) => dashAttempts.filter((a) => a.examId === e.id).length);
-    drawBarChart(dom.attemptsChart, countByExam, "rgba(16,185,129,0.85)");
-    const pass = dashAttempts.filter((a) => a.percentage >= 40).length;
-    const fail = dashAttempts.length - pass;
-    drawPieChart(dom.passFailChart, [pass, fail], ["rgba(16,185,129,0.85)", "rgba(236,72,153,0.85)"]);
-    const diff = state.data.questions.reduce((acc, q) => { acc[q.difficulty] = (acc[q.difficulty] || 0) + 1; return acc; }, {});
-    drawBarChart(dom.difficultyChart, [diff.Easy || 0, diff.Medium || 0, diff.Hard || 0], "rgba(139,92,246,0.85)");
-    drawLineChart(dom.aiAccuracyChart, [70, 74, 78, 80, 82, 84], "rgba(16,185,129,0.95)");
-    setLegend(dom.legendPerformance, [{ label: "Avg Performance", color: "#3b82f6" }]);
-    setLegend(dom.legendAttempts, [{ label: "Attempts", color: "#10b981" }]);
-    setLegend(dom.legendPassFail, [{ label: "Pass", color: "#10b981" }, { label: "Fail", color: "#ec4899" }]);
-    setLegend(dom.legendDifficulty, [{ label: "Easy", color: "#60a5fa" }, { label: "Medium", color: "#8b5cf6" }, { label: "Hard", color: "#f59e0b" }]);
-    attachCanvasTooltip(dom.performanceTrendChart, percentages.slice(0, 12).map((v, i) => `Point ${i + 1}: ${v}%`));
-    attachCanvasTooltip(dom.attemptsChart, state.data.exams.map((e) => `${e.title}: ${attemptsForExam(e).length}`));
-    attachCanvasTooltip(dom.passFailChart, [`Pass: ${pass}`, `Fail: ${fail}`]);
-    attachCanvasTooltip(dom.difficultyChart, [`Easy: ${diff.Easy || 0}`, `Medium: ${diff.Medium || 0}`, `Hard: ${diff.Hard || 0}`]);
-  }
-
-  async function withLoading(fn) {
-    setLoading(true);
-    try {
-      await fn();
-    } catch (e) {
-      toast(e.message || "Something went wrong", "error");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleExamAction(action, examId) {
-    const exam = examById(examId);
-    if (!exam) return;
-    if (exam.status === "Published" && (action === "upload" || action === "edit")) {
-      toast(`${action === "upload" ? "Upload" : "Edit"} is blocked after exam is published.`, "error");
-      return;
-    }
-    if (exam.status !== "Published" && (action === "results" || action === "share")) {
-      toast(`${action === "results" ? "Results" : "Share"} is available only after exam is published.`, "error");
-      return;
-    }
-    const downloadUploadedQuestionFile = () => {
-      if (!exam.questionUpload?.dataUrl) {
-        toast("No uploaded question file found for this exam.", "error");
-        return false;
-      }
-      const a = document.createElement("a");
-      a.href = exam.questionUpload.dataUrl;
-      a.download = exam.questionUpload.name || `${exam.examCode}-questions`;
-      a.click();
-      toast("Uploaded question file downloaded.");
-      return true;
-    };
-    if (action === "view") {
-      openModal(`<h3>${exam.title}</h3><p>${exam.description}</p><p><strong>Code:</strong> ${exam.examCode}</p><p><strong>Status:</strong> ${exam.status}</p><div class="actions"><button class="btn ghost" id="closeModalBtn">Close</button></div>`);
-      document.getElementById("closeModalBtn").addEventListener("click", closeModal);
-      return;
-    }
-    if (action === "edit") {
-      openExamFormModal(exam);
-      return;
-    }
-    if (action === "publish") {
-      if (!exam.questionsUploaded) {
-        toast("Publish blocked: upload questions first.", "error");
-        return;
-      }
-      await withLoading(async () => {
-        await api.publishExam(exam.examCode || exam.id);
-        exam.status = "Published";
-        renderAll();
-        addNotification(`Exam ${exam.examCode} published.`);
-        toast("Exam published.");
+      ctx.font = "12px DM Sans";
+      labels.forEach((label, i) => {
+        const ly = y + h + 22 + (i * 16);
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fillRect(x, ly - 9, 9, 9);
+        ctx.fillStyle = "rgba(71,85,105,.9)";
+        ctx.fillText(`${label}: ${values[i] || 0}`, x + 14, ly);
       });
-      return;
     }
-    if (action === "delete") {
-      const ok = await confirmTextDialog({
-        title: "Delete Exam",
-        message: `This permanently deletes ${exam.title}. Type DELETE ${exam.examCode} to confirm.`,
-        expectedText: `DELETE ${exam.examCode}`,
-        actionLabel: "Delete"
-      });
-      if (!ok) return;
-      await withLoading(async () => {
-        await api.deleteExam(exam.examCode || exam.id);
-        state.data.exams = state.data.exams.filter((e) => e.id !== exam.id);
-        state.data.questions = state.data.questions.filter((q) => q.examId !== exam.id);
-        state.data.attempts = state.data.attempts.filter((a) => a.examId !== exam.id);
-        state.data.certificates = state.data.certificates.filter((c) => c.examId !== exam.id);
-        renderAll();
-        addNotification(`Exam ${exam.examCode} deleted.`);
-      });
-      return;
-    }
-    if (action === "upload") {
-      openQuestionUploadModal(exam.id);
-      return;
-    }
-    if (action === "questions") {
-      openQuestionsPreviewModal(exam.id);
-      return;
-    }
-    if (action === "analytics") {
-      showSection("analytics");
-      addNotification(`Opened analytics for ${exam.examCode}.`);
-      return;
-    }
-    if (action === "attempts") {
-      showSection("attempts");
-      dom.attemptExamFilter.value = exam.examCode || "all";
-      renderAttempts();
-      return;
-    }
-    if (action === "duplicate") {
-      const dupe = { ...exam, id: uid("e"), examCode: `${exam.examCode}-COPY`, status: "Draft", createdDate: new Date().toISOString(), active: false };
-      state.data.exams.unshift(dupe);
-      toast("Exam duplicated.");
-      renderAll();
-      return;
-    }
-    if (action === "results") {
-      showSection("attempts");
-      dom.attemptExamFilter.value = exam.examCode || "all";
-      renderAttempts();
-      toast(`Viewing results for ${exam.examCode}.`);
-      return;
-    }
-    if (action === "downloadq") {
-      if (downloadUploadedQuestionFile()) return;
-      const qRows = state.data.questions.filter((q) => q.examId === exam.id);
-      if (!qRows.length) {
-        toast("No questions found to download.", "error");
-        return;
-      }
-      const csv = [["Question Text", "Type", "Marks", "Difficulty", "Topic"], ...qRows.map((q) => [q.text, q.type, q.marks, q.difficulty, q.topic])]
-        .map((row) => row.map((x) => `"${String(x).replace(/"/g, '""')}"`).join(",")).join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `${exam.examCode}-questions.csv`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-      toast("Questions CSV downloaded.");
-      return;
-    }
-    if (action === "share") {
-      if (isExamEnded(exam)) {
-        toast("Share is blocked because exam end date/time is completed.", "error");
-        return;
-      }
-      const link = `${window.location.origin}/exam/${exam.id}`;
-      try { await navigator.clipboard.writeText(link); } catch (_e) {}
-      toast("Share link copied.");
-      addNotification(`Exam share link created for ${exam.examCode}.`);
-    }
-  }
 
-  function renderAll() {
-    renderStats();
-    renderDashboardFeeds();
-    renderExams();
-    renderAttempts();
-    renderAnalytics();
-    renderLeaderboard();
-    renderProctoring();
-    renderAiInsights();
-    renderCertificates();
-    renderNotifications();
-    drawAllCharts();
-  }
-
-  function bindEvents() {
-    const on = (el, ev, fn) => { if (el) el.addEventListener(ev, fn); };
-    document.addEventListener("click", (e) => {
-      const btn = e.target.closest("button");
-      if (!shouldBufferButton(btn)) return;
-      if (btn.dataset.bufferReady === "1") {
-        btn.dataset.bufferReady = "";
-        return;
-      }
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      const busyText = inferBusyText(btn);
-      const restore = startButtonBuffer(btn, busyText);
-      setTimeout(() => {
-        restore();
-        if (!document.body.contains(btn)) return;
-        btn.dataset.bufferReady = "1";
-        btn.click();
-      }, 280);
-    }, true);
-
-    document.addEventListener("click", async (e) => {
-      const menuToggle = e.target.closest("[data-exam-menu-toggle]");
-      if (menuToggle) {
-        const id = idKey(menuToggle.dataset.examMenuToggle);
-        if (idKey(state.ui.openExamMenuId) === id) {
-          closeExamMoreMenu();
-        } else {
-          openExamMoreMenu(menuToggle, id);
+    function setLegend(container, items) {
+      if (!container) return;
+      container.innerHTML = items.map((it) => `<span style="--legend:${it.color};"><i style="background:${it.color}"></i>${it.label}</span>`).join("");
+      container.querySelectorAll("span").forEach((s) => {
+        const i = s.querySelector("i");
+        if (i) {
+          i.style.display = "inline-block";
+          i.style.width = "10px";
+          i.style.height = "10px";
+          i.style.borderRadius = "50%";
+          i.style.marginRight = "6px";
         }
+      });
+    }
+
+    function attachCanvasTooltip(canvas, points) {
+      if (!canvas || !dom.chartTooltip) return;
+      canvas.onmousemove = (ev) => {
+        if (!points?.length) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = ev.clientX - rect.left;
+        const idx = Math.max(0, Math.min(points.length - 1, Math.round((x / rect.width) * (points.length - 1))));
+        dom.chartTooltip.textContent = points[idx];
+        dom.chartTooltip.style.left = `${ev.clientX + 12}px`;
+        dom.chartTooltip.style.top = `${ev.clientY + 12}px`;
+        dom.chartTooltip.classList.remove("hidden");
+      };
+      canvas.onmouseleave = () => dom.chartTooltip.classList.add("hidden");
+    }
+
+    function drawAllCharts() {
+      const dashAttempts = getDashboardAttempts();
+      const percentages = dashAttempts.map((a) => a.percentage);
+      drawLineChart(dom.performanceTrendChart, percentages.slice(0, 12), "rgba(59,130,246,0.95)");
+      const countByExam = state.data.exams.map((e) => dashAttempts.filter((a) => a.examId === e.id).length);
+      drawBarChart(dom.attemptsChart, countByExam, "rgba(16,185,129,0.85)");
+      const pass = dashAttempts.filter((a) => a.percentage >= 40).length;
+      const fail = dashAttempts.length - pass;
+      drawPieChart(dom.passFailChart, [pass, fail], ["rgba(16,185,129,0.85)", "rgba(236,72,153,0.85)"]);
+      const diff = state.data.questions.reduce((acc, q) => { acc[q.difficulty] = (acc[q.difficulty] || 0) + 1; return acc; }, {});
+      drawBarChart(dom.difficultyChart, [diff.Easy || 0, diff.Medium || 0, diff.Hard || 0], "rgba(139,92,246,0.85)");
+      drawLineChart(dom.aiAccuracyChart, [70, 74, 78, 80, 82, 84], "rgba(16,185,129,0.95)");
+      setLegend(dom.legendPerformance, [{ label: "Avg Performance", color: "#3b82f6" }]);
+      setLegend(dom.legendAttempts, [{ label: "Attempts", color: "#10b981" }]);
+      setLegend(dom.legendPassFail, [{ label: "Pass", color: "#10b981" }, { label: "Fail", color: "#ec4899" }]);
+      setLegend(dom.legendDifficulty, [{ label: "Easy", color: "#60a5fa" }, { label: "Medium", color: "#8b5cf6" }, { label: "Hard", color: "#f59e0b" }]);
+      attachCanvasTooltip(dom.performanceTrendChart, percentages.slice(0, 12).map((v, i) => `Point ${i + 1}: ${v}%`));
+      attachCanvasTooltip(dom.attemptsChart, state.data.exams.map((e) => `${e.title}: ${attemptsForExam(e).length}`));
+      attachCanvasTooltip(dom.passFailChart, [`Pass: ${pass}`, `Fail: ${fail}`]);
+      attachCanvasTooltip(dom.difficultyChart, [`Easy: ${diff.Easy || 0}`, `Medium: ${diff.Medium || 0}`, `Hard: ${diff.Hard || 0}`]);
+    }
+
+    async function withLoading(fn) {
+      setLoading(true);
+      try {
+        await fn();
+      } catch (e) {
+        toast(e.message || "Something went wrong", "error");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function handleExamAction(action, examId) {
+      const exam = examById(examId);
+      if (!exam) return;
+      if (exam.status === "Published" && (action === "upload" || action === "edit")) {
+        toast(`${action === "upload" ? "Upload" : "Edit"} is blocked after exam is published.`, "error");
         return;
       }
-      if (!e.target.closest(".exam-more") && !e.target.closest(".exam-more-portal") && state.ui.openExamMenuId) {
-        closeExamMoreMenu();
+      if (exam.status !== "Published" && (action === "results" || action === "share")) {
+        toast(`${action === "results" ? "Results" : "Share"} is available only after exam is published.`, "error");
+        return;
       }
-      if (!e.target.closest(".cert-more") && state.ui.openCertificateMenuId) {
-        state.ui.openCertificateMenuId = null;
-        renderCertificates();
+      const downloadUploadedQuestionFile = () => {
+        if (!exam.questionUpload?.dataUrl) {
+          toast("No uploaded question file found for this exam.", "error");
+          return false;
+        }
+        const a = document.createElement("a");
+        a.href = exam.questionUpload.dataUrl;
+        a.download = exam.questionUpload.name || `${exam.examCode}-questions`;
+        a.click();
+        toast("Uploaded question file downloaded.");
+        return true;
+      };
+      if (action === "view") {
+        openModal(`<h3>${exam.title}</h3><p>${exam.description}</p><p><strong>Code:</strong> ${exam.examCode}</p><p><strong>Status:</strong> ${exam.status}</p><div class="actions"><button class="btn ghost" id="closeModalBtn">Close</button></div>`);
+        document.getElementById("closeModalBtn").addEventListener("click", closeModal);
+        return;
       }
-      if (!e.target.closest(".attempt-more") && state.ui.attempts.openMenuId) {
-        state.ui.attempts.openMenuId = null;
+      if (action === "edit") {
+        openExamFormModal(exam);
+        return;
+      }
+      if (action === "publish") {
+        if (!exam.questionsUploaded) {
+          toast("Publish blocked: upload questions first.", "error");
+          return;
+        }
+        await withLoading(async () => {
+          await api.publishExam(exam.examCode || exam.id);
+          exam.status = "Published";
+          renderAll();
+          addNotification(`Exam ${exam.examCode} published.`);
+          toast("Exam published.");
+        });
+        return;
+      }
+      if (action === "delete") {
+        const ok = await confirmTextDialog({
+          title: "Delete Exam",
+          message: `This permanently deletes ${exam.title}. Type DELETE ${exam.examCode} to confirm.`,
+          expectedText: `DELETE ${exam.examCode}`,
+          actionLabel: "Delete"
+        });
+        if (!ok) return;
+        await withLoading(async () => {
+          await api.deleteExam(exam.examCode || exam.id);
+          state.data.exams = state.data.exams.filter((e) => e.id !== exam.id);
+          state.data.questions = state.data.questions.filter((q) => q.examId !== exam.id);
+          state.data.attempts = state.data.attempts.filter((a) => a.examId !== exam.id);
+          state.data.certificates = state.data.certificates.filter((c) => c.examId !== exam.id);
+          renderAll();
+          addNotification(`Exam ${exam.examCode} deleted.`);
+        });
+        return;
+      }
+      if (action === "upload") {
+        openQuestionUploadModal(exam.id);
+        return;
+      }
+      if (action === "questions") {
+        openQuestionsPreviewModal(exam.id);
+        return;
+      }
+      if (action === "analytics") {
+        showSection("analytics");
+        addNotification(`Opened analytics for ${exam.examCode}.`);
+        return;
+      }
+      if (action === "attempts") {
+        showSection("attempts");
+        dom.attemptExamFilter.value = exam.examCode || "all";
         renderAttempts();
+        return;
       }
-
-      const nav = e.target.closest(".nav-link");
-      if (nav) return showSection(nav.dataset.section);
-
-      const jump = e.target.closest("[data-section-jump]");
-      if (jump) return showSection(jump.dataset.sectionJump);
-
-      const examBtn = e.target.closest("[data-exam-action]");
-      if (examBtn) {
-        closeExamMoreMenu();
-        return handleExamAction(examBtn.dataset.examAction, examBtn.dataset.id);
+      if (action === "duplicate") {
+        const dupe = { ...exam, id: uid("e"), examCode: `${exam.examCode}-COPY`, status: "Draft", createdDate: new Date().toISOString(), active: false };
+        state.data.exams.unshift(dupe);
+        toast("Exam duplicated.");
+        renderAll();
+        return;
       }
+      if (action === "results") {
+        showSection("attempts");
+        dom.attemptExamFilter.value = exam.examCode || "all";
+        renderAttempts();
+        toast(`Viewing results for ${exam.examCode}.`);
+        return;
+      }
+      if (action === "downloadq") {
+        if (downloadUploadedQuestionFile()) return;
+        const qRows = state.data.questions.filter((q) => q.examId === exam.id);
+        if (!qRows.length) {
+          toast("No questions found to download.", "error");
+          return;
+        }
+        const csv = [["Question Text", "Type", "Marks", "Difficulty", "Topic"], ...qRows.map((q) => [q.text, q.type, q.marks, q.difficulty, q.topic])]
+          .map((row) => row.map((x) => `"${String(x).replace(/"/g, '""')}"`).join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `${exam.examCode}-questions.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast("Questions CSV downloaded.");
+        return;
+      }
+      if (action === "share") {
+        if (isExamEnded(exam)) {
+          toast("Share is blocked because exam end date/time is completed.", "error");
+          return;
+        }
+        const link = `${window.location.origin}/exam/${exam.id}`;
+        try { await navigator.clipboard.writeText(link); } catch (_e) { }
+        toast("Share link copied.");
+        addNotification(`Exam share link created for ${exam.examCode}.`);
+      }
+    }
 
-      const attemptBtn = e.target.closest("[data-attempt-action]");
-      if (attemptBtn) {
-        const id = attemptBtn.dataset.id;
-        const item = state.data.attempts.find((a) => a.id === id);
-        if (!item) return;
-        state.ui.attempts.openMenuId = null;
-        if (attemptBtn.dataset.attemptAction === "warn") {
-          addNotification(`Warning sent to ${item.studentName}.`);
-          toast("Warning sent.");
+    function renderAll() {
+      renderStats();
+      renderDashboardFeeds();
+      renderExams();
+      renderAttempts();
+      renderAnalytics();
+      renderLeaderboard();
+      renderProctoring();
+      renderAiInsights();
+      renderCertificates();
+      renderNotifications();
+      drawAllCharts();
+    }
+
+    function bindEvents() {
+      const on = (el, ev, fn) => { if (el) el.addEventListener(ev, fn); };
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest("button");
+        if (!shouldBufferButton(btn)) return;
+        if (btn.dataset.bufferReady === "1") {
+          btn.dataset.bufferReady = "";
+          return;
+        }
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const busyText = inferBusyText(btn);
+        const restore = startButtonBuffer(btn, busyText);
+        setTimeout(() => {
+          restore();
+          if (!document.body.contains(btn)) return;
+          btn.dataset.bufferReady = "1";
+          btn.click();
+        }, 280);
+      }, true);
+
+      document.addEventListener("click", async (e) => {
+        const menuToggle = e.target.closest("[data-exam-menu-toggle]");
+        if (menuToggle) {
+          const id = idKey(menuToggle.dataset.examMenuToggle);
+          if (idKey(state.ui.openExamMenuId) === id) {
+            closeExamMoreMenu();
+          } else {
+            openExamMoreMenu(menuToggle, id);
+          }
+          return;
+        }
+        if (!e.target.closest(".exam-more") && !e.target.closest(".exam-more-portal") && state.ui.openExamMenuId) {
+          closeExamMoreMenu();
+        }
+        if (!e.target.closest(".cert-more") && state.ui.openCertificateMenuId) {
+          state.ui.openCertificateMenuId = null;
+          renderCertificates();
+        }
+        if (!e.target.closest(".attempt-more") && state.ui.attempts.openMenuId) {
+          state.ui.attempts.openMenuId = null;
           renderAttempts();
-          return;
         }
-        if (attemptBtn.dataset.attemptAction === "evidence") {
-          openEvidenceModal(item);
-          return;
+
+        const nav = e.target.closest(".nav-link");
+        if (nav) return showSection(nav.dataset.section);
+
+        const jump = e.target.closest("[data-section-jump]");
+        if (jump) return showSection(jump.dataset.sectionJump);
+
+        const examBtn = e.target.closest("[data-exam-action]");
+        if (examBtn) {
+          closeExamMoreMenu();
+          return handleExamAction(examBtn.dataset.examAction, examBtn.dataset.id);
         }
-        if (attemptBtn.dataset.attemptAction === "cancel") {
-          if (String(item.status).toUpperCase() === "CANCELLED") {
-            toast("Attempt already cancelled.", "error");
+
+        const attemptBtn = e.target.closest("[data-attempt-action]");
+        if (attemptBtn) {
+          const id = attemptBtn.dataset.id;
+          const item = state.data.attempts.find((a) => a.id === id);
+          if (!item) return;
+          state.ui.attempts.openMenuId = null;
+          if (attemptBtn.dataset.attemptAction === "warn") {
+            addNotification(`Warning sent to ${item.studentName}.`);
+            toast("Warning sent.");
+            renderAttempts();
             return;
           }
-          const ok = await confirmTextDialog({
-            title: "Cancel Attempt",
-            message: `This will invalidate ${item.studentName}'s attempt. Type CANCEL to continue.`,
-            expectedText: "CANCEL",
-            actionLabel: "Cancel Attempt"
-          });
-          if (!ok) return;
-          try {
-            await api.cancelAttempt(item.id);
-            item.status = "CANCELLED";
-          } catch (_e) {
-            toast("Failed to cancel attempt.", "error");
+          if (attemptBtn.dataset.attemptAction === "evidence") {
+            openEvidenceModal(item);
             return;
           }
-          addNotification(`Attempt invalidated for ${item.studentName}.`);
-          toast("Attempt cancelled.");
-          renderAttempts();
-          renderProctoring();
-          return;
-        }
-        if (attemptBtn.dataset.attemptAction === "force-submit") {
-          try {
-            await api.forceSubmitAttempt(item.id);
-            item.status = "AUTO_SUBMITTED";
-            toast("Attempt force submitted.");
-            addNotification(`Attempt force submitted for ${item.studentName}.`);
-          } catch (_e) {
-            toast("Force submit failed.", "error");
+          if (attemptBtn.dataset.attemptAction === "cancel") {
+            if (String(item.status).toUpperCase() === "CANCELLED") {
+              toast("Attempt already cancelled.", "error");
+              return;
+            }
+            const ok = await confirmTextDialog({
+              title: "Cancel Attempt",
+              message: `This will invalidate ${item.studentName}'s attempt. Type CANCEL to continue.`,
+              expectedText: "CANCEL",
+              actionLabel: "Cancel Attempt"
+            });
+            if (!ok) return;
+            try {
+              await api.cancelAttempt(item.id);
+              item.status = "CANCELLED";
+            } catch (_e) {
+              toast("Failed to cancel attempt.", "error");
+              return;
+            }
+            addNotification(`Attempt invalidated for ${item.studentName}.`);
+            toast("Attempt cancelled.");
+            renderAttempts();
+            renderProctoring();
+            return;
           }
-          renderAttempts();
-          return;
-        }
-        if (attemptBtn.dataset.attemptAction === "view-result") {
-          try {
-            const result = await api.attemptResult(item.id);
-            openModal(`
+          if (attemptBtn.dataset.attemptAction === "force-submit") {
+            try {
+              await api.forceSubmitAttempt(item.id);
+              item.status = "AUTO_SUBMITTED";
+              toast("Attempt force submitted.");
+              addNotification(`Attempt force submitted for ${item.studentName}.`);
+            } catch (_e) {
+              toast("Force submit failed.", "error");
+            }
+            renderAttempts();
+            return;
+          }
+          if (attemptBtn.dataset.attemptAction === "view-result") {
+            try {
+              const result = await api.attemptResult(item.id);
+              openModal(`
               <h3>Attempt Result</h3>
               <p><strong>Student:</strong> ${item.studentName}</p>
               <p><strong>Exam:</strong> ${item.examTitle || examTitle(item.examId)}</p>
@@ -4389,75 +4896,75 @@ ensureAuthGuard();
               <p><strong>Status:</strong> ${result?.status || item.status}</p>
               <div class="actions"><button id="attemptResultClose" class="btn ghost">Close</button></div>
             `);
-            document.getElementById("attemptResultClose").addEventListener("click", closeModal);
-          } catch (_e) {
-            toast("Unable to load attempt result.", "error");
+              document.getElementById("attemptResultClose").addEventListener("click", closeModal);
+            } catch (_e) {
+              toast("Unable to load attempt result.", "error");
+            }
+            return;
           }
-          return;
+          if (attemptBtn.dataset.attemptAction === "resume") {
+            try {
+              await api.resumeAttempt(item.id);
+              item.status = "STARTED";
+              toast("Attempt resumed.");
+            } catch (_e) {
+              toast("Resume attempt failed.", "error");
+            }
+            renderAttempts();
+            return;
+          }
+          if (attemptBtn.dataset.attemptAction === "analytics") {
+            showSection("analytics");
+            toast("Opened analytics for selected attempt.");
+            return;
+          }
         }
-        if (attemptBtn.dataset.attemptAction === "resume") {
-          try {
-            await api.resumeAttempt(item.id);
-            item.status = "STARTED";
-            toast("Attempt resumed.");
-          } catch (_e) {
-            toast("Resume attempt failed.", "error");
-          }
+
+        const attemptMenuToggle = e.target.closest("[data-attempt-menu-toggle]");
+        if (attemptMenuToggle) {
+          const id = attemptMenuToggle.dataset.attemptMenuToggle;
+          state.ui.attempts.openMenuId = state.ui.attempts.openMenuId === id ? null : id;
           renderAttempts();
           return;
         }
-        if (attemptBtn.dataset.attemptAction === "analytics") {
-          showSection("analytics");
-          toast("Opened analytics for selected attempt.");
-          return;
-        }
-      }
 
-      const attemptMenuToggle = e.target.closest("[data-attempt-menu-toggle]");
-      if (attemptMenuToggle) {
-        const id = attemptMenuToggle.dataset.attemptMenuToggle;
-        state.ui.attempts.openMenuId = state.ui.attempts.openMenuId === id ? null : id;
-        renderAttempts();
-        return;
-      }
+        const certBtn = e.target.closest("[data-cert-action]");
+        if (certBtn) {
+          const cert = state.data.certificates.find((c) => String(c.certificateId || c.id) === String(certBtn.dataset.id));
+          if (!cert) return;
+          state.ui.openCertificateMenuId = null;
+          if (certBtn.dataset.certAction === "view") {
+            openCertificateDetailsModal(normalizeCertificate(cert));
+            return;
+          }
+          if (certBtn.dataset.certAction === "download") {
+            await downloadCertificate(String(cert.certificateId || cert.id), certBtn);
+            return;
+          }
+          if (certBtn.dataset.certAction === "verify") {
+            await verifyCertificate(String(cert.certificateId || cert.id));
+            return;
+          }
+          if (certBtn.dataset.certAction === "revoke") {
+            await handleCertificateRevoke(cert);
+            renderCertificates();
+            return;
+          }
+        }
 
-      const certBtn = e.target.closest("[data-cert-action]");
-      if (certBtn) {
-        const cert = state.data.certificates.find((c) => String(c.certificateId || c.id) === String(certBtn.dataset.id));
-        if (!cert) return;
-        state.ui.openCertificateMenuId = null;
-        if (certBtn.dataset.certAction === "view") {
-          openCertificateDetailsModal(normalizeCertificate(cert));
-          return;
-        }
-        if (certBtn.dataset.certAction === "download") {
-          await downloadCertificate(String(cert.certificateId || cert.id), certBtn);
-          return;
-        }
-        if (certBtn.dataset.certAction === "verify") {
-          await verifyCertificate(String(cert.certificateId || cert.id));
-          return;
-        }
-        if (certBtn.dataset.certAction === "revoke") {
-          await handleCertificateRevoke(cert);
+        const certMenuToggle = e.target.closest("[data-cert-menu-toggle]");
+        if (certMenuToggle) {
+          const id = certMenuToggle.dataset.certMenuToggle;
+          state.ui.openCertificateMenuId = state.ui.openCertificateMenuId === id ? null : id;
           renderCertificates();
           return;
         }
-      }
 
-      const certMenuToggle = e.target.closest("[data-cert-menu-toggle]");
-      if (certMenuToggle) {
-        const id = certMenuToggle.dataset.certMenuToggle;
-        state.ui.openCertificateMenuId = state.ui.openCertificateMenuId === id ? null : id;
-        renderCertificates();
-        return;
-      }
-
-      const proctorMore = e.target.closest("[data-proctor-more]");
-      if (proctorMore) {
-        const att = state.data.attempts.find((a) => a.id === proctorMore.dataset.proctorMore);
-        if (!att) return;
-        openModal(`
+        const proctorMore = e.target.closest("[data-proctor-more]");
+        if (proctorMore) {
+          const att = state.data.attempts.find((a) => a.id === proctorMore.dataset.proctorMore);
+          if (!att) return;
+          openModal(`
           <h3>Action Menu</h3>
           <p>${att.studentName} Ã¢â‚¬Â¢ ${examTitle(att.examId)}</p>
           <div class="actions" style="justify-content:flex-start;flex-wrap:wrap">
@@ -4467,366 +4974,366 @@ ensureAuthGuard();
             <button class="btn ghost" id="pmClose">Close</button>
           </div>
         `);
-        document.getElementById("pmWarn").addEventListener("click", () => { addNotification(`Warning sent to ${att.studentName}.`); closeModal(); });
-        document.getElementById("pmCancel").addEventListener("click", () => { att.status = "INVALIDATED"; closeModal(); renderAll(); });
-        document.getElementById("pmEvidence").addEventListener("click", () => { closeModal(); toast("Evidence opened."); });
-        document.getElementById("pmClose").addEventListener("click", closeModal);
-      }
+          document.getElementById("pmWarn").addEventListener("click", () => { addNotification(`Warning sent to ${att.studentName}.`); closeModal(); });
+          document.getElementById("pmCancel").addEventListener("click", () => { att.status = "INVALIDATED"; closeModal(); renderAll(); });
+          document.getElementById("pmEvidence").addEventListener("click", () => { closeModal(); toast("Evidence opened."); });
+          document.getElementById("pmClose").addEventListener("click", closeModal);
+        }
 
-      const pageBtn = e.target.closest("[data-page-action]");
-      if (pageBtn) {
-        const [key, dir] = pageBtn.dataset.pageAction.split("-");
-        state.ui.pagination[key].page += dir === "next" ? 1 : -1;
-        if (key === "exams") renderExams();
-        if (key === "attempts") renderAttempts();
-      }
-    });
+        const pageBtn = e.target.closest("[data-page-action]");
+        if (pageBtn) {
+          const [key, dir] = pageBtn.dataset.pageAction.split("-");
+          state.ui.pagination[key].page += dir === "next" ? 1 : -1;
+          if (key === "exams") renderExams();
+          if (key === "attempts") renderAttempts();
+        }
+      });
 
-    on(dom.modalContainer, "click", (e) => {
-      if (e.target === dom.modalContainer) closeModal();
-    });
-    window.addEventListener("resize", closeExamMoreMenu);
-    window.addEventListener("scroll", closeExamMoreMenu, true);
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && !dom.modalContainer.classList.contains("hidden")) closeModal();
-      if (e.key === "Escape" && state.ui.openExamMenuId) closeExamMoreMenu();
-    });
+      on(dom.modalContainer, "click", (e) => {
+        if (e.target === dom.modalContainer) closeModal();
+      });
+      window.addEventListener("resize", closeExamMoreMenu);
+      window.addEventListener("scroll", closeExamMoreMenu, true);
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !dom.modalContainer.classList.contains("hidden")) closeModal();
+        if (e.key === "Escape" && state.ui.openExamMenuId) closeExamMoreMenu();
+      });
 
-    on(dom.sidebarToggle, "click", () => {
-      if (window.innerWidth <= 900) dom.sidebar.classList.toggle("open");
-      else dom.sidebar.classList.toggle("collapsed");
-    });
-    on(dom.themeToggle, "click", toggleTheme);
-    on(dom.notifBtn, "click", () => {
-      state.ui.notificationsOpen = !state.ui.notificationsOpen;
-      dom.notificationPanel.classList.toggle("open", state.ui.notificationsOpen);
-    });
-    on(dom.clearNotifications, "click", () => {
-      if (window.TeacherNotificationHub?.clear) {
-        window.TeacherNotificationHub.clear()?.catch?.(() => {});
-        return;
-      }
-      state.data.notifications = [];
-      renderNotifications();
-    });
-    on(dom.markAllNotificationsRead, "click", () => {
-      if (window.TeacherNotificationHub?.markAllRead) {
-        window.TeacherNotificationHub.markAllRead()?.catch?.(() => {});
-        return;
-      }
-      renderNotifications();
-    });
-    on(dom.profileMenuBtn, "click", () => {
-      state.ui.profileMenuOpen = !state.ui.profileMenuOpen;
-      dom.profileMenu.classList.toggle("open", state.ui.profileMenuOpen);
-    });
-    document.addEventListener("click", (e) => {
-      if (!e.target.closest(".profile-dd")) {
-        state.ui.profileMenuOpen = false;
-        dom.profileMenu.classList.remove("open");
-      }
-    });
+      on(dom.sidebarToggle, "click", () => {
+        if (window.innerWidth <= 900) dom.sidebar.classList.toggle("open");
+        else dom.sidebar.classList.toggle("collapsed");
+      });
+      on(dom.themeToggle, "click", toggleTheme);
+      on(dom.notifBtn, "click", () => {
+        state.ui.notificationsOpen = !state.ui.notificationsOpen;
+        dom.notificationPanel.classList.toggle("open", state.ui.notificationsOpen);
+      });
+      on(dom.clearNotifications, "click", () => {
+        if (window.TeacherNotificationHub?.clear) {
+          window.TeacherNotificationHub.clear()?.catch?.(() => { });
+          return;
+        }
+        state.data.notifications = [];
+        renderNotifications();
+      });
+      on(dom.markAllNotificationsRead, "click", () => {
+        if (window.TeacherNotificationHub?.markAllRead) {
+          window.TeacherNotificationHub.markAllRead()?.catch?.(() => { });
+          return;
+        }
+        renderNotifications();
+      });
+      on(dom.profileMenuBtn, "click", () => {
+        state.ui.profileMenuOpen = !state.ui.profileMenuOpen;
+        dom.profileMenu.classList.toggle("open", state.ui.profileMenuOpen);
+      });
+      document.addEventListener("click", (e) => {
+        if (!e.target.closest(".profile-dd")) {
+          state.ui.profileMenuOpen = false;
+          dom.profileMenu.classList.remove("open");
+        }
+      });
 
-    on(dom.globalSearch, "input", () => {
-      state.ui.globalSearch = dom.globalSearch.value;
-      renderExams();
-      renderAttempts();
-      renderProctoring();
-    });
-    on(dom.dashAutoRefresh, "change", () => {
-      state.settings.autoRefresh = dom.dashAutoRefresh.checked;
-      toast(`Auto refresh ${state.settings.autoRefresh ? "enabled" : "disabled"}.`);
-      renderSettings();
-    });
-    on(dom.dashDateRange, "change", () => {
-      state.ui.dashDateRange = dom.dashDateRange.value;
-      const custom = state.ui.dashDateRange === "custom";
-      dom.dashStartDate.classList.toggle("hidden", !custom);
-      dom.dashEndDate.classList.toggle("hidden", !custom);
-      pulseDashboardSkeleton();
-      renderStats();
-      renderDashboardFeeds();
-      drawAllCharts();
-    });
-    [dom.dashStartDate, dom.dashEndDate].forEach((el) => on(el, "change", () => {
-      if (dom.dashDateRange.value === "custom") {
+      on(dom.globalSearch, "input", () => {
+        state.ui.globalSearch = dom.globalSearch.value;
+        renderExams();
+        renderAttempts();
+        renderProctoring();
+      });
+      on(dom.dashAutoRefresh, "change", () => {
+        state.settings.autoRefresh = dom.dashAutoRefresh.checked;
+        toast(`Auto refresh ${state.settings.autoRefresh ? "enabled" : "disabled"}.`);
+        renderSettings();
+      });
+      on(dom.dashDateRange, "change", () => {
+        state.ui.dashDateRange = dom.dashDateRange.value;
+        const custom = state.ui.dashDateRange === "custom";
+        dom.dashStartDate.classList.toggle("hidden", !custom);
+        dom.dashEndDate.classList.toggle("hidden", !custom);
+        pulseDashboardSkeleton();
         renderStats();
         renderDashboardFeeds();
         drawAllCharts();
-      }
-    }));
-    on(dom.exportDashboardBtn, "click", () => {
-      const attempts = getDashboardAttempts();
-      const csv = [["Metric", "Value"], ["Total Exams", state.data.exams.length], ["Total Attempts", attempts.length], ["Average Score", attempts.length ? Math.round(attempts.reduce((n, a) => n + a.percentage, 0) / attempts.length) : 0]]
-        .map((r) => r.join(",")).join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `dashboard-report-${Date.now()}.csv`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-      toast("Dashboard report exported.");
-    });
-    on(dom.examSearch, "input", () => { state.ui.pagination.exams.page = 1; renderExams(); });
-    on(dom.examStatusFilter, "change", () => {
-      state.ui.examTab = dom.examStatusFilter.value;
-      state.ui.pagination.exams.page = 1;
-      document.querySelectorAll(".tab-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.examTab === state.ui.examTab));
-      renderExams();
-    });
-    on(dom.attemptStatusFilter, "change", () => { state.ui.pagination.attempts.page = 1; renderAttempts(); });
-    on(dom.attemptRiskFilter, "change", () => { state.ui.pagination.attempts.page = 1; renderAttempts(); });
-    on(dom.attemptExamFilter, "change", () => { state.ui.pagination.attempts.page = 1; renderAttempts(); });
-    let attemptSearchTimer = null;
-    on(dom.attemptSearchInput, "input", () => {
-      clearTimeout(attemptSearchTimer);
-      attemptSearchTimer = setTimeout(() => {
-        state.ui.attempts.search = dom.attemptSearchInput.value || "";
+      });
+      [dom.dashStartDate, dom.dashEndDate].forEach((el) => on(el, "change", () => {
+        if (dom.dashDateRange.value === "custom") {
+          renderStats();
+          renderDashboardFeeds();
+          drawAllCharts();
+        }
+      }));
+      on(dom.exportDashboardBtn, "click", () => {
+        const attempts = getDashboardAttempts();
+        const csv = [["Metric", "Value"], ["Total Exams", state.data.exams.length], ["Total Attempts", attempts.length], ["Average Score", attempts.length ? Math.round(attempts.reduce((n, a) => n + a.percentage, 0) / attempts.length) : 0]]
+          .map((r) => r.join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `dashboard-report-${Date.now()}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast("Dashboard report exported.");
+      });
+      on(dom.examSearch, "input", () => { state.ui.pagination.exams.page = 1; renderExams(); });
+      on(dom.examStatusFilter, "change", () => {
+        state.ui.examTab = dom.examStatusFilter.value;
+        state.ui.pagination.exams.page = 1;
+        document.querySelectorAll(".tab-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.examTab === state.ui.examTab));
+        renderExams();
+      });
+      on(dom.attemptStatusFilter, "change", () => { state.ui.pagination.attempts.page = 1; renderAttempts(); });
+      on(dom.attemptRiskFilter, "change", () => { state.ui.pagination.attempts.page = 1; renderAttempts(); });
+      on(dom.attemptExamFilter, "change", () => { state.ui.pagination.attempts.page = 1; renderAttempts(); });
+      let attemptSearchTimer = null;
+      on(dom.attemptSearchInput, "input", () => {
+        clearTimeout(attemptSearchTimer);
+        attemptSearchTimer = setTimeout(() => {
+          state.ui.attempts.search = dom.attemptSearchInput.value || "";
+          state.ui.pagination.attempts.page = 1;
+          renderAttempts();
+        }, 220);
+      });
+      on(dom.attemptResetFilters, "click", () => {
+        if (dom.attemptExamFilter) dom.attemptExamFilter.value = "all";
+        if (dom.attemptStatusFilter) dom.attemptStatusFilter.value = "all";
+        if (dom.attemptRiskFilter) dom.attemptRiskFilter.value = "all";
+        if (dom.attemptSearchInput) dom.attemptSearchInput.value = "";
+        state.ui.attempts.search = "";
+        state.ui.attempts.sortKey = "attemptDate";
+        state.ui.attempts.sortDir = "desc";
         state.ui.pagination.attempts.page = 1;
         renderAttempts();
-      }, 220);
-    });
-    on(dom.attemptResetFilters, "click", () => {
-      if (dom.attemptExamFilter) dom.attemptExamFilter.value = "all";
-      if (dom.attemptStatusFilter) dom.attemptStatusFilter.value = "all";
-      if (dom.attemptRiskFilter) dom.attemptRiskFilter.value = "all";
-      if (dom.attemptSearchInput) dom.attemptSearchInput.value = "";
-      state.ui.attempts.search = "";
-      state.ui.attempts.sortKey = "attemptDate";
-      state.ui.attempts.sortDir = "desc";
-      state.ui.pagination.attempts.page = 1;
-      renderAttempts();
-    });
-    on(dom.attemptSortScore, "click", () => {
-      if (state.ui.attempts.sortKey === "score") state.ui.attempts.sortDir = state.ui.attempts.sortDir === "asc" ? "desc" : "asc";
-      else { state.ui.attempts.sortKey = "score"; state.ui.attempts.sortDir = "desc"; }
-      renderAttempts();
-    });
-    on(dom.attemptSortPercentage, "click", () => {
-      if (state.ui.attempts.sortKey === "percentage") state.ui.attempts.sortDir = state.ui.attempts.sortDir === "asc" ? "desc" : "asc";
-      else { state.ui.attempts.sortKey = "percentage"; state.ui.attempts.sortDir = "desc"; }
-      renderAttempts();
-    });
-    const scheduleAnalyticsReload = (force = false) => {
-      clearTimeout(state.ui.analytics.debounceTimer);
-      state.ui.analytics.debounceTimer = setTimeout(() => { loadAnalyticsData(force); }, force ? 20 : 220);
-    };
-    on(dom.analyticsExamFilter, "change", () => {
-      state.ui.analytics.examCode = dom.analyticsExamFilter.value || "";
-      scheduleAnalyticsReload(false);
-    });
-    on(dom.analyticsDateFrom, "change", () => {
-      state.ui.analytics.dateFrom = dom.analyticsDateFrom.value || "";
-      scheduleAnalyticsReload(false);
-    });
-    on(dom.analyticsDateTo, "change", () => {
-      state.ui.analytics.dateTo = dom.analyticsDateTo.value || "";
-      scheduleAnalyticsReload(false);
-    });
-    on(dom.analyticsRefreshBtn, "click", async () => {
-      await loadAnalyticsData(true);
-      toast("Analytics refreshed.");
-    });
-    on(dom.analyticsRetryBtn, "click", async () => {
-      await loadAnalyticsData(true);
-    });
-    on(dom.analyticsExportCsvBtn, "click", exportAnalyticsCsv);
-    on(dom.analyticsExportPdfBtn, "click", exportAnalyticsPdf);
-    const scheduleAiReload = (force = false) => {
-      clearTimeout(state.ui.aiInsights.debounceTimer);
-      state.ui.aiInsights.debounceTimer = setTimeout(() => { loadAiInsightsData(force); }, force ? 20 : 220);
-    };
-    on(dom.aiStudentFilter, "change", () => {
-      state.ui.aiInsights.studentId = dom.aiStudentFilter.value || "";
-      scheduleAiReload(false);
-    });
-    on(dom.aiExamFilter, "change", () => {
-      state.ui.aiInsights.examCode = dom.aiExamFilter.value || "all";
-      scheduleAiReload(false);
-    });
-    on(dom.aiRefreshBtn, "click", async () => {
-      await loadAiInsightsData(true);
-      toast("AI insights refreshed.");
-    });
-    on(dom.aiRetryBtn, "click", async () => {
-      await loadAiInsightsData(true);
-    });
-    on(dom.leaderboardModeExam, "click", async () => {
-      state.ui.leaderboard.mode = "exam";
-      if (dom.leaderboardExamFilter) dom.leaderboardExamFilter.disabled = false;
-      renderLeaderboard();
-      await loadLeaderboardData();
-    });
-    on(dom.leaderboardModeGlobal, "click", async () => {
-      state.ui.leaderboard.mode = "global";
-      if (dom.leaderboardExamFilter) dom.leaderboardExamFilter.disabled = true;
-      renderLeaderboard();
-      await loadLeaderboardData();
-    });
-    on(dom.leaderboardExamFilter, "change", async () => {
-      state.ui.leaderboard.examCode = dom.leaderboardExamFilter.value;
-      await loadLeaderboardData();
-    });
-    on(dom.leaderboardStudentSearch, "input", () => {
-      state.ui.leaderboard.search = dom.leaderboardStudentSearch.value;
-      renderLeaderboard();
-    });
-    on(dom.leaderboardScoreSort, "click", () => {
-      state.ui.leaderboard.sortDir = state.ui.leaderboard.sortDir === "asc" ? "desc" : "asc";
-      renderLeaderboard();
-    });
-    [dom.examSubjectFilter, dom.examDurationFilter, dom.examDateFrom, dom.examDateTo, dom.examCreatedByFilter, dom.examActiveFilter]
-      .forEach((el) => on(el, "change", () => { state.ui.pagination.exams.page = 1; renderExams(); }));
-    on(dom.openExamModalBtn, "click", () => openExamFormModal());
-    document.querySelectorAll(".tab-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        state.ui.examTab = btn.dataset.examTab;
-        dom.examStatusFilter.value = state.ui.examTab;
-        document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b === btn));
+      });
+      on(dom.attemptSortScore, "click", () => {
+        if (state.ui.attempts.sortKey === "score") state.ui.attempts.sortDir = state.ui.attempts.sortDir === "asc" ? "desc" : "asc";
+        else { state.ui.attempts.sortKey = "score"; state.ui.attempts.sortDir = "desc"; }
+        renderAttempts();
+      });
+      on(dom.attemptSortPercentage, "click", () => {
+        if (state.ui.attempts.sortKey === "percentage") state.ui.attempts.sortDir = state.ui.attempts.sortDir === "asc" ? "desc" : "asc";
+        else { state.ui.attempts.sortKey = "percentage"; state.ui.attempts.sortDir = "desc"; }
+        renderAttempts();
+      });
+      const scheduleAnalyticsReload = (force = false) => {
+        clearTimeout(state.ui.analytics.debounceTimer);
+        state.ui.analytics.debounceTimer = setTimeout(() => { loadAnalyticsData(force); }, force ? 20 : 220);
+      };
+      on(dom.analyticsExamFilter, "change", () => {
+        state.ui.analytics.examCode = dom.analyticsExamFilter.value || "";
+        scheduleAnalyticsReload(false);
+      });
+      on(dom.analyticsDateFrom, "change", () => {
+        state.ui.analytics.dateFrom = dom.analyticsDateFrom.value || "";
+        scheduleAnalyticsReload(false);
+      });
+      on(dom.analyticsDateTo, "change", () => {
+        state.ui.analytics.dateTo = dom.analyticsDateTo.value || "";
+        scheduleAnalyticsReload(false);
+      });
+      on(dom.analyticsRefreshBtn, "click", async () => {
+        await loadAnalyticsData(true);
+        toast("Analytics refreshed.");
+      });
+      on(dom.analyticsRetryBtn, "click", async () => {
+        await loadAnalyticsData(true);
+      });
+      on(dom.analyticsExportCsvBtn, "click", exportAnalyticsCsv);
+      on(dom.analyticsExportPdfBtn, "click", exportAnalyticsPdf);
+      const scheduleAiReload = (force = false) => {
+        clearTimeout(state.ui.aiInsights.debounceTimer);
+        state.ui.aiInsights.debounceTimer = setTimeout(() => { loadAiInsightsData(force); }, force ? 20 : 220);
+      };
+      on(dom.aiStudentFilter, "change", () => {
+        state.ui.aiInsights.studentId = dom.aiStudentFilter.value || "";
+        scheduleAiReload(false);
+      });
+      on(dom.aiExamFilter, "change", () => {
+        state.ui.aiInsights.examCode = dom.aiExamFilter.value || "all";
+        scheduleAiReload(false);
+      });
+      on(dom.aiRefreshBtn, "click", async () => {
+        await loadAiInsightsData(true);
+        toast("AI insights refreshed.");
+      });
+      on(dom.aiRetryBtn, "click", async () => {
+        await loadAiInsightsData(true);
+      });
+      on(dom.leaderboardModeExam, "click", async () => {
+        state.ui.leaderboard.mode = "exam";
+        if (dom.leaderboardExamFilter) dom.leaderboardExamFilter.disabled = false;
+        renderLeaderboard();
+        await loadLeaderboardData();
+      });
+      on(dom.leaderboardModeGlobal, "click", async () => {
+        state.ui.leaderboard.mode = "global";
+        if (dom.leaderboardExamFilter) dom.leaderboardExamFilter.disabled = true;
+        renderLeaderboard();
+        await loadLeaderboardData();
+      });
+      on(dom.leaderboardExamFilter, "change", async () => {
+        state.ui.leaderboard.examCode = dom.leaderboardExamFilter.value;
+        await loadLeaderboardData();
+      });
+      on(dom.leaderboardStudentSearch, "input", () => {
+        state.ui.leaderboard.search = dom.leaderboardStudentSearch.value;
+        renderLeaderboard();
+      });
+      on(dom.leaderboardScoreSort, "click", () => {
+        state.ui.leaderboard.sortDir = state.ui.leaderboard.sortDir === "asc" ? "desc" : "asc";
+        renderLeaderboard();
+      });
+      [dom.examSubjectFilter, dom.examDurationFilter, dom.examDateFrom, dom.examDateTo, dom.examCreatedByFilter, dom.examActiveFilter]
+        .forEach((el) => on(el, "change", () => { state.ui.pagination.exams.page = 1; renderExams(); }));
+      on(dom.openExamModalBtn, "click", () => openExamFormModal());
+      document.querySelectorAll(".tab-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          state.ui.examTab = btn.dataset.examTab;
+          dom.examStatusFilter.value = state.ui.examTab;
+          document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b === btn));
+          state.ui.pagination.exams.page = 1;
+          renderExams();
+        });
+      });
+
+      on(dom.exportExamsBtn, "click", () => {
+        const tableRows = filteredExams();
+        const headers = ["Exam Title", "Exam Code", "Created By", "Duration", "Total Questions", "Passing Marks", "Attempts Count", "Start Time", "End Time", "Created Date", "Status"];
+        const rows = tableRows.map((e) => [
+          e.title,
+          e.examCode,
+          e.createdBy || state.teacher.name,
+          `${e.duration} min`,
+          questionCount(e.id),
+          e.passingMarks,
+          attemptsForExam(e).length,
+          fmtDateTime(e.startTime),
+          fmtDateTime(e.endTime),
+          fmtDateTime(e.createdDate || e.startTime),
+          e.status,
+        ]);
+        const csv = [headers, ...rows].map((row) => row.map((x) => `"${String(x).replace(/"/g, '""')}"`).join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "exam-management-table.csv";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast("CSV exported.");
+      }); on(dom.examPageSize, "change", () => {
+        state.ui.pagination.exams.perPage = Number(dom.examPageSize.value);
         state.ui.pagination.exams.page = 1;
         renderExams();
       });
-    });
-
-    on(dom.exportExamsBtn, "click", () => {
-      const tableRows = filteredExams();
-      const headers = ["Exam Title", "Exam Code", "Created By", "Duration", "Total Questions", "Passing Marks", "Attempts Count", "Start Time", "End Time", "Created Date", "Status"];
-      const rows = tableRows.map((e) => [
-        e.title,
-        e.examCode,
-        e.createdBy || state.teacher.name,
-        `${e.duration} min`,
-        questionCount(e.id),
-        e.passingMarks,
-        attemptsForExam(e).length,
-        fmtDateTime(e.startTime),
-        fmtDateTime(e.endTime),
-        fmtDateTime(e.createdDate || e.startTime),
-        e.status,
-      ]);
-      const csv = [headers, ...rows].map((row) => row.map((x) => `"${String(x).replace(/"/g, '""')}"`).join(",")).join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "exam-management-table.csv";
-      a.click();
-      URL.revokeObjectURL(a.href);
-      toast("CSV exported.");
-    });    on(dom.examPageSize, "change", () => {
-      state.ui.pagination.exams.perPage = Number(dom.examPageSize.value);
-      state.ui.pagination.exams.page = 1;
-      renderExams();
-    });
-    on(dom.examJumpBtn, "click", () => {
-      const target = Number(dom.examJumpPage.value || 1);
-      state.ui.pagination.exams.page = Math.max(1, target);
-      renderExams();
-    });
-    on(dom.viewLiveMonitor, "click", () => { showSection("proctoring"); });
-    on(dom.investigateAlertsBtn, "click", () => { showSection("proctoring"); toast("Investigate high-risk alerts in Proctoring."); });
-    document.querySelectorAll(".collapse-toggle").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const card = btn.closest(".collapsible");
-        if (!card) return;
-        card.classList.toggle("collapsed");
-        btn.textContent = card.classList.contains("collapsed") ? "Expand" : "Collapse";
+      on(dom.examJumpBtn, "click", () => {
+        const target = Number(dom.examJumpPage.value || 1);
+        state.ui.pagination.exams.page = Math.max(1, target);
+        renderExams();
       });
-    });
+      on(dom.viewLiveMonitor, "click", () => { showSection("proctoring"); });
+      on(dom.investigateAlertsBtn, "click", () => { showSection("proctoring"); toast("Investigate high-risk alerts in Proctoring."); });
+      document.querySelectorAll(".collapse-toggle").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const card = btn.closest(".collapsible");
+          if (!card) return;
+          card.classList.toggle("collapsed");
+          btn.textContent = card.classList.contains("collapsed") ? "Expand" : "Collapse";
+        });
+      });
 
-    on(dom.refreshDashboard, "click", async () => {
-      await withLoading(async () => {
-        pulseDashboardSkeleton();
-        await api.ping();
-        renderApiStatusPill();
-        await loadDashboardSummary();
-        await loadExamsData();
-        await loadAttemptsData();
-        await loadAnalyticsData();
-        await loadAiInsightsData(true);
+      on(dom.refreshDashboard, "click", async () => {
+        await withLoading(async () => {
+          pulseDashboardSkeleton();
+          await api.ping();
+          renderApiStatusPill();
+          await loadDashboardSummary();
+          await loadExamsData();
+          await loadAttemptsData();
+          await loadAnalyticsData();
+          await loadAiInsightsData(true);
+          await loadCertificatesData();
+          addNotification(`Dashboard refreshed (${state.api.online ? "API live" : "mock mode"}).`);
+          renderAll();
+        });
+      });
+      on(dom.certificatesRefreshBtn, "click", async () => {
         await loadCertificatesData();
-        addNotification(`Dashboard refreshed (${state.api.online ? "API live" : "mock mode"}).`);
-        renderAll();
+        toast("Certificates refreshed.");
       });
-    });
-    on(dom.certificatesRefreshBtn, "click", async () => {
-      await loadCertificatesData();
-      toast("Certificates refreshed.");
-    });
 
-    on(dom.profileEditBtn, "click", () => {
-      state.ui.profile.snapshot = { ...state.teacher };
-      setProfileEditMode(true);
-    });
-    on(dom.profileCancelBtn, "click", () => {
-      state.teacher = normalizeTeacher(state.ui.profile.snapshot || state.teacher);
-      populateTeacher();
-      setProfileEditMode(false);
-    });
-    on(dom.profileForm, "submit", async (e) => {
-      e.preventDefault();
-      if (!state.ui.profile.editing) return;
-      const payload = collectProfilePayload();
-      const restore = startButtonBuffer(dom.profileSaveBtn, "Saving profile...");
-      if (dom.profileForm) dom.profileForm.querySelectorAll("input,button").forEach((el) => { el.disabled = true; });
-      try {
-        const updated = await api.userUpdate(payload);
-        state.teacher = normalizeTeacher({ ...state.teacher, ...payload, ...(updated || {}), updatedAt: new Date().toISOString() });
+      on(dom.profileEditBtn, "click", () => {
         state.ui.profile.snapshot = { ...state.teacher };
+        setProfileEditMode(true);
+      });
+      on(dom.profileCancelBtn, "click", () => {
+        state.teacher = normalizeTeacher(state.ui.profile.snapshot || state.teacher);
         populateTeacher();
         setProfileEditMode(false);
-        await loadProfileData();
-        toast("Profile updated successfully.");
-      } catch (_e) {
-        toast("Failed to update profile.", "error");
-        if (dom.pfName && !dom.pfName.value.trim()) dom.pfName.classList.add("field-error");
-      } finally {
-        if (dom.profileForm) dom.profileForm.querySelectorAll("input,button").forEach((el) => { el.disabled = false; });
-        setProfileEditMode(state.ui.profile.editing);
-        restore();
-      }
-    });
-    on(dom.pfName, "input", () => dom.pfName.classList.remove("field-error"));
-    on(dom.pfUploadImageBtn, "click", () => {
-      if (!state.ui.profile.editing) return;
-      dom.pfImageFile?.click();
-    });
-    on(dom.pfImageFile, "change", async () => {
-      const file = dom.pfImageFile?.files?.[0];
-      if (!file) return;
-      try {
-        const localPreview = await readFileAsDataUrl(file);
-        if (dom.pfAvatarPreview) dom.pfAvatarPreview.src = localPreview;
-        if (dom.pfImage) dom.pfImage.value = localPreview;
-      } catch (_e) {}
-      try {
-        const uploaded = await api.userUploadImage(file);
-        const url = String(uploaded?.profileImage || uploaded?.url || uploaded?.imageUrl || "").trim();
-        if (url) {
-          state.teacher.profileImage = url;
-          if (dom.pfImage) dom.pfImage.value = url;
+      });
+      on(dom.profileForm, "submit", async (e) => {
+        e.preventDefault();
+        if (!state.ui.profile.editing) return;
+        const payload = collectProfilePayload();
+        const restore = startButtonBuffer(dom.profileSaveBtn, "Saving profile...");
+        if (dom.profileForm) dom.profileForm.querySelectorAll("input,button").forEach((el) => { el.disabled = true; });
+        try {
+          const updated = await api.userUpdate(payload);
+          state.teacher = normalizeTeacher({ ...state.teacher, ...payload, ...(updated || {}), updatedAt: new Date().toISOString() });
+          state.ui.profile.snapshot = { ...state.teacher };
           populateTeacher();
-          toast("Profile image updated.");
-        } else {
-          toast("Image uploaded, but no preview URL returned.", "error");
+          setProfileEditMode(false);
+          await loadProfileData();
+          toast("Profile updated successfully.");
+        } catch (_e) {
+          toast("Failed to update profile.", "error");
+          if (dom.pfName && !dom.pfName.value.trim()) dom.pfName.classList.add("field-error");
+        } finally {
+          if (dom.profileForm) dom.profileForm.querySelectorAll("input,button").forEach((el) => { el.disabled = false; });
+          setProfileEditMode(state.ui.profile.editing);
+          restore();
         }
-      } catch (_e) {
-        const fallback = state.teacher.profileImage || profileInitialAvatar(state.teacher.name);
+      });
+      on(dom.pfName, "input", () => dom.pfName.classList.remove("field-error"));
+      on(dom.pfUploadImageBtn, "click", () => {
+        if (!state.ui.profile.editing) return;
+        dom.pfImageFile?.click();
+      });
+      on(dom.pfImageFile, "change", async () => {
+        const file = dom.pfImageFile?.files?.[0];
+        if (!file) return;
+        try {
+          const localPreview = await readFileAsDataUrl(file);
+          if (dom.pfAvatarPreview) dom.pfAvatarPreview.src = localPreview;
+          if (dom.pfImage) dom.pfImage.value = localPreview;
+        } catch (_e) { }
+        try {
+          const uploaded = await api.userUploadImage(file);
+          const url = String(uploaded?.profileImage || uploaded?.url || uploaded?.imageUrl || "").trim();
+          if (url) {
+            state.teacher.profileImage = url;
+            if (dom.pfImage) dom.pfImage.value = url;
+            populateTeacher();
+            toast("Profile image updated.");
+          } else {
+            toast("Image uploaded, but no preview URL returned.", "error");
+          }
+        } catch (_e) {
+          const fallback = state.teacher.profileImage || profileInitialAvatar(state.teacher.name);
+          if (dom.pfAvatarPreview) dom.pfAvatarPreview.src = fallback;
+          if (dom.pfImage) dom.pfImage.value = fallback;
+          toast("Image upload failed.", "error");
+        } finally {
+          if (dom.pfImageFile) dom.pfImageFile.value = "";
+        }
+      });
+      on(dom.pfRemoveImageBtn, "click", () => {
+        if (!state.ui.profile.editing) return;
+        const fallback = profileInitialAvatar(state.teacher.name);
         if (dom.pfAvatarPreview) dom.pfAvatarPreview.src = fallback;
         if (dom.pfImage) dom.pfImage.value = fallback;
-        toast("Image upload failed.", "error");
-      } finally {
-        if (dom.pfImageFile) dom.pfImageFile.value = "";
-      }
-    });
-    on(dom.pfRemoveImageBtn, "click", () => {
-      if (!state.ui.profile.editing) return;
-      const fallback = profileInitialAvatar(state.teacher.name);
-      if (dom.pfAvatarPreview) dom.pfAvatarPreview.src = fallback;
-      if (dom.pfImage) dom.pfImage.value = fallback;
-      state.teacher.profileImage = fallback;
-    });
-    on(dom.changePasswordBtn, "click", () => {
-      openModal(`
+        state.teacher.profileImage = fallback;
+      });
+      on(dom.changePasswordBtn, "click", () => {
+        openModal(`
         <h3>Change Password</h3>
         <p>Enter your current password and set a new password.</p>
         <input id="pwCurrent" class="form-control-like" placeholder="Current Password" type="password">
@@ -4837,214 +5344,214 @@ ensureAuthGuard();
         <small id="pwConfirmErr" class="form-error hidden"></small>
         <div class="actions"><button id="pwCancel" class="btn ghost">Cancel</button><button id="pwSave" class="btn primary">Update Password</button></div>
       `);
-      document.getElementById("pwCancel").addEventListener("click", closeModal);
-      document.getElementById("pwSave").addEventListener("click", async () => {
-        const current = document.getElementById("pwCurrent");
-        const next = document.getElementById("pwNew");
-        const confirm = document.getElementById("pwConfirm");
-        const currentErr = document.getElementById("pwCurrentErr");
-        const nextErr = document.getElementById("pwNewErr");
-        const confirmErr = document.getElementById("pwConfirmErr");
-        [currentErr, nextErr, confirmErr].forEach((el) => { el.classList.add("hidden"); el.textContent = ""; });
-        let invalid = false;
-        if (!current.value.trim()) { currentErr.textContent = "Current password is required."; currentErr.classList.remove("hidden"); invalid = true; }
-        if (String(next.value || "").length < 8) { nextErr.textContent = "New password must be at least 8 characters."; nextErr.classList.remove("hidden"); invalid = true; }
-        if (next.value !== confirm.value) { confirmErr.textContent = "Passwords do not match."; confirmErr.classList.remove("hidden"); invalid = true; }
-        if (invalid) return;
-        const restore = startButtonBuffer(document.getElementById("pwSave"), "Updating...");
-        try {
-          await api.userChangePassword({
-            currentPassword: current.value,
-            newPassword: next.value,
-            confirmPassword: confirm.value
-          });
-          closeModal();
-          toast("Password changed successfully.");
-        } catch (_e) {
-          toast("Failed to change password.", "error");
-        } finally {
-          restore();
-        }
+        document.getElementById("pwCancel").addEventListener("click", closeModal);
+        document.getElementById("pwSave").addEventListener("click", async () => {
+          const current = document.getElementById("pwCurrent");
+          const next = document.getElementById("pwNew");
+          const confirm = document.getElementById("pwConfirm");
+          const currentErr = document.getElementById("pwCurrentErr");
+          const nextErr = document.getElementById("pwNewErr");
+          const confirmErr = document.getElementById("pwConfirmErr");
+          [currentErr, nextErr, confirmErr].forEach((el) => { el.classList.add("hidden"); el.textContent = ""; });
+          let invalid = false;
+          if (!current.value.trim()) { currentErr.textContent = "Current password is required."; currentErr.classList.remove("hidden"); invalid = true; }
+          if (String(next.value || "").length < 8) { nextErr.textContent = "New password must be at least 8 characters."; nextErr.classList.remove("hidden"); invalid = true; }
+          if (next.value !== confirm.value) { confirmErr.textContent = "Passwords do not match."; confirmErr.classList.remove("hidden"); invalid = true; }
+          if (invalid) return;
+          const restore = startButtonBuffer(document.getElementById("pwSave"), "Updating...");
+          try {
+            await api.userChangePassword({
+              currentPassword: current.value,
+              newPassword: next.value,
+              confirmPassword: confirm.value
+            });
+            closeModal();
+            toast("Password changed successfully.");
+          } catch (_e) {
+            toast("Failed to change password.", "error");
+          } finally {
+            restore();
+          }
+        });
       });
-    });
 
-    const syncSettingsFromInputs = () => {
-      state.settings.notifications = !!dom.stNotif?.checked;
-      state.settings.autoRefresh = !!dom.stAutoRefresh?.checked;
-      state.settings.alerts = !!dom.stAlerts?.checked;
-      renderSettings();
-    };
-    [dom.stNotif, dom.stAutoRefresh, dom.stAlerts].forEach((el) => on(el, "change", syncSettingsFromInputs));
-    on(dom.stSave, "click", async () => {
-      if (!state.ui.settings.dirty || state.ui.settings.saving) return;
-      const snapshot = state.ui.settings.baseline || {
-        notifications: state.settings.notifications,
-        autoRefresh: state.settings.autoRefresh,
-        alerts: state.settings.alerts
+      const syncSettingsFromInputs = () => {
+        state.settings.notifications = !!dom.stNotif?.checked;
+        state.settings.autoRefresh = !!dom.stAutoRefresh?.checked;
+        state.settings.alerts = !!dom.stAlerts?.checked;
+        renderSettings();
       };
-      state.ui.settings.saving = true;
-      [dom.stNotif, dom.stAutoRefresh, dom.stAlerts, dom.stSessionReset, dom.stApiTest, dom.stSave].forEach((el) => {
-        if (el) el.disabled = true;
-      });
-      const restore = startButtonBuffer(dom.stSave, "Saving settings...");
-      try {
-        const payload = settingsPayload();
-        const res = await api.settingsUpdate(payload);
-        const normalized = normalizeSettings({ ...payload, ...(res || {}) });
-        state.settings = { ...state.settings, ...normalized };
-        state.ui.settings.baseline = {
+      [dom.stNotif, dom.stAutoRefresh, dom.stAlerts].forEach((el) => on(el, "change", syncSettingsFromInputs));
+      on(dom.stSave, "click", async () => {
+        if (!state.ui.settings.dirty || state.ui.settings.saving) return;
+        const snapshot = state.ui.settings.baseline || {
           notifications: state.settings.notifications,
           autoRefresh: state.settings.autoRefresh,
           alerts: state.settings.alerts
         };
-        renderSettings();
-        toast("Settings saved successfully.");
-      } catch (_e) {
-        state.settings = { ...state.settings, ...snapshot };
-        renderSettings();
-        toast("Failed to save settings.", "error");
-      } finally {
-        state.ui.settings.saving = false;
-        [dom.stNotif, dom.stAutoRefresh, dom.stAlerts, dom.stSessionReset, dom.stApiTest].forEach((el) => {
-          if (el) el.disabled = false;
+        state.ui.settings.saving = true;
+        [dom.stNotif, dom.stAutoRefresh, dom.stAlerts, dom.stSessionReset, dom.stApiTest, dom.stSave].forEach((el) => {
+          if (el) el.disabled = true;
         });
-        renderSettings();
-        restore();
-      }
-    });
-    on(dom.stSessionReset, "click", async () => {
-      const ok = await confirmTextDialog({
-        title: "Reset Sessions",
-        message: "This will invalidate active sessions. Type RESET to continue.",
-        expectedText: "RESET",
-        actionLabel: "Reset Sessions"
-      });
-      if (!ok) return;
-      const restore = startButtonBuffer(dom.stSessionReset, "Resetting sessions...");
-      try {
-        await api.settingsResetSessions();
-        toast("Active sessions reset successfully.");
-      } catch (_e) {
-        toast("Failed to reset sessions.", "error");
-      } finally {
-        restore();
-      }
-    });
-    on(dom.stApiTest, "click", async () => {
-      const restore = startButtonBuffer(dom.stApiTest, "Testing...");
-      try {
-        const res = await api.settingsTestConnection();
-        const signal = res?.connected ?? res?.ok ?? res?.status ?? res?.message;
-        const ok = typeof signal === "string"
-          ? /connected|success|ok|healthy/i.test(signal)
-          : Boolean(signal ?? true);
-        state.api.online = !!ok;
-        renderApiStatusPill();
-        toast(ok ? "API connectivity successful." : "API connectivity failed.", ok ? "info" : "error");
-      } catch (_e) {
-        state.api.online = false;
-        renderApiStatusPill();
-        toast("API connectivity failed.", "error");
-      } finally {
-        restore();
-      }
-    });
-    on(dom.settingsRetryBtn, "click", async () => {
-      await loadSettingsData();
-    });
-
-    [dom.logoutBtn, dom.profileLogout].forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const ok = await confirmDialog({
-          title: "Logout",
-          message: "Do you want to exit your teacher dashboard?",
-          actionLabel: "Logout"
-        });
-        if (ok) {
-          toast("Logged out.");
-          localStorage.clear();
-          window.location.href = "role-selection.html";
+        const restore = startButtonBuffer(dom.stSave, "Saving settings...");
+        try {
+          const payload = settingsPayload();
+          const res = await api.settingsUpdate(payload);
+          const normalized = normalizeSettings({ ...payload, ...(res || {}) });
+          state.settings = { ...state.settings, ...normalized };
+          state.ui.settings.baseline = {
+            notifications: state.settings.notifications,
+            autoRefresh: state.settings.autoRefresh,
+            alerts: state.settings.alerts
+          };
+          renderSettings();
+          toast("Settings saved successfully.");
+        } catch (_e) {
+          state.settings = { ...state.settings, ...snapshot };
+          renderSettings();
+          toast("Failed to save settings.", "error");
+        } finally {
+          state.ui.settings.saving = false;
+          [dom.stNotif, dom.stAutoRefresh, dom.stAlerts, dom.stSessionReset, dom.stApiTest].forEach((el) => {
+            if (el) el.disabled = false;
+          });
+          renderSettings();
+          restore();
         }
       });
-    });
+      on(dom.stSessionReset, "click", async () => {
+        const ok = await confirmTextDialog({
+          title: "Reset Sessions",
+          message: "This will invalidate active sessions. Type RESET to continue.",
+          expectedText: "RESET",
+          actionLabel: "Reset Sessions"
+        });
+        if (!ok) return;
+        const restore = startButtonBuffer(dom.stSessionReset, "Resetting sessions...");
+        try {
+          await api.settingsResetSessions();
+          toast("Active sessions reset successfully.");
+        } catch (_e) {
+          toast("Failed to reset sessions.", "error");
+        } finally {
+          restore();
+        }
+      });
+      on(dom.stApiTest, "click", async () => {
+        const restore = startButtonBuffer(dom.stApiTest, "Testing...");
+        try {
+          const res = await api.settingsTestConnection();
+          const signal = res?.connected ?? res?.ok ?? res?.status ?? res?.message;
+          const ok = typeof signal === "string"
+            ? /connected|success|ok|healthy/i.test(signal)
+            : Boolean(signal ?? true);
+          state.api.online = !!ok;
+          renderApiStatusPill();
+          toast(ok ? "API connectivity successful." : "API connectivity failed.", ok ? "info" : "error");
+        } catch (_e) {
+          state.api.online = false;
+          renderApiStatusPill();
+          toast("API connectivity failed.", "error");
+        } finally {
+          restore();
+        }
+      });
+      on(dom.settingsRetryBtn, "click", async () => {
+        await loadSettingsData();
+      });
 
-    window.addEventListener("resize", () => drawAllCharts());
-  }
+      [dom.logoutBtn, dom.profileLogout].forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const ok = await confirmDialog({
+            title: "Logout",
+            message: "Do you want to exit your teacher dashboard?",
+            actionLabel: "Logout"
+          });
+          if (ok) {
+            toast("Logged out.");
+            localStorage.clear();
+            window.location.href = "role-selection.html";
+          }
+        });
+      });
 
-  function startLiveClock() {
-    const tick = () => {
-      const t = new Date();
-      dom.liveClock.textContent = `LIVE ${t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
-    };
-    tick();
-    setInterval(tick, 1000);
-  }
-
-  function startLiveUpdates() {
-    setInterval(() => {
-      if (!state.settings.autoRefresh) return;
-      const idx = Math.floor(Math.random() * state.data.attempts.length);
-      const item = state.data.attempts[idx];
-      if (!item) return;
-      item.cheatingScore = clamp(item.cheatingScore + Math.round((Math.random() - 0.4) * 16), 0, 100);
-      item.riskLevel = riskFromScore(item.cheatingScore);
-      item.severity = item.riskLevel;
-      if (item.cheatingScore > 80 && state.settings.alerts) addNotification(`Critical proctoring flag: ${item.studentName} (${item.cheatingScore})`);
-      renderDashboardFeeds();
-      renderAttempts();
-      renderProctoring();
-      renderAiInsights();
-      drawAllCharts();
-    }, 12000);
-  }
-
-  async function init() {
-    try {
-      Object.assign(dom, ids());
-      applyTheme(state.ui.themeMode);
-
-      populateTeacher();
-      setProfileEditMode(false);
-
-      const attemptsTableCard = dom.attemptsTableBody?.closest(".table-card");
-      dom.examMorePortal = document.createElement("div");
-      dom.examMorePortal.className = "exam-more-portal";
-      document.body.appendChild(dom.examMorePortal);
-      if (attemptsTableCard && !document.getElementById("attemptsPagination")) {
-        const pg = document.createElement("div");
-        pg.id = "attemptsPagination";
-        pg.className = "pagination";
-        attemptsTableCard.appendChild(pg);
-      }
-
-      bindEvents();
-      await api.ping();
-      renderApiStatusPill();
-      await loadProfileData();
-      await loadSettingsData();
-      await loadDashboardSummary();
-      await loadExamsData();
-      await loadAttemptsData();
-      await loadAnalyticsData();
-      await loadAiInsightsData();
-      await loadCertificatesData();
-      await loadLeaderboardData();
-      const apiModeNote = state.api.online ? "Connected to REST API." : "REST API not reachable. Running in local demo mode.";
-      addNotification(apiModeNote);
-      renderAll();
-      showSection("dashboard");
-      startLiveClock();
-      startLiveUpdates();
-    } catch (error) {
-      toast(error?.message || "Failed to initialize teacher workspace.", "error");
-      console.error("Teacher dashboard init failed:", error);
-      renderAll();
-      showSection("dashboard");
-      startLiveClock();
-    } finally {
-      setTimeout(() => setLoading(false), 550);
+      window.addEventListener("resize", () => drawAllCharts());
     }
-  }
 
-  document.addEventListener("DOMContentLoaded", init);
-})();
+    function startLiveClock() {
+      const tick = () => {
+        const t = new Date();
+        dom.liveClock.textContent = `LIVE ${t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
+      };
+      tick();
+      setInterval(tick, 1000);
+    }
+
+    function startLiveUpdates() {
+      setInterval(() => {
+        if (!state.settings.autoRefresh) return;
+        const idx = Math.floor(Math.random() * state.data.attempts.length);
+        const item = state.data.attempts[idx];
+        if (!item) return;
+        item.cheatingScore = clamp(item.cheatingScore + Math.round((Math.random() - 0.4) * 16), 0, 100);
+        item.riskLevel = riskFromScore(item.cheatingScore);
+        item.severity = item.riskLevel;
+        if (item.cheatingScore > 80 && state.settings.alerts) addNotification(`Critical proctoring flag: ${item.studentName} (${item.cheatingScore})`);
+        renderDashboardFeeds();
+        renderAttempts();
+        renderProctoring();
+        renderAiInsights();
+        drawAllCharts();
+      }, 12000);
+    }
+
+    async function init() {
+      try {
+        Object.assign(dom, ids());
+        applyTheme(state.ui.themeMode);
+
+        populateTeacher();
+        setProfileEditMode(false);
+
+        const attemptsTableCard = dom.attemptsTableBody?.closest(".table-card");
+        dom.examMorePortal = document.createElement("div");
+        dom.examMorePortal.className = "exam-more-portal";
+        document.body.appendChild(dom.examMorePortal);
+        if (attemptsTableCard && !document.getElementById("attemptsPagination")) {
+          const pg = document.createElement("div");
+          pg.id = "attemptsPagination";
+          pg.className = "pagination";
+          attemptsTableCard.appendChild(pg);
+        }
+
+        bindEvents();
+        await api.ping();
+        renderApiStatusPill();
+        await loadProfileData();
+        await loadSettingsData();
+        await loadDashboardSummary();
+        await loadExamsData();
+        await loadAttemptsData();
+        await loadAnalyticsData();
+        await loadAiInsightsData();
+        await loadCertificatesData();
+        await loadLeaderboardData();
+        const apiModeNote = state.api.online ? "Connected to REST API." : "REST API not reachable. Running in local demo mode.";
+        addNotification(apiModeNote);
+        renderAll();
+        showSection("dashboard");
+        startLiveClock();
+        startLiveUpdates();
+      } catch (error) {
+        toast(error?.message || "Failed to initialize teacher workspace.", "error");
+        console.error("Teacher dashboard init failed:", error);
+        renderAll();
+        showSection("dashboard");
+        startLiveClock();
+      } finally {
+        setTimeout(() => setLoading(false), 550);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+  }) ();

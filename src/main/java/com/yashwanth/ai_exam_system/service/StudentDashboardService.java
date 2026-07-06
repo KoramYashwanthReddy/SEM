@@ -28,11 +28,11 @@ import com.yashwanth.ai_exam_system.entity.User;
 import com.yashwanth.ai_exam_system.enums.AttemptStatus;
 import com.yashwanth.ai_exam_system.exception.ForbiddenException;
 import com.yashwanth.ai_exam_system.exception.ResourceNotFoundException;
-import com.yashwanth.ai_exam_system.repository.CertificateRepository;
 import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRegistrationRepository;
 import com.yashwanth.ai_exam_system.repository.ExamRepository;
 import com.yashwanth.ai_exam_system.repository.ExamResultRepository;
+import com.yashwanth.ai_exam_system.repository.CertificateRepository;
 import com.yashwanth.ai_exam_system.repository.StudentProfileRepository;
 import com.yashwanth.ai_exam_system.repository.UserRepository;
 
@@ -47,8 +47,6 @@ public class StudentDashboardService {
     private final CertificateRepository certificateRepository;
     private final ExamResultRepository examResultRepository;
     private final LeaderboardService leaderboardService;
-    private final CertificateService certificateService;
-
     public StudentDashboardService(ExamAttemptRepository attemptRepository,
             ExamRepository examRepository,
             UserRepository userRepository,
@@ -56,8 +54,7 @@ public class StudentDashboardService {
             ExamRegistrationRepository examRegistrationRepository,
             CertificateRepository certificateRepository,
             ExamResultRepository examResultRepository,
-            LeaderboardService leaderboardService,
-            CertificateService certificateService) {
+            LeaderboardService leaderboardService) {
         this.attemptRepository = attemptRepository;
         this.examRepository = examRepository;
         this.userRepository = userRepository;
@@ -66,7 +63,6 @@ public class StudentDashboardService {
         this.certificateRepository = certificateRepository;
         this.examResultRepository = examResultRepository;
         this.leaderboardService = leaderboardService;
-        this.certificateService = certificateService;
     }
 
     public StudentDashboardResponse getDashboardForIdentifier(String identifier) {
@@ -119,7 +115,6 @@ public class StudentDashboardService {
 
             if (percentage >= 40) {
                 certificates++;
-                ensureCertificateExists(studentId, attempt, percentage);
             }
 
             LocalDateTime attemptTime = attempt.getEndTime() != null ? attempt.getEndTime() : attempt.getStartTime();
@@ -244,15 +239,7 @@ public class StudentDashboardService {
                 .map(this::toResultRow)
                 .toList();
 
-        List<Certificate> certificates = certificateRepository.findByStudentId(student.getId()).stream()
-                .map(cert -> {
-                    try {
-                        return certificateService.refreshCertificateMetadata(cert, null);
-                    } catch (Exception ex) {
-                        return cert;
-                    }
-                })
-                .toList();
+        List<Certificate> certificates = certificateRepository.findByStudentId(student.getId());
         List<LeaderboardDTO> leaderboardGlobal = leaderboardService.getGlobalLeaderboard();
 
         Map<String, Object> response = new LinkedHashMap<>();
@@ -281,30 +268,6 @@ public class StudentDashboardService {
             return "BRONZE";
 
         return "PARTICIPANT";
-    }
-
-    private void ensureCertificateExists(Long studentId, ExamAttempt attempt, double percentage) {
-        if (attempt == null || attempt.getExamCode() == null) {
-            return;
-        }
-        boolean exists = certificateRepository.findByStudentIdAndExamCode(studentId, attempt.getExamCode()).isPresent();
-        if (exists) {
-            return;
-        }
-        Exam exam = examRepository.findByExamCode(attempt.getExamCode()).orElse(null);
-        if (exam == null || exam.getTitle() == null || exam.getTitle().isBlank()) {
-            return;
-        }
-        try {
-            certificateService.generateCertificate(
-                    studentId,
-                    attempt.getExamCode(),
-                    exam.getTitle(),
-                    percentage,
-                    "");
-        } catch (Exception error) {
-            // Certificate generation is best-effort during dashboard hydration.
-        }
     }
 
     private double resolvePercentage(ExamAttempt attempt, int obtained, int total) {

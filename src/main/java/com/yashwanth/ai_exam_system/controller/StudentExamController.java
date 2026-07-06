@@ -422,7 +422,7 @@ public class StudentExamController {
                 certificateScore = result.getScore();
             }
             try {
-                certificateService.generateCertificate(
+                certificateService.ensureCertificateIssued(
                         authenticatedStudentId,
                         attempt.getExamCode(),
                         exam.getTitle(),

@@ -321,7 +321,7 @@ public class ExamService {
                         certificateScore = result.getScore();
                     }
                     try {
-                        certificateService.generateCertificate(
+                        certificateService.ensureCertificateIssued(
                                 attempt.getStudentId(),
                                 attempt.getExamCode(),
                                 exam.getTitle(),

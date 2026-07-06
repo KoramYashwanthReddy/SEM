@@ -7,6 +7,7 @@ import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.QuestionRepository;
 import com.yashwanth.ai_exam_system.repository.StudentAnswerRepository;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ public class ExamEvaluationService {
     private final ExamRepository examRepository;
     private final ExamAttemptRepository attemptRepository;
     private final ExamQuestionSelectionService questionSelectionService;
+    private final CertificateService certificateService;
 
     public ExamEvaluationService(
             StudentAnswerRepository answerRepository,
@@ -30,7 +32,8 @@ public class ExamEvaluationService {
             ExamResultRepository resultRepository,
             ExamRepository examRepository,
             ExamAttemptRepository attemptRepository,
-            ExamQuestionSelectionService questionSelectionService) {
+            ExamQuestionSelectionService questionSelectionService,
+            @Lazy CertificateService certificateService) {
 
         this.answerRepository = answerRepository;
         this.questionRepository = questionRepository;
@@ -38,6 +41,7 @@ public class ExamEvaluationService {
         this.examRepository = examRepository;
         this.attemptRepository = attemptRepository;
         this.questionSelectionService = questionSelectionService;
+        this.certificateService = certificateService;
     }
 
     public ExamResult evaluateExam(Long attemptId, Long studentId, String examCode) {
@@ -177,7 +181,23 @@ public class ExamEvaluationService {
         long timeTakenSeconds = resolveTimeTakenSeconds(attemptId, now);
         result.setTimeTakenSeconds(timeTakenSeconds);
 
-        return resultRepository.save(result);
+        result = resultRepository.save(result);
+
+        if (passed) {
+            double certificateScore = percentage > 0d ? percentage : obtainedMarks;
+            try {
+                certificateService.ensureCertificateIssued(
+                        studentId,
+                        examCode,
+                        exam.getTitle(),
+                        certificateScore,
+                        "");
+            } catch (Exception ignored) {
+                // Certificate creation is best-effort. The exam result must still be saved.
+            }
+        }
+
+        return result;
     }
 
     private long resolveTimeTakenSeconds(Long attemptId, LocalDateTime fallbackEndTime) {
