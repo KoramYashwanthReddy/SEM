@@ -1853,12 +1853,28 @@
     save(K.p, st.profile);
     el.sidebarName.textContent = st.profile.fullName;
     el.sidebarRole.textContent = `${st.profile.department} Learner`;
+    
+    // Top nav name & role
     el.topName.textContent = st.profile.fullName;
+    const tr = $('topRole');
+    if (tr) tr.textContent = `${st.profile.department || 'Computer Science'} Learner`;
+    
+    // Dropdown profile details
+    const dn = $('dropdownName');
+    if (dn) dn.textContent = st.profile.fullName;
+    const de = $('dropdownEmail');
+    if (de) de.textContent = st.profile.email || 'student@sem.edu';
+    
     const photoSrc = (st.profile.profilePhoto && st.profile.profilePhoto.trim())
       ? st.profile.profilePhoto
       : avatar(st.profile.fullName);
+      
     el.sidebarAvatar.src = photoSrc;
     el.topAvatar.src = photoSrc;
+    
+    const da = $('dropdownAvatar');
+    if (da) da.src = photoSrc;
+    
     fillProfileForm(el.profileForm);
     fillProfileForm(el.profileEditorForm);
     syncProfilePhotoPreview();
@@ -3578,6 +3594,25 @@
     el.toggle.addEventListener('click', toggleSidebar);
     el.logout.addEventListener('click', goLogout);
     el.profileLogout.addEventListener('click', goLogout);
+    
+    const dpl = $('ddProfileLink');
+    if (dpl) {
+      dpl.addEventListener('click', () => {
+        el.profileMenu.classList.remove('open');
+        el.profileMenuBtn.setAttribute('aria-expanded', 'false');
+        setSection('profile');
+      });
+    }
+    
+    const dsl = $('ddSettingsLink');
+    if (dsl) {
+      dsl.addEventListener('click', () => {
+        el.profileMenu.classList.remove('open');
+        el.profileMenuBtn.setAttribute('aria-expanded', 'false');
+        setSection('settings');
+      });
+    }
+
     el.profileMenuBtn.addEventListener('click', () => {
       const open = el.profileMenu.classList.toggle('open');
       el.profileMenuBtn.setAttribute('aria-expanded', String(open));

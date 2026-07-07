@@ -29,22 +29,22 @@
         </button>
       </div>
       <nav class="side-nav" id="sideNav" aria-label="Student navigation">
-        <button class="nav-link active" data-section="dashboard"><span class="nav-icon" data-icon="dashboard"></span><span>Dashboard</span></button>
-        <button class="nav-link" data-section="exams"><span class="nav-icon" data-icon="exams"></span><span>Exam</span></button>
-        <button class="nav-link" data-section="my-exams"><span class="nav-icon" data-icon="exams"></span><span>My Exams</span></button>
-        <button class="nav-link" data-section="results"><span class="nav-icon" data-icon="results"></span><span>Results</span></button>
-        <button class="nav-link" data-section="certificates"><span class="nav-icon" data-icon="certificates"></span><span>Certificates</span></button>
-        <button class="nav-link" data-section="leaderboard"><span class="nav-icon" data-icon="leaderboard"></span><span>Leaderboard</span></button>
-        <button class="nav-link" data-section="analytics"><span class="nav-icon" data-icon="analytics"></span><span>Analytics</span></button>
-        <button class="nav-link" data-section="notifications">
+        <button class="nav-link active" data-section="dashboard" title="Dashboard"><span class="nav-icon" data-icon="dashboard"></span><span>Dashboard</span></button>
+        <button class="nav-link" data-section="exams" title="Exam"><span class="nav-icon" data-icon="exams"></span><span>Exam</span></button>
+        <button class="nav-link" data-section="my-exams" title="My Exams"><span class="nav-icon" data-icon="exams"></span><span>My Exams</span></button>
+        <button class="nav-link" data-section="results" title="Results"><span class="nav-icon" data-icon="results"></span><span>Results</span></button>
+        <button class="nav-link" data-section="certificates" title="Certificates"><span class="nav-icon" data-icon="certificates"></span><span>Certificates</span></button>
+        <button class="nav-link" data-section="leaderboard" title="Leaderboard"><span class="nav-icon" data-icon="leaderboard"></span><span>Leaderboard</span></button>
+        <button class="nav-link" data-section="analytics" title="Analytics"><span class="nav-icon" data-icon="analytics"></span><span>Analytics</span></button>
+        <button class="nav-link" data-section="notifications" title="Notifications">
           <span class="nav-icon" data-icon="bell"></span>
           <span>Notifications</span>
           <span class="nav-badge" id="notifNavCount">0</span>
         </button>
-        <button class="nav-link" data-section="schedule"><span class="nav-icon" data-icon="calendar"></span><span>Schedule</span></button>
-        <button class="nav-link" data-section="proctoring"><span class="nav-icon" data-icon="shield"></span><span>Proctoring Status</span></button>
-        <button class="nav-link" data-section="help-support"><span class="nav-icon" data-icon="help"></span><span>Help &amp; Support</span></button>
-        <button class="nav-link logout" id="logoutBtn" type="button"><span class="nav-icon" data-icon="logout"></span><span>Logout</span></button>
+        <button class="nav-link" data-section="schedule" title="Schedule"><span class="nav-icon" data-icon="calendar"></span><span>Schedule</span></button>
+        <button class="nav-link" data-section="proctoring" title="Proctoring Status"><span class="nav-icon" data-icon="shield"></span><span>Proctoring Status</span></button>
+        <button class="nav-link" data-section="help-support" title="Help &amp; Support"><span class="nav-icon" data-icon="help"></span><span>Help &amp; Support</span></button>
+        <button class="nav-link logout" id="logoutBtn" type="button" title="Logout"><span class="nav-icon" data-icon="logout"></span><span>Logout</span></button>
       </nav>
       <div class="sidebar-footer">
         <div class="student-mini">
@@ -85,11 +85,48 @@
           <div class="profile-dd" id="profileDd">
             <button id="profileMenuBtn" class="profile-btn" type="button" aria-haspopup="true" aria-expanded="false">
               <img id="topAvatar" alt="Student profile">
-              <span id="topName">Student</span>
+              <div class="profile-btn-text">
+                <span id="topName">Student</span>
+                <span class="profile-btn-role" id="topRole">Learner</span>
+              </div>
               <span class="svg-icon chevron" data-icon="chevron"></span>
             </button>
             <div id="profileMenu" class="dropdown-menu" role="menu">
-              <button type="button" id="profileLogout">Logout</button>
+              <!-- Profile Header -->
+              <div class="dropdown-profile-header">
+                <img id="dropdownAvatar" class="dropdown-avatar" alt="Profile">
+                <div class="dropdown-profile-info">
+                  <strong id="dropdownName">Student</strong>
+                  <span id="dropdownEmail" class="dropdown-email">student@sem.edu</span>
+                </div>
+              </div>
+              <div class="dropdown-divider"></div>
+              <!-- Menu Items -->
+              <button type="button" class="dropdown-item" data-section="profile" id="ddProfileLink">
+                <span class="dropdown-item-icon svg-icon" data-icon="profile"></span>
+                <div class="dropdown-item-content">
+                  <span class="dropdown-item-label">My Profile</span>
+                  <span class="dropdown-item-desc">View and edit profile</span>
+                </div>
+                <span class="dropdown-item-arrow svg-icon" data-icon="chevron"></span>
+              </button>
+              <button type="button" class="dropdown-item" data-section="settings" id="ddSettingsLink">
+                <span class="dropdown-item-icon svg-icon" data-icon="settings"></span>
+                <div class="dropdown-item-content">
+                  <span class="dropdown-item-label">Settings</span>
+                  <span class="dropdown-item-desc">Preferences &amp; display</span>
+                </div>
+                <span class="dropdown-item-arrow svg-icon" data-icon="chevron"></span>
+              </button>
+              <div class="dropdown-divider"></div>
+              <!-- Logout -->
+              <button type="button" class="dropdown-item dropdown-item--danger" id="profileLogout">
+                <span class="dropdown-item-icon svg-icon" data-icon="logout"></span>
+                <div class="dropdown-item-content">
+                  <span class="dropdown-item-label">Sign Out</span>
+                  <span class="dropdown-item-desc">Return to login</span>
+                </div>
+              </button>
             </div>
           </div>
         </div>
