@@ -47,6 +47,9 @@ public class Question {
     @Column(nullable = false)
     private Integer marks;
 
+    @Column(length = 2000)
+    private String explanation;
+
     private Boolean shuffleOptions = true;
     private Boolean fixedPosition = false;
     private Integer displayOrder;
@@ -122,6 +125,7 @@ public class Question {
     public String getSampleInput() { return sampleInput; }
     public String getSampleOutput() { return sampleOutput; }
     public Integer getMarks() { return marks; }
+    public String getExplanation() { return explanation; }
     public Boolean getShuffleOptions() { return shuffleOptions; }
     public Boolean getFixedPosition() { return fixedPosition; }
     public Integer getDisplayOrder() { return displayOrder; }
@@ -191,6 +195,7 @@ public class Question {
     public void setSampleInput(String sampleInput) { this.sampleInput = sampleInput; }
     public void setSampleOutput(String sampleOutput) { this.sampleOutput = sampleOutput; }
     public void setMarks(Integer marks) { this.marks = marks; }
+    public void setExplanation(String explanation) { this.explanation = explanation; }
     public void setShuffleOptions(Boolean shuffleOptions) { this.shuffleOptions = shuffleOptions; }
     public void setFixedPosition(Boolean fixedPosition) { this.fixedPosition = fixedPosition; }
     public void setDisplayOrder(Integer displayOrder) { this.displayOrder = displayOrder; }

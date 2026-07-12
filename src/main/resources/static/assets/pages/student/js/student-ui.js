@@ -10,6 +10,23 @@
   const loadArray = (k, f) => { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return Array.isArray(v) ? v : f; } catch { return f; } };
   const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
   const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+  const normalizeSectionName = (value) => {
+    const sec = String(value || '').trim().toLowerCase();
+    if (!sec) return '';
+    if (sec === 'exam') return 'exams';
+    if (sec === 'my-exams') return 'my-exams';
+    if (sec === 'certificate') return 'certificates';
+    if (sec === 'result') return 'results';
+    return sec;
+  };
+  const getCurrentStudentViewTarget = (targetUrl) => {
+    if (!targetUrl) return null;
+    try {
+      return new URL(targetUrl, window.location.origin);
+    } catch {
+      return null;
+    }
+  };
   const leaderboardStudentKey = (value) => String(value ?? '').trim();
   const normalizeLeaderboardRows = (rows) => {
     const bestByStudent = new Map();
@@ -19,7 +36,7 @@
       const current = {
         ...row,
         studentId,
-        studentName: row?.studentName || `Student-${studentId}`,
+        studentName: row?.studentName || 'Student',
         score: Number(row?.score || 0),
         percentage: Number(row?.percentage || 0),
         rank: Number(row?.rank || 0)
@@ -183,7 +200,7 @@
         exam: []
       },
       analytics: { attemptedExams:0, averageScore:0, highestScore:0, lowestScore:0, passRate:0 },
-      notifications: [],
+      notifications: loadArray(K.nn, []),
       supportFaq: [
         { question:'How do I start an exam?', answer:'Open the Exam section, verify the access window, and complete pre-exam verification when prompted.' },
         { question:'Why is my exam locked?', answer:'Exams can be locked because registration is required, the window is closed, or the live timer has not started yet.' },
@@ -611,6 +628,10 @@
       requiresPhase2Verification: !!exam.requiresPhase2Verification || inPhase2Window
     };
   }
+  function canEnterExamNow(exam) {
+    const state = examRuntimeState(exam);
+    return Boolean(state && state.live && !state.expired);
+  }
   const icoExt = {
     shield: '<svg viewBox="0 0 24 24"><path d="M12 3 20 6v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V6l8-3z"/><path d="M9.5 12.2 11.2 14 15 10.2"/></svg>',
     camera: '<svg viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="11" rx="2"/><path d="M9 7l1.5-3h3L15 7"/><circle cx="12" cy="12.5" r="3.5"/></svg>',
@@ -623,7 +644,16 @@
     if (view === 'my') {
       if (!state.registered) return null;
       if (state.resumeEligible || state.sessionStarted) {
-        return { label: 'Resume Exam', action: 'exam-access', tone: 'primary', hint: 'Saved session ready to continue.', disabled: false };
+        if (canEnterExamNow(exam)) {
+          return { label: 'Resume Exam', action: 'exam-access', tone: 'primary', hint: 'Saved session ready to continue.', disabled: false };
+        }
+        return {
+          label: `Starts at ${formatExamTime(exam)}`,
+          action: 'exam-detail',
+          tone: 'ghost',
+          hint: `Your saved session unlocks in ${Math.max(state.minutesUntil, 0)} min.`,
+          disabled: true
+        };
       }
       if (state.reexamEligible) {
         return { label: 'Re-Exam', action: 'exam-reexam-ready', tone: 'primary', hint: 'Eligible for another verified attempt.', disabled: false };
@@ -631,7 +661,7 @@
       if (state.completed) {
         return { label: state.expired ? 'Closed' : 'Completed', action: 'exam-detail', tone: 'ghost', hint: state.expired ? 'Session closed.' : 'Attempt limit reached or result finalized.', disabled: true };
       }
-      if (state.live) {
+      if (canEnterExamNow(exam)) {
         return { label: 'Enter Exam', action: 'exam-access', tone: 'primary', hint: 'Exam is live now.', disabled: false };
       }
       if (state.expired) {
@@ -693,7 +723,7 @@
       }
       return { label: 'Closed', action: 'exam-detail', tone: 'ghost', hint: 'Registration closed.', disabled: true };
     }
-    if (state.live) {
+    if (canEnterExamNow(exam)) {
       return { label: 'Enter Exam', action: 'exam-access', tone: 'primary', hint: 'Exam is live now.', disabled: false };
     }
     if (state.expired || state.result) {
@@ -1239,6 +1269,10 @@
     hydrateIcons(el.detailModalBody);
   }
   function openExamAccess(exam) {
+    if (!canEnterExamNow(exam)) {
+      toast('Exam not live yet', `You can enter ${exam.examCode} at ${formatExamDateTime(exam)}.`, 'warn');
+      return;
+    }
     modal({
       kicker: 'Exam Ready',
       title: `${exam.examCode} - ${exam.title}`,
@@ -1781,7 +1815,22 @@
       studentId: Number.isFinite(studentId) && studentId > 0 ? studentId : st.currentUserId,
       examCode: code
     };
-    const started = await apiRequest('/exam/start', { method: 'POST', body: JSON.stringify(payload) });
+    let started = null;
+    const startPaths = [
+      `/student/exam/start/${encodeURIComponent(code)}/${encodeURIComponent(payload.studentId)}`,
+      '/exam/start'
+    ];
+    for (const path of startPaths) {
+      try {
+        started = await apiRequest(path, {
+          method: path.includes('/student/exam/start/') ? 'POST' : 'POST',
+          body: path === '/exam/start' ? JSON.stringify(payload) : undefined
+        });
+        break;
+      } catch (error) {
+        started = null;
+      }
+    }
     if (started?.id != null) {
       attemptId = started.id;
       st.examAttemptIds[code] = started.id;
@@ -1835,6 +1884,47 @@
     window.location.href = `exam/exam.html?code=${encodeURIComponent(code)}&attemptId=${encodeURIComponent(attemptId)}`;
   }
   function setSection(sec) { st.sec = sec; localStorage.setItem(K.sec, sec); $$('.section').forEach(s => s.classList.toggle('active', s.id === sec)); $$('.nav-link[data-section]').forEach(b => b.classList.toggle('active', b.dataset.section === sec)); updateTopPlaceholder(); if (isMobile()) closeSidebar(); if (!booting) refresh(); }
+  function openNotificationTarget(targetUrl) {
+    const resolved = getCurrentStudentViewTarget(targetUrl);
+    if (!resolved) return;
+
+    const currentPath = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+    const targetPath = resolved.pathname.replace(/\/+$/, '').toLowerCase();
+    const sameStudentShell = targetPath.endsWith('/pages/student-ui.html') || targetPath === currentPath;
+    if (!sameStudentShell) {
+      window.location.href = resolved.href;
+      return;
+    }
+
+    const querySection = normalizeSectionName(resolved.searchParams.get('section'));
+    const hashSection = normalizeSectionName((resolved.hash || '').replace(/^#/, ''));
+    const nextSection = querySection || hashSection;
+
+    if (nextSection) {
+      setSection(nextSection);
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set('section', nextSection);
+      nextUrl.hash = '';
+      history.replaceState({}, '', nextUrl);
+    }
+
+    const detailParams = ['notificationId', 'attemptId', 'certificateId', 'examCode'];
+    const hasDetail = detailParams.some((key) => resolved.searchParams.has(key));
+    if (hasDetail) {
+      const nextUrl = new URL(window.location.href);
+      detailParams.forEach((key) => {
+        const value = resolved.searchParams.get(key);
+        if (value) nextUrl.searchParams.set(key, value);
+      });
+      history.replaceState({}, '', nextUrl);
+    }
+
+    if (!nextSection && !hasDetail) {
+      const fallbackUrl = new URL(resolved.href);
+      fallbackUrl.hash = '';
+      window.location.href = fallbackUrl.href;
+    }
+  }
   function openSidebar() { el.sidebar.classList.add('open'); document.body.classList.add('sidebar-open'); }
   function closeSidebar() { el.sidebar.classList.remove('open'); document.body.classList.remove('sidebar-open'); updateSidebarToggle(); }
   function toggleSidebar() { if (isMobile()) (el.sidebar.classList.contains('open') ? closeSidebar() : openSidebar()); else el.sidebar.classList.toggle('collapsed'); updateSidebarToggle(); }
@@ -2426,7 +2516,7 @@
   function renderCertificates() {
     const q = (el.certificatesSearch.value.trim() || st.q).toLowerCase();
     const f = el.certificatesFilter.value;
-    const rows = (st.data.certs || [])
+    const allRows = (st.data.certs || [])
       .slice()
       .sort((a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime())
       .filter((c) => {
@@ -2439,38 +2529,60 @@
         if (f === 'recent') return true;
         return true;
       });
-    const output = f === 'recent' ? rows.slice(0, 4) : rows;
-    el.certificatesGrid.innerHTML = output.length ? output.map((c) => `
-      <article class="card cert-card certificate-card ${certToneClass(c)}" data-cert="${c.certificateId}">
-        <div class="cert-head">
-          <div>
-            <h3 class="cert-title">${c.examTitle}</h3>
-            <div class="meta-line">
-              <span class="code-badge">${c.certificateId}</span>
-              <span class="status-badge ${certStatusClass(c.revoked)}">${certStatusLabel(c.revoked)}</span>
-            </div>
-          </div>
-          <span class="tag ${c.revoked ? 'danger' : 'success'}">${c.grade}</span>
-        </div>
-        <div class="cert-meta-grid">
-          <div class="detail-item"><span>Student Name</span><strong>${c.studentName}</strong></div>
-          <div class="detail-item"><span>College Name</span><strong>${c.collegeName}</strong></div>
-          <div class="detail-item"><span>Department</span><strong>${c.department}</strong></div>
-          <div class="detail-item"><span>Roll Number</span><strong>${c.rollNumber}</strong></div>
-        </div>
-          <div class="cert-score-grid">
-            <div class="detail-item"><span>Score</span><strong>${fmtScore(c.score)}%</strong></div>
-            <div class="detail-item"><span>Grade</span><strong>${c.grade}</strong></div>
-            <div class="detail-item"><span>Issued Date</span><strong>${formatDate(c.issuedAt)}</strong></div>
-            <div class="detail-item"><span>Status</span><strong>${certStatusLabel(c.revoked)}</strong></div>
-          </div>
-        <div class="card-actions cert-actions">
-          <button class="btn ghost small" data-action="certificate-preview" data-code="${c.certificateId}" type="button">View</button>
-          <button class="btn primary small" data-action="certificate-download" data-code="${c.certificateId}" type="button">Download</button>
-          <button class="btn ghost small" data-action="certificate-verify" data-code="${c.certificateId}" type="button">Verify</button>
-        </div>
-      </article>
-    `).join('') : `<article class="card empty-card certificate-empty"><h3>No certificates found</h3><p>Use a broader search or a different filter to reveal issued certificates.</p></article>`;
+    const PAGE_SIZE = 6;
+    if (!st._certPage) st._certPage = 1;
+    const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+    if (st._certPage > totalPages) st._certPage = totalPages;
+    const pageStart = (st._certPage - 1) * PAGE_SIZE;
+    const output = allRows.slice(pageStart, pageStart + PAGE_SIZE);
+    const certIcon = (title) => {
+      const t = String(title || '').toLowerCase();
+      if (t.includes('python')) return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2C8.13 2 5 5.13 5 9v3h14V9c0-3.87-3.13-7-7-7z"/><path d="M5 12v3c0 3.87 3.13 7 7 7s7-3.13 7-7v-3"/><circle cx="9" cy="9.5" r="1"/><circle cx="15" cy="9.5" r="1"/></svg>`;
+      if (t.includes('java')) return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8.5 2s-1.5 3.5 2 5c3 1.5 5-1 5-1s-1 3.5-5 4-6 3-4 6"/><path d="M13.5 22s4-1 4-5c0-3-3.5-4-3.5-4"/></svg>`;
+      if (t.includes('web') || t.includes('html') || t.includes('css')) return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`;
+      if (t.includes('database') || t.includes('sql')) return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>`;
+      if (t.includes('ai') || t.includes('ml') || t.includes('studio')) return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="8" height="8" rx="2"/><rect x="14" y="2" width="8" height="8" rx="2"/><rect x="2" y="14" width="8" height="8" rx="2"/><path d="M14 18h8M18 14v8M10 6h4M6 10v4"/></svg>`;
+      return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v14H6z"/><path d="M10 17v4l2-1.5L14 21v-4"/><path d="M9 7h6M9 11h6"/></svg>`;
+    };
+    const certTopColor = (c) => {
+      if (c.revoked) return '#ef4444';
+      const grade = String(c.grade || '').toUpperCase();
+      if (grade === 'A+' || Number(c.score || 0) >= 90) return '#22c55e';
+      if (grade === 'A' || Number(c.score || 0) >= 80) return '#14b8a6';
+      if (grade === 'B+' || Number(c.score || 0) >= 70) return '#8b5cf6';
+      return '#3b82f6';
+    };
+    const certIconBg = (c) => {
+      if (c.revoked) return '#fef2f2';
+      const grade = String(c.grade || '').toUpperCase();
+      if (grade === 'A+' || Number(c.score || 0) >= 90) return '#f0fdf4';
+      if (grade === 'A' || Number(c.score || 0) >= 80) return '#f0fdfa';
+      if (grade === 'B+' || Number(c.score || 0) >= 70) return '#f5f3ff';
+      return '#eff6ff';
+    };
+    el.certificatesGrid.innerHTML = output.length ? output.map((c) => {
+      const topColor = certTopColor(c);
+      const iconBg = certIconBg(c);
+      const verifiedHtml = !c.revoked
+        ? `<span class="cert-verified-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>VERIFIED</span>`
+        : `<span class="cert-revoked-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>REVOKED</span>`;
+      return `<article class="certificate-card" data-cert="${c.certificateId}" style="--cert-top:${topColor}"><div class="cert-card-top-bar" style="background:${topColor};"></div><div class="cert-card-body"><div class="cert-card-header"><div class="cert-icon-badge" style="background:${iconBg};color:${topColor};">${certIcon(c.examTitle)}</div><div class="cert-card-info"><div class="cert-card-title">${c.examTitle}</div><div class="cert-card-id">${c.certificateId}</div><div class="cert-card-date">${formatDate(c.issuedAt)}</div></div><div class="cert-grade-badge" style="background:${iconBg};color:${topColor};">${c.grade}</div></div><div class="cert-verified-row">${verifiedHtml}</div></div><div class="cert-card-divider"></div><div class="cert-card-actions"><button class="cert-action-btn" data-action="certificate-preview" data-code="${c.certificateId}" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button><button class="cert-action-btn cert-action-download" data-action="certificate-download" data-code="${c.certificateId}" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download</button></div></article>`;
+    }).join('') : `<article class="card empty-card certificate-empty"><h3>No certificates found</h3><p>Use a broader search or a different filter to reveal issued certificates.</p></article>`;
+    const countEl = $('certCountLabel');
+    if (countEl) countEl.textContent = `Showing ${allRows.length} of ${(st.data.certs || []).length} certificates`;
+    const prevBtn = $('certPrevBtn');
+    const nextBtn = $('certNextBtn');
+    const pageNums = $('certPageNums');
+    if (prevBtn) prevBtn.disabled = st._certPage <= 1;
+    if (nextBtn) nextBtn.disabled = st._certPage >= totalPages;
+    if (pageNums) {
+      const pages = [];
+      for (let i = 1; i <= totalPages; i++) { pages.push(`<button class="cert-page-num${i === st._certPage ? ' active' : ''}" data-cert-page="${i}" type="button">${i}</button>`); }
+      pageNums.innerHTML = pages.join('');
+      pageNums.querySelectorAll('[data-cert-page]').forEach(btn => { btn.addEventListener('click', () => { st._certPage = Number(btn.dataset.certPage); renderCertificates(); }); });
+    }
+    if (prevBtn && !prevBtn._bound) { prevBtn._bound = true; prevBtn.addEventListener('click', () => { if (st._certPage > 1) { st._certPage--; renderCertificates(); } }); }
+    if (nextBtn && !nextBtn._bound) { nextBtn._bound = true; nextBtn.addEventListener('click', () => { if (st._certPage < totalPages) { st._certPage++; renderCertificates(); } }); }
   }
   function applySearch(rows, query = '') {
     const q = String(query || '').trim().toLowerCase();
@@ -2488,13 +2600,23 @@
   function leaderboardRowsForMode() {
     return normalizeLeaderboardRows(activeLeaderboardRows()).map((row) => ({ ...row }));
   }
+  function leaderboardDisplayName(row) {
+    return escapeHtml(row?.studentName || 'Student');
+  }
+  function leaderboardDisplayId(row) {
+    const id = String(row?.studentId || '').trim();
+    return id ? `ID: ${escapeHtml(id)}` : 'ID: -';
+  }
+  function leaderboardToneClass(tone) {
+    return ({ top: 'success', excellent: 'success', good: 'warning', needs: 'neutral' }[String(tone || '').toLowerCase()] || 'neutral');
+  }
 
   function renderSummary(rows) {
     const total = rows.length;
     const top = rows.reduce((acc, row) => (row.percentage > (acc?.percentage ?? -Infinity) ? row : acc), rows[0] || null);
     const avg = total ? rows.reduce((sum, row) => sum + Number(row.percentage || 0), 0) / total : 0;
     const cards = [
-      { label: 'Top Score', value: top ? pct(top.percentage) : '-', icon: 'star', tone: 'purple', hint: top ? top.studentName : 'No students yet' },
+      { label: 'Top Score', value: top ? pct(top.percentage) : '-', icon: 'star', tone: 'purple', hint: top ? `${top.studentName} (${top.studentId})` : 'No students yet' },
       { label: 'Total Participants', value: total, icon: 'dashboard', tone: 'blue', hint: `${st.leaderboard.mode === 'global' ? 'Global' : 'Exam'} cohort` },
       { label: 'Average Score', value: pct(avg), icon: 'analytics', tone: 'green', hint: 'Average across current filter' }
     ];
@@ -2521,7 +2643,8 @@
       <div class="rank-spotlight-header">
         <div>
           <span class="rank-kicker">Your Rank</span>
-          <h3>#${user.rank} ${escapeHtml(user.studentName)}</h3>
+          <h3>#${user.rank} ${leaderboardDisplayName(user)}</h3>
+          <p class="rank-student-id">${leaderboardDisplayId(user)}</p>
           <p>${st.leaderboard.mode === 'global' ? 'Global leaderboard' : 'Exam leaderboard'} position for the active dataset.</p>
         </div>
         <span class="rank-chip ${badgeInfo.tone}">${badgeInfo.label}</span>
@@ -2549,7 +2672,8 @@
             <span class="podium-place">${podiumTitles[idx]}</span>
           </div>
           <div class="podium-avatar">${initials(row.studentName)}</div>
-          <h3>${escapeHtml(row.studentName)}</h3>
+          <h3>${leaderboardDisplayName(row)}</h3>
+          <p class="podium-student-id">${leaderboardDisplayId(row)}</p>
           <p>${fmtScore(row.score)} score points</p>
           <div class="podium-meta">
             <strong>${pct(row.percentage)}</strong>
@@ -2571,7 +2695,8 @@
             <div class="leaderboard-student">
               <span class="leaderboard-avatar">${initials(row.studentName)}</span>
               <div>
-                <strong>${escapeHtml(row.studentName)}</strong>
+                <strong>${leaderboardDisplayName(row)}</strong>
+                <small class="leaderboard-student-id">${leaderboardDisplayId(row)}</small>
                 ${current ? '<span class="leaderboard-me-tag">You</span>' : ''}
               </div>
             </div>
@@ -2832,7 +2957,7 @@
     }
   }
   function notificationTone(type) {
-    return ({ exam: 'warning', result: 'success', certificate: 'neutral' }[type] || 'neutral');
+    return ({ exam: 'warning', result: 'success', certificate: 'neutral', cheating: 'danger', system: 'neutral' }[type] || 'neutral');
   }
   function formatRelativeTime(value) {
     const d = new Date(value);
@@ -2845,21 +2970,173 @@
     if (hrs < 24) return `${hrs}h ago`;
     return formatDate(value);
   }
-  function markNotificationRead(id) {
-    const item = (st.data.notifications || []).find((n) => n.id === id);
-    if (!item) return;
-    item.read = true;
+  function notificationType(value) {
+    const raw = String(value || 'system').toLowerCase();
+    if (raw.includes('cert')) return 'certificate';
+    if (raw.includes('result')) return 'result';
+    if (raw.includes('exam')) return 'exam';
+    if (raw.includes('cheat') || raw.includes('proctor') || raw.includes('warning')) return 'cheating';
+    return 'system';
+  }
+  function normalizeNotification(item = {}) {
+    const timestamp = item.timestamp || item.createdAt || item.readAt || Date.now();
+    const unread = item.unread !== false && item.read !== true;
+    return {
+      id: item.id ?? `notif-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+      type: notificationType(item.type || item.category),
+      title: item.title || item.message || 'Notification',
+      message: item.message || item.desc || '',
+      unread,
+      read: !unread,
+      timestamp,
+      source: item.source || 'System',
+      severity: item.severity || 'info',
+      targetUrl: item.targetUrl || '',
+      readAt: item.readAt || null
+    };
+  }
+  function mergeNotifications(...groups) {
+    const map = new Map();
+    groups.flat().filter(Boolean).map(normalizeNotification).forEach((item) => {
+      const key = String(item.id);
+      const existing = map.get(key);
+      map.set(key, existing ? { ...existing, ...item } : item);
+    });
+    return Array.from(map.values()).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+  function persistNotifications(list) {
+    st.data.notifications = Array.isArray(list) ? list : [];
     save(K.nn, st.data.notifications);
+  }
+  async function refreshNotifications(silent = false) {
+    const cached = loadArray(K.nn, []);
+    try {
+      const response = await apiRequest('/student/notifications', { method: 'GET', silent: true });
+      const remote = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.notifications)
+            ? response.notifications
+            : [];
+      const merged = mergeNotifications(cached, remote);
+      persistNotifications(merged);
+      renderNotifications();
+      return merged;
+    } catch (error) {
+      if (!silent) {
+        console.warn('Student notifications refresh failed, using cached feed.', error);
+      }
+      persistNotifications(mergeNotifications(cached));
+      renderNotifications();
+      return st.data.notifications;
+    }
+  }
+  async function refreshNotificationCount() {
+    try {
+      const response = await apiRequest('/student/notifications/count', { method: 'GET', silent: true });
+      const count = Number(response?.count ?? response?.data?.count ?? response ?? 0);
+      if (Number.isFinite(count) && count >= 0) {
+        if (el.notifCount) el.notifCount.textContent = String(count);
+        if (el.notifNavCount) el.notifNavCount.textContent = String(count);
+        if (el.notifyDropCount) el.notifyDropCount.textContent = String(count);
+        if (el.unreadNotificationCount) el.unreadNotificationCount.textContent = String(count);
+      }
+    } catch (_) {
+      // Count is already reflected by the current feed.
+    }
+  }
+  async function markNotificationRead(id) {
+    const item = (st.data.notifications || []).find((n) => String(n.id) === String(id));
+    if (!item) return;
+    item.unread = false;
+    item.read = true;
+    item.readAt = new Date().toISOString();
+    persistNotifications(st.data.notifications);
     renderNotifications();
+    try {
+      const response = await apiRequest(`/student/notifications/${encodeURIComponent(id)}/read`, { method: 'POST', silent: true });
+      const updated = response?.data || response;
+      if (updated && typeof updated === 'object') {
+        const merged = mergeNotifications(st.data.notifications.map((n) => String(n.id) === String(id) ? { ...n, ...updated, unread: false } : n));
+        persistNotifications(merged);
+        renderNotifications();
+      }
+      await refreshNotificationCount();
+    } catch (error) {
+      console.warn('Failed to mark student notification as read on the server.', error);
+    }
+  }
+  async function markAllNotificationsRead() {
+    const updated = (st.data.notifications || []).map((item) => ({ ...item, unread: false, read: true, readAt: item.readAt || new Date().toISOString() }));
+    persistNotifications(updated);
+    renderNotifications();
+    try {
+      await apiRequest('/student/notifications/read-all', { method: 'POST', silent: true });
+      await refreshNotificationCount();
+    } catch (error) {
+      console.warn('Failed to mark all student notifications read on the server.', error);
+    }
+  }
+  async function clearNotifications() {
+    persistNotifications([]);
+    renderNotifications();
+    try {
+      await apiRequest('/student/notifications/clear', { method: 'DELETE', silent: true });
+      await refreshNotificationCount();
+    } catch (error) {
+      console.warn('Failed to clear student notifications on the server.', error);
+    }
+  }
+  function pushNotification(payload) {
+    const item = normalizeNotification(payload);
+    const existing = (st.data.notifications || []).filter((entry) => String(entry.id) !== String(item.id));
+    persistNotifications([item, ...existing].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+    renderNotifications();
+    refreshNotificationCount().catch(() => {});
+    if (item.title) {
+      toast(item.title, item.message || 'New notification received.', item.severity === 'success' ? 'success' : item.severity === 'danger' ? 'warn' : 'info');
+    }
+  }
+  function connectNotificationStream() {
+    if (!st.currentUserId) return;
+    if (window.SockJS && window.Stomp && !window.__studentNotifSocket) {
+      try {
+        const socket = new window.SockJS('/ws');
+        const stomp = window.Stomp.over(socket);
+        stomp.debug = null;
+        stomp.connect({}, () => {
+          window.__studentNotifSocket = { socket, stomp };
+          stomp.subscribe(`/topic/student/${st.currentUserId}`, (frame) => {
+            try {
+              const payload = JSON.parse(frame.body);
+              pushNotification(payload);
+            } catch (error) {
+              console.warn('Failed to parse student notification payload.', error);
+            }
+          });
+        }, (error) => {
+          console.warn('Student notification stream unavailable:', error);
+        });
+      } catch (error) {
+        console.warn('Failed to connect student notification stream:', error);
+      }
+      return;
+    }
+    if (!window.__studentNotifPoller) {
+      window.__studentNotifPoller = setInterval(() => {
+        refreshNotifications(true).catch(() => {});
+      }, 15000);
+    }
   }
   function renderNotifications() {
     const filter = el.notificationTypeFilter?.value || 'all';
     const list = (st.data.notifications || []).slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     const visible = filter === 'all' ? list : list.filter((item) => item.type === filter);
-    const unreadCount = list.filter((item) => !item.read).length;
+    const unreadCount = list.filter((item) => item.unread !== false && item.read !== true).length;
     const topItems = list.slice(0, 3);
     const renderItem = (item, compact = false) => `
-      <button class="notification-card ${item.read ? 'read' : 'unread'} ${notificationTone(item.type)}" type="button" data-notification-id="${item.id}">
+      <button class="notification-card ${(item.unread !== false && item.read !== true) ? 'unread' : 'read'} ${notificationTone(item.type)}" type="button" data-notification-id="${item.id}" data-target-url="${escapeHtml(item.targetUrl || '')}">
         <span class="notification-dot ${item.type}"></span>
         <span class="notification-content">
           <strong>${escapeHtml(item.title)}</strong>
@@ -2875,16 +3152,24 @@
     if (el.notifyList) {
       el.notifyList.innerHTML = topItems.length ? topItems.map((item) => renderItem(item, true)).join('') : '<div class="empty-state-lite"><strong>No notifications</strong><p>You are fully caught up.</p></div>';
       $$('.notification-card', el.notifyList).forEach((btn) => btn.addEventListener('click', () => {
+        const target = btn.dataset.targetUrl || '';
         markNotificationRead(btn.dataset.notificationId);
         toast('Notification opened', btn.querySelector('strong')?.textContent || 'Notification', 'info');
+        if (target) {
+          setTimeout(() => { openNotificationTarget(target); }, 150);
+        }
         el.notifyDrop.classList.remove('open');
       }));
     }
     if (el.notificationStream) {
       el.notificationStream.innerHTML = visible.length ? visible.map((item) => renderItem(item, false)).join('') : '<div class="empty-state-lite"><strong>No notifications</strong><p>Try a different filter or wait for new updates.</p></div>';
       $$('.notification-card', el.notificationStream).forEach((btn) => btn.addEventListener('click', () => {
+        const target = btn.dataset.targetUrl || '';
         markNotificationRead(btn.dataset.notificationId);
         toast('Notification marked read', btn.querySelector('strong')?.textContent || 'Notification', 'success');
+        if (target) {
+          setTimeout(() => { openNotificationTarget(target); }, 150);
+        }
       }));
     }
   }
@@ -3200,37 +3485,102 @@
       const r = rows.find((x) => x.studentId === code) || st.data.leaderboard.global.find((x) => x.studentId === code) || st.data.leaderboard.exam.find((x) => x.studentId === code);
       if (!r) return;
       const info = leaderboardBadge(r.percentage);
+      const performanceCopy = info.label === 'TOP PERFORMER'
+        ? 'You are among the top performers.'
+        : `${r.studentName} is currently ranked #${r.rank}.`;
       modal({
         kicker:'Leaderboard Student',
-        title:r.studentName,
+        title:`${r.studentName} (#${r.studentId})`,
         body: `
           <div class="leaderboard-modal-card">
-            <div class="leaderboard-modal-badge">${info.label}</div>
+            <div class="leaderboard-modal-hero">
+              <div class="leaderboard-modal-hero-copy">
+                <div class="leaderboard-modal-kicker-row">
+                  <span class="leaderboard-modal-kicker-icon">${svg('leaderboard')}</span>
+                  <span>Leaderboard &middot; Student</span>
+                </div>
+                <h4>${leaderboardDisplayName(r)} (#${r.studentId})</h4>
+                <p>${performanceCopy}</p>
+              </div>
+              <div class="leaderboard-modal-illustration" aria-hidden="true">
+                <svg viewBox="0 0 320 220" class="leaderboard-modal-graphic" role="img" aria-label="">
+                  <defs>
+                    <linearGradient id="lbTrophyGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#facc15"/>
+                      <stop offset="100%" stop-color="#f59e0b"/>
+                    </linearGradient>
+                    <linearGradient id="lbTrophyBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#4f6dfc"/>
+                      <stop offset="100%" stop-color="#2563eb"/>
+                    </linearGradient>
+                  </defs>
+                  <circle cx="160" cy="92" r="64" fill="rgba(59,130,246,0.08)"/>
+                  <path d="M88 78c-2 0-4 2-4 4 0 22 14 43 35 51l3-9c-14-6-24-20-25-36h8c0-9-7-10-17-10zm144 0c10 0 17 1 17 10h8c-1 16-11 30-25 36l3 9c21-8 35-29 35-51 0-2-2-4-4-4-10 0-17 1-17 10h-17z" fill="#93c5fd" opacity="0.65"/>
+                  <rect x="114" y="148" width="92" height="22" rx="5" fill="url(#lbTrophyBlue)"/>
+                  <rect x="100" y="170" width="120" height="16" rx="4" fill="#4f46e5"/>
+                  <rect x="126" y="146" width="68" height="10" rx="4" fill="#1e3a8a"/>
+                  <path d="M134 74h52v30c0 12-10 22-22 22h-8c-12 0-22-10-22-22V74z" fill="url(#lbTrophyGold)"/>
+                  <path d="M126 82h-14c-8 0-14 6-14 14s6 14 14 14h14" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round"/>
+                  <path d="M194 82h14c8 0 14 6 14 14s-6 14-14 14h-14" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round"/>
+                  <circle cx="160" cy="94" r="11" fill="#fff7ed"/>
+                  <path d="M160 84l2.6 5.2 5.8.8-4.2 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.2-4.1 5.8-.8z" fill="#fbbf24"/>
+                </svg>
+              </div>
+            </div>
+            <div class="leaderboard-modal-badge ${leaderboardToneClass(info.tone)}">${info.label}</div>
             <div class="leaderboard-modal-grid">
               <div class="leaderboard-stat">
-                <span>Rank</span>
-                <strong>#${r.rank}</strong>
+                <span class="svg-icon leaderboard-stat-icon" data-icon="star"></span>
+                <div>
+                  <span>Rank</span>
+                  <strong>#${r.rank}</strong>
+                </div>
               </div>
               <div class="leaderboard-stat">
-                <span>Score</span>
-                <strong>${fmtScore(r.score)}</strong>
+                <span class="svg-icon leaderboard-stat-icon" data-icon="profile"></span>
+                <div>
+                  <span>Student</span>
+                  <strong>${leaderboardDisplayName(r)}</strong>
+                </div>
               </div>
               <div class="leaderboard-stat">
-                <span>Percentage</span>
-                <strong>${pct(r.percentage)}</strong>
+                <span class="svg-icon leaderboard-stat-icon" data-icon="dashboard"></span>
+                <div>
+                  <span>Student ID</span>
+                  <strong>${leaderboardDisplayId(r)}</strong>
+                </div>
               </div>
               <div class="leaderboard-stat">
-                <span>Mode</span>
-                <strong>${st.leaderboard.mode === 'global' ? 'Global' : 'Exam'}</strong>
+                <span class="svg-icon leaderboard-stat-icon" data-icon="results"></span>
+                <div>
+                  <span>Score</span>
+                  <strong>${fmtScore(r.score)}</strong>
+                </div>
+              </div>
+              <div class="leaderboard-stat">
+                <span class="svg-icon leaderboard-stat-icon" data-icon="analytics"></span>
+                <div>
+                  <span>Percentage</span>
+                  <strong>${pct(r.percentage)}</strong>
+                </div>
+              </div>
+              <div class="leaderboard-stat">
+                <span class="svg-icon leaderboard-stat-icon" data-icon="leaderboard"></span>
+                <div>
+                  <span>Mode</span>
+                  <strong>${st.leaderboard.mode === 'global' ? 'Global' : 'Exam'}</strong>
+                </div>
               </div>
             </div>
             <div class="leaderboard-modal-footer">
-              <span>Performance</span>
+              <span class="leaderboard-performance-label"><span class="svg-icon" data-icon="leaderboard"></span>Performance</span>
+              <div class="leaderboard-performance-copy">${performanceCopy}</div>
               <strong class="performance-badge ${info.tone}">${info.label}</strong>
             </div>
           </div>`,
         foot:'<button class="btn ghost" data-close-modal type="button">Close</button>'
       });
+      hydrateIcons(el.detailModalBody);
       return;
     }
     if (type === 'certificate') {
@@ -3330,6 +3680,10 @@
     if (type === 'exam-access') {
       const e = st.data.exams.find((x) => x.examCode === code);
       if (!e) return;
+      if (!canEnterExamNow(e)) {
+        toast('Exam not live yet', `You can enter ${e.examCode} at ${formatExamDateTime(e)}.`, 'warn');
+        return;
+      }
       openExamAccess(e);
       return;
     }
@@ -3363,6 +3717,10 @@
     if (type === 'exam-enter') {
       const e = st.data.exams.find((x) => x.examCode === code);
       if (!e) return;
+      if (!canEnterExamNow(e)) {
+        toast('Exam not live yet', `You can enter ${e.examCode} at ${formatExamDateTime(e)}.`, 'warn');
+        return;
+      }
       if (!st.examAttemptIds[code]) {
         startVerifiedExam(code).catch((error) => {
           console.error('Failed to prepare exam entry:', error);
@@ -3374,6 +3732,12 @@
       return;
     }
     if (type === 'exam-enter-confirm') {
+      const e = st.data.exams.find((x) => x.examCode === code);
+      if (!e) return;
+      if (!canEnterExamNow(e)) {
+        toast('Exam not live yet', `You can enter ${e.examCode} at ${formatExamDateTime(e)}.`, 'warn');
+        return;
+      }
       closeModal();
       navigateToExamPage(code).catch((error) => {
         console.error('Failed to navigate to exam page:', error);
@@ -3382,6 +3746,12 @@
       return;
     }
     if (type === 'exam-reexam-enter') {
+      const e = st.data.exams.find((x) => x.examCode === code);
+      if (!e) return;
+      if (!canEnterExamNow(e)) {
+        toast('Exam not live yet', `You can enter ${e.examCode} at ${formatExamDateTime(e)}.`, 'warn');
+        return;
+      }
       closeModal();
       startVerifiedExam(code);
       return;
@@ -3589,6 +3959,12 @@
   function updateClock() {
     const d = new Date();
     el.liveClock.textContent = d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+    if (!booting && (st.sec === 'my-exams' || st.sec === 'exams')) {
+      renderMyExams();
+      if (st.sec === 'exams') {
+        renderExamCatalog();
+      }
+    }
   }
   function wire() {
     el.toggle.addEventListener('click', toggleSidebar);
@@ -3629,18 +4005,18 @@
     }
     if (el.markAllReadBtn) {
       el.markAllReadBtn.addEventListener('click', () => {
-        (st.data.notifications || []).forEach((item) => { item.read = true; });
-        save(K.nn, st.data.notifications);
-        renderNotifications();
-        toast('Notifications updated', 'All notifications were marked as read.', 'success');
+        runButtonFeedback(el.markAllReadBtn, 'Marking read...', async () => {
+          await markAllNotificationsRead();
+          toast('Notifications updated', 'All notifications were marked as read.', 'success');
+        }, 360);
       });
     }
     if (el.clearNotificationsBtn) {
       el.clearNotificationsBtn.addEventListener('click', () => {
-        st.data.notifications = [];
-        save(K.nn, st.data.notifications);
-        renderNotifications();
-        toast('Notifications cleared', 'The notification stream has been emptied.', 'info');
+        runButtonFeedback(el.clearNotificationsBtn, 'Clearing...', async () => {
+          await clearNotifications();
+          toast('Notifications cleared', 'The notification stream has been emptied.', 'info');
+        }, 360);
       });
     }
     if (el.scheduleDateFilter) {
@@ -3713,12 +4089,13 @@
       st.results.page = nextPage;
       renderResultsTable();
     });
-    $('certificatesFilter').addEventListener('change', () => { renderCertificateSummary(); renderCertificates(); });
-    $('certificatesSearch').addEventListener('input', () => { renderCertificateSummary(); renderCertificates(); });
+    $('certificatesFilter').addEventListener('change', () => { st._certPage = 1; renderCertificateSummary(); renderCertificates(); });
+    $('certificatesSearch').addEventListener('input', () => { st._certPage = 1; renderCertificateSummary(); renderCertificates(); });
     $('certificatesResetBtn').addEventListener('click', (e) => {
       runButtonFeedback(e.currentTarget, 'Resetting...', () => {
         $('certificatesFilter').value = 'all';
         $('certificatesSearch').value = '';
+        st._certPage = 1;
         renderCertificateSummary();
         renderCertificates();
         toast('Certificates reset', 'Certificate filters cleared.', 'info');
@@ -3910,11 +4287,19 @@
   async function init() {
     bind();
     hydrateIcons();
+    const startupUrl = new URL(window.location.href);
+    const startupSection = normalizeSectionName(startupUrl.searchParams.get('section') || (startupUrl.hash || '').replace(/^#/, ''));
+    if (startupSection) {
+      st.sec = startupSection;
+      localStorage.setItem(K.sec, startupSection);
+    }
     try {
       await hydrateFromBackend();
     } catch (error) {
       console.warn('Student backend bootstrap failed. Falling back to local data.', error);
     }
+    await refreshNotifications(true);
+    connectNotificationStream();
     if (el.detailModalClose) el.detailModalClose.innerHTML = '<span aria-hidden="true">×</span>';
     updateTopPlaceholder();
     applyTheme(st.theme);

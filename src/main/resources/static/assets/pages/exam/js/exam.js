@@ -1082,8 +1082,8 @@ class ExamController {
         }
         let submitError = null;
         for (const path of [
-          `/exam/submit/${this.attemptId}`,
-          `/student/exam/submit/${this.attemptId}`
+          `/student/exam/submit/${this.attemptId}`,
+          `/exam/submit/${this.attemptId}`
         ]) {
           try {
             await apiRequest(path, { method: 'POST' });

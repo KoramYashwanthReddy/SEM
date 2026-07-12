@@ -35,6 +35,20 @@
     const n = Number(v);
     return Number.isFinite(n) ? n : d;
   };
+  const normalizeAttemptPercentage = (att) => {
+    const direct = Number(att?.percentage);
+    if (Number.isFinite(direct) && direct > 0) return direct;
+    const obtained = Number(att?.obtainedMarks);
+    const total = Number(att?.totalMarks);
+    if (Number.isFinite(obtained) && Number.isFinite(total) && total > 0) {
+      return (obtained / total) * 100;
+    }
+    const score = Number(att?.score);
+    if (Number.isFinite(score) && score > 0) {
+      return score <= 100 ? score : 0;
+    }
+    return 0;
+  };
   const arr = (v) => Array.isArray(v) ? v : [];
   const norm = (v) => txt(v).toLowerCase().replace(/[^a-z0-9]+/g, "");
   const hasToken = () => {
@@ -50,6 +64,111 @@
     if (!v) return "-";
     const d = new Date(v);
     return Number.isNaN(d.getTime()) ? txt(v) : d.toISOString().split("T")[0];
+  };
+  const fmtDateTime = (v) => {
+    if (!v) return "";
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? "" : d.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true
+    });
+  };
+  const normalizeAuditLabel = (value) => txt(value).trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  const mapAuditNotification = (item) => {
+    const timestamp = item?.timestamp || item?.createdAt || item?.updatedAt || null;
+    const category = normalizeAuditLabel(item?.type || item?.category || "SYSTEM") || "SYSTEM";
+    const severity = normalizeAuditLabel(item?.severity || "INFO") || "INFO";
+    const title = txt(item?.title || "System event").trim();
+    const message = txt(item?.desc || item?.message || "").trim();
+    const source = txt(item?.source || "Admin Console").trim();
+    return {
+      id: item?.id ? `AUD-${item.id}` : `AUD-${Date.now()}`,
+      title,
+      message,
+      event: normalizeAuditLabel(title),
+      category,
+      module: category,
+      severity,
+      source,
+      status: item?.unread ? "UNREAD" : "READ",
+      unread: Boolean(item?.unread),
+      targetUrl: txt(item?.targetUrl || "").trim(),
+      timestamp: timestamp ? new Date(timestamp).getTime() : 0,
+      time: fmtDateTime(timestamp) || "-"
+    };
+  };
+  const mapAuditCheatingEvent = (item) => {
+    const timestamp = item?.timestamp || item?.createdAt || null;
+    const severityScore = num(item?.severity, 0);
+    const score = num(item?.score, 0);
+    const category = "PROCTORING";
+    const eventType = normalizeAuditLabel(item?.eventType || "PROCTORING_EVENT") || "PROCTORING_EVENT";
+    const title = txt(item?.eventType || "Proctoring Event").replace(/_/g, " ");
+    const attemptId = item?.attemptId != null ? `Attempt #${item.attemptId}` : "Attempt";
+    const details = txt(item?.details || "").trim();
+    return {
+      id: item?.id ? `PRC-${item.id}` : `PRC-${Date.now()}`,
+      title,
+      message: details || `${title} recorded for ${attemptId}`,
+      event: eventType,
+      category,
+      module: category,
+      severity: severityScore >= 8 || score >= 50 ? "HIGH" : severityScore >= 6 || score >= 30 ? "MEDIUM" : "LOW",
+      source: attemptId,
+      status: score >= 30 || severityScore >= 6 ? "FLAGGED" : "INFO",
+      unread: score >= 30 || severityScore >= 6,
+      targetUrl: "",
+      timestamp: timestamp ? new Date(timestamp).getTime() : 0,
+      time: fmtDateTime(timestamp) || "-"
+    };
+  };
+  const mapAuditAttempt = (item) => {
+    const timestamp = item?.updatedAt || item?.endTime || item?.startTime || item?.createdAt || null;
+    const status = txt(item?.status || "STARTED").toUpperCase();
+    const cheatingScore = num(item?.cheatingScore, 0);
+    const cancelled = Boolean(item?.cancelled);
+    const autoSubmitted = Boolean(item?.autoSubmitted);
+    const riskLabel = cheatingScore >= 80 ? "CRITICAL" : cheatingScore >= 60 ? "HIGH" : cheatingScore >= 30 ? "MEDIUM" : "LOW";
+    const action = cancelled
+      ? "ATTEMPT_CANCELLED"
+      : autoSubmitted
+        ? "ATTEMPT_AUTO_SUBMITTED"
+        : status === "EVALUATED" || status === "COMPLETED" || status === "SUBMITTED"
+          ? "ATTEMPT_EVALUATED"
+          : "ATTEMPT_STARTED";
+    const student = txt(item?.studentName || item?.studentId || "Student");
+    const exam = txt(item?.examTitle || item?.examCode || "Exam");
+    const details = cancelled
+      ? `Attempt was cancelled for ${student} in ${exam}`
+      : cheatingScore > 0
+        ? `${student} scored ${cheatingScore}% risk on ${exam}`
+        : `${student} activity recorded for ${exam}`;
+    return {
+      id: item?.id != null ? `ATT-${item.id}` : `ATT-${Date.now()}`,
+      title: action.replace(/_/g, " "),
+      message: details,
+      event: action,
+      category: "ATTEMPT",
+      module: "ATTEMPTS",
+      severity: riskLabel,
+      source: student,
+      status: cancelled ? "CANCELLED" : (cheatingScore >= 30 ? "FLAGGED" : "INFO"),
+      unread: cheatingScore >= 30 || cancelled,
+      targetUrl: "",
+      timestamp: timestamp ? new Date(timestamp).getTime() : 0,
+      time: fmtDateTime(timestamp) || "-"
+    };
+  };
+  const mergeAuditFeeds = (notifications = [], cheating = [], attempts = []) => {
+    return [
+      ...arr(notifications).map(mapAuditNotification),
+      ...arr(cheating).map(mapAuditCheatingEvent),
+      ...arr(attempts).map(mapAuditAttempt)
+    ].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   };
 
   const readFileAsText = (file) => new Promise((resolve, reject) => {
@@ -253,11 +372,12 @@
       const cancelled = Boolean(att.cancelled);
       const autoSubmitted = Boolean(att.autoSubmitted);
       const score = num(att.obtainedMarks ?? att.score);
-      const percentage = num(att.percentage);
+      const percentage = normalizeAttemptPercentage(att);
+      const completedLike = ["COMPLETED", "AUTO_SUBMITTED", "EVALUATED", "SUBMITTED", "FINISHED"].includes(status);
 
       const student = byStudent.get(studentKey) || { total: 0, completed: 0, active: 0, cancelled: 0, percentages: [], highestScore: 0, lowestScore: null, lastTime: null };
       student.total += 1;
-      if (status === "COMPLETED" || autoSubmitted) student.completed += 1;
+      if (completedLike || autoSubmitted) student.completed += 1;
       if (status === "STARTED") student.active += 1;
       if (cancelled) student.cancelled += 1;
       student.percentages.push(percentage);
@@ -269,7 +389,7 @@
       const exam = byExam.get(examKey) || { total: 0, active: 0, completed: 0, cancelled: 0, highRisk: 0 };
       exam.total += 1;
       if (status === "STARTED") exam.active += 1;
-      if (status === "COMPLETED" || autoSubmitted) exam.completed += 1;
+      if (completedLike || autoSubmitted) exam.completed += 1;
       if (cancelled || status === "INVALIDATED") exam.cancelled += 1;
       if (num(att.cheatingScore) >= 50 && status === "STARTED") exam.highRisk += 1;
       byExam.set(examKey, exam);
@@ -332,6 +452,8 @@
     const exam = live.byExam.get(txt(att.examCode));
     const cheat = num(att.cheatingScore);
     const status = att.cancelled ? "INVALIDATED" : (att.autoSubmitted ? "AUTO_SUBMITTED" : txt(att.status).toUpperCase() || "STARTED");
+    const percentage = normalizeAttemptPercentage(att);
+    const obtained = num(att.obtainedMarks ?? att.score);
     return {
       id: txt(att.id),
       studentName: txt(user?.name || `Student ${att.studentId || att.id}`),
@@ -340,8 +462,8 @@
       examId: txt(att.examCode || exam?.id || ""),
       attemptNumber: num(att.attemptNumber, 1),
       status,
-      score: num(att.obtainedMarks ?? att.score),
-      percentage: num(att.percentage),
+      score: obtained,
+      percentage,
       cheatingScore: cheat,
       riskLevel: cheat < 30 ? "LOW" : cheat < 60 ? "MEDIUM" : cheat < 80 ? "HIGH" : "CRITICAL",
       startTime: fmt(att.startTime),
@@ -432,9 +554,11 @@
       ["students", "/api/admin/users/students"],
       ["teachers", "/api/admin/users/teachers"],
       ["attempts", "/api/admin/attempts"],
+      ["cheating", "/api/admin/cheating"],
       ["questions", "/api/admin/questions"],
       ["certs", "/api/certificate/all"],
-      ["leaderboard", "/api/leaderboard/global"]
+      ["leaderboard", "/api/leaderboard/global"],
+      ["notifications", "/api/admin/notifications?category=all"]
     ];
 
     const results = await Promise.allSettled(
@@ -471,6 +595,8 @@
     live.questions = arr(payload.questions);
     live.certificates = arr(payload.certs).map(mapCert);
     live.leaderboard = arr(payload.leaderboard);
+    window.allAuditLogs = mergeAuditFeeds(payload.notifications, payload.cheating, payload.attempts);
+    window.auditLogsLoaded = true;
 
     live.byExam = new Map(live.exams.map((e) => [txt(e.examCode), e]));
     live.byUser = new Map(live.users.map((u) => [txt(u.id), u]));
@@ -598,12 +724,18 @@
     safeRender("Attempts", window.renderAttemptsTable);
     safeRender("Certificates", window.renderCertPage);
     safeRender("Leaderboard", window.renderLBSection);
+    safeRender("Audit Logs", window.renderAuditLogs);
     syncActivityFooter();
     applyMetrics();
+    if (typeof window.refreshAnalytics === "function") {
+      window.refreshAnalytics().catch((error) => {
+        console.warn("Admin analytics refresh failed after live sync:", error);
+      });
+    }
     ensureAttemptsAutoRefresh();
   }
 
-  window.AdminLive = { loadAll, api, live };
+  window.AdminLive = { loadAll, api, live, refreshAuditLogs };
   window.AdminDashboard = window.AdminDashboard || {};
   window.AdminDashboard.populateMockData = () => loadAll();
   window.AdminDashboard.initDashboardEngine = function () {
@@ -629,6 +761,26 @@
       ensureAttemptsAutoRefresh();
     } finally {
       attemptsRefreshInFlight = false;
+    }
+  }
+
+  async function refreshAuditLogs() {
+    try {
+      const [notifications, cheating, attempts] = await Promise.all([
+        api("/api/admin/notifications?category=all"),
+        api("/api/admin/cheating"),
+        api("/api/admin/attempts")
+      ]);
+      const notifData = arr(notifications?.data || notifications);
+      const cheatingData = arr(cheating?.data || cheating);
+      const attemptData = arr(attempts?.data || attempts);
+      window.allAuditLogs = mergeAuditFeeds(notifData, cheatingData, attemptData);
+      window.auditLogsLoaded = true;
+      window.renderAuditLogs?.();
+    } catch (error) {
+      window.allAuditLogs = [];
+      window.auditLogsLoaded = false;
+      throw error;
     }
   }
 
@@ -1277,31 +1429,111 @@
   async function openCertView(id) {
     const cert = live.certificates.find((item) => item.id === id);
     if (!cert) return;
-    document.getElementById("certModalPhoto").src = cert.avatar;
-    document.getElementById("certModalName").textContent = cert.name;
-    document.getElementById("certModalDept").textContent = cert.dept;
-    document.getElementById("certModalCollege").textContent = cert.college;
-    document.getElementById("certModalRoll").textContent = cert.roll;
-    document.getElementById("certModalSec").textContent = cert.section;
-    document.getElementById("certModalExam").textContent = cert.exam;
-    document.getElementById("certModalScore").textContent = cert.score;
-    if (document.getElementById("certModalGrade")) {
-      document.getElementById("certModalGrade").textContent = cert.grade;
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "\"": "&quot;",
+      "'": "&#39;"
+    })[ch]);
+    const previewFrame = document.getElementById("adminCertPreviewFrame");
+    if (previewFrame) {
+      const qrValue = txt(cert.qrCodeData).trim();
+      const qrSrc = qrValue && (
+        qrValue.startsWith("data:image/")
+        || /\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i.test(qrValue)
+      )
+        ? qrValue
+        : `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(qrValue || `${apiBase}/api/certificate/verify/${id}`)}`;
+      previewFrame.innerHTML = `
+        <div class="certificate-preview-artwork">
+          <div class="corner-bracket top-left"></div>
+          <div class="corner-bracket top-right"></div>
+          <div class="corner-bracket bottom-left"></div>
+          <div class="corner-bracket bottom-right"></div>
+          <div class="dot-grid left-grid"></div>
+          <div class="dot-grid right-grid"></div>
+          <div class="wave-background">
+            <svg viewBox="0 0 200 400" preserveAspectRatio="none">
+              <path d="M120 0 C 150 100, 80 200, 160 300 T 120 400" fill="none" stroke="rgba(59, 48, 219, 0.04)" stroke-width="1.5"></path>
+              <path d="M140 0 C 170 100, 100 200, 180 300 T 140 400" fill="none" stroke="rgba(59, 48, 219, 0.04)" stroke-width="1.5"></path>
+              <path d="M160 0 C 190 100, 120 200, 200 300 T 160 400" fill="none" stroke="rgba(59, 48, 219, 0.04)" stroke-width="1.5"></path>
+            </svg>
+          </div>
+          <div class="certificate-preview-topbar">
+            <div class="certificate-brand-lockup">
+              <div class="certificate-brand-logo">
+                <div class="logo-shield">
+                  <span class="star">&#9733;</span>
+                  <span class="dot"></span>
+                </div>
+              </div>
+              <div class="brand-text">
+                <strong class="brand-name">SEM</strong>
+                <span class="brand-title">SMART EXAM MONITOR</span>
+                <span class="brand-motto">Examine. Evaluate. Excel.</span>
+              </div>
+            </div>
+            <div class="certificate-badge-pill">
+              <div class="badge-icon">&#9733;</div>
+              <div class="badge-copy">
+                <strong>EXAM COMPLETED</strong>
+                <span>${cert.active ? "Successfully Certified" : "Revoked Credential"}</span>
+              </div>
+            </div>
+          </div>
+          <div class="certificate-main-content">
+            <p class="certificate-preview-subtitle">This is to certify that</p>
+            <h2 class="certificate-preview-name">${escapeHtml(cert.name || "Student")}</h2>
+            <div class="name-divider">
+              <span class="line"></span>
+              <span class="diamond">&#9830;</span>
+              <span class="line"></span>
+            </div>
+            <div class="certificate-preview-title">
+              <span>Certificate of</span>
+              <strong>Excellence</strong>
+            </div>
+            <p class="certificate-preview-bodycopy">
+              has successfully completed the examination in<br>
+              <strong class="subject-title">${escapeHtml(cert.exam || "Online Examination")}</strong><br>
+              with a score of <strong class="score-highlight">${escapeHtml(cert.score ?? "0")}/100</strong> on ${escapeHtml(cert.date)}
+            </p>
+            <div class="bottom-divider">
+              <span class="line"></span>
+              <span class="diamond">&#9830;</span>
+              <span class="line"></span>
+            </div>
+          </div>
+          <div class="certificate-preview-footer">
+            <div class="certificate-footer-qr-col">
+              <div class="qr-box-wrapper">
+                <img src="${qrSrc}" class="qr-image" alt="QR Code">
+              </div>
+              <small class="scan-verify-text">SCAN TO VERIFY</small>
+            </div>
+            <div class="certificate-footer-signature-col">
+              <span class="signature-cursive">Exam Authority</span>
+              <div class="signature-line"></div>
+              <span class="sign-title">EXAM AUTHORITY</span>
+              <small class="sign-subtitle">SEM Platform - Examinations</small>
+            </div>
+            <div class="certificate-footer-id-col">
+              <span class="id-label">CERTIFICATE ID</span>
+              <strong class="id-value">${escapeHtml(cert.id)}</strong>
+              <span class="issue-date-label">Issued: ${escapeHtml(cert.date)}</span>
+            </div>
+          </div>
+        </div>`;
     }
-    document.getElementById("certModalID").textContent = cert.id;
-    document.getElementById("certModalDate").textContent = cert.date;
-    const qrValue = txt(cert.qrCodeData).trim();
-    const qrSrc = qrValue && (
-      qrValue.startsWith("data:image/")
-      || /\.(png|jpg|jpeg|gif|webp|svg)(\?.*)?$/i.test(qrValue)
-    )
-      ? qrValue
-      : `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qrValue || `${apiBase}/api/certificate/verify/${id}`)}`;
-    document.getElementById("certModalQR").src = qrSrc;
-    if (document.getElementById("certModalDownloadBtn")) {
-      document.getElementById("certModalDownloadBtn").onclick = () => downloadCert(cert.id);
+    const downloadBtn = document.getElementById("certModalDownloadBtn");
+    if (downloadBtn) {
+      downloadBtn.style.display = cert.active ? "inline-flex" : "none";
+      downloadBtn.onclick = () => downloadCert(cert.id);
     }
-    openModal("certificateViewModal");
+    if (typeof openModal === "function") {
+      openModal("certificateViewModal");
+    }
   }
 
   async function deleteConfirmHandler() {

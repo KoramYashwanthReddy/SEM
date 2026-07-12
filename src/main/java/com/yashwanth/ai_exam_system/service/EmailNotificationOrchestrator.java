@@ -24,6 +24,7 @@ public class EmailNotificationOrchestrator {
 
     private final EmailService emailService;
     private final UserRepository userRepository;
+    private final StudentNotificationService studentNotificationService;
 
     @Value("${app.frontend.base-url:http://localhost:8080}")
     private String frontendBaseUrl;
@@ -32,9 +33,11 @@ public class EmailNotificationOrchestrator {
     private String supportEmail;
 
     public EmailNotificationOrchestrator(EmailService emailService,
-                                         UserRepository userRepository) {
+                                         UserRepository userRepository,
+                                         StudentNotificationService studentNotificationService) {
         this.emailService = emailService;
         this.userRepository = userRepository;
+        this.studentNotificationService = studentNotificationService;
     }
 
     public void notifyExamCreated(Exam exam) {
@@ -231,6 +234,16 @@ public class EmailNotificationOrchestrator {
                         buildAbsoluteUrl("/pages/student-ui.html")
                 )
         );
+
+        studentNotificationService.createNotification(
+                student.getId(),
+                "EXAM",
+                "Registration confirmed",
+                "You are registered for " + safe(exam.getTitle()) + " (" + safe(exam.getExamCode()) + ").",
+                "Registration Service",
+                "medium",
+                buildAbsoluteUrl("/pages/student-ui.html?section=exams")
+        );
     }
 
     public void notifyStudentExamReminder(User student, Exam exam, String reminderLabel) {
@@ -256,6 +269,16 @@ public class EmailNotificationOrchestrator {
                         "Open Student Dashboard",
                         buildAbsoluteUrl("/pages/student-ui.html")
                 )
+        );
+
+        studentNotificationService.createNotification(
+                student.getId(),
+                "EXAM",
+                safe(reminderLabel),
+                "Your exam " + safe(exam.getTitle()) + " starts at " + formatDateTime(exam.getStartTime()) + ".",
+                "Reminder Scheduler",
+                "medium",
+                buildAbsoluteUrl("/pages/student-ui.html?section=schedule")
         );
     }
 
@@ -307,6 +330,16 @@ public class EmailNotificationOrchestrator {
                         buildAbsoluteUrl("/pages/exam/exam.html")
                 )
         );
+
+        studentNotificationService.createNotification(
+                student.getId(),
+                "EXAM",
+                "Exam session started",
+                "Your attempt #" + safe(attempt.getId()) + " for " + safe(exam.getTitle()) + " is ready.",
+                "Exam Runtime",
+                "high",
+                buildAbsoluteUrl("/pages/exam/exam.html?attemptId=" + safe(attempt.getId()))
+        );
     }
 
     public void notifyExamSubmitted(User student, Exam exam, ExamAttempt attempt, ExamResult result) {
@@ -333,6 +366,19 @@ public class EmailNotificationOrchestrator {
                         "Open Student Dashboard",
                         buildAbsoluteUrl("/pages/student-ui.html")
                 )
+        );
+
+        studentNotificationService.createNotification(
+                student.getId(),
+                "RESULT",
+                result == null || result.getResultStatus() == null ? "Result pending" : "Result available",
+                result == null
+                        ? "Your submission was received and evaluation is in progress."
+                        : "Your result for " + safe(exam.getTitle()) + " is " + safe(result.getResultStatus())
+                                + " with " + roundTo2(result.getPercentage()) + "%.",
+                "Evaluation Engine",
+                result != null && Boolean.TRUE.equals(result.getPassed()) ? "success" : "high",
+                buildAbsoluteUrl("/pages/exam/result.html?attemptId=" + safe(attempt.getId()))
         );
 
         String teacherEmail = resolveTeacherEmail(exam.getCreatedBy());

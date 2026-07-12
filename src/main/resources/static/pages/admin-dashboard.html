@@ -870,6 +870,7 @@
                       <option value="all">All States</option>
                       <option value="STARTED">STARTED</option>
                       <option value="COMPLETED">COMPLETED</option>
+                      <option value="EVALUATED">EVALUATED</option>
                       <option value="INVALIDATED">INVALIDATED</option>
                       <option value="AUTO_SUBMITTED">AUTO_SUBMITTED</option>
                       <option value="EXPIRED">EXPIRED</option>
@@ -938,6 +939,112 @@
 
         <!-- SECTION: CERTIFICATES -->
         <section id="certificates-section" class="tab-content">
+          <div class="cert-page-shell">
+            <div class="section-header cert-section-header">
+              <div>
+                <h1 class="page-title">Certificates <span class="text-gradient">Issued.</span></h1>
+                <p class="page-desc">Manage and view all issued certificates</p>
+              </div>
+              <div class="header-actions">
+                <button class="btn btn-ghost" onclick="refreshCertificates()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+              </div>
+            </div>
+
+            <div class="cert-stats-grid">
+              <article class="cert-stat-card blue">
+                <div class="cert-stat-icon"><i class="fa-solid fa-certificate"></i></div>
+                <div class="cert-stat-copy">
+                  <span class="cert-stat-label">Total Certificates</span>
+                  <strong class="cert-stat-value" id="cert-stat-total">0</strong>
+                  <small>All time issued</small>
+                </div>
+              </article>
+              <article class="cert-stat-card green">
+                <div class="cert-stat-icon"><i class="fa-solid fa-shield-check"></i></div>
+                <div class="cert-stat-copy">
+                  <span class="cert-stat-label">Verified</span>
+                  <strong class="cert-stat-value" id="cert-stat-verified">0</strong>
+                  <small>Successfully verified</small>
+                </div>
+              </article>
+              <article class="cert-stat-card amber">
+                <div class="cert-stat-icon"><i class="fa-regular fa-clock"></i></div>
+                <div class="cert-stat-copy">
+                  <span class="cert-stat-label">Pending Verification</span>
+                  <strong class="cert-stat-value" id="cert-stat-pending">0</strong>
+                  <small>Awaiting verification</small>
+                </div>
+              </article>
+              <article class="cert-stat-card red">
+                <div class="cert-stat-icon"><i class="fa-solid fa-circle-xmark"></i></div>
+                <div class="cert-stat-copy">
+                  <span class="cert-stat-label">Revoked</span>
+                  <strong class="cert-stat-value" id="cert-stat-revoked">0</strong>
+                  <small>Revoked certificates</small>
+                </div>
+              </article>
+            </div>
+
+            <div class="glass-card cert-filter-panel">
+              <div class="cert-filter-grid">
+                <div class="form-group cert-filter-search">
+                  <label>Search Certificate</label>
+                  <input type="text" id="certSearch" class="form-control" placeholder="Search ID, student, exam..." oninput="handleCertFilters()">
+                </div>
+                <div class="form-group">
+                  <label>Status</label>
+                  <select id="certFilterStatus" class="form-control" onchange="handleCertFilters()">
+                    <option value="all">All Status</option>
+                    <option value="true">Issued</option>
+                    <option value="false">Revoked</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Grade</label>
+                  <select id="certFilterGrade" class="form-control" onchange="handleCertFilters()">
+                    <option value="all">All Grades</option>
+                    <option value="A+">A+</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="Fail">Fail</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Exam</label>
+                  <select id="certFilterExam" class="form-control" onchange="handleCertFilters()">
+                    <option value="all">All Exams</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Department</label>
+                  <select id="certFilterDept" class="form-control" onchange="handleCertFilters()">
+                    <option value="all">All Departments</option>
+                  </select>
+                </div>
+                <div class="cert-filter-actions">
+                  <button class="btn btn-ghost" onclick="resetCertFilters()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+                  <button class="btn btn-primary" onclick="refreshCertificates()"><i class="fa-solid fa-arrows-rotate"></i> Sync</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="cert-grid-shell glass-card">
+              <div id="certGrid" class="cert-grid"></div>
+              <div id="certEmptyState" class="cert-empty-state" style="display:none">
+                <div class="cert-empty-icon"><i class="fa-regular fa-folder-open"></i></div>
+                <h3>No certificates available</h3>
+                <p>We couldn't find matching certificates. Try adjusting your filters.</p>
+              </div>
+              <div class="cert-pagination">
+                <span id="certPageInfo">Showing 0 items</span>
+                <div class="cert-pagination-actions">
+                  <button class="btn btn-ghost btn-sm" id="prevCertPage">Prev</button>
+                  <button class="btn btn-ghost btn-sm" id="nextCertPage">Next</button>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="section-top" style="margin-bottom: 24px">
             <div>
               <h1 class="page-title">Certificates <span class="text-gradient">Management.</span></h1>
@@ -1357,7 +1464,7 @@
         <section id="audit-section" class="tab-content">
           <div class="section-header">
             <h1 class="page-title">Security / <span class="text-gradient">Audit Logs.</span></h1>
-            <p class="page-desc">Comprehensive history of all administrative and teacher operations.</p>
+            <p class="page-desc">Real persisted activity from admin notifications and system events.</p>
           </div>
 
           <div class="stats-grid">
@@ -1371,11 +1478,11 @@
             </div>
             <div class="stat-card">
               <div class="s-icon" style="background:rgba(59,130,246,0.05)">🛡️</div>
-              <div class="s-info"><span class="s-label">ADMIN ACTIONS</span><span class="s-value" id="audit-admin">892</span></div>
+              <div class="s-info"><span class="s-label">UNREAD LOGS</span><span class="s-value" id="audit-admin">892</span></div>
             </div>
             <div class="stat-card">
               <div class="s-icon" style="background:rgba(139,92,246,0.05)">👨‍🏫</div>
-              <div class="s-info"><span class="s-label">TEACHER ACTIONS</span><span class="s-value" id="audit-teacher">3,399</span></div>
+              <div class="s-info"><span class="s-label">HIGH SEVERITY</span><span class="s-value" id="audit-teacher">3,399</span></div>
             </div>
           </div>
 
@@ -1389,19 +1496,28 @@
                    <label>ACTION TYPE</label>
                    <select id="auditActionFilter" class="form-control" onchange="handleAuditFilters()">
                       <option value="all">All Actions</option>
-                      <option value="LOGIN">Login / Logout</option>
-                      <option value="EXAM_CREATE">Exam Creation</option>
-                      <option value="CERT_REVOKE">Cert Revocation</option>
-                      <option value="USER_EDIT">User Modification</option>
+                      <option value="TEACHER_CREATED">Teacher Created</option>
+                      <option value="TEACHER_UPDATED">Teacher Updated</option>
+                      <option value="EXAM_DEACTIVATED">Exam Deactivated</option>
+                      <option value="QUESTIONS_UPLOADED">Questions Uploaded</option>
+                      <option value="USER_ENABLED">User Enabled</option>
+                      <option value="USER_DISABLED">User Disabled</option>
+                      <option value="USER_LOCKED">User Locked</option>
+                      <option value="USER_UNLOCKED">User Unlocked</option>
+                      <option value="USER_DELETED">User Deleted</option>
+                      <option value="ATTEMPT_CANCELLED">Attempt Cancelled</option>
+                      <option value="ATTEMPT_FORCE_SUBMITTED">Attempt Force Submitted</option>
+                      <option value="ATTEMPT_RESTORED">Attempt Restored</option>
                    </select>
                 </div>
                 <div class="f-item">
                    <label>MODULE</label>
                    <select id="auditModuleFilter" class="form-control" onchange="handleAuditFilters()">
                       <option value="all">All Modules</option>
-                      <option value="EXAMS">Exams</option>
-                      <option value="USERS">Users</option>
-                      <option value="CERTS">Certificates</option>
+                      <option value="USER">Users</option>
+                      <option value="EXAM">Exams</option>
+                      <option value="CERTIFICATE">Certificates</option>
+                      <option value="PROCTORING">Proctoring</option>
                       <option value="SYSTEM">System</option>
                    </select>
                 </div>
@@ -1417,11 +1533,11 @@
                    <thead>
                       <tr>
                          <th>Timestamp</th>
-                         <th>User</th>
-                         <th>Role</th>
-                         <th>Action</th>
+                         <th>Event</th>
                          <th>Module</th>
-                         <th>IP Address</th>
+                         <th>Severity</th>
+                         <th>Source</th>
+                         <th>Status</th>
                          <th style="text-align:right">Details</th>
                       </tr>
                    </thead>

@@ -264,6 +264,16 @@ public class ExamAttemptController {
         return examAttemptService.getAnswers(attemptId);
     }
 
+    // ✅ GET REVIEW DATA
+    @GetMapping("/review/{attemptId}")
+    @PreAuthorize("hasAnyRole('STUDENT','TEACHER','ADMIN')")
+    public List<Map<String, Object>> getReview(@PathVariable Long attemptId, Authentication auth) {
+        ExamAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam attempt not found"));
+        ensureAttemptAccess(attempt, auth, true, true);
+        return examAttemptService.getReviewData(attemptId);
+    }
+
     // 🔥 MARK REVIEW ONLY
     @PostMapping("/mark-review")
     @PreAuthorize("hasRole('STUDENT')")

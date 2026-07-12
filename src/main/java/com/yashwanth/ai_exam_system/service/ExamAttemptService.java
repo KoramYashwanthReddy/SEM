@@ -88,9 +88,8 @@ public class ExamAttemptService {
 
         LocalDateTime now = LocalDateTime.now();
         if (exam.getStartTime() != null) {
-            LocalDateTime verificationWindowStart = exam.getStartTime().minusMinutes(10);
-            if (now.isBefore(verificationWindowStart)) {
-                throw new BadRequestException("Exam can be started only in the last 10 minutes before start time");
+            if (now.isBefore(exam.getStartTime())) {
+                throw new BadRequestException("Exam can be started only at the scheduled start time");
             }
         }
         if (exam.getEndTime() != null && now.isAfter(exam.getEndTime())) {
@@ -258,10 +257,14 @@ public class ExamAttemptService {
         }
 
         ExamResultResponse response = new ExamResultResponse();
+        response.setAttemptId(attempt.getId());
+        response.setStudentId(attempt.getStudentId());
+        response.setExamCode(attempt.getExamCode());
         response.setTotalMarks(totalMarks);
         response.setObtainedMarks(obtainedMarks);
         response.setPercentage(result.getPercentage());
         response.setResult(result.getResultStatus());
+        response.setResultStatus(result.getResultStatus());
         response.setTotalQuestions(result.getTotalQuestions());
         response.setCorrectAnswers(result.getCorrectAnswers());
         response.setWrongAnswers(result.getWrongAnswers());
@@ -275,6 +278,10 @@ public class ExamAttemptService {
         response.setGrade(result.getGrade());
         response.setTimeTakenSeconds(timeTaken);
         response.setPassed(result.getPassed());
+        response.setStartedAt(attempt.getStartTime());
+        response.setSubmittedAt(result.getSubmittedAt());
+        response.setEvaluatedAt(result.getEvaluatedAt());
+        response.setCreatedAt(attempt.getCreatedAt());
 
         return response;
     }
@@ -318,6 +325,53 @@ public class ExamAttemptService {
                         answer.getStatus(),
                         answer.getReviewMarked()))
                 .toList();
+    }
+
+    public List<Map<String, Object>> getReviewData(Long attemptId) {
+        ExamAttempt attempt = getAttempt(attemptId);
+        Exam exam = examRepository.findByExamCode(attempt.getExamCode())
+                .orElseThrow(() -> new RuntimeException("Exam not found"));
+        List<Question> questions = questionSelectionService.selectQuestionsForExam(exam, attempt.getStudentId(), attempt.getId());
+        List<StudentAnswer> answers = answerRepository.findByAttemptId(attemptId);
+
+        Map<Long, StudentAnswer> answerMap = new HashMap<>();
+        for (StudentAnswer a : answers) {
+            answerMap.put(a.getQuestionId(), a);
+        }
+
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Question q : questions) {
+            StudentAnswer sa = answerMap.get(q.getId());
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", q.getId());
+            map.put("questionText", q.getQuestionText());
+            map.put("optionA", q.getOptionA());
+            map.put("optionB", q.getOptionB());
+            map.put("optionC", q.getOptionC());
+            map.put("optionD", q.getOptionD());
+            map.put("optionE", q.getOptionE());
+            map.put("optionF", q.getOptionF());
+            map.put("questionType", q.getQuestionType() != null ? q.getQuestionType().name() : "MCQ");
+            map.put("difficulty", q.getDifficulty());
+            map.put("marks", q.getMarks());
+            map.put("topic", q.getTopic());
+            map.put("explanation", q.getExplanation());
+            map.put("correctAnswer", q.getCorrectAnswer());
+            map.put("studentAnswer", sa != null ? sa.getAnswer() : null);
+            map.put("reviewMarked", sa != null && Boolean.TRUE.equals(sa.getReviewMarked()));
+            map.put("timeSpentSeconds", sa != null && sa.getTimeSpentSeconds() != null
+                    ? sa.getTimeSpentSeconds()
+                    : Long.valueOf(0L));
+
+            String status = "SKIPPED";
+            if (sa != null && sa.getAnswer() != null && !sa.getAnswer().trim().isEmpty()) {
+                boolean isCorrect = q.getCorrectAnswer() != null && sa.getAnswer().trim().equalsIgnoreCase(q.getCorrectAnswer().trim());
+                status = isCorrect ? "CORRECT" : "WRONG";
+            }
+            map.put("status", status);
+            list.add(map);
+        }
+        return list;
     }
 
     // ================= TIMER =================

@@ -3,1021 +3,2914 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SEM | Result Summary</title>
-
-  <link rel="stylesheet" href="../../assets/pages/exam/css/themes.css">
-  <link rel="stylesheet" href="../../assets/pages/exam/css/base.css">
-  <link rel="stylesheet" href="../../assets/pages/exam/css/layout.css">
-  <link rel="stylesheet" href="../../assets/pages/exam/css/components.css">
-  <link rel="stylesheet" href="../../assets/pages/exam/css/responsive.css">
-  <script src="../../assets/core/js/theme.js"></script>
+  <title>SEM | Student Result Summary</title>
+  <meta name="description" content="Secure exam outcome with score, breakdown, and submission details.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/core/css/brand.css">
+  <script src="../../assets/core/js/theme.js"></script>
 
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-page: #f0f4fa;
+      --bg-card: #ffffff;
+      --bg-sub: #f8faff;
+      --border: #e2e8f3;
+      --text-primary: #0f172a;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --blue: #2563eb;
+      --blue-light: #eff6ff;
+      --blue-mid: #dbeafe;
+      --green: #16a34a;
+      --green-light: #f0fdf4;
+      --green-mid: #bbf7d0;
+      --green-badge: #22c55e;
+      --red: #dc2626;
+      --amber: #f59e0b;
+      --shadow-sm: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+      --shadow-card: 0 4px 16px rgba(15,23,42,0.08), 0 1px 4px rgba(15,23,42,0.04);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --radius-xs: 8px;
+    }
+
+    [data-theme="dark"] {
+      --bg-page: #0f172a;
+      --bg-card: #1e293b;
+      --bg-sub: #162032;
+      --border: #2d3f5a;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --blue-light: #172554;
+      --blue-mid: #1e3a8a;
+      --green-light: #052e16;
+      --green-mid: #166534;
+    }
+
     body {
-      min-height: 100vh;
-      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg-page);
       color: var(--text-primary);
-      background:
-        radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent 26%),
-        radial-gradient(circle at top right, rgba(34, 197, 94, 0.11), transparent 24%),
-        radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.10), transparent 24%),
-        linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-primary) 100%);
-    }
-
-    html,
-    body {
-      width: 100%;
-      height: auto;
-      min-height: 100%;
-      overflow-x: hidden;
-      overflow-y: auto !important;
-    }
-
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      background:
-        linear-gradient(120deg, rgba(255, 255, 255, 0.03), transparent 30%),
-        linear-gradient(300deg, rgba(255, 255, 255, 0.03), transparent 30%);
-      opacity: 0.9;
-    }
-
-    .result-page {
-      position: relative;
-      z-index: 1;
-      width: min(1320px, calc(100% - 2rem));
-      margin: 0 auto;
       min-height: 100vh;
-      padding: 1rem 0 2.5rem;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
 
-    .result-topbar {
+    /* ── TOP BAR ── */
+    .topbar {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+
+    .topbar-inner {
+      max-width: 1280px;
+      margin: 0 auto;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 1rem 1.25rem;
-      margin-bottom: 1rem;
-      border: 1px solid var(--border-color);
-      border-radius: 20px;
-      background: var(--bg-secondary);
-      box-shadow: var(--shadow-sm);
-      backdrop-filter: blur(14px);
+      gap: 16px;
+      min-height: 72px;
+      flex-wrap: wrap;
+      padding: 12px 0;
     }
 
     .brand-block {
       display: flex;
       align-items: center;
-      gap: 0.9rem;
-      min-width: 0;
+      gap: 12px;
+      flex-shrink: 0;
     }
 
-    .brand-mark {
+    .brand-logo {
       width: 52px;
       height: 52px;
-      border-radius: 16px;
-      display: grid;
-      place-items: center;
-      font-weight: 900;
-      color: #fff;
-      background: linear-gradient(135deg, #2563eb, #0ea5e9);
-      box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
-      flex: 0 0 auto;
-    }
-
-    .brand-copy {
-      min-width: 0;
-    }
-
-    .brand-copy h1 {
-      margin: 0;
-      font-size: 1.05rem;
-      letter-spacing: -0.02em;
-    }
-
-    .brand-copy p {
-      margin: 0.2rem 0 0;
-      color: var(--text-secondary);
-      font-size: 0.88rem;
-    }
-
-    .topbar-meta {
+      border-radius: 14px;
+      background: #ffffff;
+      border: 1px solid rgba(37,99,235,0.12);
+      box-shadow: 0 8px 20px rgba(37,99,235,0.14), 0 2px 6px rgba(15,23,42,0.06);
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      min-width: 0;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
     }
 
-    .pill {
+    .brand-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 6px;
+    }
+
+    .brand-logo-fallback {
+      font-size: 13px;
+      font-weight: 900;
+      color: #2563eb;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+
+    .brand-text-block h1 {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+    }
+
+    .brand-text-block p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      max-width: 240px;
+    }
+
+    .topbar-center {
+      flex: 1;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .meta-pill {
       display: inline-flex;
       align-items: center;
-      gap: 0.45rem;
-      padding: 0.55rem 0.9rem;
+      gap: 6px;
+      padding: 7px 14px;
+      border: 1px solid var(--border);
       border-radius: 999px;
-      border: 1px solid var(--border-color);
-      background: var(--bg-secondary);
+      background: var(--bg-card);
       color: var(--text-secondary);
-      font-size: 0.82rem;
-      font-weight: 700;
+      font-size: 13px;
+      font-weight: 500;
       white-space: nowrap;
     }
 
-    .pill strong {
+    .meta-pill strong {
       color: var(--text-primary);
+      font-weight: 700;
     }
+
+    .meta-pill select {
+      border: none;
+      background: transparent;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .lock-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--bg-card);
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .lock-chip svg { flex-shrink: 0; }
 
     .theme-switch {
       display: inline-flex;
-      border: 1px solid var(--border-color);
+      border: 1px solid var(--border);
       border-radius: 999px;
       overflow: hidden;
-      background: var(--bg-secondary);
-      box-shadow: var(--shadow-sm);
+      background: var(--bg-sub);
+      margin-top: 8px;
     }
 
     .theme-btn {
-      border: 0;
+      border: none;
       background: transparent;
       color: var(--text-secondary);
-      font-weight: 700;
-      font-size: 0.82rem;
-      padding: 0.65rem 0.95rem;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 14px;
       cursor: pointer;
-      transition: background-color 0.15s ease, color 0.15s ease;
+      transition: background 0.15s, color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
 
     .theme-btn.active {
-      background: var(--text-primary);
-      color: var(--bg-secondary);
+      background: var(--blue);
+      color: #fff;
+      border-radius: 999px;
     }
 
     .theme-btn:not(.active):hover {
-      background: var(--bg-tertiary);
+      background: var(--border);
       color: var(--text-primary);
+    }
+
+    /* ── PAGE LAYOUT ── */
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 20px 24px 32px;
     }
 
     .result-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr);
-      gap: 1rem;
+      grid-template-columns: 1fr 340px;
+      gap: 16px;
       align-items: start;
     }
 
-    .stack {
-      display: grid;
-      gap: 1rem;
-      min-width: 0;
-    }
+    .left-col { display: flex; flex-direction: column; gap: 16px; }
+    .right-col { display: flex; flex-direction: column; gap: 16px; }
 
+    /* ── CARDS ── */
     .card {
-      position: relative;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      border-radius: 24px;
-      box-shadow: var(--shadow-sm);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
       overflow: hidden;
-      height: 100%;
-      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
-      animation: cardRise 560ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-      will-change: transform;
     }
 
-    .card::before {
-      content: '';
-      position: absolute;
-      inset: 0 auto auto 0;
-      width: 6px;
-      height: 100%;
-      background: linear-gradient(180deg, #2563eb, #22c55e, #f59e0b);
+    .card-inner {
+      padding: 20px 22px;
     }
 
-    .card::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.24), transparent 42%);
-      opacity: 0.28;
-      pointer-events: none;
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 16px;
     }
 
-    .card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 22px 40px rgba(15, 23, 42, 0.12);
-      border-color: rgba(37, 99, 235, 0.18);
+    .card-title svg {
+      color: var(--blue);
+      flex-shrink: 0;
     }
 
+    /* ── HERO CARD ── */
     .hero-card {
-      padding: 1.6rem;
+      padding: 24px 26px 22px;
+      position: relative;
+      overflow: hidden;
     }
 
-    .hero-top {
+    .hero-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 5px;
+      background: linear-gradient(180deg, var(--blue) 0%, var(--green-badge) 50%, var(--amber) 100%);
+    }
+
+    .hero-layout {
       display: flex;
-      justify-content: space-between;
-      gap: 1rem;
       align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
     }
 
-    .hero-copy {
-      min-width: 0;
-    }
-
-    .eyebrow {
-      margin: 0 0 0.4rem;
-      font-size: 0.78rem;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--text-secondary);
+    .hero-eyebrow {
+      font-size: 11px;
       font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 8px;
     }
 
-    #result-title {
-      margin: 0;
-      font-size: clamp(2rem, 3vw, 3rem);
-      line-height: 1.05;
-      letter-spacing: -0.05em;
+    .hero-title {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+      margin-bottom: 4px;
     }
 
-    #result-msg {
-      margin: 0.95rem 0 0;
-      max-width: 48rem;
-      color: var(--text-secondary);
-      line-height: 1.7;
-      font-size: 0.98rem;
+    .hero-subtitle {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--green);
+      letter-spacing: -0.3px;
+      margin-bottom: 12px;
     }
 
-    .status-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-      align-items: flex-end;
-      flex: 0 0 auto;
-    }
-
-    .status-stack .pill {
-      white-space: nowrap;
-    }
-
-    .hero-icon {
-      width: 84px;
-      height: 84px;
-      border-radius: 24px;
-      display: grid;
-      place-items: center;
-      font-size: 2.3rem;
-      background: linear-gradient(180deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.04));
-      border: 1px solid rgba(37, 99, 235, 0.16);
-      color: #2563eb;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    }
-
-    .hero-icon.pass {
-      background: linear-gradient(180deg, rgba(34, 197, 94, 0.14), rgba(34, 197, 94, 0.05));
-      border-color: rgba(34, 197, 94, 0.18);
-      color: #16a34a;
-    }
-
-    .hero-icon.fail {
-      background: linear-gradient(180deg, rgba(239, 68, 68, 0.14), rgba(239, 68, 68, 0.05));
-      border-color: rgba(239, 68, 68, 0.18);
-      color: #dc2626;
-    }
-
-    .status-badge {
+    .pass-badge {
       display: inline-flex;
       align-items: center;
-      gap: 0.45rem;
-      padding: 0.5rem 0.85rem;
+      padding: 5px 14px;
       border-radius: 999px;
-      font-size: 0.78rem;
-      font-weight: 900;
-      letter-spacing: 0.08em;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      border: 1px solid transparent;
+      border: 1.5px solid;
+      margin-bottom: 12px;
     }
 
-    .status-badge.pass {
-      color: #0f7a31;
-      background: rgba(34, 197, 94, 0.12);
-      border-color: rgba(34, 197, 94, 0.2);
+    .pass-badge.pass {
+      color: var(--green);
+      background: var(--green-light);
+      border-color: var(--green-mid);
     }
 
-    .status-badge.fail {
-      color: #b42318;
-      background: rgba(239, 68, 68, 0.12);
-      border-color: rgba(239, 68, 68, 0.2);
+    .pass-badge.fail {
+      color: var(--red);
+      background: #fef2f2;
+      border-color: #fecaca;
     }
 
-    .status-badge.neutral {
+    .pass-badge.neutral {
       color: var(--text-secondary);
-      background: var(--bg-primary);
-      border-color: var(--border-color);
+      background: var(--bg-sub);
+      border-color: var(--border);
     }
 
+    .hero-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      max-width: 380px;
+    }
+
+    .hero-icon-wrap {
+      flex-shrink: 0;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .hero-icon-wrap.pass {
+      background: conic-gradient(var(--green-badge) 0deg, var(--green-badge) 340deg, #e2e8f0 340deg);
+      padding: 4px;
+    }
+
+    .hero-icon-wrap.fail {
+      background: conic-gradient(var(--red) 0deg, var(--red) 240deg, #e2e8f0 240deg);
+      padding: 4px;
+    }
+
+    .hero-icon-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+
+    .hero-icon-inner.pass { color: var(--green); }
+    .hero-icon-inner.fail { color: var(--red); }
+
+    /* ── SCORE GRID ── */
     .score-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.9rem;
-      margin-top: 1.2rem;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 20px;
     }
 
     .score-card {
-      padding: 1rem 1rem 0.95rem;
-      border-radius: 18px;
-      background: var(--bg-primary);
-      border: 1px solid var(--border-color);
-      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
     }
 
-    .score-card:hover {
-      transform: translateY(-2px);
-      border-color: rgba(37, 99, 235, 0.16);
-      box-shadow: 0 14px 24px rgba(15, 23, 42, 0.06);
-    }
+    .score-card-left {}
 
     .score-label {
-      display: block;
-      margin-bottom: 0.35rem;
-      font-size: 0.72rem;
-      letter-spacing: 0.11em;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--text-secondary);
-      font-weight: 900;
+      color: var(--text-muted);
+      margin-bottom: 6px;
     }
 
     .score-value {
-      font-size: clamp(1.4rem, 2.4vw, 2.4rem);
-      line-height: 1.1;
-      font-weight: 900;
-      letter-spacing: -0.04em;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1;
     }
 
-    .score-value.primary {
-      color: #2563eb;
-    }
+    .score-value.blue { color: var(--blue); }
+    .score-value.green { color: var(--green); }
+    .score-value.amber { color: var(--amber); }
 
-    .score-value.success {
-      color: var(--success-color);
-    }
-
-    .score-value.warning {
-      color: var(--warning-color);
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 1rem;
-    }
-
-    .panel {
-      padding: 1.2rem;
+    .score-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
       display: flex;
-      flex-direction: column;
-      min-height: 100%;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
 
-    .panel h3 {
-      margin: 0 0 1rem;
-      font-size: 1rem;
-      letter-spacing: -0.02em;
-    }
+    .score-icon.blue { background: var(--blue-light); color: var(--blue); }
+    .score-icon.green { background: var(--green-light); color: var(--green); }
+    .score-icon.amber { background: #fffbeb; color: var(--amber); }
 
-    .summary-rows {
+    /* ── TWO-COL STATS ── */
+    .stats-row {
       display: grid;
-      gap: 0.85rem;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
     }
 
-    .summary-row {
+    /* ── TABLE-STYLE ROWS ── */
+    .data-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+
+    .data-row {
       display: flex;
       justify-content: space-between;
-      gap: 1rem;
       align-items: center;
-      padding: 0.85rem 0.95rem;
-      border-radius: 16px;
-      background: var(--bg-primary);
-      border: 1px solid var(--border-color);
-      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border);
     }
 
-    .summary-row:hover {
-      transform: translateX(2px);
-      border-color: rgba(37, 99, 235, 0.16);
-      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.05);
-    }
+    .data-row:last-child { border-bottom: none; }
 
-    .summary-row span {
+    .data-row-label {
+      font-size: 13px;
       color: var(--text-secondary);
-      font-size: 0.9rem;
     }
 
-    .summary-row strong {
-      font-size: 0.96rem;
+    .data-row-value {
+      font-size: 13px;
+      font-weight: 700;
       color: var(--text-primary);
-      text-align: right;
     }
 
-    .detail-grid {
+    .data-row-value.green { color: var(--green); }
+    .data-row-value.red { color: var(--red); }
+
+    /* ── DIFFICULTY DONUT ── */
+    .diff-layout {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .diff-chart-wrap {
+      flex-shrink: 0;
+      width: 110px;
+      height: 110px;
+    }
+
+    .diff-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-val {
+      margin-left: auto;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* ── PERFORMANCE OVERVIEW ── */
+    .perf-metrics {
       display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 0.8rem 1rem;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .perf-metric {
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      display: flex;
       align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
 
-    .detail-grid span {
-      color: var(--text-secondary);
-      font-size: 0.92rem;
+    .perf-metric-left {}
+
+    .perf-metric-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 5px;
     }
 
-    .detail-grid strong {
-      color: var(--text-primary);
-      font-weight: 900;
-      font-size: 0.94rem;
-      text-align: right;
+    .perf-metric-value {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+    }
+
+    .perf-metric-value.blue { color: var(--blue); }
+    .perf-metric-value.green { color: var(--green); }
+    .perf-metric-value.purple { color: #7c3aed; }
+    .perf-metric-value.amber { color: var(--amber); }
+
+    .perf-metric-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .perf-metric-icon.blue { background: var(--blue-light); color: var(--blue); }
+    .perf-metric-icon.green { background: var(--green-light); color: var(--green); }
+    .perf-metric-icon.purple { background: #f5f3ff; color: #7c3aed; }
+    .perf-metric-icon.amber { background: #fffbeb; color: var(--amber); }
+
+    .chart-wrap {
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 14px;
     }
 
     .insight-box {
-      border-radius: 18px;
-      padding: 1rem;
-      border: 1px solid var(--border-color);
-      background: var(--bg-primary);
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .insight-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--blue-light);
+      color: var(--blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .insight-text {
+      font-size: 12.5px;
       color: var(--text-secondary);
-      line-height: 1.65;
-      font-size: 0.92rem;
+      line-height: 1.7;
     }
 
-    .insight-box p:last-child {
-      margin-bottom: 0;
-    }
+    /* ── ATTEMPT SNAPSHOT ── */
+    .info-list { display: flex; flex-direction: column; }
 
-    .info-list {
-      display: grid;
-      gap: 0.7rem;
-    }
-
-    .info-item {
+    .info-row {
       display: flex;
       justify-content: space-between;
-      gap: 0.9rem;
-      padding: 0.8rem 0.9rem;
-      border-radius: 14px;
-      background: var(--bg-primary);
-      border: 1px solid var(--border-color);
-      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      align-items: center;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border);
     }
 
-    .info-item:hover {
-      transform: translateX(2px);
-      border-color: rgba(37, 99, 235, 0.14);
-      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.05);
-    }
+    .info-row:last-child { border-bottom: none; }
 
-    .info-item span {
+    .info-label {
+      font-size: 13px;
       color: var(--text-secondary);
-      font-size: 0.88rem;
     }
 
-    .info-item strong {
+    .info-val {
+      font-size: 13px;
+      font-weight: 700;
       color: var(--text-primary);
-      font-size: 0.92rem;
       text-align: right;
     }
 
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .status-chip.pass {
+      background: var(--green-light);
+      color: var(--green);
+      border: 1px solid var(--green-mid);
+    }
+
+    .status-chip.fail {
+      background: #fef2f2;
+      color: var(--red);
+      border: 1px solid #fecaca;
+    }
+
+    /* ── SUBMISSION TIMELINE ── */
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+
+    .tl-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      position: relative;
+    }
+
+    .tl-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      width: 16px;
+    }
+
+    .tl-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--blue);
+      border: 2.5px solid var(--bg-card);
+      box-shadow: 0 0 0 2px var(--blue);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .tl-dot.last {
+      background: var(--blue);
+    }
+
+    .tl-line {
+      width: 2px;
+      flex: 1;
+      background: var(--border);
+      min-height: 20px;
+      margin: 4px 0;
+    }
+
+    .tl-content {
+      flex: 1;
+      padding-bottom: 16px;
+    }
+
+    .tl-item:last-child .tl-content { padding-bottom: 0; }
+
+    .tl-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+    }
+
+    .tl-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* ── SCORE SUMMARY ── */
+    .score-gauge-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 0 16px;
+    }
+
+    .gauge-container {
+      position: relative;
+      width: 140px;
+      height: 140px;
+    }
+
+    .gauge-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gauge-main {
+      font-size: 30px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+
+    .gauge-sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-top: 3px;
+    }
+
+    .score-meta-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    .score-meta-row {
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+    }
+
+    .score-meta-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .score-meta-value {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+    }
+
+    /* ── FOOTER BAR ── */
     .footer-bar {
       display: flex;
       justify-content: space-between;
-      gap: 1rem;
       align-items: center;
-      flex-wrap: wrap;
-      margin-top: 1rem;
-      padding: 1rem 0.25rem 0.5rem;
+      gap: 16px;
+      padding: 16px 22px;
+      margin-top: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
     }
 
     .footer-note {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
       color: var(--text-secondary);
-      font-size: 0.9rem;
-      line-height: 1.5;
     }
 
-    #return-student-btn {
-      min-width: 240px;
-      border-radius: 14px;
-      box-shadow: 0 12px 24px rgba(37, 99, 235, 0.2);
-      white-space: nowrap;
-      position: relative;
-      overflow: hidden;
-      transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+    .footer-note-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--blue-light);
+      color: var(--blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
 
-    #return-student-btn::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.18) 45%, transparent 70%);
-      transform: translateX(-120%);
-      transition: transform 500ms ease;
-      pointer-events: none;
-    }
-
-    #return-student-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 18px 34px rgba(37, 99, 235, 0.28);
-      filter: saturate(1.05);
-    }
-
-    #return-student-btn:hover::before {
-      transform: translateX(120%);
-    }
-
-    .redirect-chip {
+    .btn-primary {
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
-      padding: 0.45rem 0.8rem;
-      border-radius: 999px;
-      border: 1px solid var(--border-color);
-      background: var(--bg-secondary);
+      gap: 8px;
+      padding: 12px 24px;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 8px 20px rgba(37,99,235,0.28);
+      transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px rgba(37,99,235,0.34);
+      filter: brightness(1.05);
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card, .footer-bar {
+      animation: fadeUp 0.4s ease both;
+    }
+
+    /* ── REVIEW MODAL STYLES ── */
+    .review-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(8px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .review-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .review-modal {
+      width: 95vw;
+      height: 90vh;
+      max-width: 1380px;
+      max-height: 860px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: scale(0.95);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .review-overlay.active .review-modal {
+      transform: scale(1);
+    }
+
+    /* Modal Header */
+    .review-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-card);
+    }
+
+    .review-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .review-header-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: #eef2ff;
+      color: #4f46e5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .review-header-info h2 {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .review-header-info p {
+      font-size: 12px;
       color: var(--text-secondary);
-      font-size: 0.84rem;
+      margin: 2px 0 0 0;
+    }
+
+    .review-header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .review-count-badge {
+      background: #eef2ff;
+      color: #4f46e5;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
       font-weight: 700;
     }
 
-    .summary-row strong,
-    .info-item strong {
-      overflow-wrap: anywhere;
+    .review-close-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
     }
 
-    .card:nth-of-type(1) { animation-delay: 70ms; }
-    .card:nth-of-type(2) { animation-delay: 130ms; }
-    .card:nth-of-type(3) { animation-delay: 190ms; }
-    .card:nth-of-type(4) { animation-delay: 250ms; }
-    .card:nth-of-type(5) { animation-delay: 310ms; }
-
-    @keyframes cardRise {
-      from {
-        opacity: 0;
-        transform: translateY(16px) scale(0.99);
-        filter: blur(2px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        filter: blur(0);
-      }
+    .review-close-btn:hover {
+      background: var(--border);
+      color: var(--text-primary);
     }
 
-    @media (max-width: 1120px) {
-      .result-grid {
-        grid-template-columns: 1fr;
-      }
+    /* Modal Content */
+    .review-content {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      background: var(--bg-sub);
     }
 
-    @media (min-width: 1121px) {
-      .result-grid > aside.stack {
-        position: sticky;
-        top: 1rem;
-      }
+    /* Left Sidebar */
+    .review-sidebar {
+      width: 380px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-card);
+      overflow: hidden;
+      flex-shrink: 0;
     }
 
-    @media (max-width: 900px) {
-      .result-page {
-        width: min(100% - 1rem, 1320px);
-        padding-top: 0.5rem;
-        padding-bottom: 1.5rem;
-      }
-
-      .result-topbar {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .hero-top {
-        flex-direction: column;
-      }
-
-      .status-stack {
-        align-items: flex-start;
-      }
-
-      .score-grid,
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .footer-bar {
-        padding-bottom: 1rem;
-      }
-
-      #return-student-btn {
-        width: 100%;
-        min-width: 0;
-      }
+    .review-search-bar {
+      padding: 16px;
+      display: flex;
+      gap: 8px;
     }
 
-    @media (prefers-reduced-motion: reduce) {
-      .card,
-      .score-card,
-      .summary-row,
-      .info-item,
-      #return-student-btn,
-      #return-student-btn::before {
-        animation: none !important;
-        transition: none !important;
-      }
+    .review-search-wrap {
+      flex: 1;
+      position: relative;
+    }
 
-      .card:hover,
-      .score-card:hover,
-      .summary-row:hover,
-      .info-item:hover,
-      #return-student-btn:hover {
-        transform: none;
-      }
+    .review-search-input {
+      width: 100%;
+      padding: 10px 12px 10px 38px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 13px;
+      background: var(--bg-sub);
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .review-search-input:focus {
+      border-color: #4f46e5;
+      background: var(--bg-card);
+    }
+
+    .review-search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .review-filter-icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-sub);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .review-filter-icon-btn:hover {
+      background: var(--border);
+    }
+
+    /* Filter Pills */
+    .review-pills {
+      display: flex;
+      gap: 6px;
+      padding: 0 16px 12px 16px;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+
+    .review-pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      border: 1px solid var(--border);
+      background: var(--bg-sub);
+      color: var(--text-secondary);
+      transition: all 0.15s ease;
+    }
+
+    .review-pill.active[data-filter="all"] { background: #eef2ff; color: #4f46e5; border-color: #c7d2fe; }
+    .review-pill.active[data-filter="correct"] { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+    .review-pill.active[data-filter="wrong"] { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+    .review-pill.active[data-filter="skipped"] { background: var(--bg-sub); color: var(--text-primary); border-color: var(--text-muted); }
+
+    .review-pill:hover:not(.active) {
+      background: var(--border);
+      color: var(--text-primary);
+    }
+
+    /* Question list items */
+    .review-q-list {
+      flex: 1;
+      overflow-y: auto;
+      border-top: 1px solid var(--border);
+    }
+
+    .review-q-item {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+      position: relative;
+    }
+
+    .review-q-item:hover {
+      background: var(--bg-sub);
+    }
+
+    .review-q-item.active {
+      background: #f5f8ff;
+    }
+
+    .review-q-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: #4f46e5;
+    }
+
+    .review-q-number {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      width: 20px;
+      text-align: center;
+    }
+
+    .review-q-status-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .review-q-status-icon.correct { background: #dcfce7; color: #15803d; }
+    .review-q-status-icon.wrong { background: #fee2e2; color: #b91c1c; }
+    .review-q-status-icon.skipped { background: #f1f5f9; color: #64748b; }
+
+    .review-q-text-preview {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text-primary);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .review-q-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      text-transform: capitalize;
+    }
+
+    .review-q-badge.correct { background: #ecfdf5; color: #10b981; }
+    .review-q-badge.wrong { background: #fef2f2; color: #ef4444; }
+    .review-q-badge.skipped { background: #f8fafc; color: #64748b; border: 1px solid var(--border); }
+
+    .review-q-star {
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .review-q-star.starred {
+      color: #eab308;
+    }
+
+    /* Left Sidebar Pagination */
+    .review-sidebar-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-card);
+      font-size: 12px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .review-pagination {
+      display: flex;
+      gap: 4px;
+    }
+
+    .review-page-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 11px;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .review-page-btn:hover:not(.disabled) {
+      background: var(--bg-sub);
+    }
+
+    .review-page-btn.active {
+      background: #4f46e5;
+      color: #fff;
+      border-color: #4f46e5;
+    }
+
+    .review-page-btn.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Right Main Panel */
+    .review-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 24px;
+      gap: 16px;
+    }
+
+    .review-detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .review-detail-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 4px;
+      border-radius: 12px;
+    }
+
+    .review-nav-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .review-nav-btn:hover:not(:disabled) {
+      background: var(--bg-sub);
+    }
+
+    .review-detail-nav span {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 0 4px;
+      color: var(--text-primary);
+    }
+
+    .review-detail-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .review-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .review-action-btn:hover {
+      background: var(--bg-sub);
+      color: var(--text-primary);
+    }
+
+    .review-action-btn.starred {
+      color: #eab308;
+      border-color: #fde047;
+      background: #fef9c3;
+    }
+
+    .review-action-btn.flagged {
+      color: #ef4444;
+      border-color: #fee2e2;
+      background: #fef2f2;
+    }
+
+    /* Meta tags */
+    .review-q-tags {
+      display: flex;
+      gap: 8px;
+    }
+
+    .review-q-tag {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    .review-q-tag.easy { background: #e8f5e9; color: #2e7d32; }
+    .review-q-tag.medium { background: #fff8e1; color: #f57f17; }
+    .review-q-tag.hard { background: #ffebee; color: #c62828; }
+    .review-q-tag.type { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); }
+    .review-q-tag.mark { background: #e8eaf6; color: #3f51b5; }
+
+    /* Question text detail */
+    .review-q-body-text {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    /* Options */
+    .review-options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .review-option-card {
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: default;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .review-option-card.correct {
+      border-color: #22c55e;
+      background: #f0fdf4;
+    }
+
+    .review-option-card.wrong {
+      border-color: #ef4444;
+      background: #fef2f2;
+    }
+
+    .review-option-circle {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1.5px solid var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      background: var(--bg-card);
+      flex-shrink: 0;
+    }
+
+    .review-option-card.correct .review-option-circle {
+      border-color: #22c55e;
+      background: #22c55e;
+      color: #fff;
+    }
+
+    .review-option-card.wrong .review-option-circle {
+      border-color: #ef4444;
+      background: #ef4444;
+      color: #fff;
+    }
+
+    .review-option-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      flex: 1;
+    }
+
+    .review-option-card.correct .review-option-text {
+      color: #15803d;
+    }
+
+    .review-option-card.wrong .review-option-text {
+      color: #b91c1c;
+    }
+
+    .review-option-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 6px;
+      position: absolute;
+      right: 16px;
+    }
+
+    .review-option-badge.correct { background: #dcfce7; color: #15803d; }
+    .review-option-badge.wrong { background: #fee2e2; color: #b91c1c; }
+
+    /* Explanation */
+    .review-explanation-card {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .review-explanation-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .review-explanation-text h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e40af;
+      margin: 0 0 4px 0;
+    }
+
+    .review-explanation-text p {
+      font-size: 12.5px;
+      color: #1e3a8a;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    /* Summary Metric Grid at Bottom */
+    .review-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .review-summary-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .review-summary-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--bg-sub);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .review-summary-icon.correct { background: #dcfce7; color: #16a34a; }
+    .review-summary-icon.wrong { background: #fee2e2; color: #dc2626; }
+
+    .review-summary-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .review-summary-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .review-summary-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-top: 2px;
+    }
+
+    .review-summary-val.correct { color: #16a34a; }
+    .review-summary-val.wrong { color: #dc2626; }
+
+    /* Modal Footer */
+    .review-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      background: var(--bg-card);
+    }
+
+    .review-close-confirm-btn {
+      padding: 10px 22px;
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .review-close-confirm-btn:hover {
+      background: #4338ca;
+    }
+
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1100px) {
+      .result-grid { grid-template-columns: 1fr; }
+      .right-col { flex-direction: row; flex-wrap: wrap; }
+      .right-col .card { flex: 1; min-width: 280px; }
+    }
+
+    @media (max-width: 700px) {
+      .page { padding: 12px 12px 24px; }
+      .perf-metrics { grid-template-columns: repeat(2, 1fr); }
+      .score-grid { grid-template-columns: 1fr 1fr; }
+      .stats-row { grid-template-columns: 1fr; }
+      .hero-title { font-size: 22px; }
+      .hero-subtitle { font-size: 16px; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/core/css/brand.css">
 </head>
 <body>
-  <div class="result-page">
-    <header class="result-topbar">
+
+  <!-- ── TOP BAR ── -->
+  <div class="topbar">
+    <div class="topbar-inner">
       <div class="brand-block">
-        <div class="brand-mark">SEM</div>
-        <div class="brand-copy">
+        <div class="brand-logo brand-mark">
+          <span class="brand-logo-fallback">SEM</span>
+        </div>
+        <div class="brand-text-block">
           <h1>Student Result Summary</h1>
-          <p id="summary-subtitle">Secure exam outcome with score, breakdown, and submission details.</p>
+          <p>Secure exam outcome with score, breakdown,<br>and submission details.</p>
         </div>
       </div>
 
-      <div class="topbar-meta">
-        <div class="pill" id="topbar-attempt-pill">Attempt <strong id="attempt-pill-id">#--</strong></div>
-        <div class="pill" id="topbar-exam-pill">Exam <strong id="attempt-pill-code">--</strong></div>
-        <div class="redirect-chip">Stay on this page until you choose to leave.</div>
+      <div class="topbar-center"></div>
+
+      <div class="topbar-right">
+        <div class="meta-pill">
+          Attempt <strong id="attempt-pill-id">#--</strong>
+        </div>
+        <div class="meta-pill">
+          Exam&nbsp;
+          <strong id="attempt-pill-code">--</strong>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="color:var(--text-muted)">
+            <path d="M5 7L1 3h8L5 7z"/>
+          </svg>
+        </div>
+        <div class="lock-chip">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Stay on this page until you choose to leave.
+        </div>
         <div class="theme-switch" id="theme-switch">
-          <button type="button" class="theme-btn" data-theme="light">Light</button>
-          <button type="button" class="theme-btn" data-theme="system">System</button>
-          <button type="button" class="theme-btn" data-theme="dark">Dark</button>
+          <button type="button" class="theme-btn active" data-theme="light">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            Light
+          </button>
+          <button type="button" class="theme-btn" data-theme="system">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            System
+          </button>
+          <button type="button" class="theme-btn" data-theme="dark">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            Dark
+          </button>
         </div>
       </div>
-    </header>
+    </div>
+  </div>
 
-    <main class="result-grid">
-      <section class="stack">
-        <article class="card hero-card">
-          <div class="hero-top">
-            <div class="hero-copy">
-              <p class="eyebrow">Exam Result</p>
-              <h2 id="result-title">Loading result...</h2>
-              <div id="status-badge-container" style="margin-top:0.75rem;"></div>
-              <p id="result-msg">Fetching your performance summary and evaluation details.</p>
+  <!-- ── MAIN PAGE ── -->
+  <div class="page">
+    <div class="result-grid">
+
+      <!-- ═══ LEFT COLUMN ═══ -->
+      <div class="left-col">
+
+        <!-- Hero Card -->
+        <div class="card hero-card">
+          <div class="hero-layout">
+            <div class="hero-left">
+              <div class="hero-eyebrow">Result</div>
+              <div class="hero-title" id="result-title">Loading…</div>
+              <div class="hero-subtitle" id="result-subtitle"></div>
+              <div id="status-badge-container" style="margin-bottom:12px;"></div>
+              <p class="hero-desc" id="result-msg">Fetching your performance summary and evaluation details.</p>
             </div>
-            <div class="status-stack">
-              <div class="hero-icon" id="status-icon">✓</div>
+            <div class="hero-icon-wrap pass" id="hero-icon-wrap">
+              <div class="hero-icon-inner pass" id="hero-icon-inner">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" id="hero-check-svg">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
             </div>
           </div>
 
           <div class="score-grid">
+            <!-- Percentage -->
             <div class="score-card">
-              <span class="score-label">Percentage</span>
-              <span class="score-value primary" id="res-percentage">0.0%</span>
+              <div class="score-card-left">
+                <div class="score-label">Percentage</div>
+                <div class="score-value blue" id="res-percentage">0.0%</div>
+              </div>
+              <div class="score-icon blue">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+              </div>
             </div>
+            <!-- Score -->
             <div class="score-card">
-              <span class="score-label">Score Obtained</span>
-              <span class="score-value success" id="res-score">0 / 0</span>
+              <div class="score-card-left">
+                <div class="score-label">Score Obtained</div>
+                <div class="score-value green" id="res-score">0 / 0</div>
+              </div>
+              <div class="score-icon green">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
+              </div>
             </div>
+            <!-- Time -->
             <div class="score-card">
-              <span class="score-label">Time Spent</span>
-              <span class="score-value warning" id="res-time">0m 00s</span>
+              <div class="score-card-left">
+                <div class="score-label">Time Spent</div>
+                <div class="score-value amber" id="res-time">0m 00s</div>
+              </div>
+              <div class="score-icon amber">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
             </div>
           </div>
-        </article>
-
-        <div class="stats-grid">
-          <article class="card panel">
-            <h3>Answer Breakdown</h3>
-            <div class="summary-rows">
-              <div class="summary-row"><span>Total Questions</span><strong id="breakdown-total">0</strong></div>
-              <div class="summary-row"><span>Correct Answers</span><strong id="breakdown-correct">0</strong></div>
-              <div class="summary-row"><span>Wrong Answers</span><strong id="breakdown-wrong">0</strong></div>
-              <div class="summary-row"><span>Unanswered</span><strong id="breakdown-unanswered">0</strong></div>
-            </div>
-          </article>
-
-          <article class="card panel">
-            <h3>Difficulty Split</h3>
-            <div class="summary-rows">
-              <div class="summary-row"><span>Easy Correct</span><strong id="diff-easy">0</strong></div>
-              <div class="summary-row"><span>Medium Correct</span><strong id="diff-medium">0</strong></div>
-              <div class="summary-row"><span>Hard Correct</span><strong id="diff-hard">0</strong></div>
-            </div>
-          </article>
         </div>
-      </section>
 
-      <aside class="stack">
-        <article class="card panel">
-          <h3>Attempt Snapshot</h3>
-          <div class="info-list">
-            <div class="info-item"><span>Exam Code</span><strong id="info-exam-code">--</strong></div>
-            <div class="info-item"><span>Attempt ID</span><strong id="info-attempt-id">--</strong></div>
-            <div class="info-item"><span>Status</span><strong id="info-status">--</strong></div>
-            <div class="info-item"><span>Grade</span><strong id="info-grade">--</strong></div>
-            <div class="info-item"><span>Submitted At</span><strong id="info-submitted-at">--</strong></div>
-            <div class="info-item"><span>Evaluated At</span><strong id="info-evaluated-at">--</strong></div>
+        <!-- Answer Breakdown + Difficulty Split -->
+        <div class="stats-row">
+          <!-- Answer Breakdown -->
+          <div class="card card-inner">
+            <div class="card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+              Answer Breakdown
+            </div>
+            <div class="info-list">
+              <div class="data-row">
+                <span class="data-row-label">Total Questions</span>
+                <span class="data-row-value" id="breakdown-total">0</span>
+              </div>
+              <div class="data-row">
+                <span class="data-row-label" style="color:var(--green)">Correct Answers</span>
+                <span class="data-row-value green" id="breakdown-correct">0</span>
+              </div>
+              <div class="data-row">
+                <span class="data-row-label" style="color:var(--red)">Wrong Answers</span>
+                <span class="data-row-value red" id="breakdown-wrong">0</span>
+              </div>
+              <div class="data-row">
+                <span class="data-row-label">Unanswered</span>
+                <span class="data-row-value" id="breakdown-unanswered">0</span>
+              </div>
+            </div>
           </div>
-        </article>
 
-        <article class="card panel">
-          <h3>Performance Insight</h3>
-          <div class="info-list">
-            <div class="info-item"><span>Accuracy</span><strong id="info-accuracy">--</strong></div>
-            <div class="info-item"><span>Completion</span><strong id="info-completion">--</strong></div>
-            <div class="info-item"><span>Answered</span><strong id="info-answered">--</strong></div>
-            <div class="info-item"><span>Unanswered Rate</span><strong id="info-unanswered-rate">--</strong></div>
+          <!-- Difficulty Split -->
+          <div class="card card-inner">
+            <div class="card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+              Difficulty Split
+            </div>
+            <div class="diff-layout">
+              <div class="diff-chart-wrap">
+                <canvas id="donut-chart" width="110" height="110"></canvas>
+              </div>
+              <div class="diff-legend">
+                <div class="legend-item">
+                  <div class="legend-dot" style="background:#22c55e;"></div>
+                  Easy Correct
+                  <span class="legend-val" id="diff-easy">0</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-dot" style="background:#f59e0b;"></div>
+                  Medium Correct
+                  <span class="legend-val" id="diff-medium">0</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-dot" style="background:#ef4444;"></div>
+                  Hard Correct
+                  <span class="legend-val" id="diff-hard">0</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="insight-box" id="insight-box" style="margin-top:0.9rem;">
-            Your exam insights will appear here after evaluation.
-          </div>
-        </article>
+        </div>
 
-        <article class="card panel">
-          <h3>Submission Timeline</h3>
-          <div class="info-list">
-            <div class="info-item"><span>Result</span><strong id="info-result">--</strong></div>
-            <div class="info-item"><span>Grade Letter</span><strong id="info-grade-letter">--</strong></div>
-            <div class="info-item"><span>Average Per Question</span><strong id="info-average">--</strong></div>
-            <div class="info-item"><span>Total Marks</span><strong id="info-total-marks">--</strong></div>
+        <!-- Performance Overview -->
+        <div class="card card-inner">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            Performance Overview
           </div>
-        </article>
-      </aside>
-    </main>
 
-    <div class="footer-bar">
-      <div class="footer-note" id="footer-note">
-        Use the button below whenever you want to return to the student dashboard.
+          <div class="perf-metrics">
+            <div class="perf-metric">
+              <div class="perf-metric-left">
+                <div class="perf-metric-label">Accuracy</div>
+                <div class="perf-metric-value blue" id="perf-accuracy">0%</div>
+              </div>
+              <div class="perf-metric-icon blue">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+              </div>
+            </div>
+            <div class="perf-metric">
+              <div class="perf-metric-left">
+                <div class="perf-metric-label">Completion</div>
+                <div class="perf-metric-value green" id="perf-completion">0%</div>
+              </div>
+              <div class="perf-metric-icon green">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </div>
+            </div>
+            <div class="perf-metric">
+              <div class="perf-metric-left">
+                <div class="perf-metric-label">Answered</div>
+                <div class="perf-metric-value purple" id="perf-answered">0/0</div>
+              </div>
+              <div class="perf-metric-icon purple">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              </div>
+            </div>
+            <div class="perf-metric">
+              <div class="perf-metric-left">
+                <div class="perf-metric-label">Unanswered Rate</div>
+                <div class="perf-metric-value amber" id="perf-unanswered-rate">0%</div>
+              </div>
+              <div class="perf-metric-icon amber">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-wrap">
+            <canvas id="line-chart" height="120"></canvas>
+          </div>
+
+          <div class="insight-box">
+            <div class="insight-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            </div>
+            <div class="insight-text" id="insight-text">
+              Your performance insights will appear here after evaluation.
+            </div>
+          </div>
+        </div>
       </div>
-      <button class="btn btn-primary" id="return-student-btn" type="button">Return to Student Dashboard</button>
+
+      <!-- ═══ RIGHT COLUMN ═══ -->
+      <div class="right-col">
+
+        <!-- Attempt Snapshot -->
+        <div class="card card-inner">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            Attempt Snapshot
+          </div>
+          <div class="info-list">
+            <div class="info-row">
+              <span class="info-label">Exam Code</span>
+              <span class="info-val" id="info-exam-code">--</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Attempt ID</span>
+              <span class="info-val" id="info-attempt-id">--</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Status</span>
+              <span class="info-val" id="info-status-wrap">--</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Grade</span>
+              <span class="info-val" id="info-grade"><strong>N/A</strong></span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Submitted At</span>
+              <span class="info-val" id="info-submitted-at">--</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Evaluated At</span>
+              <span class="info-val" id="info-evaluated-at">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submission Timeline -->
+        <div class="card card-inner">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Submission Timeline
+          </div>
+          <div class="timeline">
+            <div class="tl-item">
+              <div class="tl-left">
+                <div class="tl-dot"></div>
+                <div class="tl-line"></div>
+              </div>
+              <div class="tl-content">
+                <div class="tl-label">Exam Started</div>
+                <div class="tl-val" id="tl-started">--</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left">
+                <div class="tl-dot"></div>
+                <div class="tl-line"></div>
+              </div>
+              <div class="tl-content">
+                <div class="tl-label">Answers Submitted</div>
+                <div class="tl-val" id="tl-submitted">--</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left">
+                <div class="tl-dot"></div>
+                <div class="tl-line"></div>
+              </div>
+              <div class="tl-content">
+                <div class="tl-label">Evaluation Completed</div>
+                <div class="tl-val" id="tl-evaluated">--</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-left">
+                <div class="tl-dot last"></div>
+              </div>
+              <div class="tl-content">
+                <div class="tl-label">Result</div>
+                <div class="tl-val" id="tl-result-chip">--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Score Summary -->
+        <div class="card card-inner">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+            Score Summary
+          </div>
+
+          <div class="score-gauge-wrap">
+            <div class="gauge-container">
+              <canvas id="gauge-chart" width="140" height="140"></canvas>
+              <div class="gauge-text">
+                <div class="gauge-main" id="gauge-score">--</div>
+                <div class="gauge-sub" id="gauge-total">/ --</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="score-meta-cards">
+            <div class="score-meta-row">
+              <div class="score-meta-label">Average Per Question</div>
+              <div class="score-meta-value" id="avg-per-q">-- marks/question</div>
+            </div>
+            <div class="score-meta-row">
+              <div class="score-meta-label">Total Marks</div>
+              <div class="score-meta-value" id="total-marks-val">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Bar -->
+    <div class="footer-bar">
+      <div class="footer-note">
+        <div class="footer-note-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/><path d="M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/></svg>
+        </div>
+        <span id="footer-note">A certificate can be generated if your exam policy allows it.</span>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn-primary" id="review-btn" type="button" style="background:#4f46e5;box-shadow:0 8px 20px rgba(79,70,229,0.28);">
+          Review Answers
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></svg>
+        </button>
+        <button class="btn-primary" id="return-student-btn" type="button">
+          Return to Student Dashboard
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
     </div>
   </div>
 
   <script>
+    /* ─── THEME SWITCH ─── */
+    const themeSwitcher = document.getElementById('theme-switch');
+    const themeButtons = themeSwitcher ? themeSwitcher.querySelectorAll('.theme-btn') : [];
+    const applyTheme = (t) => {
+      const root = document.documentElement;
+      if (t === 'dark') root.setAttribute('data-theme', 'dark');
+      else if (t === 'light') root.setAttribute('data-theme', 'light');
+      else root.removeAttribute('data-theme');
+      themeButtons.forEach(b => b.classList.toggle('active', b.dataset.theme === t));
+      try { localStorage.setItem('theme', t); } catch(_) {}
+    };
+    themeButtons.forEach(b => b.addEventListener('click', () => applyTheme(b.dataset.theme)));
+    try {
+      const saved = localStorage.getItem('theme');
+      if (saved) applyTheme(saved);
+      else applyTheme('light');
+    } catch(_) { applyTheme('light'); }
+
+    /* ─── HELPERS ─── */
     const normalizeToken = (raw) => {
       if (!raw) return '';
-      let value = String(raw).trim();
-      if (!value) return '';
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1).trim();
-      }
-      if (/^bearer\s+/i.test(value)) {
-        value = value.replace(/^bearer\s+/i, '').trim();
-      }
-      return value;
+      let v = String(raw).trim();
+      if (!v) return '';
+      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1).trim();
+      if (/^bearer\s+/i.test(v)) v = v.replace(/^bearer\s+/i, '').trim();
+      return v;
     };
-
     const getAuthToken = () => {
-      const AUTH_KEYS = ['token', 'accessToken', 'jwt', 'authToken', 'access_token'];
-      for (const key of AUTH_KEYS) {
-        const localValue = normalizeToken(localStorage.getItem(key));
-        if (localValue) return localValue;
-        const sessionValue = normalizeToken(sessionStorage.getItem(key));
-        if (sessionValue) return sessionValue;
+      const KEYS = ['token', 'accessToken', 'jwt', 'authToken', 'access_token'];
+      for (const k of KEYS) {
+        const lv = normalizeToken(localStorage.getItem(k));
+        if (lv) return lv;
+        const sv = normalizeToken(sessionStorage.getItem(k));
+        if (sv) return sv;
       }
       return '';
     };
-
     const explicitBase = (window.__API_BASE_URL__ || localStorage.getItem('apiBaseUrl') || '').trim();
     const origin = window.location.origin || '';
-    const isLocalFrontend = /:\/\/(localhost|127\.0\.0\.1)(:3000|:5173|:5500)?$/i.test(origin);
+    const isLocalFrontend = /:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
     const API_BASE = explicitBase
       ? explicitBase.replace(/\/+$/, '')
       : (isLocalFrontend || origin.startsWith('file:') ? 'http://localhost:8080' : origin);
 
     const apiRequest = async (path, options = {}) => {
-      if (window.API && typeof window.API.request === 'function') {
-        return window.API.request(`/api${path}`, options);
-      }
       const headers = { Accept: 'application/json', ...(options.headers || {}) };
       const token = getAuthToken();
       if (token) headers.Authorization = `Bearer ${token}`;
-      if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
+      if (options.body && !(options.body instanceof FormData) && !headers['Content-Type'])
         headers['Content-Type'] = 'application/json';
-      }
-
-      const res = await fetch(`${API_BASE}/api${path}`, {
-        credentials: 'same-origin',
-        ...options,
-        headers
-      });
-
+      const res = await fetch(`${API_BASE}/api${path}`, { credentials: 'same-origin', ...options, headers });
       const text = await res.text();
       if (!res.ok) {
         let body = text;
-        try { body = JSON.parse(text); } catch (_) {}
-        const message = body && typeof body === 'object'
-          ? (body.message || body.error || body.detail || body.cause)
-          : (typeof body === 'string' ? body : '');
-        throw new Error(message || `Request failed (${res.status})`);
+        try { body = JSON.parse(text); } catch(_) {}
+        const msg = body && typeof body === 'object' ? (body.message || body.error || body.detail || body.cause) : (typeof body === 'string' ? body : '');
+        throw new Error(msg || `Request failed (${res.status})`);
       }
-
       if (!text) return null;
       try {
         const json = JSON.parse(text);
-        if (json && typeof json === 'object' && json.status === 'SUCCESS' && json.data !== undefined) {
-          return json.data;
-        }
+        if (json && typeof json === 'object' && json.status === 'SUCCESS' && json.data !== undefined) return json.data;
         return json;
-      } catch (_) {
-        return text;
-      }
+      } catch(_) { return text; }
     };
 
-    const escapeHtml = (value) => String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+    const escapeHtml = (v) => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    const setHtml = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = val; };
 
-    const formatDuration = (seconds = 0) => {
-      const total = Math.max(0, Math.floor(Number(seconds) || 0));
-      const mins = Math.floor(total / 60);
-      const secs = total % 60;
-      return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+    const formatDuration = (secs = 0) => {
+      const total = Math.max(0, Math.floor(Number(secs) || 0));
+      return `${Math.floor(total / 60)}m ${String(total % 60).padStart(2,'0')}s`;
     };
-
-    const formatDateTime = (value) => {
-      if (!value) return '--';
-      const d = new Date(value);
-      if (Number.isNaN(d.getTime())) return '--';
-      return d.toLocaleString([], {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+    const formatDateTime = (v) => {
+      if (!v) return '--';
+      const d = new Date(v);
+      if (isNaN(d.getTime())) return '--';
+      return d.toLocaleString([], { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     };
-
-    const resolvePercentage = (score, percentage, totalMarks = 0) => {
-      const pctValue = Number(percentage);
-      if (Number.isFinite(pctValue) && pctValue > 0) return pctValue;
-      const total = Number(totalMarks);
-      const obtained = Number(score);
-      if (Number.isFinite(total) && total > 0 && Number.isFinite(obtained)) {
-        return (obtained * 100.0) / total;
-      }
-      if (Number.isFinite(obtained) && obtained > 0) return Math.min(100, obtained);
+    const resolvePercentage = (score, pct, totalMarks) => {
+      const p = Number(pct);
+      if (isFinite(p) && p > 0) return p;
+      const tm = Number(totalMarks), s = Number(score);
+      if (isFinite(tm) && tm > 0 && isFinite(s)) return (s * 100) / tm;
+      if (isFinite(s) && s > 0) return Math.min(100, s);
       return 0;
     };
 
-    const setText = (id, value) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = value;
+    /* ─── DONUT CHART ─── */
+    const drawDonut = (easy, medium, hard) => {
+      const canvas = document.getElementById('donut-chart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width, H = canvas.height;
+      const cx = W/2, cy = H/2, r = W*0.42, inner = r * 0.58;
+      const total = easy + medium + hard || 1;
+      const slices = [
+        { val: easy,   color: '#22c55e' },
+        { val: medium, color: '#f59e0b' },
+        { val: hard,   color: '#ef4444' },
+      ];
+      ctx.clearRect(0, 0, W, H);
+      let start = -Math.PI / 2;
+      let hasAny = slices.some(s => s.val > 0);
+      if (!hasAny) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx, cy, inner, 0, 2 * Math.PI);
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim() || '#fff';
+        ctx.fill();
+        return;
+      }
+      slices.forEach(s => {
+        if (!s.val) return;
+        const sweep = (s.val / total) * 2 * Math.PI;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, r, start, start + sweep);
+        ctx.closePath();
+        ctx.fillStyle = s.color;
+        ctx.fill();
+        start += sweep;
+      });
+      // Inner hole
+      ctx.beginPath();
+      ctx.arc(cx, cy, inner, 0, 2 * Math.PI);
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim() || '#fff';
+      ctx.fill();
     };
 
-    const renderStatus = (passed, cancelled, statusText) => {
-      const icon = document.getElementById('status-icon');
-      const title = document.getElementById('result-title');
-      const badgeContainer = document.getElementById('status-badge-container');
+    /* ─── LINE CHART ─── */
+    const drawLineChart = (accuracy, completion, answered, unansweredRate) => {
+      const canvas = document.getElementById('line-chart');
+      if (!canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      const W = canvas.parentElement.clientWidth - 32 || 500;
+      const H = 120;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      const labels = ['Accuracy', 'Completion', 'Answered', 'Unanswered Rate'];
+      const values = [accuracy, completion, answered, unansweredRate];
+      const pad = { top: 10, right: 20, bottom: 30, left: 44 };
+      const gW = W - pad.left - pad.right;
+      const gH = H - pad.top - pad.bottom;
+      const maxVal = 100;
+      const gridLines = [0, 25, 50, 75, 100];
+
+      // Grid
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      gridLines.forEach(g => {
+        const y = pad.top + gH - (g / maxVal) * gH;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(pad.left + gW, y);
+        ctx.stroke();
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '10px Inter, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(`${g}%`, pad.left - 6, y + 4);
+      });
+
+      // Points
+      const pts = values.map((v, i) => ({
+        x: pad.left + (i / (values.length - 1)) * gW,
+        y: pad.top + gH - (Math.min(100, v) / maxVal) * gH
+      }));
+
+      // Area fill
+      const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + gH);
+      grad.addColorStop(0, 'rgba(37,99,235,0.22)');
+      grad.addColorStop(1, 'rgba(37,99,235,0.02)');
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pad.top + gH);
+      pts.forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.lineTo(pts[pts.length-1].x, pad.top + gH);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Line
+      ctx.beginPath();
+      pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 2.2;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      // Dots & labels
+      pts.forEach((p, i) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#2563eb';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = '10px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(labels[i], p.x, H - 4);
+      });
+    };
+
+    /* ─── GAUGE CHART ─── */
+    const drawGauge = (score, total) => {
+      const canvas = document.getElementById('gauge-chart');
+      if (!canvas) return;
+      const W = 140, H = 140;
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      const cx = W/2, cy = H/2, r = 60, lineW = 14;
+      const pct = total > 0 ? score / total : 0;
+
+      // Track
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = lineW;
+      ctx.stroke();
+
+      // Progress - draw as segmented: blue outer ring for main, grey for rest
+      const startAngle = -Math.PI / 2;
+      const endAngle = startAngle + pct * 2 * Math.PI;
+
+      // Gradient arc
+      const gradient = ctx.createLinearGradient(cx - r, 0, cx + r, 0);
+      gradient.addColorStop(0, '#2563eb');
+      gradient.addColorStop(1, '#0ea5e9');
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, startAngle, endAngle > startAngle ? endAngle : startAngle + 0.001);
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = lineW;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // End cap
+      if (pct > 0.05) {
+        ctx.beginPath();
+        ctx.arc(cx + r * Math.cos(endAngle), cy + r * Math.sin(endAngle), lineW/2 - 1, 0, 2 * Math.PI);
+        ctx.fillStyle = '#0ea5e9';
+        ctx.fill();
+      }
+    };
+
+    /* ─── RENDER ─── */
+    const renderStatus = (passed, cancelled) => {
+      const wrap = document.getElementById('hero-icon-wrap');
+      const inner = document.getElementById('hero-icon-inner');
+      const svg = document.getElementById('hero-check-svg');
 
       if (cancelled) {
-        if (icon) {
-          icon.className = 'hero-icon fail';
-          icon.textContent = '!';
-        }
-        if (title) title.textContent = 'Result Marked for Review';
-        if (badgeContainer) badgeContainer.innerHTML = '<span class="status-badge fail">Review Required</span>';
+        wrap.className = 'hero-icon-wrap fail';
+        inner.className = 'hero-icon-inner fail';
+        if (svg) svg.outerHTML = '<svg id="hero-check-svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        setText('result-title', 'Result Marked for Review');
+        setText('result-subtitle', '');
+        setHtml('status-badge-container', '<div class="pass-badge fail">Review Required</div>');
         return;
       }
-
       if (passed) {
-        if (icon) {
-          icon.className = 'hero-icon pass';
-          icon.textContent = '✓';
-        }
-        if (title) title.textContent = 'Exam Passed Successfully!';
-        if (badgeContainer) badgeContainer.innerHTML = '<span class="status-badge pass">Pass</span>';
-        return;
+        wrap.className = 'hero-icon-wrap pass';
+        inner.className = 'hero-icon-inner pass';
+        setText('result-title', 'Congratulations!');
+        setText('result-subtitle', 'You Passed Successfully');
+        setHtml('status-badge-container', '<div class="pass-badge pass">PASS</div>');
+      } else {
+        wrap.className = 'hero-icon-wrap fail';
+        inner.className = 'hero-icon-inner fail';
+        if (svg) svg.setAttribute('d', '');
+        setText('result-title', 'Exam Completed');
+        setText('result-subtitle', 'Better luck next time');
+        setHtml('status-badge-container', '<div class="pass-badge fail">FAIL</div>');
       }
-
-      if (icon) {
-        icon.className = 'hero-icon fail';
-        icon.textContent = '✕';
-      }
-      if (title) title.textContent = statusText || 'Exam Completed';
-      if (badgeContainer) badgeContainer.innerHTML = '<span class="status-badge fail">Fail</span>';
     };
 
+    /* ─── MAIN LOAD ─── */
     document.addEventListener('DOMContentLoaded', async () => {
       const params = new URLSearchParams(window.location.search);
       const attemptId = params.get('attemptId');
-      const footerNote = document.getElementById('footer-note');
       const returnBtn = document.getElementById('return-student-btn');
-
-      const navigateBack = () => {
-        window.location.href = '../student-ui.html';
-      };
-
-      if (returnBtn) {
-        returnBtn.addEventListener('click', () => {
-          navigateBack();
-        });
-      }
+      if (returnBtn) returnBtn.addEventListener('click', () => { window.location.href = '../student-ui.html'; });
 
       if (!attemptId) {
-        document.getElementById('result-title').textContent = 'Attempt ID Missing';
-        document.getElementById('result-msg').textContent = 'Return to the student dashboard and open the result using a valid attempt link.';
-        if (footerNote) footerNote.textContent = 'No attempt ID was provided in the current URL.';
+        setText('result-title', 'Attempt ID Missing');
+        setText('result-subtitle', '');
+        setText('result-msg', 'Return to the student dashboard and open the result using a valid attempt link.');
+        setHtml('status-badge-container', '<div class="pass-badge neutral">Not Found</div>');
+        drawDonut(0, 0, 0);
+        drawGauge(0, 1);
+        drawLineChart(0, 0, 0, 0);
         return;
       }
+
+      setText('attempt-pill-id', `#${attemptId}`);
 
       try {
         const r = await apiRequest(`/exam/result/${attemptId}`, { method: 'GET' });
         if (!r || typeof r !== 'object') throw new Error('Failed to load exam results.');
 
-        const score = Number(r.obtainedMarks ?? r.score ?? 0);
-        const totalMarks = Number(r.totalMarks ?? r.totalQuestions ?? 0);
-        const totalQuestions = Number(r.totalQuestions ?? 0);
-        const correct = Number(r.correctAnswers ?? 0);
-        const wrong = Number(r.wrongAnswers ?? 0);
-        const unanswered = Number(r.unansweredQuestions ?? 0);
-        const percentage = resolvePercentage(score, r.percentage, totalMarks);
-        const grade = String(r.grade || 'N/A');
-        const passed = Boolean(r.passed) || percentage >= 40 || String(r.result).toUpperCase() === 'PASS';
-        const cancelled = String(r.result || '').toUpperCase().includes('CANCEL');
-        const answered = Math.max(totalQuestions - unanswered, correct + wrong);
-        const accuracy = (correct + wrong) > 0 ? (correct * 100) / (correct + wrong) : 0;
-        const completion = totalQuestions > 0 ? (answered * 100) / totalQuestions : 0;
-        const unansweredRate = totalQuestions > 0 ? (unanswered * 100) / totalQuestions : 0;
-        const avgPerQuestion = totalQuestions > 0 ? (score / totalQuestions) : 0;
+        const score        = Number(r.obtainedMarks ?? r.score ?? 0);
+        const totalMarks   = Number(r.totalMarks ?? r.totalQuestions ?? 0);
+        const totalQ       = Number(r.totalQuestions ?? 0);
+        const correct      = Number(r.correctAnswers ?? 0);
+        const wrong        = Number(r.wrongAnswers ?? 0);
+        const unanswered   = Number(r.unansweredQuestions ?? 0);
+        const pct          = resolvePercentage(score, r.percentage, totalMarks);
+        const grade        = String(r.grade || 'N/A');
+        const passed       = Boolean(r.passed) || pct >= 40 || String(r.result).toUpperCase() === 'PASS';
+        const cancelled    = String(r.result || '').toUpperCase().includes('CANCEL');
+        const answered     = Math.max(totalQ - unanswered, correct + wrong);
+        const accuracy     = (correct + wrong) > 0 ? (correct * 100) / (correct + wrong) : 0;
+        const completion   = totalQ > 0 ? (answered * 100) / totalQ : 0;
+        const unanswRate   = totalQ > 0 ? (unanswered * 100) / totalQ : 0;
+        const avgPerQ      = totalQ > 0 ? score / totalQ : 0;
         const resultStatus = String(r.resultStatus || r.result || (passed ? 'PASS' : 'FAIL')).toUpperCase();
-        const submittedAt = formatDateTime(r.submittedAt);
-        const evaluatedAt = formatDateTime(r.evaluatedAt);
+        const submittedAt  = formatDateTime(r.submittedAt);
+        const evaluatedAt  = formatDateTime(r.evaluatedAt);
+        const startedAt    = formatDateTime(r.startedAt ?? r.createdAt);
+        const easy         = Number(r.easyCorrect ?? 0);
+        const medium       = Number(r.mediumCorrect ?? 0);
+        const hard         = Number(r.difficultCorrect ?? 0);
 
-        renderStatus(passed, cancelled, resultStatus === 'PASS' ? 'Exam Passed Successfully!' : 'Exam Completed');
-
-        document.getElementById('result-msg').innerHTML = cancelled
+        /* Hero */
+        renderStatus(passed, cancelled);
+        setText('result-msg', cancelled
           ? 'This attempt was flagged for review. Please check your notifications for the final status.'
           : passed
             ? 'Your exam answers were securely submitted, evaluated, and marked as successful.'
-            : 'Your exam answers were securely submitted and evaluated. Review the weak areas below and try again if reattempts are available.';
+            : 'Your exam answers were submitted and evaluated. Review weak areas and try again.');
 
-        setText('res-percentage', `${percentage.toFixed(1)}%`);
+        /* Score row */
+        setText('res-percentage', `${pct.toFixed(1)}%`);
         setText('res-score', `${score} / ${totalMarks || score}`);
         setText('res-time', formatDuration(r.timeTakenSeconds));
-        setText('breakdown-total', String(totalQuestions || (correct + wrong + unanswered)));
+
+        /* Topbar */
+        setText('attempt-pill-code', String(r.examCode || '--'));
+
+        /* Breakdown */
+        setText('breakdown-total', String(totalQ || (correct + wrong + unanswered)));
         setText('breakdown-correct', String(correct));
         setText('breakdown-wrong', String(wrong));
         setText('breakdown-unanswered', String(unanswered));
-        setText('diff-easy', String(r.easyCorrect ?? 0));
-        setText('diff-medium', String(r.mediumCorrect ?? 0));
-        setText('diff-hard', String(r.difficultCorrect ?? 0));
 
-        setText('attempt-pill-id', `#${attemptId}`);
-        setText('attempt-pill-code', String(r.examCode || '--'));
+        /* Difficulty */
+        setText('diff-easy', String(easy));
+        setText('diff-medium', String(medium));
+        setText('diff-hard', String(hard));
+        drawDonut(easy, medium, hard);
+
+        /* Performance overview */
+        setText('perf-accuracy', `${accuracy.toFixed(1)}%`);
+        setText('perf-completion', `${completion.toFixed(1)}%`);
+        setText('perf-answered', `${answered} / ${totalQ || answered}`);
+        setText('perf-unanswered-rate', `${unanswRate.toFixed(1)}%`);
+        drawLineChart(accuracy, completion, totalQ > 0 ? (answered / totalQ) * 100 : 0, unanswRate);
+
+        /* Insight */
+        const insights = [];
+        if (passed) insights.push(`Strong result; you crossed the pass threshold with ${pct.toFixed(1)}% and a grade of ${grade}.`);
+        else insights.push(`You scored ${pct.toFixed(1)}%, so the attempt did not cross the pass threshold.`);
+        if (wrong > 0) insights.push(`${wrong} answer${wrong === 1 ? '' : 's'} were marked wrong.`);
+        insights.push(`The exam was evaluated against ${totalQ || 'the'} questions with a total mark value of ${totalMarks || 'N/A'}.`);
+        setHtml('insight-text', insights.map(l => `<div>${escapeHtml(l)}</div>`).join(''));
+
+        /* Attempt Snapshot */
         setText('info-exam-code', String(r.examCode || '--'));
         setText('info-attempt-id', String(attemptId));
-        setText('info-status', resultStatus);
+        setHtml('info-status-wrap', `<span class="status-chip ${passed ? 'pass' : 'fail'}">${resultStatus}</span>`);
         setText('info-grade', grade);
         setText('info-submitted-at', submittedAt);
         setText('info-evaluated-at', evaluatedAt);
-        setText('info-accuracy', `${accuracy.toFixed(1)}%`);
-        setText('info-completion', `${completion.toFixed(1)}%`);
-        setText('info-answered', `${answered} / ${totalQuestions || answered}`);
-        setText('info-unanswered-rate', `${unansweredRate.toFixed(1)}%`);
-        setText('info-result', resultStatus);
-        setText('info-grade-letter', grade);
-        setText('info-average', totalQuestions > 0 ? `${avgPerQuestion.toFixed(2)} marks/question` : '--');
-        setText('info-total-marks', String(totalMarks || score));
 
-        const insights = [];
-        if (passed) insights.push(`Strong result: you crossed the pass threshold with ${percentage.toFixed(1)}% and a grade of ${grade}.`);
-        else insights.push(`You scored ${percentage.toFixed(1)}%, so the attempt did not cross the pass threshold.`);
-        if (unanswered > 0) insights.push(`${unanswered} question${unanswered === 1 ? '' : 's'} were left unanswered.`);
-        if (wrong > 0) insights.push(`${wrong} answer${wrong === 1 ? '' : 's'} were marked wrong.`);
-        insights.push(`The exam was evaluated against ${totalQuestions || 'the'} questions with a total mark value of ${totalMarks || 'N/A'}.`);
-        document.getElementById('insight-box').innerHTML = insights.map((line) => `<p style="margin:0 0 0.65rem;">${escapeHtml(line)}</p>`).join('');
+        /* Timeline */
+        setText('tl-started', startedAt);
+        setText('tl-submitted', submittedAt);
+        setText('tl-evaluated', evaluatedAt);
+        setHtml('tl-result-chip', `<span class="status-chip ${passed ? 'pass' : 'fail'}">${resultStatus}</span>`);
 
+        /* Score Summary */
+        setText('gauge-score', String(score));
+        setText('gauge-total', `/ ${totalMarks || score}`);
+        drawGauge(score, totalMarks || score);
+        setText('avg-per-q', totalQ > 0 ? `${avgPerQ.toFixed(2)} marks/question` : '--');
+        setText('total-marks-val', String(totalMarks || score));
+
+        /* Footer */
         const note = cancelled
           ? 'This attempt was marked for cheating review. The student, teacher, and admin notification streams receive the violation details automatically.'
           : passed
             ? 'A certificate can be generated if your exam policy allows it.'
             : 'Review the performance cards and prepare for the next attempt.';
-        if (footerNote) footerNote.textContent = note;
+        setText('footer-note', note);
+
+        /* ─── REVIEW MODAL FUNCTIONALITY ─── */
+        const reviewBtn = document.getElementById('review-btn');
+        const reviewOverlay = document.getElementById('review-modal-overlay');
+        const reviewCloseX = document.getElementById('review-close-x');
+        const reviewCloseFooter = document.getElementById('review-close-footer');
+        const reviewSearchInput = document.getElementById('review-search');
+        const reviewPills = document.querySelectorAll('.review-pill');
+
+        let reviewQuestions = [];
+        let reviewFilteredQuestions = [];
+        let reviewCurrentIndex = 0;
+        let reviewCurrentFilter = 'all';
+        let reviewSearchQuery = '';
+        let reviewPage = 1;
+        const reviewPageSize = 10;
+
+        // Helper method for case insensitive string matching
+        if (!String.prototype.equalsIgnoreCase) {
+          String.prototype.equalsIgnoreCase = function(str) {
+            return this.toLowerCase() === (str || '').toLowerCase();
+          };
+        }
+
+        const openReviewModal = async () => {
+          if (!attemptId) return;
+          try {
+            reviewQuestions = await apiRequest(`/exam/review/${attemptId}`, { method: 'GET' });
+            if (!reviewQuestions || !Array.isArray(reviewQuestions)) {
+              alert('Review data is unavailable.');
+              return;
+            }
+            reviewCurrentIndex = 0;
+            reviewCurrentFilter = 'all';
+            reviewSearchQuery = '';
+            reviewPage = 1;
+            if (reviewSearchInput) reviewSearchInput.value = '';
+
+            updateFilterCounts();
+            applyReviewFilters();
+            reviewOverlay.classList.add('active');
+          } catch (err) {
+            alert(err.message || 'Failed to load review data');
+          }
+        };
+
+        const closeReviewModal = () => {
+          reviewOverlay.classList.remove('active');
+        };
+
+        if (reviewBtn) reviewBtn.addEventListener('click', openReviewModal);
+        if (reviewCloseX) reviewCloseX.addEventListener('click', closeReviewModal);
+        if (reviewCloseFooter) reviewCloseFooter.addEventListener('click', closeReviewModal);
+
+        const updateFilterCounts = () => {
+          const total = reviewQuestions.length;
+          const correct = reviewQuestions.filter(q => q.status === 'CORRECT').length;
+          const wrong = reviewQuestions.filter(q => q.status === 'WRONG').length;
+          const skipped = reviewQuestions.filter(q => q.status === 'SKIPPED').length;
+
+          document.querySelector('.review-pill[data-filter="all"]').textContent = `All (${total})`;
+          document.querySelector('.review-pill[data-filter="correct"]').textContent = `Correct (${correct})`;
+          document.querySelector('.review-pill[data-filter="wrong"]').textContent = `Wrong (${wrong})`;
+          document.querySelector('.review-pill[data-filter="skipped"]').textContent = `Skipped (${skipped})`;
+          document.getElementById('review-header-count').textContent = `${total} Questions`;
+        };
+
+        const applyReviewFilters = () => {
+          reviewFilteredQuestions = reviewQuestions.filter(q => {
+            const matchesSearch = q.questionText.toLowerCase().includes(reviewSearchQuery.toLowerCase());
+            const matchesFilter = reviewCurrentFilter === 'all' || q.status.toLowerCase() === reviewCurrentFilter;
+            return matchesSearch && matchesFilter;
+          });
+
+          // update sidebar list & detail
+          reviewPage = 1;
+          renderReviewSidebar();
+          selectQuestion(0);
+        };
+
+        if (reviewSearchInput) {
+          reviewSearchInput.addEventListener('input', (e) => {
+            reviewSearchQuery = e.target.value.trim();
+            applyReviewFilters();
+          });
+        }
+
+        reviewPills.forEach(pill => {
+          pill.addEventListener('click', () => {
+            reviewPills.forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            reviewCurrentFilter = pill.dataset.filter;
+            applyReviewFilters();
+          });
+        });
+
+        const renderReviewSidebar = () => {
+          const container = document.getElementById('review-q-list');
+          if (!container) return;
+          container.innerHTML = '';
+
+          const startIdx = (reviewPage - 1) * reviewPageSize;
+          const endIdx = Math.min(startIdx + reviewPageSize, reviewFilteredQuestions.length);
+          const pageQuestions = reviewFilteredQuestions.slice(startIdx, endIdx);
+
+          if (pageQuestions.length === 0) {
+            container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 13px;">No questions found</div>';
+            document.getElementById('review-showing-text').textContent = 'Showing 0 to 0 of 0 questions';
+            renderReviewPagination(0);
+            return;
+          }
+
+          document.getElementById('review-showing-text').textContent = `Showing ${startIdx + 1} to ${endIdx} of ${reviewFilteredQuestions.length} questions`;
+
+          pageQuestions.forEach((q, index) => {
+            const actualIndex = startIdx + index;
+            const isSelected = actualIndex === reviewCurrentIndex;
+            const item = document.createElement('div');
+            item.className = `review-q-item ${isSelected ? 'active' : ''}`;
+            item.addEventListener('click', () => selectQuestion(actualIndex));
+
+            let statusIconHtml = '';
+            let statusClass = q.status.toLowerCase();
+            if (statusClass === 'correct') {
+              statusIconHtml = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`;
+            } else if (statusClass === 'wrong') {
+              statusIconHtml = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+            } else {
+              statusIconHtml = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/></svg>`;
+            }
+
+            item.innerHTML = `
+              <span class="review-q-number">${actualIndex + 1}</span>
+              <div class="review-q-status-icon ${statusClass}">
+                ${statusIconHtml}
+              </div>
+              <div class="review-q-text-preview">${escapeHtml(q.questionText)}</div>
+              <span class="review-q-badge ${statusClass}">${statusClass}</span>
+              <span class="review-q-star ${q.reviewMarked ? 'starred' : ''}">★</span>
+            `;
+            container.appendChild(item);
+          });
+
+          renderReviewPagination(reviewFilteredQuestions.length);
+        };
+
+        const renderReviewPagination = (totalItems) => {
+          const pagination = document.getElementById('review-pagination');
+          if (!pagination) return;
+          pagination.innerHTML = '';
+
+          const totalPages = Math.ceil(totalItems / reviewPageSize);
+          if (totalPages <= 1) return;
+
+          // Prev button
+          const prev = document.createElement('div');
+          prev.className = `review-page-btn ${reviewPage === 1 ? 'disabled' : ''}`;
+          prev.innerHTML = '‹';
+          if (reviewPage > 1) {
+            prev.addEventListener('click', () => {
+              reviewPage--;
+              renderReviewSidebar();
+            });
+          }
+          pagination.appendChild(prev);
+
+          // Page numbers
+          for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('div');
+            btn.className = `review-page-btn ${reviewPage === i ? 'active' : ''}`;
+            btn.textContent = i;
+            btn.addEventListener('click', () => {
+              reviewPage = i;
+              renderReviewSidebar();
+            });
+            pagination.appendChild(btn);
+          }
+
+          // Next button
+          const next = document.createElement('div');
+          next.className = `review-page-btn ${reviewPage === totalPages ? 'disabled' : ''}`;
+          next.innerHTML = '›';
+          if (reviewPage < totalPages) {
+            next.addEventListener('click', () => {
+              reviewPage++;
+              renderReviewSidebar();
+            });
+          }
+          pagination.appendChild(next);
+        };
+
+        const selectQuestion = (index) => {
+          if (index < 0 || index >= reviewFilteredQuestions.length) return;
+          reviewCurrentIndex = index;
+
+          // Update sidebar selection
+          const items = document.querySelectorAll('.review-q-item');
+          items.forEach((item, idx) => {
+            const startIdx = (reviewPage - 1) * reviewPageSize;
+            item.classList.toggle('active', (startIdx + idx) === reviewCurrentIndex);
+          });
+
+          const q = reviewFilteredQuestions[reviewCurrentIndex];
+          renderQuestionDetail(q);
+        };
+
+        const renderQuestionDetail = (q) => {
+          if (!q) return;
+
+          // Header
+          document.getElementById('review-detail-q-index').textContent = `Question ${reviewCurrentIndex + 1} of ${reviewFilteredQuestions.length}`;
+
+          // Prev/Next buttons state
+          const prevBtn = document.getElementById('review-prev-btn');
+          const nextBtn = document.getElementById('review-next-btn');
+          if (prevBtn) prevBtn.disabled = reviewCurrentIndex === 0;
+          if (nextBtn) nextBtn.disabled = reviewCurrentIndex === reviewFilteredQuestions.length - 1;
+
+          // Bookmark state
+          const starBtn = document.getElementById('review-star-btn');
+          if (starBtn) {
+            starBtn.classList.toggle('starred', !!q.reviewMarked);
+          }
+
+          // Flag state
+          const flagBtn = document.getElementById('review-flag-btn');
+          if (flagBtn) {
+            flagBtn.classList.toggle('flagged', !!q.flagged);
+          }
+
+          // Tags
+          const diffBadge = document.getElementById('review-detail-diff');
+          diffBadge.textContent = q.difficulty;
+          diffBadge.className = `review-q-tag ${q.difficulty.toLowerCase()}`;
+
+          document.getElementById('review-detail-type').textContent = q.questionType;
+          document.getElementById('review-detail-marks').textContent = `${q.marks} Mark${q.marks === 1 ? '' : 's'}`;
+
+          // Text
+          document.getElementById('review-detail-text').textContent = q.questionText;
+
+          // Options
+          const optionsContainer = document.getElementById('review-detail-options');
+          optionsContainer.innerHTML = '';
+
+          const optionsList = [
+            { key: 'A', value: q.optionA },
+            { key: 'B', value: q.optionB },
+            { key: 'C', value: q.optionC },
+            { key: 'D', value: q.optionD },
+            { key: 'E', value: q.optionE },
+            { key: 'F', value: q.optionF }
+          ].filter(o => o.value && o.value.trim() !== '');
+
+          optionsList.forEach(opt => {
+            const isCorrect = q.correctAnswer && (
+              opt.key.trim().equalsIgnoreCase(q.correctAnswer.trim()) ||
+              opt.value.trim().equalsIgnoreCase(q.correctAnswer.trim())
+            );
+            const isStudentAns = q.studentAnswer && (
+              opt.key.trim().equalsIgnoreCase(q.studentAnswer.trim()) ||
+              opt.value.trim().equalsIgnoreCase(q.studentAnswer.trim())
+            );
+
+            let cardClass = '';
+            let badgeHtml = '';
+            if (isCorrect) {
+              cardClass = 'correct';
+              badgeHtml = `<span class="review-option-badge correct">Correct Answer</span>`;
+            } else if (isStudentAns) {
+              cardClass = 'wrong';
+              badgeHtml = `<span class="review-option-badge wrong">Your Answer</span>`;
+            }
+
+            const card = document.createElement('div');
+            card.className = `review-option-card ${cardClass}`;
+            card.innerHTML = `
+              <div class="review-option-circle">${opt.key}</div>
+              <div class="review-option-text">${escapeHtml(opt.value)}</div>
+              ${badgeHtml}
+            `;
+            optionsContainer.appendChild(card);
+          });
+
+          // Explanation
+          const explanationCard = document.getElementById('review-detail-explanation-card');
+          const explanationText = document.getElementById('review-detail-explanation-text');
+          if (q.explanation && q.explanation.trim() !== '') {
+            explanationCard.style.display = 'flex';
+            explanationText.textContent = q.explanation;
+          } else {
+            explanationCard.style.display = 'flex';
+            explanationText.textContent = `Correct answer is Option ${q.correctAnswer}. No detailed explanation was provided.`;
+          }
+
+          // Metrics Footer
+          document.getElementById('review-metric-your-ans').textContent = q.studentAnswer ? `Option ${q.studentAnswer}` : 'Skipped';
+          document.getElementById('review-metric-correct-ans').textContent = `Option ${q.correctAnswer}`;
+
+          const statusCard = document.getElementById('review-metric-status-card');
+          const statusIcon = document.getElementById('review-metric-status-icon');
+          const statusVal = document.getElementById('review-metric-status-val');
+
+          if (q.status === 'CORRECT') {
+            statusCard.className = 'review-summary-card';
+            statusIcon.className = 'review-summary-icon correct';
+            statusIcon.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+            statusVal.className = 'review-summary-val correct';
+            statusVal.textContent = 'Correct';
+          } else if (q.status === 'WRONG') {
+            statusCard.className = 'review-summary-card';
+            statusIcon.className = 'review-summary-icon wrong';
+            statusIcon.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+            statusVal.className = 'review-summary-val wrong';
+            statusVal.textContent = 'Incorrect';
+          } else {
+            statusCard.className = 'review-summary-card';
+            statusIcon.className = 'review-summary-icon';
+            statusIcon.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/></svg>`;
+            statusVal.className = 'review-summary-val';
+            statusVal.textContent = 'Skipped';
+          }
+
+          // Time Taken
+          const formattedTime = q.timeSpentSeconds ? formatDuration(q.timeSpentSeconds) : '0m 00s';
+          document.getElementById('review-metric-time').textContent = formattedTime;
+        };
+
+        // Navigation actions
+        const mainPrevBtn = document.getElementById('review-prev-btn');
+        const mainNextBtn = document.getElementById('review-next-btn');
+        const mainStarBtn = document.getElementById('review-star-btn');
+        const mainFlagBtn = document.getElementById('review-flag-btn');
+
+        if (mainPrevBtn) {
+          mainPrevBtn.addEventListener('click', () => {
+            if (reviewCurrentIndex > 0) {
+              selectQuestion(reviewCurrentIndex - 1);
+              const newPage = Math.floor(reviewCurrentIndex / reviewPageSize) + 1;
+              if (newPage !== reviewPage) {
+                reviewPage = newPage;
+                renderReviewSidebar();
+              }
+            }
+          });
+        }
+
+        if (mainNextBtn) {
+          mainNextBtn.addEventListener('click', () => {
+            if (reviewCurrentIndex < reviewFilteredQuestions.length - 1) {
+              selectQuestion(reviewCurrentIndex + 1);
+              const newPage = Math.floor(reviewCurrentIndex / reviewPageSize) + 1;
+              if (newPage !== reviewPage) {
+                reviewPage = newPage;
+                renderReviewSidebar();
+              }
+            }
+          });
+        }
+
+        if (mainStarBtn) {
+          mainStarBtn.addEventListener('click', () => {
+            const q = reviewFilteredQuestions[reviewCurrentIndex];
+            if (q) {
+              q.reviewMarked = !q.reviewMarked;
+              mainStarBtn.classList.toggle('starred', !!q.reviewMarked);
+              renderReviewSidebar();
+            }
+          });
+        }
+
+        if (mainFlagBtn) {
+          mainFlagBtn.addEventListener('click', () => {
+            const q = reviewFilteredQuestions[reviewCurrentIndex];
+            if (q) {
+              q.flagged = !q.flagged;
+              mainFlagBtn.classList.toggle('flagged', !!q.flagged);
+            }
+          });
+        }
+
+        // Support arrow keys for navigation
+        document.addEventListener('keydown', (e) => {
+          if (!reviewOverlay.classList.contains('active')) return;
+          if (e.key === 'ArrowLeft') {
+            if (reviewCurrentIndex > 0) {
+              selectQuestion(reviewCurrentIndex - 1);
+              const newPage = Math.floor(reviewCurrentIndex / reviewPageSize) + 1;
+              if (newPage !== reviewPage) {
+                reviewPage = newPage;
+                renderReviewSidebar();
+              }
+            }
+          } else if (e.key === 'ArrowRight') {
+            if (reviewCurrentIndex < reviewFilteredQuestions.length - 1) {
+              selectQuestion(reviewCurrentIndex + 1);
+              const newPage = Math.floor(reviewCurrentIndex / reviewPageSize) + 1;
+              if (newPage !== reviewPage) {
+                reviewPage = newPage;
+                renderReviewSidebar();
+              }
+            }
+          }
+        });
 
       } catch (err) {
         console.error(err);
-        document.getElementById('status-icon').className = 'hero-icon fail';
-        document.getElementById('status-icon').textContent = '!';
-        document.getElementById('result-title').textContent = 'Result Unavailable';
-        document.getElementById('result-msg').textContent = err.message || 'Unable to fetch exam results. Please return to the student dashboard.';
-        document.getElementById('status-badge-container').innerHTML = '<span class="status-badge fail">Unavailable</span>';
-        document.getElementById('insight-box').textContent = 'We could not load the result payload from the backend.';
-        document.getElementById('footer-note').textContent = 'Please return to the student dashboard and try again.';
+        setText('result-title', 'Result Unavailable');
+        setText('result-subtitle', '');
+        setText('result-msg', err.message || 'Unable to fetch exam results. Please return to the student dashboard.');
+        setHtml('status-badge-container', '<div class="pass-badge fail">Error</div>');
+        const wrap = document.getElementById('hero-icon-wrap');
+        const inner = document.getElementById('hero-icon-inner');
+        if (wrap) wrap.className = 'hero-icon-wrap fail';
+        if (inner) inner.className = 'hero-icon-inner fail';
+        drawDonut(0, 0, 0);
+        drawGauge(0, 1);
+        drawLineChart(0, 0, 0, 0);
       }
     });
   </script>
+
+  <!-- ── REVIEW MODAL OVERLAY ── -->
+  <div class="review-overlay" id="review-modal-overlay">
+    <div class="review-modal">
+      <!-- Header -->
+      <div class="review-header">
+        <div class="review-header-left">
+          <div class="review-header-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div class="review-header-info">
+            <h2>Review Answers</h2>
+            <p>Review your answers and correct solutions</p>
+          </div>
+        </div>
+        <div class="review-header-right">
+          <span class="review-count-badge" id="review-header-count">0 Questions</span>
+          <button class="review-close-btn" id="review-close-x" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Body Content -->
+      <div class="review-content">
+        <!-- Sidebar -->
+        <div class="review-sidebar">
+          <div class="review-search-bar">
+            <div class="review-search-wrap">
+              <svg class="review-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input class="review-search-input" id="review-search" type="text" placeholder="Search questions...">
+            </div>
+            <button class="review-filter-icon-btn" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            </button>
+          </div>
+
+          <!-- Pills -->
+          <div class="review-pills">
+            <div class="review-pill active" data-filter="all">All (0)</div>
+            <div class="review-pill" data-filter="correct">Correct (0)</div>
+            <div class="review-pill" data-filter="wrong">Wrong (0)</div>
+            <div class="review-pill" data-filter="skipped">Skipped (0)</div>
+          </div>
+
+          <!-- Q List -->
+          <div class="review-q-list" id="review-q-list">
+            <!-- Populated dynamically -->
+          </div>
+
+          <!-- Sidebar Footer (Pagination) -->
+          <div class="review-sidebar-footer">
+            <span id="review-showing-text">Showing 1 to 10 of 100 questions</span>
+            <div class="review-pagination" id="review-pagination">
+              <!-- Pagination controls populated dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Detail Area -->
+        <div class="review-main">
+          <!-- Question detail header -->
+          <div class="review-detail-header">
+            <div class="review-detail-nav">
+              <button class="review-nav-btn" id="review-prev-btn" type="button">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span id="review-detail-q-index">Question 1 of 100</span>
+              <button class="review-nav-btn" id="review-next-btn" type="button">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+
+            <div class="review-detail-actions">
+              <button class="review-action-btn" id="review-star-btn" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                Mark Question
+              </button>
+              <button class="review-action-btn" id="review-flag-btn" type="button" style="color:#ef4444; border-color:#fee2e2;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Difficulty, Type, Marks tags -->
+          <div class="review-q-tags" id="review-q-tags">
+            <span class="review-q-tag easy" id="review-detail-diff">Easy</span>
+            <span class="review-q-tag type" id="review-detail-type">MCQ</span>
+            <span class="review-q-tag mark" id="review-detail-marks">1 Mark</span>
+          </div>
+
+          <!-- Question Body Text -->
+          <div class="review-q-body-text" id="review-detail-text">
+            Which of the following is not a Java primitive type? (Variation 1)
+          </div>
+
+          <!-- Options Container -->
+          <div class="review-options-list" id="review-detail-options">
+            <!-- Populated dynamically -->
+          </div>
+
+          <!-- Explanation Box -->
+          <div class="review-explanation-card" id="review-detail-explanation-card">
+            <div class="review-explanation-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/></svg>
+            </div>
+            <div class="review-explanation-text">
+              <h4>Explanation</h4>
+              <p id="review-detail-explanation-text">Explanation goes here.</p>
+            </div>
+          </div>
+
+          <!-- Detail Metrics Summary Row -->
+          <div class="review-summary-grid">
+            <div class="review-summary-card">
+              <div class="review-summary-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              </div>
+              <div class="review-summary-info">
+                <span class="review-summary-label">Your Answer</span>
+                <span class="review-summary-val" id="review-metric-your-ans">Integer</span>
+              </div>
+            </div>
+
+            <div class="review-summary-card">
+              <div class="review-summary-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+              </div>
+              <div class="review-summary-info">
+                <span class="review-summary-label">Correct Answer</span>
+                <span class="review-summary-val" id="review-metric-correct-ans" style="color:#16a34a;">String</span>
+              </div>
+            </div>
+
+            <div class="review-summary-card" id="review-metric-status-card">
+              <div class="review-summary-icon" id="review-metric-status-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </div>
+              <div class="review-summary-info">
+                <span class="review-summary-label">Status</span>
+                <span class="review-summary-val" id="review-metric-status-val">Incorrect</span>
+              </div>
+            </div>
+
+            <div class="review-summary-card">
+              <div class="review-summary-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="review-summary-info">
+                <span class="review-summary-label">Time Taken</span>
+                <span class="review-summary-val" id="review-metric-time">00:45</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="review-footer">
+        <button class="review-close-confirm-btn" id="review-close-footer" type="button">Close Review</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

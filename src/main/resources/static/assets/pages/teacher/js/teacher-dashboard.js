@@ -198,6 +198,13 @@ ensureAuthGuard();
     if (Number.isNaN(d.getTime())) return "-";
     return d.toLocaleString([], { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
   };
+  const fmtDate = (value) => {
+    if (!value) return "-";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "-";
+    return d.toLocaleDateString([], { month: "short", day: "2-digit", year: "numeric" });
+  };
+
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
   const riskFromScore = (cheatScore) => {
     if (cheatScore >= 85) return "CRITICAL";
@@ -1412,19 +1419,36 @@ ensureAuthGuard();
     dom.teacherDeptMini.textContent = state.teacher.department;
     dom.teacherAvatarTop.src = state.teacher.profileImage;
     dom.teacherAvatarMini.src = state.teacher.profileImage;
-    dom.pfName.value = state.teacher.name;
-    dom.pfEmail.value = state.teacher.email;
-    dom.pfPhone.value = state.teacher.phone;
-    dom.pfDepartment.value = state.teacher.department;
-    dom.pfDesignation.value = state.teacher.designation;
-    dom.pfExperience.value = state.teacher.experienceYears;
-    dom.pfQualification.value = state.teacher.qualification;
-    dom.pfEmployeeId.value = state.teacher.employeeId;
-    dom.pfImage.value = state.teacher.profileImage;
+    // Legacy hidden form inputs (kept for JS compat)
+    if (dom.pfName) dom.pfName.value = state.teacher.name;
+    if (dom.pfEmail) dom.pfEmail.value = state.teacher.email;
+    if (dom.pfPhone) dom.pfPhone.value = state.teacher.phone;
+    if (dom.pfDepartment) dom.pfDepartment.value = state.teacher.department;
+    if (dom.pfDesignation) dom.pfDesignation.value = state.teacher.designation;
+    if (dom.pfExperience) dom.pfExperience.value = state.teacher.experienceYears;
+    if (dom.pfQualification) dom.pfQualification.value = state.teacher.qualification;
+    if (dom.pfEmployeeId) dom.pfEmployeeId.value = state.teacher.employeeId;
+    if (dom.pfImage) dom.pfImage.value = state.teacher.profileImage;
+    // Avatar preview
     if (dom.pfAvatarPreview) dom.pfAvatarPreview.src = state.teacher.profileImage || profileInitialAvatar(state.teacher.name);
+    // New read-only view fields
     if (dom.pfHeaderName) dom.pfHeaderName.textContent = state.teacher.name || "Teacher";
-    if (dom.pfHeaderDept) dom.pfHeaderDept.textContent = state.teacher.department || "-";
     if (dom.pfHeaderDesignation) dom.pfHeaderDesignation.textContent = state.teacher.designation || "-";
+    if (dom.pfViewDept) dom.pfViewDept.textContent = state.teacher.department || "-";
+    if (dom.pfViewEmail) dom.pfViewEmail.textContent = state.teacher.email || "-";
+    if (dom.pfViewName) dom.pfViewName.textContent = state.teacher.name || "-";
+    if (dom.pfViewEmailField) dom.pfViewEmailField.textContent = state.teacher.email || "-";
+    if (dom.pfViewPhone) dom.pfViewPhone.textContent = state.teacher.phone || "-";
+    if (dom.pfViewDeptField) dom.pfViewDeptField.textContent = state.teacher.department || "-";
+    if (dom.pfViewDesignation) dom.pfViewDesignation.textContent = state.teacher.designation || "-";
+    if (dom.pfViewExperience) dom.pfViewExperience.textContent = state.teacher.experienceYears !== undefined ? String(state.teacher.experienceYears) : "-";
+    if (dom.pfViewQualification) dom.pfViewQualification.textContent = state.teacher.qualification || "-";
+    if (dom.pfViewEmployeeId) dom.pfViewEmployeeId.textContent = state.teacher.employeeId || "-";
+    if (dom.pfViewJoining) dom.pfViewJoining.textContent = state.teacher.createdAt ? fmtDate(state.teacher.createdAt) : "-";
+    if (dom.pfViewDob) dom.pfViewDob.textContent = state.teacher.dateOfBirth ? fmtDate(state.teacher.dateOfBirth) : "-";
+    if (dom.pfViewGender) dom.pfViewGender.textContent = state.teacher.gender || "-";
+    if (dom.pfViewAddress) dom.pfViewAddress.textContent = state.teacher.address || "-";
+    // Account info
     if (dom.pfAccEmployeeId) dom.pfAccEmployeeId.textContent = state.teacher.employeeId || "-";
     if (dom.pfAccCreatedAt) dom.pfAccCreatedAt.textContent = fmtDateTime(state.teacher.createdAt);
     if (dom.pfAccUpdatedAt) dom.pfAccUpdatedAt.textContent = fmtDateTime(state.teacher.updatedAt);
@@ -1437,9 +1461,10 @@ ensureAuthGuard();
     const status = profileStatusMeta();
     if (dom.pfAccountStatus) {
       dom.pfAccountStatus.textContent = status.label;
-      dom.pfAccountStatus.className = `status-pill ${status.cls}`;
+      dom.pfAccountStatus.className = `pf-status-badge pf-status-${status.label.toLowerCase()}`;
     }
   }
+
 
   function collectProfilePayload() {
     return {
@@ -3866,52 +3891,51 @@ ensureAuthGuard();
     const items = Array.isArray(certificates) ? certificates : [];
     const total = items.length;
     const revoked = items.filter((c) => Boolean(c.revoked)).length;
-    const verified = Math.max(0, total - revoked);
-    const latest = items
-      .slice()
-      .sort((a, b) => new Date(b.issuedAt || 0).getTime() - new Date(a.issuedAt || 0).getTime())[0] || null;
+    const verified = items.filter((c) => !c.revoked && !c.pending).length;
+    const pending = items.filter((c) => Boolean(c.pending)).length;
 
     const cards = [
       {
         label: "Total Certificates",
         value: total,
-        caption: "Issued certificate records",
-        icon: "fa-certificate",
-        tone: "violet"
+        caption: "All time issued",
+        icon: "fa-file-certificate",
+        iconClass: "cert-sum-icon cert-sum-blue"
       },
       {
         label: "Verified",
         value: verified,
-        caption: "Currently active certificates",
+        caption: "Successfully verified",
         icon: "fa-shield-check",
-        tone: "green"
+        iconClass: "cert-sum-icon cert-sum-green"
       },
       {
-        label: "Latest Issued",
-        value: latest ? latest.certificateId : "-",
-        caption: latest ? `${latest.examTitle} · ${fmtDateTime(latest.issuedAt)}` : "No certificate yet",
-        icon: "fa-id-badge",
-        tone: "blue"
+        label: "Pending Verification",
+        value: pending,
+        caption: "Awaiting verification",
+        icon: "fa-clock",
+        iconClass: "cert-sum-icon cert-sum-orange"
       },
       {
         label: "Revoked",
         value: revoked,
-        caption: "Inactive certificate records",
+        caption: "Revoked certificates",
         icon: "fa-circle-xmark",
-        tone: "orange"
+        iconClass: "cert-sum-icon cert-sum-red"
       }
     ];
     return cards.map((card) => `
-      <article class="summary-card certificate-summary-card tone-${card.tone}">
-        <div class="summary-icon"><i class="fa-solid ${card.icon}"></i></div>
-        <div class="summary-copy">
-          <h3>${card.label}</h3>
-          <strong>${card.value}</strong>
-          <p>${card.caption}</p>
+      <article class="cert-summary-card">
+        <div class="${card.iconClass}"><i class="fa-solid ${card.icon}"></i></div>
+        <div class="cert-sum-body">
+          <p class="cert-sum-label">${card.label}</p>
+          <strong class="cert-sum-value">${card.value}</strong>
+          <p class="cert-sum-caption">${card.caption}</p>
         </div>
       </article>
     `).join("");
   }
+
 
   function certificateQrMarkup(cert) {
     const value = String(cert.qrCodeData || "").trim();
@@ -4357,50 +4381,85 @@ ensureAuthGuard();
         const certificates = state.data.certificates.map((raw, idx) => normalizeCertificate(raw, idx));
         if (dom.certificatesSummary) dom.certificatesSummary.innerHTML = certificateSummaryCards(certificates);
         if (!dom.certificatesGrid) return;
-        dom.certificatesGrid.innerHTML = certificates.map((c) => {
+
+        // Pagination
+        const PAGE_SIZE = 6;
+        if (!state.ui.certPage) state.ui.certPage = 1;
+        const totalPages = Math.max(1, Math.ceil(certificates.length / PAGE_SIZE));
+        if (state.ui.certPage > totalPages) state.ui.certPage = totalPages;
+        const start = (state.ui.certPage - 1) * PAGE_SIZE;
+        const paginated = certificates.slice(start, start + PAGE_SIZE);
+
+        dom.certificatesGrid.innerHTML = paginated.map((c) => {
           const cid = c.certificateId;
+          const score = Number.isFinite(Number(c.score)) ? (c.score % 1 === 0 ? c.score : parseFloat(c.score).toFixed(2)) : "-";
+          const issuedDate = fmtDateTime(c.issuedAt);
           return `
-      <article class="card certificate-card ${c.revoked ? "is-revoked" : "is-issued"}">
-        <div class="certificate-card-head">
-          <div class="certificate-card-title">
-            <p>${c.examTitle}</p>
-            <h3>${c.certificateId}</h3>
-            <div class="certificate-card-sub">
-              <span class="certificate-card-chip">${c.studentName}</span>
-              <span class="certificate-card-chip">${c.grade}</span>
+      <article class="cert-card ${c.revoked ? "cert-card--revoked" : "cert-card--issued"}">
+        <div class="cert-card-top">
+          <div class="cert-card-meta">
+            <span class="cert-exam-label">${escapeHtml(c.examTitle || "Exam")}</span>
+            <div class="cert-id-row">
+              <h3 class="cert-id">${escapeHtml(c.certificateId)}</h3>
               ${certificateStatusBadge(c)}
             </div>
           </div>
-          <div class="certificate-score-pill">
-            <small>Score</small>
-            <strong>${Number.isFinite(Number(c.score)) ? c.score : "-"}</strong>
+          <div class="cert-score-box">
+            <span class="cert-score-value">${score}</span>
+            <span class="cert-score-label">Score</span>
           </div>
         </div>
-        <div class="certificate-card-grid">
-          <div><small>Student Name</small><strong>${c.studentName}</strong></div>
-          <div><small>College Name</small><strong>${c.collegeName}</strong></div>
-          <div><small>Department</small><strong>${c.department}</strong></div>
-          <div><small>Roll Number</small><strong>${c.rollNumber}</strong></div>
-          <div><small>Issued Date</small><strong>${fmtDateTime(c.issuedAt)}</strong></div>
-          <div><small>Exam Title</small><strong>${c.examTitle}</strong></div>
+        <div class="cert-card-info">
+          <div class="cert-info-row"><i class="fa-regular fa-user"></i><span>${escapeHtml(c.studentName)}</span></div>
+          <div class="cert-info-row"><i class="fa-regular fa-building"></i><span>${escapeHtml(c.collegeName)}</span></div>
+          <div class="cert-info-row"><i class="fa-solid fa-book-open"></i><span>${escapeHtml(c.department)}</span></div>
+          <div class="cert-info-row"><i class="fa-regular fa-calendar"></i><span>${issuedDate}</span></div>
         </div>
-        <div class="certificate-card-footer">
-          <button class="btn ghost small" data-cert-action="view" data-id="${cid}" data-no-buffer="true">View</button>
-          <button class="btn ghost small" data-cert-action="download" data-id="${cid}" data-no-buffer="true">Download</button>
-          <div class="cert-more ${state.ui.openCertificateMenuId === cid ? "open" : ""}">
-            <button class="btn ghost small cert-more-btn" data-cert-menu-toggle="${cid}" aria-label="More actions">
-              <i class="fa-solid fa-ellipsis-vertical"></i>
-            </button>
-            <div class="cert-more-menu">
-              <button data-cert-action="verify" data-id="${cid}" data-no-buffer="true">Verify Certificate</button>
-              <button class="destructive" data-cert-action="revoke" data-id="${cid}" ${c.revoked ? "disabled" : ""} data-no-buffer="true">Revoke Certificate</button>
-            </div>
-          </div>
+        <div class="cert-card-footer">
+          <button class="cert-action-btn" data-cert-action="view" data-id="${cid}" data-no-buffer="true">
+            <i class="fa-regular fa-eye"></i>View
+          </button>
+          <button class="cert-action-btn" data-cert-action="download" data-id="${cid}" data-no-buffer="true">
+            <i class="fa-solid fa-download"></i>Download
+          </button>
+          <button class="cert-action-btn" data-cert-action="verify" data-id="${cid}" data-no-buffer="true">
+            <i class="fa-solid fa-circle-check"></i>Verify
+          </button>
+          ${!c.revoked ? `<button class="cert-action-btn cert-action-btn--danger" data-cert-action="revoke" data-id="${cid}" data-no-buffer="true">
+            <i class="fa-solid fa-ban"></i>Revoke
+          </button>` : ""}
         </div>
       </article>
     `;
         }).join("") || `<div class="no-data certificate-empty">No certificates available.</div>`;
+
+        // Render pagination
+        const paginationEl = document.getElementById("certPagination");
+        if (paginationEl) {
+          if (totalPages <= 1) {
+            paginationEl.innerHTML = "";
+          } else {
+            paginationEl.innerHTML = `
+              <button class="cert-page-btn" ${state.ui.certPage === 1 ? "disabled" : ""} data-cert-page="${state.ui.certPage - 1}">
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              ${Array.from({ length: totalPages }, (_, i) => i + 1).map(p => `
+                <button class="cert-page-btn ${p === state.ui.certPage ? "cert-page-btn--active" : ""}" data-cert-page="${p}">${p}</button>
+              `).join("")}
+              <button class="cert-page-btn" ${state.ui.certPage === totalPages ? "disabled" : ""} data-cert-page="${state.ui.certPage + 1}">
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            `;
+            paginationEl.querySelectorAll("[data-cert-page]").forEach(btn => {
+              btn.addEventListener("click", () => {
+                state.ui.certPage = Number(btn.dataset.certPage);
+                renderCertificates();
+              });
+            });
+          }
+        }
       }
+
 
   function renderNotifications() {
         dom.notificationList.innerHTML = state.data.notifications.map((n) => `<li>${n.text}</li>`).join("") || "<li>No notifications.</li>";
@@ -5260,10 +5319,252 @@ ensureAuthGuard();
         toast("Certificates refreshed.");
       });
 
-      on(dom.profileEditBtn, "click", () => {
-        state.ui.profile.snapshot = { ...state.teacher };
-        setProfileEditMode(true);
-      });
+      // ─── Profile Edit: staged popup modal ───────────────────────────────────
+      on(dom.profileEditBtn, "click", () => openProfileEditModal());
+
+      function openProfileEditModal() {
+        let stage = 1;
+        const t = state.teacher;
+        let localImg = t.profileImage || "";
+        let localImgFile = null;
+
+        function stageChips() {
+          return `
+            <div class="pf-modal-stages">
+              ${[["Personal Info",1],["Professional Info",2],["Photo",3]].map(([label, n]) => `
+                <div class="pf-stage-chip ${stage === n ? "active" : stage > n ? "done" : ""}">
+                  <div class="pf-stage-dot">${stage > n ? '<i class="fa-solid fa-check"></i>' : n}</div>
+                  <span>${label}</span>
+                </div>
+                ${n < 3 ? '<div class="pf-stage-line ' + (stage > n ? "done" : "") + '"></div>' : ""}
+              `).join("")}
+            </div>`;
+        }
+
+        function stageBody() {
+          if (stage === 1) return `
+            <div class="pf-modal-stage-body" data-stage="1">
+              <div class="pf-edit-grid">
+                <div class="pf-edit-field">
+                  <label class="pf-edit-label">Full Name <span class="pf-req">*</span></label>
+                  <input id="pfmName" class="pf-edit-input" type="text" value="${escapeHtml(t.name || "")}" placeholder="Enter full name" autocomplete="name">
+                </div>
+                <div class="pf-edit-field">
+                  <label class="pf-edit-label">Email</label>
+                  <input class="pf-edit-input" type="email" value="${escapeHtml(t.email || "")}" readonly disabled placeholder="Email (read-only)">
+                </div>
+                <div class="pf-edit-field">
+                  <label class="pf-edit-label">Phone Number</label>
+                  <input id="pfmPhone" class="pf-edit-input" type="tel" value="${escapeHtml(t.phone || "")}" placeholder="e.g. 9876543210" autocomplete="tel">
+                </div>
+                <div class="pf-edit-field">
+                  <label class="pf-edit-label">Department</label>
+                  <input id="pfmDepartment" class="pf-edit-input" type="text" value="${escapeHtml(t.department || "")}" placeholder="e.g. Computer Science" autocomplete="organization">
+                </div>
+                <div class="pf-edit-field">
+                  <label class="pf-edit-label">Gender</label>
+                  <select id="pfmGender" class="pf-edit-input pf-edit-select">
+                    <option value="">Select Gender</option>
+                    ${["Male","Female","Non-binary","Prefer not to say"].map(g => `<option value="${g}" ${(t.gender||"") === g ? "selected" : ""}>${g}</option>`).join("")}
+                  </select>
+                </div>
+                <div class="pf-edit-field">
+                  <label class="pf-edit-label">Address</label>
+                  <input id="pfmAddress" class="pf-edit-input" type="text" value="${escapeHtml(t.address || "")}" placeholder="City, State, Country" autocomplete="street-address">
+                </div>
+              </div>
+            </div>`;
+          if (stage === 2) return `
+            <div class="pf-modal-stage-body" data-stage="2">
+              <div class="pf-edit-grid">
+                <div class="pf-edit-field">
+                  <label class="pf-edit-label">Designation</label>
+                  <input id="pfmDesignation" class="pf-edit-input" type="text" value="${escapeHtml(t.designation || "")}" placeholder="e.g. Senior Lecturer">
+                </div>
+                <div class="pf-edit-field">
+                  <label class="pf-edit-label">Experience (Years)</label>
+                  <input id="pfmExperience" class="pf-edit-input" type="number" min="0" max="60" value="${t.experienceYears || 0}" placeholder="Years of experience">
+                </div>
+                <div class="pf-edit-field">
+                  <label class="pf-edit-label">Qualification</label>
+                  <input id="pfmQualification" class="pf-edit-input" type="text" value="${escapeHtml(t.qualification || "")}" placeholder="e.g. Ph.D in Computer Science">
+                </div>
+                <div class="pf-edit-field">
+                  <label class="pf-edit-label">Employee ID</label>
+                  <input class="pf-edit-input" type="text" value="${escapeHtml(t.employeeId || "")}" readonly disabled placeholder="Employee ID (read-only)">
+                </div>
+                <div class="pf-edit-field">
+                  <label class="pf-edit-label">Date of Birth</label>
+                  <input id="pfmDob" class="pf-edit-input" type="date" value="${t.dateOfBirth ? String(t.dateOfBirth).slice(0,10) : ""}">
+                </div>
+                <div class="pf-edit-field">
+                  <label class="pf-edit-label">Date of Joining</label>
+                  <input class="pf-edit-input" type="text" value="${t.createdAt ? fmtDate(t.createdAt) : "-"}" readonly disabled>
+                </div>
+              </div>
+            </div>`;
+          if (stage === 3) return `
+            <div class="pf-modal-stage-body" data-stage="3">
+              <div class="pf-photo-stage">
+                <div class="pf-photo-preview-wrap">
+                  <img id="pfmAvatarPreview" src="${localImg || profileInitialAvatar(t.name)}" alt="Profile Photo" class="pf-photo-preview">
+                  <div class="pf-photo-overlay" id="pfmPhotoOverlay">
+                    <i class="fa-solid fa-camera"></i>
+                    <span>Change Photo</span>
+                  </div>
+                </div>
+                <input id="pfmImageFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+                <p class="pf-photo-hint">Click photo to upload. Supported: JPG, PNG, WEBP. Max 5 MB.</p>
+                <div class="pf-photo-actions">
+                  <button type="button" class="btn ghost" id="pfmUploadBtn"><i class="fa-solid fa-upload"></i>Upload Photo</button>
+                  <button type="button" class="btn ghost pf-remove-btn" id="pfmRemoveBtn"><i class="fa-solid fa-trash-can"></i>Remove</button>
+                </div>
+              </div>
+            </div>`;
+          return "";
+        }
+
+        function renderModal() {
+          const isLast = stage === 3;
+          dom.modalContainer.innerHTML = `
+            <div class="pf-edit-modal">
+              <div class="pf-modal-head">
+                <div class="pf-modal-title-wrap">
+                  <div class="pf-modal-icon"><i class="fa-regular fa-pen-to-square"></i></div>
+                  <div>
+                    <h3 class="pf-modal-title">Edit Profile</h3>
+                    <p class="pf-modal-sub">Update your personal and professional details</p>
+                  </div>
+                </div>
+                <button class="pf-modal-close" id="pfModalCloseBtn" aria-label="Close">&times;</button>
+              </div>
+              ${stageChips()}
+              <div class="pf-modal-body">
+                ${stageBody()}
+              </div>
+              <div class="pf-modal-footer">
+                <button type="button" class="btn ghost" id="pfModalCancelBtn">${stage === 1 ? "Cancel" : "Back"}</button>
+                <button type="button" class="btn primary pf-modal-next-btn" id="pfModalNextBtn">
+                  ${isLast ? '<i class="fa-solid fa-check"></i>Save Profile' : 'Next <i class="fa-solid fa-arrow-right"></i>'}
+                </button>
+              </div>
+            </div>
+          `;
+          dom.modalContainer.classList.remove("hidden");
+          dom.modalContainer.classList.add("pf-modal-host");
+
+          // Close handlers
+          document.getElementById("pfModalCloseBtn").addEventListener("click", closePfModal);
+          document.getElementById("pfModalCancelBtn").addEventListener("click", () => {
+            if (stage === 1) closePfModal();
+            else { stage--; renderModal(); }
+          });
+
+          // Next/Save
+          document.getElementById("pfModalNextBtn").addEventListener("click", async () => {
+            if (!collectStageData()) return;
+            if (stage < 3) {
+              stage++;
+              renderModal();
+              return;
+            }
+            // Final save
+            await savePfModal();
+          });
+
+          // Photo stage wiring
+          if (stage === 3) {
+            const overlay = document.getElementById("pfmPhotoOverlay");
+            const uploadBtn = document.getElementById("pfmUploadBtn");
+            const removeBtn = document.getElementById("pfmRemoveBtn");
+            const fileInput = document.getElementById("pfmImageFile");
+            const preview = document.getElementById("pfmAvatarPreview");
+
+            const triggerUpload = () => fileInput.click();
+            if (overlay) overlay.addEventListener("click", triggerUpload);
+            if (uploadBtn) uploadBtn.addEventListener("click", triggerUpload);
+            if (removeBtn) removeBtn.addEventListener("click", () => {
+              localImg = profileInitialAvatar(t.name);
+              localImgFile = null;
+              if (preview) preview.src = localImg;
+            });
+            if (fileInput) fileInput.addEventListener("change", async () => {
+              const file = fileInput.files?.[0];
+              if (!file) return;
+              if (file.size > 5 * 1024 * 1024) { toast("File too large. Max 5 MB.", "error"); return; }
+              localImgFile = file;
+              localImg = await readFileAsDataUrl(file);
+              if (preview) preview.src = localImg;
+            });
+          }
+        }
+
+        function collectStageData() {
+          if (stage === 1) {
+            const name = document.getElementById("pfmName")?.value?.trim();
+            if (!name) {
+              document.getElementById("pfmName")?.classList.add("pf-edit-error");
+              toast("Full name is required.", "error");
+              return false;
+            }
+            document.getElementById("pfmName")?.classList.remove("pf-edit-error");
+            t.name = name;
+            t.phone = document.getElementById("pfmPhone")?.value?.trim() || t.phone;
+            t.department = document.getElementById("pfmDepartment")?.value?.trim() || t.department;
+            t.gender = document.getElementById("pfmGender")?.value || t.gender;
+            t.address = document.getElementById("pfmAddress")?.value?.trim() || t.address;
+          }
+          if (stage === 2) {
+            t.designation = document.getElementById("pfmDesignation")?.value?.trim() || t.designation;
+            t.experienceYears = Number(document.getElementById("pfmExperience")?.value || 0);
+            t.qualification = document.getElementById("pfmQualification")?.value?.trim() || t.qualification;
+            t.dateOfBirth = document.getElementById("pfmDob")?.value || t.dateOfBirth;
+          }
+          return true;
+        }
+
+        async function savePfModal() {
+          const nextBtn = document.getElementById("pfModalNextBtn");
+          if (nextBtn) { nextBtn.disabled = true; nextBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>Saving...'; }
+          try {
+            // Upload photo if changed
+            if (localImgFile) {
+              try {
+                const uploaded = await api.userUploadImage(localImgFile);
+                const url = String(uploaded?.profileImage || uploaded?.url || uploaded?.imageUrl || "").trim();
+                if (url) t.profileImage = url;
+                else t.profileImage = localImg;
+              } catch (_e) { t.profileImage = localImg; }
+            }
+            const payload = {
+              name: t.name, phone: t.phone, department: t.department,
+              designation: t.designation, experienceYears: t.experienceYears,
+              qualification: t.qualification, profileImage: t.profileImage,
+              gender: t.gender, address: t.address, dateOfBirth: t.dateOfBirth
+            };
+            const updated = await api.userUpdate(payload);
+            state.teacher = normalizeTeacher({ ...state.teacher, ...payload, ...(updated || {}), updatedAt: new Date().toISOString() });
+            state.ui.profile.snapshot = { ...state.teacher };
+            populateTeacher();
+            closePfModal();
+            toast("Profile updated successfully.");
+            await loadProfileData();
+          } catch (_e) {
+            toast("Failed to update profile.", "error");
+            if (nextBtn) { nextBtn.disabled = false; nextBtn.innerHTML = '<i class="fa-solid fa-check"></i>Save Profile'; }
+          }
+        }
+
+        function closePfModal() {
+          dom.modalContainer.classList.add("hidden");
+          dom.modalContainer.classList.remove("pf-modal-host");
+          dom.modalContainer.innerHTML = "";
+        }
+
+        renderModal();
+      }
+
+      // Legacy compat handlers (kept but now no-ops since form is hidden)
       on(dom.profileCancelBtn, "click", () => {
         state.teacher = normalizeTeacher(state.ui.profile.snapshot || state.teacher);
         populateTeacher();
@@ -5271,28 +5572,9 @@ ensureAuthGuard();
       });
       on(dom.profileForm, "submit", async (e) => {
         e.preventDefault();
-        if (!state.ui.profile.editing) return;
-        const payload = collectProfilePayload();
-        const restore = startButtonBuffer(dom.profileSaveBtn, "Saving profile...");
-        if (dom.profileForm) dom.profileForm.querySelectorAll("input,button").forEach((el) => { el.disabled = true; });
-        try {
-          const updated = await api.userUpdate(payload);
-          state.teacher = normalizeTeacher({ ...state.teacher, ...payload, ...(updated || {}), updatedAt: new Date().toISOString() });
-          state.ui.profile.snapshot = { ...state.teacher };
-          populateTeacher();
-          setProfileEditMode(false);
-          await loadProfileData();
-          toast("Profile updated successfully.");
-        } catch (_e) {
-          toast("Failed to update profile.", "error");
-          if (dom.pfName && !dom.pfName.value.trim()) dom.pfName.classList.add("field-error");
-        } finally {
-          if (dom.profileForm) dom.profileForm.querySelectorAll("input,button").forEach((el) => { el.disabled = false; });
-          setProfileEditMode(state.ui.profile.editing);
-          restore();
-        }
       });
-      on(dom.pfName, "input", () => dom.pfName.classList.remove("field-error"));
+      on(dom.pfName, "input", () => dom.pfName?.classList?.remove("field-error"));
+
       on(dom.pfUploadImageBtn, "click", () => {
         if (!state.ui.profile.editing) return;
         dom.pfImageFile?.click();

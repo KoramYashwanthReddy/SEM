@@ -424,14 +424,29 @@
             </div>
           </div>
           <div class="results-summary-grid certificates-summary-grid" id="certificatesSummaryGrid"></div>
-          <div class="toolbar results-toolbar certificates-toolbar">
-            <div class="toolbar-copy">
-              <strong>Certificate Gallery</strong>
-              <span>Sorted locally by issuance date and filtered in real time.</span>
+          <div class="cert-gallery-toolbar">
+            <div class="cert-gallery-title-block">
+              <span class="cert-gallery-title">Certificate Gallery</span>
+              <span class="cert-gallery-hint">Sorted by issuance date (newest first)</span>
             </div>
-            <button id="certificatesResetBtn" class="btn ghost small" type="button"><span class="svg-icon" data-icon="refresh"></span>Reset</button>
+            <button id="certificatesResetBtn" class="btn ghost small cert-reset-btn" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              Reset
+            </button>
           </div>
           <div class="card-grid three certificates-grid" id="certificatesGrid"></div>
+          <div class="cert-gallery-footer">
+            <span class="cert-count-label" id="certCountLabel">Showing 0 of 0 certificates</span>
+            <div class="cert-pagination" id="certPagination" aria-label="Certificate pages">
+              <button class="cert-page-btn" id="certPrevBtn" type="button" aria-label="Previous page" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span class="cert-page-nums" id="certPageNums"></span>
+              <button class="cert-page-btn" id="certNextBtn" type="button" aria-label="Next page" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
         </section>
 
         <section id="leaderboard" class="section">
@@ -922,6 +937,8 @@
 
   <script src="../assets/core/js/theme.js"></script>
   <script src="../assets/core/js/api.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
   <script src="../assets/pages/student/js/student-ui.js?v=20260409f"></script>
 </body>
 </html>

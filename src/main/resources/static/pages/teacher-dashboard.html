@@ -371,79 +371,210 @@
       </section>
 
       <section id="certificates" class="section">
-        <div class="section-head"><h1>Certificates <span>Issued</span></h1></div>
-        <div id="certificatesSummary" class="summary-grid certificates-summary-grid"></div>
-        <div class="card section-toolbar certificates-toolbar">
-          <div>
-            <h3>Certificate Gallery</h3>
-            <p>Issued credentials, verification state, and quick actions in a card layout.</p>
+        <div class="section-head">
+          <div class="cert-section-title">
+            <h1>Certificates <span>Issued</span></h1>
+            <p class="cert-section-subtitle">Manage and view all issued certificates</p>
           </div>
-          <button id="certificatesRefreshBtn" type="button" class="btn ghost" data-no-buffer="true">
+          <button id="certificatesRefreshBtn" type="button" class="btn ghost cert-refresh-btn" data-no-buffer="true">
             <i class="fa-solid fa-rotate-right"></i>Refresh
           </button>
         </div>
+        <div id="certificatesSummary" class="certificates-summary-grid"></div>
         <div id="certificatesGrid" class="certificates-grid"></div>
+        <div id="certPagination" class="cert-pagination"></div>
       </section>
 
       <section id="profile" class="section">
-        <div class="section-head"><h1>Teacher <span>Profile</span></h1></div>
+        <!-- Section Head -->
+        <div class="pf-section-head">
+          <div>
+            <h1 class="pf-section-title">Teacher <span>Profile</span></h1>
+            <p class="pf-section-sub">View your profile and account details</p>
+          </div>
+          <button id="profileEditBtn" type="button" class="btn ghost pf-edit-btn" data-no-buffer="true">
+            <i class="fa-regular fa-pen-to-square"></i>Edit Profile
+          </button>
+        </div>
+
+        <!-- Loading skeleton -->
         <div id="profileLoading" class="profile-loading hidden">
           <div class="profile-skeleton card"></div>
           <div class="profile-skeleton card"></div>
         </div>
-        <div class="profile-grid">
-          <div class="profile-side-stack">
-            <article class="card profile-header-card">
-              <div class="profile-avatar-wrap">
-                <img id="pfAvatarPreview" alt="Teacher Profile">
-                <div class="profile-avatar-actions">
-                  <button id="pfUploadImageBtn" type="button" class="btn ghost small" data-no-buffer="true"><i class="fa-solid fa-upload"></i>Upload</button>
-                  <button id="pfRemoveImageBtn" type="button" class="btn ghost small" data-no-buffer="true">Remove</button>
-                </div>
-                <input id="pfImageFile" type="file" accept="image/*" hidden>
+
+        <!-- Main profile layout -->
+        <div class="pf-layout">
+
+          <!-- Left column -->
+          <div class="pf-left">
+
+            <!-- Avatar card -->
+            <article class="card pf-avatar-card">
+              <div class="pf-avatar-img-wrap">
+                <img id="pfAvatarPreview" alt="Teacher" class="pf-avatar-img">
+                <span id="pfAccountStatus" class="pf-status-badge">Active</span>
               </div>
-              <div class="profile-header-meta">
-                <h3 id="pfHeaderName">Teacher Name</h3>
-                <p id="pfHeaderDept">Department</p>
-                <p id="pfHeaderDesignation">Designation</p>
-                <div id="pfAccountStatus" class="status-pill status-active">Active</div>
+              <h2 id="pfHeaderName" class="pf-name">Teacher Name</h2>
+              <p id="pfHeaderDesignation" class="pf-designation">Designation</p>
+              <div class="pf-meta-rows">
+                <div class="pf-meta-row"><i class="fa-regular fa-user"></i><span id="pfViewDept">Department</span></div>
+                <div class="pf-meta-row"><i class="fa-regular fa-envelope"></i><span id="pfViewEmail">email@example.com</span></div>
               </div>
             </article>
 
-            <article class="card profile-account-card">
-              <h3>Account Information</h3>
-              <ul class="profile-account-list">
-                <li><span>Employee ID</span><strong id="pfAccEmployeeId">-</strong></li>
-                <li><span>Account Status</span><strong id="pfAccEnabled">-</strong></li>
-                <li><span>Lock Status</span><strong id="pfAccLocked">-</strong></li>
-                <li><span>Created At</span><strong id="pfAccCreatedAt">-</strong></li>
-                <li><span>Last Updated</span><strong id="pfAccUpdatedAt">-</strong></li>
+            <!-- Account info card -->
+            <article class="card pf-account-card">
+              <div class="pf-account-header">
+                <i class="fa-solid fa-circle-info pf-account-icon"></i>
+                <h3 class="pf-account-title">Account Information</h3>
+              </div>
+              <ul class="pf-account-list">
+                <li class="pf-account-row">
+                  <div class="pf-acc-icon-wrap"><i class="fa-solid fa-id-badge"></i></div>
+                  <span class="pf-acc-label">Employee ID</span>
+                  <strong id="pfAccEmployeeId" class="pf-acc-value">-</strong>
+                </li>
+                <li class="pf-account-row">
+                  <div class="pf-acc-icon-wrap"><i class="fa-regular fa-user"></i></div>
+                  <span class="pf-acc-label">Account Status</span>
+                  <strong id="pfAccEnabled" class="pf-acc-value">-</strong>
+                </li>
+                <li class="pf-account-row">
+                  <div class="pf-acc-icon-wrap"><i class="fa-solid fa-lock"></i></div>
+                  <span class="pf-acc-label">Lock Status</span>
+                  <strong id="pfAccLocked" class="pf-acc-value">-</strong>
+                </li>
+                <li class="pf-account-row">
+                  <div class="pf-acc-icon-wrap"><i class="fa-regular fa-calendar"></i></div>
+                  <span class="pf-acc-label">Created At</span>
+                  <strong id="pfAccCreatedAt" class="pf-acc-value">-</strong>
+                </li>
+                <li class="pf-account-row">
+                  <div class="pf-acc-icon-wrap"><i class="fa-regular fa-clock"></i></div>
+                  <span class="pf-acc-label">Last Updated</span>
+                  <strong id="pfAccUpdatedAt" class="pf-acc-value">-</strong>
+                </li>
               </ul>
             </article>
           </div>
 
-          <form id="profileForm" class="card form-grid profile-form profile-main-card">
-            <div class="profile-form-head">
-              <h3>Profile Details</h3>
-              <p>Update teacher information and keep account details current.</p>
+          <!-- Right column — read-only profile details -->
+          <article class="card pf-details-card">
+            <div class="pf-details-header">
+              <div class="pf-details-icon-wrap"><i class="fa-regular fa-user"></i></div>
+              <div>
+                <h3 class="pf-details-title">Profile Details</h3>
+                <p class="pf-details-sub">Personal and professional information</p>
+              </div>
             </div>
-            <label>Name<input id="pfName"></label>
-            <label>Email<input id="pfEmail" type="email" readonly></label>
-            <label>Phone<input id="pfPhone"></label>
-            <label>Department<input id="pfDepartment"></label>
-            <label>Designation<input id="pfDesignation"></label>
-            <label>Experience Years<input id="pfExperience" type="number" min="0"></label>
-            <label>Qualification<input id="pfQualification"></label>
-            <label>Employee ID<input id="pfEmployeeId" readonly></label>
-            <label class="wide hidden">Profile Image URL<input id="pfImage"></label>
-            <div class="form-actions">
-              <button type="button" id="profileEditBtn" class="btn primary" data-no-buffer="true">Update Profile</button>
-              <button type="submit" id="profileSaveBtn" class="btn primary hidden" data-no-buffer="true">Save Profile</button>
-              <button type="button" id="profileCancelBtn" class="btn ghost hidden" data-no-buffer="true">Cancel</button>
-              <button type="button" id="changePasswordBtn" class="btn ghost" data-no-buffer="true">Change Password</button>
+            <div class="pf-details-divider"></div>
+            <div class="pf-details-grid">
+              <div class="pf-field">
+                <div class="pf-field-icon-wrap"><i class="fa-regular fa-user"></i></div>
+                <div class="pf-field-body">
+                  <span class="pf-field-label">Full Name</span>
+                  <strong id="pfViewName" class="pf-field-value">-</strong>
+                </div>
+              </div>
+              <div class="pf-field">
+                <div class="pf-field-icon-wrap"><i class="fa-regular fa-envelope"></i></div>
+                <div class="pf-field-body">
+                  <span class="pf-field-label">Email</span>
+                  <strong id="pfViewEmailField" class="pf-field-value">-</strong>
+                </div>
+              </div>
+              <div class="pf-field">
+                <div class="pf-field-icon-wrap"><i class="fa-solid fa-phone"></i></div>
+                <div class="pf-field-body">
+                  <span class="pf-field-label">Phone Number</span>
+                  <strong id="pfViewPhone" class="pf-field-value">-</strong>
+                </div>
+              </div>
+              <div class="pf-field">
+                <div class="pf-field-icon-wrap"><i class="fa-solid fa-building-columns"></i></div>
+                <div class="pf-field-body">
+                  <span class="pf-field-label">Department</span>
+                  <strong id="pfViewDeptField" class="pf-field-value">-</strong>
+                </div>
+              </div>
+              <div class="pf-field">
+                <div class="pf-field-icon-wrap"><i class="fa-solid fa-briefcase"></i></div>
+                <div class="pf-field-body">
+                  <span class="pf-field-label">Designation</span>
+                  <strong id="pfViewDesignation" class="pf-field-value">-</strong>
+                </div>
+              </div>
+              <div class="pf-field">
+                <div class="pf-field-icon-wrap"><i class="fa-regular fa-id-card"></i></div>
+                <div class="pf-field-body">
+                  <span class="pf-field-label">Experience Years</span>
+                  <strong id="pfViewExperience" class="pf-field-value">-</strong>
+                </div>
+              </div>
+              <div class="pf-field">
+                <div class="pf-field-icon-wrap"><i class="fa-solid fa-graduation-cap"></i></div>
+                <div class="pf-field-body">
+                  <span class="pf-field-label">Qualification</span>
+                  <strong id="pfViewQualification" class="pf-field-value">-</strong>
+                </div>
+              </div>
+              <div class="pf-field">
+                <div class="pf-field-icon-wrap"><i class="fa-solid fa-address-card"></i></div>
+                <div class="pf-field-body">
+                  <span class="pf-field-label">Employee ID</span>
+                  <strong id="pfViewEmployeeId" class="pf-field-value">-</strong>
+                </div>
+              </div>
+              <div class="pf-field">
+                <div class="pf-field-icon-wrap"><i class="fa-regular fa-calendar-check"></i></div>
+                <div class="pf-field-body">
+                  <span class="pf-field-label">Date of Joining</span>
+                  <strong id="pfViewJoining" class="pf-field-value">-</strong>
+                </div>
+              </div>
+              <div class="pf-field">
+                <div class="pf-field-icon-wrap"><i class="fa-solid fa-cake-candles"></i></div>
+                <div class="pf-field-body">
+                  <span class="pf-field-label">Date of Birth</span>
+                  <strong id="pfViewDob" class="pf-field-value">-</strong>
+                </div>
+              </div>
+              <div class="pf-field">
+                <div class="pf-field-icon-wrap"><i class="fa-solid fa-venus-mars"></i></div>
+                <div class="pf-field-body">
+                  <span class="pf-field-label">Gender</span>
+                  <strong id="pfViewGender" class="pf-field-value">-</strong>
+                </div>
+              </div>
+              <div class="pf-field">
+                <div class="pf-field-icon-wrap"><i class="fa-solid fa-location-dot"></i></div>
+                <div class="pf-field-body">
+                  <span class="pf-field-label">Address</span>
+                  <strong id="pfViewAddress" class="pf-field-value">-</strong>
+                </div>
+              </div>
             </div>
-          </form>
+            <div class="pf-info-footer">
+              <i class="fa-solid fa-circle-info"></i>
+              <span>If any of your information is incorrect, please contact the administrator.</span>
+            </div>
+          </article>
         </div>
+
+        <!-- Hidden legacy form inputs kept for JS compatibility -->
+        <form id="profileForm" style="display:none">
+          <input id="pfName"><input id="pfEmail" type="email" readonly>
+          <input id="pfPhone"><input id="pfDepartment"><input id="pfDesignation">
+          <input id="pfExperience" type="number" min="0"><input id="pfQualification">
+          <input id="pfEmployeeId" readonly><input id="pfImage">
+          <input id="pfImageFile" type="file" accept="image/*">
+          <button type="submit" id="profileSaveBtn" class="hidden"></button>
+          <button type="button" id="profileCancelBtn" class="hidden"></button>
+          <button type="button" id="changePasswordBtn" class="hidden"></button>
+          <button type="button" id="pfUploadImageBtn" class="hidden"></button>
+          <button type="button" id="pfRemoveImageBtn" class="hidden"></button>
+        </form>
       </section>
 
       <section id="settings" class="section">

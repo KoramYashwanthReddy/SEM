@@ -307,7 +307,8 @@
   window.AdminNotifications = {
     refresh: () => loadNotifications(state.filter),
     setFilter: filterNotifs,
-    push: pushIncoming
+    push: pushIncoming,
+    getItems: () => state.items.slice()
   };
 
   window.renderNotifications = render;

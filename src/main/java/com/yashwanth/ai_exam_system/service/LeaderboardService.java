@@ -2,7 +2,9 @@ package com.yashwanth.ai_exam_system.service;
 
 import com.yashwanth.ai_exam_system.dto.LeaderboardDTO;
 import com.yashwanth.ai_exam_system.entity.ExamResult;
+import com.yashwanth.ai_exam_system.entity.User;
 import com.yashwanth.ai_exam_system.repository.ExamResultRepository;
+import com.yashwanth.ai_exam_system.repository.UserRepository;
 
 import org.springframework.stereotype.Service;
 
@@ -16,9 +18,11 @@ import java.util.Map;
 public class LeaderboardService {
 
     private final ExamResultRepository resultRepository;
+    private final UserRepository userRepository;
 
-    public LeaderboardService(ExamResultRepository resultRepository) {
+    public LeaderboardService(ExamResultRepository resultRepository, UserRepository userRepository) {
         this.resultRepository = resultRepository;
+        this.userRepository = userRepository;
     }
 
     public List<LeaderboardDTO> getExamLeaderboard(String examCode) {
@@ -51,7 +55,7 @@ public class LeaderboardService {
             dto.setScore((int) result.getScore());
             dto.setPercentage(roundToOneDecimal(result.getPercentage()));
             dto.setRank(rank++);
-            dto.setStudentName("Student-" + result.getStudentId());
+            dto.setStudentName(resolveStudentName(result.getStudentId()));
             leaderboard.add(dto);
         }
 
@@ -73,5 +77,15 @@ public class LeaderboardService {
 
     private double roundToOneDecimal(double value) {
         return Math.round(value * 10.0) / 10.0;
+    }
+
+    private String resolveStudentName(Long studentId) {
+        if (studentId == null) {
+            return "Student";
+        }
+        return userRepository.findById(studentId)
+                .map(User::getName)
+                .filter(name -> name != null && !name.isBlank())
+                .orElse("Student " + studentId);
     }
 }

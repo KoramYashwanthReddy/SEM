@@ -18,6 +18,35 @@ const API = (() => {
            localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
   }
 
+  async function readErrorBody(response) {
+    const fallback = `Request failed with status ${response.status}`;
+    try {
+      const cloned = response.clone();
+      const raw = await cloned.text();
+      if (!raw) return fallback;
+
+      const contentType = String(cloned.headers.get('content-type') || '').toLowerCase();
+      if (contentType.includes('application/json')) {
+        try {
+          const json = JSON.parse(raw);
+          return (
+            json?.data?.message ||
+            json?.data?.error ||
+            json?.message ||
+            json?.error ||
+            raw
+          ).toString().trim() || fallback;
+        } catch (_err) {
+          return raw.trim() || fallback;
+        }
+      }
+
+      return raw.trim() || fallback;
+    } catch (_err) {
+      return fallback;
+    }
+  }
+
   /**
    * Clear auth and redirect to login
    */
@@ -84,20 +113,7 @@ const API = (() => {
           }
         }
         
-        let errorMsg = `Request failed with status ${response.status}`;
-        try {
-          const json = await response.json();
-          errorMsg =
-            json?.data?.message ||
-            json?.data?.error ||
-            json?.message ||
-            json?.error ||
-            errorMsg;
-        } catch (e) {
-             const text = await response.text();
-             if(text) errorMsg = text;
-        }
-        throw new Error(errorMsg);
+        throw new Error(await readErrorBody(response));
       }
 
       const json = await response.json();

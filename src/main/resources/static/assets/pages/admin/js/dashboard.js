@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    ADMIN DASHBOARD CORE LOGIC
    ============================================================ */
 
@@ -131,39 +131,9 @@
             refreshTimer: 30
         };
 
-        // Mock data initialization
-        this.dashLogs = [
-            { type: 'exams', icon: 'fa-file-circle-check', msg: '<strong>Prof. Alan Turing</strong> published "Cryptography 101"', time: '1m ago', badge: 'published' },
-            { type: 'users', icon: 'fa-users', msg: 'Bulk Registration: <strong>340 Students [Batch 2026]</strong>', time: '4m ago', badge: 'bulk' },
-            { type: 'proctoring', icon: 'fa-user-ninja', msg: 'Critical: STU_9021 flagged for <strong>Tab Switching</strong>', time: '7m ago', badge: 'high risk' },
-            { type: 'system', icon: 'fa-server', msg: 'API Server Auto-Scaled to <strong>4 Nodes</strong>', time: '15m ago', badge: 'scaled' },
-            { type: 'exams', icon: 'fa-stopwatch', msg: 'Auto-Submission triggered for <strong>Physics Final</strong>', time: '22m ago', badge: 'system' },
-            { type: 'users', icon: 'fa-user-pen', msg: 'Admin_01 granted privileges to <strong>Dr. Strange</strong>', time: '1h ago', badge: 'auth' },
-            { type: 'system', icon: 'fa-shield-halved', msg: 'Firewall: 14 invalid login attempts from 192.168.1.104 blocked.', time: '1h 45m ago', badge: 'blocked' },
-            { type: 'proctoring', icon: 'fa-microphone-lines', msg: 'Warning: STU_1002 triggered <strong>Audio Exception</strong>', time: '2h ago', badge: 'warning' },
-            { type: 'proctoring', icon: 'fa-camera-retro', msg: 'Alert: STU_4193 <strong>Camera Offline</strong> for >30s', time: '2h 10m ago', badge: 'high risk' },
-            { type: 'exams', icon: 'fa-certificate', msg: 'Batch processing complete: <strong>980 Certs Issued</strong>', time: '3h ago', badge: 'complete' }
-        ];
-
-        this.dashExams = [
-            { name: 'Advanced Machine Learning', type: 'AI Proctored', active: 342, status: 'Live' },
-            { name: 'Cloud Infrastructure Concepts', type: 'Subjective', active: 114, status: 'Live' },
-            { name: 'Global Database Structures', type: 'MCQ', active: 87, status: 'Live' },
-            { name: 'Node.js Performance Tuning', type: 'Coding', active: 18, status: 'Live' },
-            { name: 'Cyber Security Foundation', type: 'MCQ', active: 291, status: 'Live' },
-            { name: 'UX Design - Final Exam', type: 'MCQ', active: 0, status: 'Draft' },
-            { name: 'Quantitative Aptitude Test', type: 'Adaptive', active: 0, status: 'Completed' },
-            { name: 'Python for Data Science', type: 'Coding', active: 0, status: 'Draft' },
-            { name: 'Corporate Compliance 2024', type: 'MCQ', active: 45, status: 'Live' }
-        ];
-
-        this.dashAlerts = [
-            { id: 1, risk: 'high', title: 'Window Blur Anomaly', user: 'STU_9021', time: 'Just Now' },
-            { id: 2, risk: 'high', title: 'Multiple Faces Detected', user: 'STU_4412', time: '1m ago' },
-            { id: 3, risk: 'med', title: 'Gaze Deviation (Off-screen)', user: 'STU_1120', time: '5m ago' },
-            { id: 4, risk: 'med', title: 'Audio Threshold Exceeded', user: 'STU_8819', time: '14m ago' },
-            { id: 5, risk: 'low', title: 'Network Latency Spike', user: 'STU_0411', time: '2h ago' }
-        ];
+        this.dashLogs = [];
+        this.dashExams = [];
+        this.dashAlerts = [];
 
         // Initial Renders
         this.refreshOverview();
@@ -241,6 +211,10 @@
     renderDashLogs() {
         const cont = document.getElementById('dash-log-feed');
         if(!cont) return;
+        if(this.dashLogs.length === 0) {
+            cont.innerHTML = `<div style="padding:24px; text-align:center; color:var(--text-tertiary); font-size:13px; font-weight:600;">No persisted activity yet.</div>`;
+            return;
+        }
         const filtered = this.dashboardState.logFilter === 'all' 
             ? this.dashLogs 
             : this.dashLogs.filter(l => l.type === this.dashboardState.logFilter);
@@ -269,6 +243,12 @@
     renderDashExams() {
         const body = document.getElementById('dash-exam-body');
         if(!body) return;
+        if(this.dashExams.length === 0) {
+            body.innerHTML = `<tr><td colspan="5" style="padding:24px; text-align:center; color:var(--text-tertiary);">No live exam data available.</td></tr>`;
+            const pageSpan = document.getElementById('dash-exam-page');
+            if(pageSpan) pageSpan.textContent = '0';
+            return;
+        }
 
         // Sorting
         const sorted = [...this.dashExams].sort((a, b) => {
@@ -327,7 +307,7 @@
 
         count.textContent = this.dashAlerts.length;
         if(this.dashAlerts.length === 0) {
-            cont.innerHTML = `<div style="text-align:center; flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-tertiary); font-size:13px; font-weight:500;">All security protocols clear.</div>`;
+            cont.innerHTML = `<div style="text-align:center; flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-tertiary); font-size:13px; font-weight:500;">No live proctoring alerts yet.</div>`;
             return;
         }
 
@@ -393,22 +373,11 @@
     },
 
     autoLogCycle() {
-        setInterval(() => {
-            const newLog = {
-                type: ['exams', 'users', 'proctoring', 'system'][Math.floor(Math.random()*4)],
-                icon: 'fa-robot',
-                msg: `AI Forensic: Log ID ${Math.floor(Math.random()*9000+1000)} process completed.`,
-                time: 'Just now',
-                badge: 'auto-gen'
-            };
-            this.dashLogs.unshift(newLog);
-            if(this.dashLogs.length > 20) this.dashLogs.pop();
-            this.renderDashLogs();
-        }, 15000);
+        // Live log updates now come from the API sync in admin-live.js.
     },
 
     downloadLogs() {
-        window.showToast?.('Pre-processing CSV export for 1,240 events...', 'success');
+        window.showToast?.('Preparing audit export from live data...', 'success');
     },
 
     clearLogs() {
@@ -437,24 +406,20 @@
 
     updateActivityFooter() {
         if(this.activityFooterInterval) clearInterval(this.activityFooterInterval);
-        const exams = ['Quantum Computing Basics', 'React Performance', 'System Design v4', 'Blockchain Fundamentals'];
-        const teachers = ['Prof. Albus D.', 'Dr. Strange', 'Prof. X', 'Sarah Connor'];
-        
-        this.activityFooterInterval = setInterval(() => {
+        const renderFooter = () => {
             const examLabel = document.getElementById('last-exam-label');
             const teacherLabel = document.getElementById('last-teacher-label');
-            if(examLabel) examLabel.textContent = exams[Math.floor(Math.random()*exams.length)];
-            if(teacherLabel) teacherLabel.textContent = teachers[Math.floor(Math.random()*teachers.length)];
-            
-            // Randomly flash a "High Risk" alert in footer
-            const susp = document.querySelector('.footer-stat.susp');
-            if(susp) {
-                susp.style.opacity = '0.5';
-                setTimeout(() => {
-                    document.getElementById('last-susp-label').textContent = `STU_${Math.floor(Math.random()*9000+1000)} (Detected)`;
-                    susp.style.opacity = '1';
-                }, 300);
-            }
+            const suspLabel = document.getElementById('last-susp-label');
+            const latestExam = (this.dashExams || [])[0];
+            const latestTeacher = (window.teachersData || [])[0];
+            const latestAlert = (this.dashAlerts || [])[0];
+            if(examLabel) examLabel.textContent = latestExam?.name || 'No exam activity';
+            if(teacherLabel) teacherLabel.textContent = latestTeacher?.fullName || 'No teacher activity';
+            if(suspLabel) suspLabel.textContent = latestAlert?.user ? `${latestAlert.user} (Detected)` : 'No incidents';
+        };
+        renderFooter();
+        this.activityFooterInterval = setInterval(() => {
+            renderFooter();
         }, 30000);
     },
 
@@ -857,48 +822,23 @@
     },
 
     renderTeachers() {
-        if(!window.teachersData) {
-            window.teachersData = [
-                { 
-                  id: 'T-1', fullName: 'Dr. Sarah Smith', email: 'sarah@example.com', phone: '9876543210', department: 'Engineering', 
-                  designation: 'Senior Lecturer', experienceYears: 12, qualification: 'Ph.D', employeeId: 'EMP-0001', status: 'Active',
-                  examsCreated: [
-                    { title: 'Data Structures & Algorithms', code: 'DSA-2024', status: 'Published', date: '2024-03-15' },
-                    { title: 'System Design Patterns', code: 'SDP-Q1', status: 'Draft', date: '2024-03-28' }
-                  ],
-                  questionsUploaded: [
-                    { exam: 'Data Structures & Algorithms', count: 85, date: '2024-03-14' },
-                    { exam: 'Mathematics III', count: 40, date: '2024-02-10' }
-                  ],
-                  attemptsHandled: { total: 1240, avgScore: 74, passRate: 82 },
-                  cheatingReports: { suspicious: 24, flags: 5 },
-                  analytics: { exams: 18, students: 2400, certs: 1850 }
-                },
-                { 
-                  id: 'T-2', fullName: 'Prof. Alan Turing', email: 'alan@example.com', phone: '9988776655', department: 'Mathematics', 
-                  designation: 'Lead Researcher', experienceYears: 20, qualification: 'Ph.D', employeeId: 'EMP-0002', status: 'Active',
-                  examsCreated: [
-                    { title: 'Theory of Computation', code: 'TOC-101', status: 'Published', date: '2024-01-20' }
-                  ],
-                  questionsUploaded: [
-                    { exam: 'Logic Systems', count: 60, date: '2024-01-18' }
-                  ],
-                  attemptsHandled: { total: 850, avgScore: 88, passRate: 90 },
-                  cheatingReports: { suspicious: 8, flags: 1 },
-                  analytics: { exams: 12, students: 1500, certs: 1350 }
-                }
-            ];
-        }
+        if(!Array.isArray(window.teachersData)) window.teachersData = [];
         window.renderGlobalTeachers();
     },
 
     renderAttempts() {
         const list = document.getElementById('attempts-list');
         if(!list) return;
-        const attempts = [
-            { stu: 'Mike Ross', exam: 'System Design v2', time: '10:05 AM', status: 'In Progress' },
-            { stu: 'Harvey Specter', exam: 'Advanced JavaScript', time: '09:12 AM', status: 'Suspended' }
-        ];
+        const attempts = (window.attemptsData || []).slice(0, 2).map((att) => ({
+            stu: att.studentName || att.studentId || 'Unknown',
+            exam: att.examTitle || att.examCode || 'Exam',
+            time: att.time || att.date || '-',
+            status: att.status === 'STARTED' ? 'In Progress' : (att.status || 'Completed')
+        }));
+        if(attempts.length === 0) {
+            list.innerHTML = '<tr><td colspan="5" style="padding:24px; text-align:center; color:var(--text-tertiary);">No live attempts available.</td></tr>';
+            return;
+        }
         list.innerHTML = attempts.map(a => `
             <tr>
                 <td style="font-weight:600;color:var(--text-primary)">${a.stu}</td>
@@ -920,11 +860,16 @@
     renderViolations() {
         const list = document.getElementById('violations-list');
         if (!list) return;
-        const events = [
-            { time: '14:23:01', user: 'STU_4812', type: 'Face Mismatch', risk: 85 },
-            { time: '14:21:44', user: 'STU_9021', type: 'Multiple Faces', risk: 92 },
-            { time: '13:58:12', user: 'STU_1120', type: 'Gaze Anomaly', risk: 42 }
-        ];
+        const events = (window.proctoringMonitorData || []).slice(0, 3).map((item) => ({
+            time: item.time || item.date || '-',
+            user: item.studentId || item.studentName || 'Unknown',
+            type: item.violationType || 'Proctoring Alert',
+            risk: Number(item.cheatingScore || 0)
+        }));
+        if(events.length === 0) {
+            list.innerHTML = '<tr><td colspan="5" style="padding:24px; text-align:center; color:var(--text-tertiary);">No live violation data available.</td></tr>';
+            return;
+        }
 
         list.innerHTML = events.map(ev => `
             <tr class="${ev.risk > 80 ? 'row-suspicious' : ''}">
@@ -946,12 +891,16 @@
     renderLeaderboard() {
         const list = document.getElementById('ranks-list');
         if (!list) return;
-        const ranks = Array(5).fill(0).map((_, i) => ({
-            rank: i + 4,
-            name: ['Alexandra R.', 'Chris Evans', 'Diana Prince', 'Bruce Wayne', 'Clark Kent'][i],
-            points: [96.4, 95.1, 94.0, 92.5, 91.8][i],
-            acc: '94.2%'
+        const ranks = (window.allLeaderboard || []).slice(0, 5).map((row, i) => ({
+            rank: row.rank || (i + 1),
+            name: row.name || row.studentName || 'Student',
+            points: Number(row.score || row.points || 0),
+            acc: `${Number(row.percentage || row.acc || 0)}%`
         }));
+        if(ranks.length === 0) {
+            list.innerHTML = '<tr><td colspan="4" style="padding:24px; text-align:center; color:var(--text-tertiary);">No live leaderboard data available.</td></tr>';
+            return;
+        }
 
         list.innerHTML = ranks.map(r => `
             <tr>
@@ -1722,6 +1671,10 @@ window.renderGlobalTeachers = function() {
     
     const searchInput = document.getElementById('teacherSearchInput');
     const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+    if(!Array.isArray(window.teachersData) || window.teachersData.length === 0) {
+        list.innerHTML = `<tr><td colspan="8" style="padding:24px; text-align:center; color:var(--text-tertiary);">No teacher records available.</td></tr>`;
+        return;
+    }
     
     list.innerHTML = window.teachersData.map((t, index) => {
         const text = [t.fullName, t.email, t.department, t.employeeId].join(' ').toLowerCase();
@@ -2991,27 +2944,61 @@ window.runProctorFilter = function(val) {
 window.openPMEvents = function(id) {
     const modal = document.getElementById('pmEventsModal');
     const tbody = document.getElementById('pmEventsList');
-    tbody.innerHTML = '';
-    
-    // Static Evidence Logs
-    const events = [
-        { type: "TAB_SWITCH", sev: "MEDIUM", score: 45, detail: "Switched to browser window search", time: "14:45:10" },
-        { type: "FACE_MISMATCH", sev: "HIGH", score: 85, detail: "Primary face not detected in frame", time: "14:47:22" }
-    ];
-    
-    events.forEach(ev => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td style="font-weight:700">${ev.type}</td>
-            <td><span class="pm-severity-${ev.sev.toLowerCase()}">${ev.sev}</span></td>
-            <td style="font-weight:800">${ev.score}</td>
-            <td class="pm-event-detail">${ev.detail}</td>
-            <td class="pm-event-time">${ev.time}</td>
-            <td style="text-align:right"><button class="btn btn-ghost btn-sm" onclick="openPMEvidence('${id}')">View</button></td>
-        `;
-        tbody.appendChild(tr);
-    });
-    
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:24px; text-align:center; color:var(--text-tertiary);">Loading evidence events...</td></tr>';
+
+    const item = (window.proctoringMonitorData || []).find((d) => d.id === id);
+    const studentId = item?.studentId;
+    const examId = item?.examId;
+    const endpoint = studentId
+        ? `/api/admin/evidence/student/${encodeURIComponent(studentId)}`
+        : (examId ? `/api/admin/evidence/exam/${encodeURIComponent(examId)}` : null);
+
+    const renderRows = (rows) => {
+        const events = (Array.isArray(rows) ? rows : []).map((ev) => ({
+            type: ev.aiReason || 'PROCTORING_ALERT',
+            sev: ev.examCancelled ? 'HIGH' : ((ev.aiReason || '').toLowerCase().includes('face') ? 'HIGH' : 'MEDIUM'),
+            score: ev.examCancelled ? 100 : 50,
+            detail: [
+                ev.snapshotPath ? `Snapshot: ${ev.snapshotPath}` : null,
+                ev.audioPath ? `Audio: ${ev.audioPath}` : null,
+                ev.logPath ? `Log: ${ev.logPath}` : null
+            ].filter(Boolean).join(' • ') || 'No evidence paths provided',
+            time: ev.timestamp || '-'
+        }));
+
+        if(events.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="padding:24px; text-align:center; color:var(--text-tertiary);">No evidence records found for this attempt.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = '';
+        events.forEach((ev) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-weight:700">${ev.type}</td>
+                <td><span class="pm-severity-${String(ev.sev).toLowerCase()}">${ev.sev}</span></td>
+                <td style="font-weight:800">${ev.score}</td>
+                <td class="pm-event-detail">${ev.detail}</td>
+                <td class="pm-event-time">${ev.time}</td>
+                <td style="text-align:right"><button class="btn btn-ghost btn-sm" onclick="openPMEvidence('${id}')">View</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    };
+
+    if (!endpoint || !window.API?.get) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding:24px; text-align:center; color:var(--text-tertiary);">No evidence source available.</td></tr>';
+        modal.classList.add('active');
+        return;
+    }
+
+    window.API.get(endpoint)
+        .then((data) => renderRows(Array.isArray(data) ? data : (data?.data || [])))
+        .catch((error) => {
+            console.error(error);
+            tbody.innerHTML = '<tr><td colspan="6" style="padding:24px; text-align:center; color:var(--text-tertiary);">Failed to load evidence.</td></tr>';
+        });
+
     modal.classList.add('active');
 };
 
@@ -3036,12 +3023,49 @@ window.openPMSummary = function(id) {
 window.openPMEvidence = function(id) {
     const modal = document.getElementById('pmEvidenceModal');
     const content = document.getElementById('pmEvidenceContent');
-    content.innerHTML = '<span style="color:var(--text-tertiary)">Syncing forensics evidence...</span>';
-    
-    setTimeout(() => {
-        content.innerHTML = `<img src="https://picsum.photos/seed/${id}/600/400" style="max-width:100%; display:block; border-radius:8px">`;
-    }, 800);
-    
+    const item = (window.proctoringMonitorData || []).find((d) => d.id === id);
+    const studentId = item?.studentId;
+    const examId = item?.examId;
+    const endpoint = studentId
+        ? `/api/admin/evidence/student/${encodeURIComponent(studentId)}`
+        : (examId ? `/api/admin/evidence/exam/${encodeURIComponent(examId)}` : null);
+
+    content.innerHTML = '<span style="color:var(--text-tertiary)">Loading evidence...</span>';
+
+    if (!endpoint || !window.API?.get) {
+        content.innerHTML = '<div style="padding:24px; color:var(--text-tertiary); text-align:center;">No evidence source available.</div>';
+        modal.classList.add('active');
+        return;
+    }
+
+    window.API.get(endpoint)
+        .then((data) => {
+            const rows = Array.isArray(data) ? data : (data?.data || []);
+            if(!rows.length) {
+                content.innerHTML = '<div style="padding:24px; color:var(--text-tertiary); text-align:center;">No evidence records found for this attempt.</div>';
+                return;
+            }
+
+            content.innerHTML = rows.map((ev) => `
+                <div style="display:grid; gap:12px; width:100%; max-width:720px; padding:16px;">
+                    <div style="display:flex; justify-content:space-between; gap:12px;">
+                        <strong>${ev.aiReason || 'Evidence'}</strong>
+                        <span style="color:var(--text-tertiary); font-size:12px">${ev.timestamp || ''}</span>
+                    </div>
+                    <div style="font-size:13px; color:var(--text-secondary)">
+                        ${ev.snapshotPath ? `<div>Snapshot: ${ev.snapshotPath}</div>` : ''}
+                        ${ev.audioPath ? `<div>Audio: ${ev.audioPath}</div>` : ''}
+                        ${ev.logPath ? `<div>Log: ${ev.logPath}</div>` : ''}
+                        ${ev.examCancelled ? `<div style="color:var(--accent-pink); font-weight:700; margin-top:8px;">Exam cancelled</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch((error) => {
+            console.error(error);
+            content.innerHTML = '<div style="padding:24px; color:var(--text-tertiary); text-align:center;">Failed to load evidence.</div>';
+        });
+
     modal.classList.add('active');
 };
 
@@ -3098,10 +3122,6 @@ window.certSortCol = 'date';
 window.certSortAsc = false;
 
 window.initCertificatesEngine = function() {
-    const colleges = ['MIT', 'Stanford University', 'Harvard', 'Oxford', 'Caltech'];
-    const depts = ['Computer Science', 'Data Science', 'Electrical Engineering', 'Cybersecurity'];
-    const exams = ['Machine Learning Basics', 'Advanced JavaScript', 'Cloud Security', 'Fullstack Development'];
-    
     if(window.allCertificates.length > 0) {
         window.certLoading = false;
         window.renderCertPage();
@@ -3110,71 +3130,8 @@ window.initCertificatesEngine = function() {
     
     window.certLoading = true;
     window.renderCertPage();
-    
-    setTimeout(() => {
-        window.allCertificates = Array.from({length: 45}).map((_, i) => {
-            const d = new Date();
-            d.setDate(d.getDate() - Math.floor(Math.random() * 30));
-            const score = Math.floor(Math.random() * 40) + 60;
-            let grade = 'C';
-            if(score >= 95) grade = 'A+';
-            else if(score >= 85) grade = 'A';
-            else if(score >= 75) grade = 'B';
-            else if(score < 65) grade = 'Fail';
-            
-            return {
-                id: 'CERT-2026-' + (8000 + i),
-                name: ['John Doe', 'Jane Smith', 'Alice Johnson', 'Bob Williams', 'Charlie Brown'][i % 5] + ' ' + (i+1),
-                avatar: `https://ui-avatars.com/api/?name=Student+${i}&background=random`,
-                college: colleges[i % colleges.length],
-                dept: depts[i % depts.length],
-                roll: 'ROLL-' + (1000 + i),
-                section: String.fromCharCode(65 + (i % 3)),
-                exam: exams[i % exams.length],
-                score: score,
-                grade: grade,
-                date: d.toISOString().split('T')[0],
-                active: Math.random() > 0.15
-            };
-        });
-        
-        // Use onclick directly to avoid duplicate listeners
-        const prevBtn = document.getElementById('prevCertPage');
-        if(prevBtn) {
-            prevBtn.onclick = () => {
-                if(window.certPage > 1) {
-                    window.certPage--;
-                    window.renderCertPage();
-                }
-            };
-        }
-    
-        const nextBtn = document.getElementById('nextCertPage');
-        if(nextBtn) {
-            nextBtn.onclick = () => {
-                const maxPage = Math.ceil(window.filteredCerts.length / window.certPageSize);
-                if(window.certPage < maxPage) {
-                    window.certPage++;
-                    window.renderCertPage();
-                }
-            };
-        }
-        
-        const examSelect = document.getElementById('certFilterExam');
-        if(examSelect) {
-            const examSet = new Set(window.allCertificates.map(c => c.exam));
-            examSelect.innerHTML = '<option value="all">Any Exam</option>' + Array.from(examSet).map(e => `<option value="${e}">${e}</option>`).join('');
-        }
-        
-        const deptSelect = document.getElementById('certFilterDept');
-        if(deptSelect) {
-            const deptSet = new Set(window.allCertificates.map(c => c.dept));
-            deptSelect.innerHTML = '<option value="all">Any Dept</option>' + Array.from(deptSet).map(d => `<option value="${d}">${d}</option>`).join('');
-        }
-        
-        window.certLoading = false;
-        window.handleCertFilters();
-    }, 800);
+    window.filteredCerts = [];
+    window.handleCertFilters();
 };
 
 window.handleCertFilters = function() {
@@ -3434,11 +3391,16 @@ window.openCertView = function(id) {
         </div>
       </div>`;
 
-    document.getElementById('adminCertPreviewFrame').innerHTML = markup;
+    const previewFrame = document.getElementById('adminCertPreviewFrame');
+    if (previewFrame) {
+        previewFrame.innerHTML = markup;
+    }
     
     const dlbtn = document.getElementById('certModalDownloadBtn');
-    dlbtn.style.display = c.active ? 'inline-flex' : 'none';
-    dlbtn.onclick = () => window.downloadCert(c.id);
+    if (dlbtn) {
+        dlbtn.style.display = c.active ? 'inline-flex' : 'none';
+        dlbtn.onclick = () => window.downloadCert(c.id);
+    }
     
     if(window.openModal) window.openModal('certificateViewModal');
 };
@@ -3601,33 +3563,13 @@ window.lbSortAsc = true;
 window.lbCharts = {};
 
 window.initLeaderboardEngine = function() {
-    if(window.allLeaderboard.length > 0) {
+    if (!Array.isArray(window.allLeaderboard)) window.allLeaderboard = [];
+    if(window.allLeaderboard.length === 0) {
+        window.filteredLB = [];
         window.lbLoading = false;
         window.renderLBSection();
         return;
     }
-    
-    const depts = ['Computer Science', 'Data Science', 'Electrical Engineering', 'Cybersecurity'];
-    const exams = ['Machine Learning Basics', 'Advanced JavaScript', 'Cloud Security', 'Fullstack Development'];
-    
-    window.allLeaderboard = Array.from({length: 60}).map((_, i) => {
-        const score = Math.floor(Math.random() * 50) + 50; // 50-100
-        const percentage = score; 
-        const passing = 60;
-        
-        return {
-            rank: 0,
-            id: 'STUD-' + (202600 + i),
-            name: ['Sarah Connor', 'James Bond', 'Ellen Ripley', 'Tony Stark', 'Bruce Wayne', 'Peter Parker', 'Natasha Romanoff'][i % 7] + ' ' + (i+1),
-            avatar: `https://ui-avatars.com/api/?name=S+${i}&background=random`,
-            dept: depts[i % depts.length],
-            exam: exams[i % exams.length],
-            score: score,
-            percentage: percentage,
-            attempts: Math.floor(Math.random() * 3) + 1,
-            status: percentage >= passing ? 'PASS' : 'FAIL'
-        };
-    });
 
     // Initialize Pagination buttons
     const prevBtn = document.getElementById('prevLBPage');
@@ -3973,40 +3915,18 @@ window.renderAuditLogs = function() {
     if(!list) return;
 
     if(window.allAuditLogs.length === 0) {
-        const demoLogs = [
-            { id: "AUD-10491", user: "System Admin", email: "admin@sem.edu", role: "Admin", action: "LOGIN", module: "SYSTEM", ip: "10.10.1.24", status: "SUCCESS", timestamp: Date.now() - 6 * 60 * 1000 },
-            { id: "AUD-10490", user: "Prof. Jonathan Crane", email: "j.crane@sem.edu", role: "Teacher", action: "EXAM_CREATE", module: "EXAMS", ip: "10.10.4.18", status: "SUCCESS", timestamp: Date.now() - 18 * 60 * 1000 },
-            { id: "AUD-10489", user: "System Admin", email: "admin@sem.edu", role: "Admin", action: "USER_EDIT", module: "USERS", ip: "10.10.1.24", status: "SUCCESS", timestamp: Date.now() - 28 * 60 * 1000 },
-            { id: "AUD-10488", user: "Prof. Sarah Miller", email: "s.miller@sem.edu", role: "Teacher", action: "LOGIN", module: "SYSTEM", ip: "10.10.7.31", status: "SUCCESS", timestamp: Date.now() - 42 * 60 * 1000 },
-            { id: "AUD-10487", user: "System Admin", email: "admin@sem.edu", role: "Admin", action: "CERT_REVOKE", module: "CERTS", ip: "10.10.1.24", status: "SUCCESS", timestamp: Date.now() - 57 * 60 * 1000 },
-            { id: "AUD-10486", user: "Prof. Mike Ross", email: "m.ross@sem.edu", role: "Teacher", action: "EXAM_CREATE", module: "EXAMS", ip: "10.10.8.44", status: "SUCCESS", timestamp: Date.now() - 74 * 60 * 1000 },
-            { id: "AUD-10485", user: "System Admin", email: "admin@sem.edu", role: "Admin", action: "LOGIN", module: "SYSTEM", ip: "10.10.1.24", status: "SUCCESS", timestamp: Date.now() - 2 * 60 * 60 * 1000 },
-            { id: "AUD-10484", user: "Prof. Emma Wilson", email: "e.wilson@sem.edu", role: "Teacher", action: "USER_EDIT", module: "USERS", ip: "10.10.9.52", status: "SUCCESS", timestamp: Date.now() - 3 * 60 * 60 * 1000 },
-            { id: "AUD-10483", user: "System Admin", email: "admin@sem.edu", role: "Admin", action: "EXAM_CREATE", module: "EXAMS", ip: "10.10.1.24", status: "SUCCESS", timestamp: Date.now() - 4 * 60 * 60 * 1000 },
-            { id: "AUD-10482", user: "Prof. Alan Turing", email: "a.turing@sem.edu", role: "Teacher", action: "LOGIN", module: "SYSTEM", ip: "10.10.11.66", status: "SUCCESS", timestamp: Date.now() - 5 * 60 * 60 * 1000 },
-            { id: "AUD-10481", user: "System Admin", email: "admin@sem.edu", role: "Admin", action: "USER_EDIT", module: "USERS", ip: "10.10.1.24", status: "SUCCESS", timestamp: Date.now() - 8 * 60 * 60 * 1000 },
-            { id: "AUD-10480", user: "Prof. Rachel Zane", email: "r.zane@sem.edu", role: "Teacher", action: "EXAM_CREATE", module: "EXAMS", ip: "10.10.13.19", status: "SUCCESS", timestamp: Date.now() - 11 * 60 * 60 * 1000 },
-            { id: "AUD-10479", user: "System Admin", email: "admin@sem.edu", role: "Admin", action: "CERT_REVOKE", module: "CERTS", ip: "10.10.1.24", status: "SUCCESS", timestamp: Date.now() - 13 * 60 * 60 * 1000 },
-            { id: "AUD-10478", user: "Prof. Harvey Specter", email: "h.specter@sem.edu", role: "Teacher", action: "LOGIN", module: "SYSTEM", ip: "10.10.14.27", status: "SUCCESS", timestamp: Date.now() - 15 * 60 * 60 * 1000 },
-            { id: "AUD-10477", user: "System Admin", email: "admin@sem.edu", role: "Admin", action: "EXAM_CREATE", module: "EXAMS", ip: "10.10.1.24", status: "SUCCESS", timestamp: Date.now() - 18 * 60 * 60 * 1000 },
-            { id: "AUD-10476", user: "Prof. Jessica Pearson", email: "j.pearson@sem.edu", role: "Teacher", action: "USER_EDIT", module: "USERS", ip: "10.10.15.39", status: "SUCCESS", timestamp: Date.now() - 22 * 60 * 60 * 1000 },
-            { id: "AUD-10475", user: "System Admin", email: "admin@sem.edu", role: "Admin", action: "LOGIN", module: "SYSTEM", ip: "10.10.1.24", status: "SUCCESS", timestamp: Date.now() - 26 * 60 * 60 * 1000 },
-            { id: "AUD-10474", user: "Prof. Donna Paulsen", email: "d.paulsen@sem.edu", role: "Teacher", action: "EXAM_CREATE", module: "EXAMS", ip: "10.10.16.41", status: "SUCCESS", timestamp: Date.now() - 30 * 60 * 60 * 1000 }
-        ];
-
-        window.allAuditLogs = demoLogs
-            .sort((a, b) => b.timestamp - a.timestamp)
-            .map(item => ({
-                ...item,
-                time: new Date(item.timestamp).toLocaleString('en-IN', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                })
-            }));
+        const emptyState = document.getElementById('auditEmptyState');
+        if(emptyState) emptyState.style.display = 'block';
+        list.innerHTML = '';
+        const totalEl = document.getElementById('audit-total');
+        const todayEl = document.getElementById('audit-today');
+        const adminEl = document.getElementById('audit-admin');
+        const teacherEl = document.getElementById('audit-teacher');
+        if(totalEl) totalEl.textContent = '0';
+        if(todayEl) todayEl.textContent = '0';
+        if(adminEl) adminEl.textContent = '0';
+        if(teacherEl) teacherEl.textContent = '0';
+        return;
     }
 
     const totalEl = document.getElementById('audit-total');
@@ -4067,132 +3987,69 @@ window.exportAuditCSV = function() {
 };
 
 /* ─── REPORTS ─── */
-window.allReports = [
-    { name: 'Monthly Performance Q1', type: 'PERFORMANCE', by: 'System Admin', date: '2024-03-28' },
-    { name: 'Security Audit Feb', type: 'SECURITY', by: 'System Admin', date: '2024-02-15' }
-];
+window.allReports = [];
 
 window.renderReports = function() {
     const hist = document.getElementById('report-history');
     if(!hist) return;
 
-    hist.innerHTML = window.allReports.map(r => `
-        <tr>
-            <td style="font-weight:700; color:var(--text-primary)">${r.name}</td>
-            <td><span class="status-badge" style="font-size:10px">${r.type}</span></td>
-            <td style="color:var(--text-secondary)">${r.by}</td>
-            <td style="font-size:12px; color:var(--text-tertiary)">${r.date}</td>
-            <td style="text-align:right">
-                <button class="btn btn-ghost btn-xs" title="Download"><i class="fa-solid fa-download"></i></button>
-                <button class="btn btn-ghost btn-xs" title="Delete" style="color:var(--accent-pink)"><i class="fa-solid fa-trash"></i></button>
-            </td>
-        </tr>
-    `).join('');
+    hist.innerHTML = `<tr>
+        <td colspan="5" style="padding:32px; text-align:center; color:var(--text-tertiary)">
+            No persisted reports available yet.
+        </td>
+    </tr>`;
 };
 
 window.generateReport = function(type) {
-    window.showToast(`AI Report engine: Compiling ${type} analytics...`, 'info');
-    setTimeout(() => {
-        window.allReports.unshift({ name: `${type} Realtime Insight`, type: type, by: 'System Admin', date: new Date().toISOString().split('T')[0] });
-        window.renderReports();
-        window.showToast('Report generated successfully', 'success');
-    }, 2000);
+    window.showToast?.(`${type} reports are not persisted yet`, 'info');
+    window.renderReports();
 };
 
 window.exportReport = function(type, format) {
-    window.showToast(`Exporting ${type} as ${format}...`, 'success');
+    window.showToast?.(`Exporting ${type} as ${format}...`, 'info');
 };
 
 /* ─── NOTIFICATIONS ─── */
-window.allNotifs = [
-    { id: 1, type: 'cheating', title: 'Critical Monitoring Alert: STU-4921', desc: 'Candidate #4921 has exceeded the tab switch limit (8/5). Proctoring session flagged for forensic review.', time: '2 mins ago', unread: true },
-    { id: 2, type: 'exam', title: 'New Exam Published: ML-FINAL-2024', desc: 'Advanced Machine Learning — Final Assessment is now live for all 1,240 enrolled students.', time: '1 hour ago', unread: true },
-    { id: 3, type: 'cert', title: 'Identity Verified: WA-9201', desc: 'Face verification successful for Candidate #9201. Digital certificate generated and securely dispatched.', time: '3 hours ago', unread: false },
-    { id: 4, type: 'system', title: 'System-wide Maintenance: Node-B', desc: 'Database node-B maintenance scheduled for Sunday, 02:00 AM UTC. Estimated downtime: 15 minutes of read-only state.', time: '5 hours ago', unread: false },
-    { id: 5, type: 'cheating', title: 'Frame Freeze Detected: STU-1120', desc: 'Proctor AI detected a recurring frame-freeze for Candidate #1120. Suspicious activity flagged.', time: '8 hours ago', unread: true },
-    { id: 6, type: 'exam', title: 'Exam Registration Deadline', desc: 'Cloud Infrastructure exam registration closes in 2 hours. There are 14 pending applications requiring review.', time: '12 hours ago', unread: true },
-    { id: 7, type: 'exam', title: 'Results Processing Complete', desc: 'Batch processing for Cyber Security Foundation (CSF-101) is complete. Average score: 72%.', time: '1 day ago', unread: false },
-    { id: 8, type: 'cert', title: 'Bulk Certificates Dispatched', desc: '142 certificates have been successfully generated and dispatched for the "Frontend Architecture" cohort.', time: '2 days ago', unread: false },
-    { id: 9, type: 'system', title: 'Security Incident: Unauthorized Login', desc: '3 failed login attempts detected on IP 192.168.1.102 (Unknown Device). IP temporarily throttled.', time: '2 days ago', unread: true },
-    { id: 10, type: 'cheating', title: 'Multiple Face Detection: STU-8829', desc: 'Forensic engine detected a secondary face in frame for Candidate #8829. 85% confidence score.', time: '3 days ago', unread: false },
-    { id: 11, type: 'system', title: 'API Key Rotation: AWS-PROD', desc: 'Production API keys have been rotated successfully. All services are healthy.', time: '4 days ago', unread: false },
-    { id: 12, type: 'exam', title: 'Exam Question Library Update', desc: 'The "Discrete Mathematics" question pool has been refreshed with 40 new higher-order thinking problems.', time: '5 days ago', unread: false }
-];
-
+window.allNotifs = window.allNotifs || [];
 window.renderNotifications = function(filter = 'all') {
-    const cont = document.getElementById('notif-list');
-    if(!cont) return;
-
-    let filtered = window.allNotifs;
-    if(filter !== 'all') filtered = filtered.filter(n => n.type === filter);
-
-    if(filtered.length === 0) {
-        cont.innerHTML = `<div class="glass-card" style="padding:60px; text-align:center; color:var(--text-tertiary)">
-            <i class="fa-solid fa-inbox" style="font-size:64px; margin-bottom:24px; opacity:0.1"></i>
-            <p style="font-size:18px; font-weight:600; font-family:'Syne'">No messages found</p>
-            <p style="font-size:13px; opacity:0.7">Your inbox is currently clear for this category.</p>
-        </div>`;
+    if (window.AdminNotifications?.setFilter) {
+        window.AdminNotifications.setFilter(filter);
         return;
     }
 
-    cont.innerHTML = filtered.map(n => `
-        <div class="notif-item ${n.unread ? 'unread' : ''} row-inserted" data-id="${n.id}">
-            <div class="notif-icon ni-${n.type}">
-                <i class="fa-solid ${getNotifIcon(n.type)}"></i>
-            </div>
-            <div class="notif-content">
-                <h3 class="notif-title">${n.title}</h3>
-                <p class="notif-desc">${n.desc}</p>
-                <div class="notif-time">${n.time}</div>
-            </div>
-            <div class="ni-actions">
-                ${n.unread ? `<button class="ni-btn" title="Mark Read" onclick="markRead(${n.id})"><i class="fa-solid fa-check"></i></button>` : ''}
-                <button class="ni-btn del" title="Delete" onclick="deleteNotif(${n.id})"><i class="fa-solid fa-trash"></i></button>
-            </div>
-        </div>
-    `).join('');
-};
-
-const getNotifIcon = (type) => {
-    switch(type) {
-        case 'cheating': return 'fa-user-slash';
-        case 'exam': return 'fa-file-circle-plus';
-        case 'cert': return 'fa-award';
-        default: return 'fa-circle-info';
-    }
+    const cont = document.getElementById('notif-list');
+    if(!cont) return;
+    cont.innerHTML = `<div class="glass-card" style="padding:60px; text-align:center; color:var(--text-tertiary)">
+        <i class="fa-solid fa-inbox" style="font-size:64px; margin-bottom:24px; opacity:0.12"></i>
+        <p style="font-size:18px; font-weight:600; font-family:'Syne'">Notifications loading...</p>
+        <p style="font-size:13px; opacity:0.7">Connect the admin notification API to see live inbox items.</p>
+    </div>`;
 };
 
 window.filterNotifs = function(type, btn) {
+    if (window.AdminNotifications?.setFilter) {
+        window.AdminNotifications.setFilter(type, btn);
+        return;
+    }
     document.querySelectorAll('.n-filter').forEach(b => b.classList.remove('active'));
     if(btn) btn.classList.add('active');
     window.renderNotifications(type);
 };
 
-window.markRead = function(id) {
-    const n = window.allNotifs.find(x => x.id === id);
-    if(n) n.unread = false;
-    window.renderNotifications();
-    window.showToast("Message marked as read", "success");
+window.markRead = function() {
+    window.AdminNotifications?.refresh?.();
 };
 
 window.markAllRead = function() {
-    window.allNotifs.forEach(n => n.unread = false);
-    window.renderNotifications();
-    window.showToast("All messages marked as read", "success");
+    window.AdminNotifications?.refresh?.();
 };
 
-window.deleteNotif = function(id) {
-    window.allNotifs = window.allNotifs.filter(n => n.id !== id);
-    window.renderNotifications();
-    window.showToast("Notification deleted", "info");
+window.deleteNotif = function() {
+    window.AdminNotifications?.refresh?.();
 };
 
 window.clearNotifs = function() {
-    if(confirm("Are you sure you want to clear your entire inbox?")) {
-        window.allNotifs = [];
-        window.renderNotifications();
-        window.showToast("Inbox cleared", "info");
-    }
+    window.AdminNotifications?.refresh?.();
 };
 };
 document.addEventListener('DOMContentLoaded', () => {

@@ -47,6 +47,7 @@ public class CertificateService {
     private final StudentProfileRepository studentProfileRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final StudentNotificationService studentNotificationService;
     private final String fallbackBaseUrl;
 
     public CertificateService(
@@ -56,6 +57,7 @@ public class CertificateService {
             StudentProfileRepository studentProfileRepository,
             UserRepository userRepository,
             EmailService emailService,
+            StudentNotificationService studentNotificationService,
             @Value("${app.frontend.base-url:http://localhost:8080}") String fallbackBaseUrl) {
 
         this.certificateRepository = certificateRepository;
@@ -64,6 +66,7 @@ public class CertificateService {
         this.studentProfileRepository = studentProfileRepository;
         this.userRepository = userRepository;
         this.emailService = emailService;
+        this.studentNotificationService = studentNotificationService;
         this.fallbackBaseUrl = fallbackBaseUrl;
     }
 
@@ -118,6 +121,7 @@ public class CertificateService {
 
         byte[] pdf = generateAndStoreCertificatePdf(cert, false);
         sendEmailSafe(profile, cert.getCertificateId(), pdf);
+        notifyCertificateIssued(profile.getUserId(), examCode, examTitle, cert.getCertificateId(), resolvedScore);
         return pdf;
     }
 
@@ -267,6 +271,34 @@ public class CertificateService {
         }
     }
 
+    private void notifyCertificateIssued(Long studentId,
+                                         String examCode,
+                                         String examTitle,
+                                         String certificateId,
+                                         double score) {
+        try {
+            studentNotificationService.createNotification(
+                    studentId,
+                    "CERTIFICATE",
+                    "Certificate issued",
+                    "Your certificate for " + examTitle + " is ready for download.",
+                    "Certificate Service",
+                    "success",
+                    buildCertificateNotificationUrl(certificateId, examCode, score)
+            );
+        } catch (Exception ignored) {
+            // Certificate notifications should never block issuance.
+        }
+    }
+
+    private String buildCertificateNotificationUrl(String certificateId, String examCode, double score) {
+        return buildAbsoluteUrl(
+                "/pages/student-ui.html?section=certificates&certificateId=" + certificateId
+                        + "&examCode=" + examCode
+                        + "&score=" + Math.round(score)
+        );
+    }
+
     // ================= HELPERS =================
 
     private String generateCertificateId() {
@@ -285,6 +317,19 @@ public class CertificateService {
         }
 
         return resolvedBaseUrl + "/api/certificate/verify/" + certificateId;
+    }
+
+    private String buildAbsoluteUrl(String path) {
+        String resolvedBaseUrl = StringUtils.hasText(fallbackBaseUrl)
+                ? fallbackBaseUrl.replaceAll("/+$", "")
+                : "";
+        if (!StringUtils.hasText(resolvedBaseUrl)) {
+            return path;
+        }
+        if (!StringUtils.hasText(path)) {
+            return resolvedBaseUrl;
+        }
+        return path.startsWith("/") ? resolvedBaseUrl + path : resolvedBaseUrl + "/" + path;
     }
 
     private String calculateGrade(double score) {
