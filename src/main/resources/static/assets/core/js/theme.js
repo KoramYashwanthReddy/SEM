@@ -10,19 +10,38 @@ const ThemeController = (() => {
   let systemMedia = null;
   let initialized = false;
 
+  const forceLightPages = [
+    'index.html',
+    'role-selection.html',
+    'login.html',
+    'admin-login.html',
+    'teacher-login.html',
+    'signup.html',
+    'welcome-onboarding.html',
+    'forgot-password.html',
+    'reset-password.html'
+  ];
+
+  function shouldForceLight() {
+    const path = window.location.pathname.toLowerCase();
+    if (path === '/' || path === '' || path.endsWith('/')) return true;
+    return forceLightPages.some(page => path.includes(page.toLowerCase()));
+  }
+
   function getSystemTheme() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 
   function applyTheme(theme) {
-    const resolvedTheme = theme === 'system' ? getSystemTheme() : theme;
+    const resolvedTheme = shouldForceLight() ? 'light' : (theme === 'system' ? getSystemTheme() : theme);
     document.documentElement.setAttribute('data-theme', resolvedTheme);
-    document.documentElement.setAttribute('data-theme-mode', theme);
+    document.documentElement.setAttribute('data-theme-mode', shouldForceLight() ? 'light' : theme);
     document.documentElement.style.colorScheme = resolvedTheme;
     return resolvedTheme;
   }
 
   function setMode(mode) {
+    if (shouldForceLight()) return;
     if (!MODES.includes(mode)) return;
     currentMode = mode;
     localStorage.setItem(STORAGE_KEY, mode);
@@ -43,6 +62,12 @@ const ThemeController = (() => {
       return;
     }
     initialized = true;
+
+    if (shouldForceLight()) {
+      currentMode = 'light';
+      applyTheme('light');
+      return;
+    }
 
     const saved = localStorage.getItem(STORAGE_KEY) || DEFAULT_MODE;
     currentMode = MODES.includes(saved) ? saved : DEFAULT_MODE;

@@ -118,11 +118,7 @@
   animation: shimmer 3s linear infinite;
 }
 
-/* ─── DETECTION RINGS ─── */
-@keyframes detectionRing {
-  0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
-  100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
-}
+
 
 /* ─── QR SCAN ─── */
 @keyframes qrScan {

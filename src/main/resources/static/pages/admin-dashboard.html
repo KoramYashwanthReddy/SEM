@@ -32,9 +32,9 @@
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
-        <div class="logo-group">
-          <span class="logo-badge">SEM</span>
-          <span class="logo-text">Console</span>
+        <div class="brand">
+          <span class="logo-icon">🧠</span>
+          <span class="brand-text">SEM</span>
         </div>
       </div>
       <nav class="sidebar-nav">
@@ -1718,79 +1718,115 @@
             <h3 class="modal-title">Create New Teacher</h3>
             <button class="modal-close" onclick="closeModal('addTeacherModal')">&times;</button>
           </div>
+          <div class="stepper-header">
+            <div class="step-indicator active" data-step="1">
+              <span class="step-num">1</span>
+              <span class="step-label">Basic Info</span>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-indicator" data-step="2">
+              <span class="step-num">2</span>
+              <span class="step-label">Contact</span>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-indicator" data-step="3">
+              <span class="step-num">3</span>
+              <span class="step-label">Professional</span>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-indicator" data-step="4">
+              <span class="step-num">4</span>
+              <span class="step-label">Media</span>
+            </div>
+          </div>
           <form id="createTeacherForm" novalidate onsubmit="submitAddTeacher(event, this.querySelector('button[type=submit]'))">
             <input type="hidden" id="t-id">
-            <div class="form-section-title">Basic Info</div>
-            <div class="form-grid">
-              <div class="form-group full-span">
-                <label>Full Name *</label>
-                <input type="text" id="t-name" class="form-control" placeholder="e.g. Dr. Jane Smith">
-                <span class="error-msg">Minimum 3 characters required.</span>
-              </div>
-              <div class="form-group">
-                <label>Email *</label>
-                <input type="email" id="t-email" class="form-control" placeholder="jane.smith@example.com">
-                <span class="error-msg">Valid email required.</span>
-              </div>
-              <div class="form-group">
-                <label>Password *</label>
-                <input type="password" id="t-pwd" class="form-control" placeholder="••••••••">
-                <span class="error-msg">Minimum 6 characters.</span>
-              </div>
-            </div>
-
-            <div class="form-section-title">Contact & Organization</div>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Phone Number</label>
-                <input type="tel" id="t-phone" class="form-control" placeholder="10 Digits (Optional)">
-                <span class="error-msg">Must be exactly 10 digits if provided.</span>
-              </div>
-              <div class="form-group">
-                <label>Employee ID</label>
-                <input type="text" id="t-empid" class="form-control" placeholder="EMP-#### (Optional)">
-                <span class="error-msg">Employee ID is invalid.</span>
+            
+            <!-- Step 1 -->
+            <div class="stepper-step active" data-step="1">
+              <div class="form-section-title">Basic Info</div>
+              <div class="form-grid">
+                <div class="form-group full-span">
+                  <label>Full Name *</label>
+                  <input type="text" id="t-name" class="form-control" placeholder="e.g. Dr. Jane Smith">
+                  <span class="error-msg">Minimum 3 characters required.</span>
+                </div>
+                <div class="form-group">
+                  <label>Email *</label>
+                  <input type="email" id="t-email" class="form-control" placeholder="jane.smith@example.com">
+                  <span class="error-msg">Valid email required.</span>
+                </div>
+                <div class="form-group">
+                  <label>Password *</label>
+                  <input type="password" id="t-pwd" class="form-control" placeholder="••••••••">
+                  <span class="error-msg">Minimum 6 characters.</span>
+                </div>
               </div>
             </div>
 
-            <div class="form-section-title">Professional Details</div>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Department</label>
-                <input type="text" id="t-dept" class="form-control" placeholder="e.g. Engineering">
-              </div>
-              <div class="form-group">
-                <label>Designation</label>
-                <input type="text" id="t-designation" class="form-control" placeholder="e.g. Senior Lecturer">
-              </div>
-              <div class="form-group">
-                <label>Experience Years</label>
-                <input type="number" id="t-exp" class="form-control" placeholder="0" min="0">
-                <span class="error-msg">Must be a valid number >= 0.</span>
-              </div>
-              <div class="form-group">
-                <label>Qualification</label>
-                <input type="text" id="t-qual" class="form-control" placeholder="e.g. Ph.D">
+            <!-- Step 2 -->
+            <div class="stepper-step" data-step="2">
+              <div class="form-section-title">Contact & Organization</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Phone Number</label>
+                  <input type="tel" id="t-phone" class="form-control" placeholder="10 Digits (Optional)">
+                  <span class="error-msg">Must be exactly 10 digits if provided.</span>
+                </div>
+                <div class="form-group">
+                  <label>Employee ID</label>
+                  <input type="text" id="t-empid" class="form-control" placeholder="EMP-#### (Optional)">
+                  <span class="error-msg">Employee ID is invalid.</span>
+                </div>
               </div>
             </div>
 
-            <div class="form-section-title">Optional Media</div>
-            <div class="form-grid">
-              <div class="form-group full-span">
-                <label>Profile Image Upload</label>
-                <label for="t-img-file" class="upload-dropzone">
-                  <span class="upload-dropzone-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
-                  <span class="upload-dropzone-title">Choose Profile Image</span>
-                  <span class="upload-dropzone-sub">PNG/JPG/WebP, max 5MB</span>
-                </label>
-                <input type="file" id="t-img-file" class="form-control upload-file-input" accept="image/*">
-                <div class="upload-file-name" id="t-img-file-name">No file selected</div>
-                <span class="error-msg">Please select a valid image file (max 5MB).</span>
+            <!-- Step 3 -->
+            <div class="stepper-step" data-step="3">
+              <div class="form-section-title">Professional Details</div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Department</label>
+                  <input type="text" id="t-dept" class="form-control" placeholder="e.g. Engineering">
+                </div>
+                <div class="form-group">
+                  <label>Designation</label>
+                  <input type="text" id="t-designation" class="form-control" placeholder="e.g. Senior Lecturer">
+                </div>
+                <div class="form-group">
+                  <label>Experience Years</label>
+                  <input type="number" id="t-exp" class="form-control" placeholder="0" min="0">
+                  <span class="error-msg">Must be a valid number >= 0.</span>
+                </div>
+                <div class="form-group">
+                  <label>Qualification</label>
+                  <input type="text" id="t-qual" class="form-control" placeholder="e.g. Ph.D">
+                </div>
               </div>
             </div>
 
-            <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--border-subtle)">
-               <button type="submit" class="btn btn-primary" style="width:100%">Create Teacher</button>
+            <!-- Step 4 -->
+            <div class="stepper-step" data-step="4">
+              <div class="form-section-title">Optional Media</div>
+              <div class="form-grid">
+                <div class="form-group full-span">
+                  <label>Profile Image Upload</label>
+                  <label for="t-img-file" class="upload-dropzone">
+                    <span class="upload-dropzone-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+                    <span class="upload-dropzone-title">Choose Profile Image</span>
+                    <span class="upload-dropzone-sub">PNG/JPG/WebP, max 5MB</span>
+                  </label>
+                  <input type="file" id="t-img-file" class="form-control upload-file-input" accept="image/*">
+                  <div class="upload-file-name" id="t-img-file-name">No file selected</div>
+                  <span class="error-msg">Please select a valid image file (max 5MB).</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="stepper-actions" style="margin-top:24px; padding-top:16px; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; gap:12px;">
+              <button type="button" class="btn btn-secondary btn-prev hidden" onclick="prevTeacherStep()">Back</button>
+              <button type="button" class="btn btn-primary btn-next" onclick="nextTeacherStep()">Next</button>
+              <button type="submit" class="btn btn-success btn-submit hidden" style="min-width:140px;">Create Teacher</button>
             </div>
           </form>
         </div>

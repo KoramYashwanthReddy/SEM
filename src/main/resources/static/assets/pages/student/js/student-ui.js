@@ -453,7 +453,20 @@
     calendar:'<svg viewBox="0 0 24 24"><path d="M7 3v3M17 3v3"/><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01"/></svg>',
     shield:'<svg viewBox="0 0 24 24"><path d="M12 3 20 6v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V6l8-3z"/><path d="M9.5 12.2 11.2 14 15 10.2"/></svg>',
     help:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.8 2.8 0 1 1 4.4 2.3c-.8.5-1.4 1-1.4 2.2"/><path d="M12 17h.01"/></svg>',
-    brain:'<svg viewBox="0 0 24 24"><path d="M9 5a3 3 0 0 0-3 3v1a3 3 0 0 0 0 6v1a3 3 0 0 0 3 3"/><path d="M15 5a3 3 0 0 1 3 3v1a3 3 0 0 1 0 6v1a3 3 0 0 1-3 3"/><path d="M12 4v16"/><path d="M9 9a3 3 0 0 1 6 0v6a3 3 0 0 1-6 0z"/></svg>'
+    brain:'<svg viewBox="0 0 24 24"><path d="M9 5a3 3 0 0 0-3 3v1a3 3 0 0 0 0 6v1a3 3 0 0 0 3 3"/><path d="M15 5a3 3 0 0 1 3 3v1a3 3 0 0 1 0 6v1a3 3 0 0 1-3 3"/><path d="M12 4v16"/><path d="M9 9a3 3 0 0 1 6 0v6a3 3 0 0 1-6 0z"/></svg>',
+    wifi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.58 16.14a6 6 0 0 1 6.84 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg>',
+    alarm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6M19 3l3 6M12 21v-1"/></svg>',
+    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+    flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"/></svg>',
+    pulse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
+    'monitor-check': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="m9 10 2 2 4-4"/></svg>',
+    'face-scan': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>',
+    chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+    warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    headphones: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>',
+    video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 8-6 4 6 4V8Z"/><rect x="2" y="6" width="14" height="12" rx="2" ry="2"/></svg>',
+    'user-outline': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+    'clipboard-check': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/></svg>'
   };
   const badge = { PLATINUM:'success', GOLD:'warning', SILVER:'neutral', BRONZE:'danger' };
   const statusClass = { available:'available', upcoming:'upcoming', resume:'resume', closed:'closed' };
@@ -1187,7 +1200,7 @@
     if (btn?.dataset.loadingText) return btn.dataset.loadingText;
     return busyCopy[type] || 'Please wait...';
   }
-  function bind() { Object.assign(el, { sidebar:$('sidebar'), toggle:$('toggle-sidebar'), logout:$('logoutBtn'), sideNav:$('sideNav'), sidebarAvatar:$('sidebarAvatar'), sidebarName:$('sidebarName'), sidebarRole:$('sidebarRole'), topAvatar:$('topAvatar'), topName:$('topName'), topSearch:$('top-nav-search'), notifBtn:$('notifBtn'), notifCount:$('notifCount'), notifNavCount:$('notifNavCount'), notifyDrop:$('notifyDrop'), notifyDropCount:$('notifyDropCount'), notifyList:$('notifyList'), notificationTypeFilter:$('notificationTypeFilter'), markAllReadBtn:$('markAllReadBtn'), clearNotificationsBtn:$('clearNotificationsBtn'), unreadNotificationCount:$('unreadNotificationCount'), notificationStream:$('notificationStream'), scheduleDateFilter:$('scheduleDateFilter'), scheduleList:$('scheduleList'), scheduleTimeline:$('scheduleTimeline'), scheduleTodayLabel:$('scheduleTodayLabel'), proctoringStatusGrid:$('proctoringStatusGrid'), proctoringSummaryPanel:$('proctoringSummaryPanel'), faqAccordion:$('faqAccordion'), contactSupportForm:$('contactSupportForm'), reportIssueForm:$('reportIssueForm'), supportTabs:$$('[data-support-tab]'), supportPanels:$$('[data-support-panel]'), profileDd:$('profileDd'), profileMenuBtn:$('profileMenuBtn'), profileMenu:$('profileMenu'), profileLogout:$('profileLogout'), themeToggle:$('themeToggle'), themeButtons:$$('[data-theme-mode]', $('themeToggle')), dashStatsGrid:$('dashStatsGrid'), recentAttemptsBody:$('recentAttemptsBody'), performanceTrendChart:$('performanceTrendChart'), chartPlaceholder:$('chartPlaceholder'), refreshDashboard:$('refreshDashboard'), dashboardActionBtn:$('dashboardActionBtn'), attemptsResetBtn:$('attemptsResetBtn'), examSearch:$('examSearch'), examFilter:$('examFilter'), refreshExamsBtn:$('refreshExamsBtn'), examTabs:$$('[data-tab]'), summaryPill:$('summaryPill'), examStatusLegend:$('examStatusLegend'), unregisteredGrid:$('unregisteredGrid'), upcomingGrid:$('upcomingGrid'), closedGrid:$('closedGrid'), unregisteredCount:$('unregisteredCount'), upcomingCount:$('upcomingCount'), closedCount:$('closedCount'), myExamSearch:$('myExamSearch'), myExamFilter:$('myExamFilter'), myExamTabs:$$('[data-my-tab]'), myExamSummaryPill:$('myExamSummaryPill'), registeredGrid:$('registeredGrid'), resumeMyGrid:$('resumeMyGrid'), completedGrid:$('completedGrid'), reexamGrid:$('reexamGrid'), registeredCount:$('registeredCount'), resumeMyCount:$('resumeMyCount'), completedMyCount:$('completedMyCount'), reexamCount:$('reexamCount'), resultsSummaryGrid:$('resultsSummaryGrid'), resultsFilter:$('resultsFilter'), resultsFilterBtn:$('resultsFilterBtn'), resultsSearch:$('resultsSearch'), resultsResetBtn:$('resultsResetBtn'), resultsBody:$('resultsBody'), resultsPageInfo:$('resultsPageInfo'), resultsPagination:$('resultsPagination'), certificatesSummaryGrid:$('certificatesSummaryGrid'), certificatesFilter:$('certificatesFilter'), certificatesSearch:$('certificatesSearch'), certificatesResetBtn:$('certificatesResetBtn'), certificatesGrid:$('certificatesGrid'), leaderboardModeToggle:$('leaderboardModeToggle'), leaderboardModeButtons:$$('[data-leaderboard-mode]', $('leaderboardModeToggle')), leaderboardSearch:$('leaderboardSearch'), leaderboardSort:$('leaderboardSort'), leaderboardRefresh:$('leaderboardRefresh'), leaderboardSummaryGrid:$('leaderboardSummaryGrid'), yourRankCard:$('yourRankCard'), podiumGrid:$('podiumGrid'), leaderboardBody:$('leaderboardBody'), analyticsCards:$('analyticsCards'), analyticsLineChart:$('analyticsLineChart'), analyticsBarChart:$('analyticsBarChart'), analyticsDonutChart:$('analyticsDonutChart'), analyticsTrendFilter:$('analyticsTrendFilter'), analyticsPassFilter:$('analyticsPassFilter'), analyticsMixFilter:$('analyticsMixFilter'), editProfileBtn:$('editProfileBtn'), profileForm:$('profileForm'), profilePhotoPreview:$('profilePhotoPreview'), profilePhotoName:$('profilePhotoName'), profileEditorModal:$('profileEditorModal'), profileEditorClose:$('profileEditorClose'), profileEditorForm:$('profileEditorForm'), profileEditorCancel:$('profileEditorCancel'), profileEditorSave:$('profileEditorSave'), profileEditorPhotoInput:$('profileEditorPhotoInput'), profileEditorPhotoUploadBtn:$('profileEditorPhotoUploadBtn'), profileEditorPhotoRemoveBtn:$('profileEditorPhotoRemoveBtn'), profileEditorPhotoPreview:$('profileEditorPhotoPreview'), profileEditorPhotoCircle:$('profileEditorPhotoCircle'), profileEditorPhotoName:$('profileEditorPhotoName'), detailModal:$('detailModal'), detailModalKicker:$('detailModalKicker'), detailModalTitle:$('detailModalTitle'), detailModalBody:$('detailModalBody'), detailModalFoot:$('detailModalFoot'), detailModalClose:$('detailModalClose'), examVerificationModal:$('examVerificationModal'), examVerificationClose:$('examVerificationClose'), examVerificationTitle:$('examVerificationTitle'), examVerificationSubtitle:$('examVerificationSubtitle'), examVerificationBody:$('examVerificationBody'), examVerificationFoot:$('examVerificationFoot'), examStepper:$('examStepper'), examSecurityIndicators:$('examSecurityIndicators'), toastStack:$('toastStack'), liveClock:$('liveClock') }); }
+  function bind() { Object.assign(el, { sidebar:$('sidebar'), toggle:$('toggle-sidebar'), logout:$('logoutBtn'), sideNav:$('sideNav'), sidebarAvatar:$('sidebarAvatar'), sidebarName:$('sidebarName'), sidebarRole:$('sidebarRole'), topAvatar:$('topAvatar'), topName:$('topName'), topSearch:$('top-nav-search'), notifBtn:$('notifBtn'), notifCount:$('notifCount'), notifNavCount:$('notifNavCount'), notifyDrop:$('notifyDrop'), notifyDropCount:$('notifyDropCount'), notifyList:$('notifyList'), notificationTypeFilter:$('notificationTypeFilter'), markAllReadBtn:$('markAllReadBtn'), clearNotificationsBtn:$('clearNotificationsBtn'), unreadNotificationCount:$('unreadNotificationCount'), notificationStream:$('notificationStream'), scheduleDateFilter:$('scheduleDateFilter'), scheduleList:$('scheduleList'), scheduleTimeline:$('scheduleTimeline'), scheduleTodayBadge:$('scheduleTodayBadge'), kpiTodayCount:$('kpiTodayCount'), kpiTodayDesc:$('kpiTodayDesc'), kpiUpcomingCount:$('kpiUpcomingCount'), kpiUpcomingDesc:$('kpiUpcomingDesc'), kpiLiveCount:$('kpiLiveCount'), kpiLiveDesc:$('kpiLiveDesc'), kpiTotalCount:$('kpiTotalCount'), kpiTotalDesc:$('kpiTotalDesc'), btnTimelineMore:$('btnTimelineMore'), proctoringStatusGrid:$('proctoringStatusGrid'), proctoringSummaryPanel:$('proctoringSummaryPanel'), proctoringStatusBanner:$('proctoringStatusBanner'), proctoringInfoBtn:$('proctoringInfoBtn'), btnProctoringLearn:$('btnProctoringLearn'), faqAccordion:$('faqAccordion'), faqSearch:$('faqSearch'), btnSupportBannerAction:$('btnSupportBannerAction'), contactSupportForm:$('contactSupportForm'), reportIssueForm:$('reportIssueForm'), supportTabs:$$('[data-support-tab]'), supportPanels:$$('[data-support-panel]'), profileDd:$('profileDd'), profileMenuBtn:$('profileMenuBtn'), profileMenu:$('profileMenu'), profileLogout:$('profileLogout'), themeToggle:$('themeToggle'), themeButtons:$$('[data-theme-mode]', $('themeToggle')), dashStatsGrid:$('dashStatsGrid'), recentAttemptsBody:$('recentAttemptsBody'), performanceTrendChart:$('performanceTrendChart'), chartPlaceholder:$('chartPlaceholder'), refreshDashboard:$('refreshDashboard'), dashboardActionBtn:$('dashboardActionBtn'), attemptsResetBtn:$('attemptsResetBtn'), examSearch:$('examSearch'), examFilter:$('examFilter'), refreshExamsBtn:$('refreshExamsBtn'), examTabs:$$('[data-tab]'), summaryPill:$('summaryPill'), examStatusLegend:$('examStatusLegend'), unregisteredGrid:$('unregisteredGrid'), upcomingGrid:$('upcomingGrid'), closedGrid:$('closedGrid'), unregisteredCount:$('unregisteredCount'), upcomingCount:$('upcomingCount'), closedCount:$('closedCount'), myExamSearch:$('myExamSearch'), myExamFilter:$('myExamFilter'), myExamTabs:$$('[data-my-tab]'), myExamSummaryPill:$('myExamSummaryPill'), registeredGrid:$('registeredGrid'), resumeMyGrid:$('resumeMyGrid'), completedGrid:$('completedGrid'), reexamGrid:$('reexamGrid'), registeredCount:$('registeredCount'), resumeMyCount:$('resumeMyCount'), completedMyCount:$('completedMyCount'), reexamCount:$('reexamCount'), resultsSummaryGrid:$('resultsSummaryGrid'), resultsFilter:$('resultsFilter'), resultsFilterBtn:$('resultsFilterBtn'), resultsSearch:$('resultsSearch'), resultsResetBtn:$('resultsResetBtn'), resultsBody:$('resultsBody'), resultsPageInfo:$('resultsPageInfo'), resultsPagination:$('resultsPagination'), certificatesSummaryGrid:$('certificatesSummaryGrid'), certificatesFilter:$('certificatesFilter'), certificatesSearch:$('certificatesSearch'), certificatesResetBtn:$('certificatesResetBtn'), certificatesGrid:$('certificatesGrid'), leaderboardModeToggle:$('leaderboardModeToggle'), leaderboardModeButtons:$$('[data-leaderboard-mode]', $('leaderboardModeToggle')), leaderboardSearch:$('leaderboardSearch'), leaderboardSort:$('leaderboardSort'), leaderboardRefresh:$('leaderboardRefresh'), leaderboardSummaryGrid:$('leaderboardSummaryGrid'), leaderboardExamFilter:$('leaderboardExamFilter'), yourRankCard:$('yourRankCard'), podiumGrid:$('podiumGrid'), leaderboardBody:$('leaderboardBody'), analyticsCards:$('analyticsCards'), analyticsLineChart:$('analyticsLineChart'), analyticsBarChart:$('analyticsBarChart'), analyticsDonutChart:$('analyticsDonutChart'), analyticsTrendFilter:$('analyticsTrendFilter'), analyticsPassFilter:$('analyticsPassFilter'), analyticsMixFilter:$('analyticsMixFilter'), editProfileBtn:$('editProfileBtn'), profileForm:$('profileForm'), profilePhotoPreview:$('profilePhotoPreview'), profilePhotoName:$('profilePhotoName'), profileEditorModal:$('profileEditorModal'), profileEditorClose:$('profileEditorClose'), profileEditorForm:$('profileEditorForm'), profileEditorCancel:$('profileEditorCancel'), profileEditorSave:$('profileEditorSave'), profileEditorPhotoInput:$('profileEditorPhotoInput'), profileEditorPhotoUploadBtn:$('profileEditorPhotoUploadBtn'), profileEditorPhotoRemoveBtn:$('profileEditorPhotoRemoveBtn'), profileEditorPhotoPreview:$('profileEditorPhotoPreview'), profileEditorPhotoCircle:$('profileEditorPhotoCircle'), profileEditorPhotoName:$('profileEditorPhotoName'), detailModal:$('detailModal'), detailModalKicker:$('detailModalKicker'), detailModalTitle:$('detailModalTitle'), detailModalBody:$('detailModalBody'), detailModalFoot:$('detailModalFoot'), detailModalClose:$('detailModalCloseBtn'), detailModalTitleIcon:$('detailModalTitleIcon'), examVerificationModal:$('examVerificationModal'), examVerificationClose:$('examVerificationClose'), examVerificationTitle:$('examVerificationTitle'), examVerificationSubtitle:$('examVerificationSubtitle'), examVerificationBody:$('examVerificationBody'), examVerificationFoot:$('examVerificationFoot'), examStepper:$('examStepper'), examSecurityIndicators:$('examSecurityIndicators'), toastStack:$('toastStack'), liveClock:$('liveClock') }); }
   function hydrateIcons(root = document) {
     $$('[data-icon]', root).forEach((node) => {
       const name = node.dataset.icon;
@@ -1196,77 +1209,110 @@
     });
   }
   function toast(t, m, tone='info') { const n = document.createElement('div'); n.className = `toast ${tone}`; n.innerHTML = `<strong>${t}</strong><span>${m}</span>`; el.toastStack.appendChild(n); setTimeout(() => { n.style.opacity = '0'; n.style.transform = 'translateY(8px)'; setTimeout(() => n.remove(), 220); }, 3200); }
-  function modal({ kicker='Student Detail', title='', body='', foot='' }) { el.detailModalKicker.textContent = kicker; el.detailModalTitle.textContent = title; el.detailModalBody.innerHTML = body; el.detailModalFoot.innerHTML = foot; el.detailModal.classList.remove('hidden'); el.detailModal.setAttribute('aria-hidden', 'false'); }
+  function modal({ kicker='Student Detail', title='', titleIcon='', body='', foot='' }) {
+    if (el.detailModalTitleIcon) {
+      el.detailModalTitleIcon.innerHTML = titleIcon || '';
+      el.detailModalTitleIcon.style.display = titleIcon ? 'grid' : 'none';
+    }
+    el.detailModalKicker.textContent = kicker;
+    el.detailModalTitle.textContent = title;
+    el.detailModalBody.innerHTML = body;
+    el.detailModalFoot.innerHTML = foot;
+    el.detailModal.classList.remove('hidden');
+    el.detailModal.setAttribute('aria-hidden', 'false');
+  }
   function closeModal() { el.detailModal.classList.add('hidden'); el.detailModal.setAttribute('aria-hidden', 'true'); }
-  function openReexamReadyModal(exam) {
-    modal({
-      kicker: 'Exam Ready',
-      title: `${exam.examCode} - ${exam.title}`,
-      body: `
-        <div class="reexam-ready-shell">
-          <div class="reexam-ready-topline">
-            <span class="reexam-ready-icon"><span class="svg-icon" data-icon="shield"></span></span>
-            <span class="reexam-ready-kicker">Exam Ready</span>
+  function readyModalBodyMarkup(exam) {
+    return `
+      <div class="exam-ready-modal-body">
+        <!-- Upper Info Card -->
+        <div class="exam-ready-info-card">
+          <div class="info-card-header">
+            <span class="exam-ready-code-tag">${escapeHtml(exam.examCode)}</span>
+            <span class="exam-ready-status-badge">✓ READY</span>
           </div>
-          <div class="reexam-ready-titleblock">
-            <h4>${escapeHtml(exam.examCode)} - ${escapeHtml(exam.title)}</h4>
+          <h4 class="info-card-title">${escapeHtml(exam.title)}</h4>
+          <div class="info-card-meta">
+            <span><span class="svg-icon" data-icon="help"></span>Language</span>
+            <span class="meta-separator">|</span>
+            <span><span class="svg-icon" data-icon="alarm"></span>${toNumber(exam.durationMinutes)} min</span>
+            <span class="meta-separator">|</span>
+            <span><span class="svg-icon" data-icon="calendar"></span>Start ${escapeHtml(formatExamDateTime(exam))}</span>
           </div>
-          <div class="reexam-ready-summary">
-            <div class="reexam-ready-card-head">
-              <span class="code-badge">${escapeHtml(exam.examCode)}</span>
-              <span class="status-badge available">VERIFIED</span>
+        </div>
+
+        <!-- 2x2 Detail Grid -->
+        <div class="exam-ready-grid">
+          <div class="ready-grid-tile">
+            <div class="tile-icon-circle bg-blue">
+              <span class="svg-icon" data-icon="shield"></span>
             </div>
-            <div class="reexam-ready-name">${escapeHtml(exam.title)}</div>
-            <div class="reexam-ready-meta">
-              <span><span class="svg-icon" data-icon="clock"></span>${escapeHtml(exam.subject)}</span>
-              <span><span class="svg-icon" data-icon="clock"></span>${toNumber(exam.durationMinutes)} min</span>
-              <span><span class="svg-icon" data-icon="calendar"></span>Start ${escapeHtml(formatExamDateTime(exam))}</span>
-            </div>
-          </div>
-          <div class="reexam-ready-grid">
-            <div class="reexam-ready-tile">
-              <div class="reexam-ready-tile-icon"><span class="svg-icon" data-icon="shield"></span></div>
-              <div>
-                <span>AI Proctoring</span>
-                <strong>Enabled</strong>
-              </div>
-            </div>
-            <div class="reexam-ready-tile">
-              <div class="reexam-ready-tile-icon"><span class="svg-icon" data-icon="camera"></span></div>
-              <div>
-                <span>Face Match</span>
-                <strong>Required</strong>
-              </div>
-            </div>
-            <div class="reexam-ready-tile">
-              <div class="reexam-ready-tile-icon"><span class="svg-icon" data-icon="camera"></span></div>
-              <div>
-                <span>Recording</span>
-                <strong>On</strong>
-              </div>
-            </div>
-            <div class="reexam-ready-tile">
-              <div class="reexam-ready-tile-icon"><span class="svg-icon" data-icon="shield"></span></div>
-              <div>
-                <span>Identity</span>
-                <strong>Enforced</strong>
-              </div>
+            <div class="tile-content">
+              <span class="tile-label">AI PROCTORING</span>
+              <strong class="tile-value">Enabled</strong>
+              <p class="tile-desc">AI proctoring will monitor your session.</p>
             </div>
           </div>
-          <div class="reexam-ready-note">
-            <span class="reexam-ready-note-icon"><span class="svg-icon" data-icon="shield"></span></span>
-            <div>
-              <strong>Your verification has been accepted.</strong>
-              <p>Use the action below to enter the exam workspace.</p>
+          
+          <div class="ready-grid-tile">
+            <div class="tile-icon-circle bg-blue-scan">
+              <span class="svg-icon" data-icon="face-scan"></span>
+            </div>
+            <div class="tile-content">
+              <span class="tile-label">FACE MATCH</span>
+              <strong class="tile-value">Required</strong>
+              <p class="tile-desc">Face verification is required to begin.</p>
+            </div>
+          </div>
+          
+          <div class="ready-grid-tile">
+            <div class="tile-icon-circle bg-green">
+              <span class="svg-icon" data-icon="video"></span>
+            </div>
+            <div class="tile-content">
+              <span class="tile-label">RECORDING</span>
+              <strong class="tile-value">On</strong>
+              <p class="tile-desc">Your session will be recorded.</p>
+            </div>
+          </div>
+          
+          <div class="ready-grid-tile">
+            <div class="tile-icon-circle bg-purple">
+              <span class="svg-icon" data-icon="user-outline"></span>
+            </div>
+            <div class="tile-content">
+              <span class="tile-label">IDENTITY</span>
+              <strong class="tile-value">Enforced</strong>
+              <p class="tile-desc">Identity verification is enforced.</p>
             </div>
           </div>
         </div>
-      `,
+
+        <!-- Alert Banner -->
+        <div class="exam-ready-alert-banner">
+          <div class="alert-banner-icon bg-circle-blue">
+            <span class="svg-icon" data-icon="info"></span>
+          </div>
+          <p class="alert-banner-text">Your verification has been accepted. Use the action below to enter the exam workspace.</p>
+        </div>
+      </div>
+    `;
+  }
+  function openReexamReadyModal(exam) {
+    modal({
+      kicker: 'EXAM READY',
+      title: `${exam.examCode} – ${exam.title}`,
+      titleIcon: `<span class="svg-icon" data-icon="clipboard-check"></span>`,
+      body: readyModalBodyMarkup(exam),
       foot: `
-        <button class="btn ghost" data-close-modal type="button">Close</button>
-        <button class="btn primary" data-action="exam-reexam-enter" data-code="${exam.examCode}" type="button">Enter Exam</button>`
+        <button class="btn-modal-ghost" data-close-modal type="button">Close</button>
+        <button class="btn-modal-primary" data-action="exam-reexam-enter" data-code="${exam.examCode}" type="button">
+          <span>Enter Exam</span>
+          <span class="arrow-right">→</span>
+        </button>`
     });
     hydrateIcons(el.detailModalBody);
+    if (el.detailModalTitleIcon) hydrateIcons(el.detailModalTitleIcon);
   }
   function openExamAccess(exam) {
     if (!canEnterExamNow(exam)) {
@@ -1274,31 +1320,19 @@
       return;
     }
     modal({
-      kicker: 'Exam Ready',
-      title: `${exam.examCode} - ${exam.title}`,
-      body: `
-        <div class="exam-access-panel">
-          <div class="result-modal-hero">
-            <div>
-              <span class="result-modal-code">${exam.examCode}</span>
-              <h4>${exam.title}</h4>
-              <p>${exam.subject} | ${exam.durationMinutes} min | Start ${formatExamDateTime(exam)}</p>
-            </div>
-            <span class="status-badge ${st.examSessions[exam.examCode] ? 'available' : 'resume'}">${st.examSessions[exam.examCode] ? 'VERIFIED' : 'READY'}</span>
-          </div>
-          <div class="detail-grid">
-            <div class="detail-item"><span>AI Proctoring</span><strong>Enabled</strong></div>
-            <div class="detail-item"><span>Face Match</span><strong>Required</strong></div>
-            <div class="detail-item"><span>Recording</span><strong>On</strong></div>
-            <div class="detail-item"><span>Identity</span><strong>Enforced</strong></div>
-          </div>
-          <p class="card-copy">Your verification has been accepted. Use the action below to enter the exam workspace.</p>
-        </div>
-      `,
+      kicker: 'EXAM READY',
+      title: `${exam.examCode} – ${exam.title}`,
+      titleIcon: `<span class="svg-icon" data-icon="clipboard-check"></span>`,
+      body: readyModalBodyMarkup(exam),
       foot: `
-        <button class="btn ghost" data-close-modal type="button">Close</button>
-        <button class="btn primary" data-action="exam-enter-confirm" data-code="${exam.examCode}" type="button">Enter Exam</button>`
+        <button class="btn-modal-ghost" data-close-modal type="button">Close</button>
+        <button class="btn-modal-primary" data-action="exam-enter-confirm" data-code="${exam.examCode}" type="button">
+          <span>Enter Exam</span>
+          <span class="arrow-right">→</span>
+        </button>`
     });
+    hydrateIcons(el.detailModalBody);
+    if (el.detailModalTitleIcon) hydrateIcons(el.detailModalTitleIcon);
   }
   function closeExamVerification() {
     if (!el.examVerificationModal) return;
@@ -2723,6 +2757,41 @@
     renderLeaderboard();
   }
 
+  function populateLeaderboardExamFilter() {
+    if (!el.leaderboardExamFilter) return;
+    const exams = st.data.exams || [];
+    if (!exams.length) {
+      el.leaderboardExamFilter.innerHTML = '<option value="">No exams available</option>';
+      return;
+    }
+    el.leaderboardExamFilter.innerHTML = exams.map((e) => `
+      <option value="${e.examCode}">${e.title || e.examCode}</option>
+    `).join('');
+    if (!st.leaderboard.examCode && exams.length) {
+      st.leaderboard.examCode = exams[0].examCode;
+    }
+    el.leaderboardExamFilter.value = st.leaderboard.examCode || '';
+  }
+
+  async function fetchExamLeaderboard(examCode) {
+    if (!examCode) return;
+    try {
+      const response = await fetch(`/api/leaderboard/exam/${encodeURIComponent(examCode)}`);
+      if (response.ok) {
+        const data = await response.json();
+        st.data.leaderboard.exam = normalizeLeaderboardRows(data);
+        renderLeaderboard();
+      } else {
+        st.data.leaderboard.exam = [];
+        renderLeaderboard();
+      }
+    } catch (err) {
+      console.error('Failed to fetch exam leaderboard:', err);
+      st.data.leaderboard.exam = [];
+      renderLeaderboard();
+    }
+  }
+
   function renderLeaderboard() {
     const baseRows = leaderboardRowsForMode();
     const searched = applySearch(baseRows, el.leaderboardSearch?.value ?? st.leaderboard.q);
@@ -3178,7 +3247,55 @@
     const filter = el.scheduleDateFilter?.value || 'all';
     const now = new Date();
     const soon = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const items = st.data.exams.map((exam) => ({ exam, state: examRuntimeState(exam) }))
+    const allItems = st.data.exams.map((exam) => ({ exam, state: examRuntimeState(exam) }));
+    
+    // Stats Calculations
+    const todayCount = allItems.filter(({ state }) => state.startAt.toDateString() === now.toDateString()).length;
+    const liveCount = allItems.filter(({ state }) => state.live).length;
+    const upcomingItems = allItems.filter(({ state }) => state.upcoming && !state.live);
+    const upcomingCount = upcomingItems.length;
+    const totalCount = st.data.exams.length;
+
+    // Update KPI UI
+    if (el.kpiTodayCount) el.kpiTodayCount.textContent = todayCount;
+    if (el.kpiTodayDesc) el.kpiTodayDesc.textContent = todayCount === 1 ? '1 exam scheduled today' : todayCount > 0 ? `${todayCount} exams scheduled today` : 'No exams scheduled today';
+
+    if (el.kpiUpcomingCount) el.kpiUpcomingCount.textContent = upcomingCount;
+    if (el.kpiUpcomingDesc) {
+      if (upcomingCount > 0) {
+        // Find nearest upcoming
+        const sortedUpcoming = upcomingItems.sort((a, b) => a.state.startAt - b.state.startAt);
+        const nearest = sortedUpcoming[0].state;
+        const diffMs = nearest.startAt - now;
+        const diffMins = Math.ceil(diffMs / 60000);
+        if (diffMins < 60) {
+          el.kpiUpcomingDesc.textContent = `Next exam in ${diffMins} mins`;
+        } else {
+          const diffHrs = Math.floor(diffMins / 60);
+          if (diffHrs < 24) {
+            el.kpiUpcomingDesc.textContent = `Next exam in ${diffHrs} ${diffHrs === 1 ? 'hour' : 'hours'}`;
+          } else {
+            const diffDays = Math.floor(diffHrs / 24);
+            el.kpiUpcomingDesc.textContent = `Next exam in ${diffDays} ${diffDays === 1 ? 'day' : 'days'}`;
+          }
+        }
+      } else {
+        el.kpiUpcomingDesc.textContent = 'No upcoming exams';
+      }
+    }
+
+    if (el.kpiLiveCount) el.kpiLiveCount.textContent = liveCount;
+    if (el.kpiLiveDesc) el.kpiLiveDesc.textContent = liveCount === 1 ? '1 exam in progress' : liveCount > 0 ? `${liveCount} exams in progress` : 'No exams in progress';
+
+    if (el.kpiTotalCount) el.kpiTotalCount.textContent = totalCount;
+    if (el.kpiTotalDesc) el.kpiTotalDesc.textContent = 'Across all subjects';
+
+    if (el.scheduleTodayBadge) {
+      el.scheduleTodayBadge.textContent = todayCount === 1 ? '1 Exam Today' : `${todayCount} Exams Today`;
+    }
+
+    // Filtered items for display
+    const items = allItems
       .filter(({ state }) => state.upcoming || state.live)
       .filter(({ state }) => {
         const start = state.startAt;
@@ -3187,8 +3304,7 @@
         return true;
       })
       .sort((a, b) => a.state.startAt - b.state.startAt);
-    const todayCount = items.filter(({ state }) => state.startAt.toDateString() === now.toDateString()).length;
-    if (el.scheduleTodayLabel) el.scheduleTodayLabel.textContent = `${todayCount} exam${todayCount === 1 ? '' : 's'} today`;
+
     const scheduleRow = ({ exam, state }) => {
       const live = state.live;
       return `
@@ -3210,49 +3326,217 @@
           </div>
         </article>`;
     };
-    const timelineRow = ({ exam, state }, index) => `
-      <div class="timeline-item ${state.live ? 'live' : ''}">
-        <span class="timeline-marker"></span>
-        <div class="timeline-copy">
-          <strong>${formatExamTime(exam)} - ${escapeHtml(exam.title)}</strong>
-          <p>${escapeHtml(exam.examCode)} - ${state.live ? 'Currently live' : `Starts in ${state.minutesUntil} min`}</p>
-        </div>
-        <span class="timeline-index">#${String(index + 1).padStart(2, '0')}</span>
+
+    const timelineRow = ({ exam, state }, index) => {
+      const formattedTime = new Date(state.startAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      return `
+        <div class="timeline-row-item ${state.live ? 'live' : 'upcoming'}">
+          <div class="timeline-col-left">
+            <span class="timeline-dot"></span>
+            <span class="timeline-time">${formattedTime}</span>
+          </div>
+          <div class="timeline-content-card">
+            <div class="timeline-exam-info">
+              <strong class="timeline-exam-title">${escapeHtml(exam.title)}</strong>
+              <div class="timeline-exam-meta">
+                <span class="timeline-exam-code">${escapeHtml(exam.examCode)}</span>
+                <span class="tag ${state.live ? 'success' : 'info'}">${state.live ? 'LIVE' : 'UPCOMING'}</span>
+              </div>
+            </div>
+            <div class="timeline-action-area">
+              <span class="timeline-index-label">#${String(index + 1).padStart(2, '0')}</span>
+              <span class="timeline-arrow-btn">${ico.chevron ? `<span class="svg-icon" data-icon="chevron"></span>` : '&gt;'}</span>
+            </div>
+          </div>
+        </div>`;
+    };
+
+    // Render Today list on the left
+    const todayItems = items.filter(({ state }) => state.startAt.toDateString() === now.toDateString());
+    if (todayItems.length) {
+      el.scheduleList.innerHTML = todayItems.map(scheduleRow).join('');
+    } else {
+      // Render beautiful empty state matching the illustration in mock
+      el.scheduleList.innerHTML = `
+        <div class="schedule-empty-state">
+          <div class="empty-state-illustration">
+            <svg viewBox="0 0 200 200" width="160" height="160" fill="none">
+              <!-- Background Glow/Shadow -->
+              <ellipse cx="100" cy="145" rx="70" ry="15" fill="rgba(124, 58, 237, 0.05)" />
+              <ellipse cx="100" cy="145" rx="40" ry="8" fill="rgba(124, 58, 237, 0.08)" />
+              
+              <!-- Calendar Base -->
+              <rect x="55" y="60" width="90" height="90" rx="16" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="3" />
+              <path d="M55 85h90" stroke="#E2E8F0" stroke-width="3" />
+              
+              <!-- Calendar Binder Rings -->
+              <rect x="68" y="48" width="8" height="20" rx="4" fill="#6366F1" />
+              <rect x="96" y="48" width="8" height="20" rx="4" fill="#6366F1" />
+              <rect x="124" y="48" width="8" height="20" rx="4" fill="#6366F1" />
+              
+              <!-- Checkmark Circle -->
+              <circle cx="115" cy="125" r="22" fill="#4F46E5" />
+              <path d="M107 125l5 5 10-10" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+              
+              <!-- Calendar Grid Accents -->
+              <rect x="68" y="100" width="12" height="8" rx="2" fill="#E2E8F0" />
+              <rect x="88" y="100" width="12" height="8" rx="2" fill="#E2E8F0" />
+              <rect x="68" y="116" width="12" height="8" rx="2" fill="#E2E8F0" />
+              <rect x="88" y="116" width="12" height="8" rx="2" fill="#E2E8F0" />
+            </svg>
+          </div>
+          <h3 class="empty-state-title">No Exams Scheduled Today</h3>
+          <p class="empty-state-subtitle">Enjoy your day and keep learning!</p>
+        </div>`;
+    }
+
+    // Render Timeline on the right
+    el.scheduleTimeline.innerHTML = items.length ? items.map(timelineRow).join('') : `
+      <div class="timeline-empty-state">
+        <strong class="empty-state-title">No Timeline Data</strong>
+        <p class="empty-state-subtitle">There are no live or upcoming exam windows right now.</p>
       </div>`;
-    el.scheduleList.innerHTML = items.length ? items.map(scheduleRow).join('') : '<div class="empty-state-lite"><strong>No scheduled exams</strong><p>Upcoming windows will appear here automatically.</p></div>';
-    el.scheduleTimeline.innerHTML = items.length ? items.map(timelineRow).join('') : '<div class="empty-state-lite"><strong>No timeline data</strong><p>There are no live or upcoming exam windows right now.</p></div>';
+
+    // Hydrate icons in the newly added content
+    hydrateIcons(el.scheduleList);
+    hydrateIcons(el.scheduleTimeline);
   }
   function updateStatusIndicators() {
     const status = st.data.proctoring || {};
     if (!el.proctoringStatusGrid || !el.proctoringSummaryPanel) return;
+    
+    // Status items: Camera, Microphone, Fullscreen, Face Detection
     const items = [
-      ['Camera', status.cameraEnabled, 'camera'],
-      ['Microphone', status.micEnabled, 'ai'],
-      ['Fullscreen', status.fullscreenActive, 'lock'],
-      ['Face Detection', status.faceDetected, 'shield']
+      ['Camera', status.cameraEnabled ?? true, 'camera', 'Live video feed detected', 'No camera feed detected'],
+      ['Microphone', status.micEnabled ?? true, 'brain', 'Audio input detected', 'No microphone feed detected'],
+      ['Fullscreen', status.fullscreenActive ?? true, 'lock', 'Fullscreen mode enabled', 'Fullscreen mode disabled'],
+      ['Face Detection', status.faceDetected ?? true, 'face-scan', 'Face verified successfully', 'No face detected']
     ];
-    el.proctoringStatusGrid.innerHTML = items.map(([label, on, icon]) => `
-      <div class="status-tile ${on ? 'on' : 'off'}">
-        <div class="status-tile-icon">${svg(icon)}</div>
-        <div class="status-tile-copy">
-          <strong>${label}</strong>
-          <span>${on ? 'Active' : 'Inactive'}</span>
+
+    el.proctoringStatusGrid.innerHTML = items.map(([label, on, icon, onDesc, offDesc]) => `
+      <div class="proctoring-status-tile ${on ? 'active' : 'inactive'}">
+        <div class="proctoring-status-tile-header">
+          <div class="proctoring-tile-icon-circle ${on ? 'active' : 'inactive'}">
+            <span class="svg-icon" data-icon="${icon}"></span>
+          </div>
+          <span class="proctoring-indicator-dot ${on ? 'active' : 'inactive'}"></span>
+        </div>
+        <div class="proctoring-tile-info">
+          <span class="proctoring-tile-label">${label}</span>
+          <span class="proctoring-tile-state ${on ? 'active' : 'inactive'}">${on ? 'Active' : 'Inactive'}</span>
+          <span class="proctoring-tile-desc">${on ? onDesc : offDesc}</span>
         </div>
       </div>
     `).join('');
+
+    // Bottom health status banner
+    if (el.proctoringStatusBanner) {
+      el.proctoringStatusBanner.innerHTML = `
+        <div class="proctoring-health-banner">
+          <div class="proctoring-health-icon">
+            <span class="svg-icon" data-icon="shield"></span>
+          </div>
+          <div class="proctoring-health-text">
+            <strong>All monitoring systems are active and functioning properly.</strong>
+            <p>You are being monitored to ensure exam integrity.</p>
+          </div>
+        </div>`;
+    }
+
+    // Right Column: Summary stats cards and Proctoring Enabled Banner
     el.proctoringSummaryPanel.innerHTML = `
-      <div class="proctoring-summary-grid">
-        <div class="summary-card-mini"><span>AI Monitoring</span><strong>${status.aiMonitoringActive ? 'Enabled' : 'Disabled'}</strong></div>
-        <div class="summary-card-mini"><span>Violations</span><strong>${status.violationsCount || 0}</strong></div>
-        <div class="summary-card-mini"><span>Face Match</span><strong>${status.faceDetected ? 'Verified' : 'Pending'}</strong></div>
-        <div class="summary-card-mini"><span>Session</span><strong>${status.cameraEnabled && status.micEnabled ? 'Secure' : 'Needs Review'}</strong></div>
+      <div class="proctoring-summary-cards-grid">
+        <div class="proctoring-summary-card summary-card-blue">
+          <div class="summary-card-header">
+            <div class="summary-card-icon-circle bg-circle-blue">
+              <span class="svg-icon" data-icon="shield"></span>
+            </div>
+            <div class="summary-card-labels">
+              <span class="summary-card-kicker">AI MONITORING</span>
+              <strong class="summary-card-val">${status.aiMonitoringActive ? 'Enabled' : 'Disabled'}</strong>
+            </div>
+          </div>
+          <div class="summary-card-status">
+            <span class="summary-status-check text-green">✓ Active</span>
+          </div>
+        </div>
+
+        <div class="proctoring-summary-card summary-card-orange">
+          <div class="summary-card-header">
+            <div class="summary-card-icon-circle bg-circle-orange">
+              <span class="svg-icon" data-icon="flag"></span>
+            </div>
+            <div class="summary-card-labels">
+              <span class="summary-card-kicker">VIOLATIONS</span>
+              <strong class="summary-card-val">${status.violationsCount || 0}</strong>
+            </div>
+          </div>
+          <div class="summary-card-status">
+            <span class="summary-status-check text-green">✓ No issues detected</span>
+          </div>
+        </div>
+
+        <div class="proctoring-summary-card summary-card-blue-scan">
+          <div class="summary-card-header">
+            <div class="summary-card-icon-circle bg-circle-blue-scan">
+              <span class="svg-icon" data-icon="face-scan"></span>
+            </div>
+            <div class="summary-card-labels">
+              <span class="summary-card-kicker">FACE MATCH</span>
+              <strong class="summary-card-val">${status.faceDetected ? 'Verified' : 'Pending'}</strong>
+            </div>
+          </div>
+          <div class="summary-card-status">
+            <span class="summary-status-check text-green">✓ Match: 98.7%</span>
+          </div>
+        </div>
+
+        <div class="proctoring-summary-card summary-card-purple">
+          <div class="summary-card-header">
+            <div class="summary-card-icon-circle bg-circle-purple">
+              <span class="svg-icon" data-icon="lock"></span>
+            </div>
+            <div class="summary-card-labels">
+              <span class="summary-card-kicker">SESSION</span>
+              <strong class="summary-card-val">Secure</strong>
+            </div>
+          </div>
+          <div class="summary-card-status">
+            <span class="summary-status-check text-green">✓ Encrypted</span>
+          </div>
+        </div>
       </div>
-      <div class="proctoring-live-banner ${status.aiMonitoringActive ? 'active' : 'off'}">
-        <span class="pulse-dot"></span>
-        <strong>${status.aiMonitoringActive ? 'Proctoring Enabled' : 'Proctoring Offline'}</strong>
-        <span>Identity and environment controls are monitored continuously.</span>
+
+      <div class="proctoring-enabled-banner">
+        <div class="enabled-banner-left">
+          <div class="enabled-banner-icon-circle">
+            <span class="svg-icon" data-icon="shield"></span>
+          </div>
+          <div class="enabled-banner-info">
+            <strong>Proctoring Enabled</strong>
+            <p>Identity and environment controls are monitored continuously.</p>
+          </div>
+        </div>
+        <div class="enabled-banner-illustration">
+          <svg viewBox="0 0 100 80" width="60" height="50" fill="none">
+            <!-- Mock Monitor illustration -->
+            <rect x="10" y="10" width="80" height="50" rx="6" fill="#F8FAFC" stroke="#10B981" stroke-width="2" />
+            <rect x="15" y="15" width="70" height="40" rx="3" fill="#E2E8F0" />
+            <line x1="35" y1="65" x2="65" y2="65" stroke="#10B981" stroke-width="3" stroke-linecap="round" />
+            <path d="M45 60h10" stroke="#10B981" stroke-width="3" />
+            
+            <!-- Shield with check on screen -->
+            <circle cx="50" cy="35" r="12" fill="#10B981" />
+            <path d="m46 35 3 3 5-5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
       </div>
     `;
+
+    // Hydrate all new SVGs
+    hydrateIcons(el.proctoringStatusGrid);
+    if (el.proctoringStatusBanner) hydrateIcons(el.proctoringStatusBanner);
+    hydrateIcons(el.proctoringSummaryPanel);
   }
   function renderProctoringStatus() {
     updateStatusIndicators();
@@ -3265,23 +3549,36 @@
   }
   function renderHelpSupport() {
     if (el.faqAccordion) {
-      el.faqAccordion.innerHTML = st.data.supportFaq.map((item, idx) => `
+      const query = (el.faqSearch?.value || '').toLowerCase().trim();
+      const filtered = st.data.supportFaq.filter(item => 
+        (item.question || '').toLowerCase().includes(query) || 
+        (item.answer || '').toLowerCase().includes(query)
+      );
+
+      if (filtered.length) {
+        el.faqAccordion.innerHTML = filtered.map((item, idx) => `
           <article class="faq-item ${idx === 0 ? 'open' : ''}">
-          <button class="faq-question" type="button" aria-expanded="${idx === 0 ? 'true' : 'false'}">
-            <span>${escapeHtml(item.question)}</span>
-            ${svg('chevron')}
-          </button>
-          <div class="faq-answer">${escapeHtml(item.answer)}</div>
-        </article>
-      `).join('');
-      $$('.faq-question', el.faqAccordion).forEach((btn) => btn.addEventListener('click', () => toggleAccordion(btn)));
+            <button class="faq-question" type="button" aria-expanded="${idx === 0 ? 'true' : 'false'}">
+              <span class="faq-index-circle">${idx + 1}</span>
+              <span class="faq-question-text">${escapeHtml(item.question)}</span>
+              <span class="faq-chevron-icon">${svg('chevron')}</span>
+            </button>
+            <div class="faq-answer-container">
+              <div class="faq-answer">${escapeHtml(item.answer)}</div>
+            </div>
+          </article>
+        `).join('');
+        $$('.faq-question', el.faqAccordion).forEach((btn) => btn.addEventListener('click', () => toggleAccordion(btn)));
+      } else {
+        el.faqAccordion.innerHTML = '<div class="empty-state-lite"><p>No matching FAQs found.</p></div>';
+      }
     }
-    const activeTab = $$('.support-tabs .tab-btn', document).find((btn) => btn.classList.contains('active'))?.dataset.supportTab || 'faq';
-    $$('.support-tabs .tab-btn').forEach((btn) => btn.classList.toggle('active', btn.dataset.supportTab === activeTab));
+    const activeTab = $$('.support-tabs-grid .support-tab-card', document).find((btn) => btn.classList.contains('active'))?.dataset.supportTab || 'faq';
+    $$('.support-tabs-grid .support-tab-card').forEach((btn) => btn.classList.toggle('active', btn.dataset.supportTab === activeTab));
     $$('.support-panel', document).forEach((panel) => panel.classList.toggle('active', panel.dataset.supportPanel === activeTab));
   }
   function setSupportTab(tab) {
-    $$('.support-tabs .tab-btn').forEach((btn) => btn.classList.toggle('active', btn.dataset.supportTab === tab));
+    $$('.support-tabs-grid .support-tab-card').forEach((btn) => btn.classList.toggle('active', btn.dataset.supportTab === tab));
     $$('.support-panel', document).forEach((panel) => panel.classList.toggle('active', panel.dataset.supportPanel === tab));
   }
   function certificatePreviewMarkup(c) {
@@ -3438,45 +3735,84 @@
       const hardWrong = toNumber(r.hardWrong ?? r.difficultWrong);
       const totalAnswered = correctAnswers + wrongAnswers + unansweredQuestions;
       modal({
-        kicker: 'Result Details',
+        kicker: 'RESULT DETAILS',
         title: `${r.examCode} - ${r.resultStatus}`,
+        titleIcon: '',
         body: `
-          <div class="result-modal-hero">
-            <div>
-              <span class="result-modal-code">${r.examCode}</span>
-              <h4>${r.resultStatus}</h4>
-              <p>Score ${r.score}/${r.totalQuestions} | Percentage ${pct(r.percentage)} | Submitted ${formatDate(r.submittedAt)}</p>
+          <div class="exam-ready-modal-body">
+            <!-- Upper Info Card -->
+            <div class="exam-ready-info-card">
+              <div class="info-card-header">
+                <span class="exam-ready-code-tag">${escapeHtml(r.examCode)}</span>
+                <span class="exam-ready-status-badge ${r.passed ? 'pass' : 'fail'}">${r.passed ? 'PASS' : 'FAIL'}</span>
+              </div>
+              <h4 class="info-card-title">${escapeHtml(r.resultStatus)}</h4>
+              <p class="info-card-meta-text">Score ${r.score}/${r.totalQuestions} | Percentage ${pct(r.percentage)} | Submitted ${formatDate(r.submittedAt)}</p>
             </div>
-            <span class="result-badge ${r.passed ? 'pass' : 'fail'}">${r.passed ? 'PASS' : 'FAIL'}</span>
-          </div>
-          <div class="result-modal-grid">
-            <div class="result-modal-panel">
-              <h5>Answer Breakdown</h5>
-              <div class="detail-grid result-metric-grid">
-                <div class="detail-item metric-card"><span>Total Questions</span><strong>${totalQuestions}</strong></div>
-                <div class="detail-item metric-card"><span>Correct Answers</span><strong>${correctAnswers}</strong></div>
-                <div class="detail-item metric-card"><span>Wrong Answers</span><strong>${wrongAnswers}</strong></div>
-                <div class="detail-item metric-card"><span>Unanswered</span><strong>${unansweredQuestions}</strong></div>
+
+            <!-- Two Columns -->
+            <div class="result-columns-grid">
+              <div class="result-column-card border-blue">
+                <h5 class="result-column-title">Answer Breakdown</h5>
+                <div class="result-card-inner-grid">
+                  <div class="result-inner-tile">
+                    <span class="tile-label">TOTAL QUESTIONS</span>
+                    <strong class="tile-value">${totalQuestions}</strong>
+                  </div>
+                  <div class="result-inner-tile">
+                    <span class="tile-label">CORRECT ANSWERS</span>
+                    <strong class="tile-value">${correctAnswers}</strong>
+                  </div>
+                  <div class="result-inner-tile">
+                    <span class="tile-label">WRONG ANSWERS</span>
+                    <strong class="tile-value">${wrongAnswers}</strong>
+                  </div>
+                  <div class="result-inner-tile">
+                    <span class="tile-label">UNANSWERED</span>
+                    <strong class="tile-value">${unansweredQuestions}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="result-column-card border-purple">
+                <h5 class="result-column-title">Difficulty Split</h5>
+                <div class="result-card-inner-grid grid-col-3">
+                  <div class="result-inner-tile">
+                    <span class="tile-label">EASY CORRECT</span>
+                    <strong class="tile-value">${easyCorrect}</strong>
+                  </div>
+                  <div class="result-inner-tile">
+                    <span class="tile-label">MEDIUM CORRECT</span>
+                    <strong class="tile-value">${mediumCorrect}</strong>
+                  </div>
+                  <div class="result-inner-tile">
+                    <span class="tile-label">HARD CORRECT</span>
+                    <strong class="tile-value">${hardCorrect}</strong>
+                  </div>
+                  <div class="result-inner-tile">
+                    <span class="tile-label">EASY WRONG</span>
+                    <strong class="tile-value">${easyWrong}</strong>
+                  </div>
+                  <div class="result-inner-tile">
+                    <span class="tile-label">MEDIUM WRONG</span>
+                    <strong class="tile-value">${mediumWrong}</strong>
+                  </div>
+                  <div class="result-inner-tile">
+                    <span class="tile-label">HARD WRONG</span>
+                    <strong class="tile-value">${hardWrong}</strong>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="result-modal-panel">
-              <h5>Difficulty Split</h5>
-              <div class="detail-grid result-metric-grid result-metric-grid-3">
-                <div class="detail-item metric-card"><span>Easy Correct</span><strong>${easyCorrect}</strong></div>
-                <div class="detail-item metric-card"><span>Medium Correct</span><strong>${mediumCorrect}</strong></div>
-                <div class="detail-item metric-card"><span>Hard Correct</span><strong>${hardCorrect}</strong></div>
-                <div class="detail-item metric-card"><span>Easy Wrong</span><strong>${easyWrong}</strong></div>
-                <div class="detail-item metric-card"><span>Medium Wrong</span><strong>${mediumWrong}</strong></div>
-                <div class="detail-item metric-card"><span>Hard Wrong</span><strong>${hardWrong}</strong></div>
-              </div>
+
+            <!-- Submission Summary Banner -->
+            <div class="result-summary-banner-card">
+              <strong>Submission Summary</strong>
+              <p>${totalAnswered}/${totalQuestions} questions were answered, with ${correctAnswers} correct and ${wrongAnswers} incorrect responses.</p>
             </div>
-          </div>
-          <div class="result-modal-note">
-            <strong>Submission Summary</strong>
-            <p>${totalAnswered}/${totalQuestions} questions were answered, with ${correctAnswers} correct and ${wrongAnswers} incorrect responses.</p>
           </div>
         `,
-        foot: '<button class="btn ghost" data-close-modal type="button">Close</button>'
+        foot: '<button class="btn-modal-ghost" data-close-modal type="button">Close</button>'
       });
       return;
     }
@@ -3485,100 +3821,111 @@
       const r = rows.find((x) => x.studentId === code) || st.data.leaderboard.global.find((x) => x.studentId === code) || st.data.leaderboard.exam.find((x) => x.studentId === code);
       if (!r) return;
       const info = leaderboardBadge(r.percentage);
-      const performanceCopy = info.label === 'TOP PERFORMER'
-        ? 'You are among the top performers.'
-        : `${r.studentName} is currently ranked #${r.rank}.`;
+      const performanceCopy = `${leaderboardDisplayName(r)} is currently ranked #${r.rank}.`;
       modal({
-        kicker:'Leaderboard Student',
-        title:`${r.studentName} (#${r.studentId})`,
+        kicker: 'LEADERBOARD STUDENT',
+        title: `${leaderboardDisplayName(r)} (#${r.studentId})`,
+        titleIcon: '',
         body: `
-          <div class="leaderboard-modal-card">
-            <div class="leaderboard-modal-hero">
-              <div class="leaderboard-modal-hero-copy">
-                <div class="leaderboard-modal-kicker-row">
-                  <span class="leaderboard-modal-kicker-icon">${svg('leaderboard')}</span>
-                  <span>Leaderboard &middot; Student</span>
+          <div class="exam-ready-modal-body">
+            <div class="leaderboard-modal-main-card">
+              <div class="leaderboard-modal-hero-row">
+                <div class="leaderboard-modal-hero-left">
+                  <div class="leaderboard-modal-kicker-row">
+                    <span class="leaderboard-modal-kicker-icon svg-icon" data-icon="leaderboard"></span>
+                    <span>LEADERBOARD &middot; STUDENT</span>
+                  </div>
+                  <h4 class="leaderboard-hero-title">${leaderboardDisplayName(r)} (#${r.studentId})</h4>
+                  <p class="leaderboard-hero-desc">${performanceCopy}</p>
                 </div>
-                <h4>${leaderboardDisplayName(r)} (#${r.studentId})</h4>
-                <p>${performanceCopy}</p>
+                <div class="leaderboard-modal-illustration-wrap">
+                  <svg viewBox="0 0 320 220" class="leaderboard-modal-graphic" role="img" aria-label="">
+                    <defs>
+                      <linearGradient id="lbTrophyGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#facc15"/>
+                        <stop offset="100%" stop-color="#f59e0b"/>
+                      </linearGradient>
+                      <linearGradient id="lbTrophyBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#4f6dfc"/>
+                        <stop offset="100%" stop-color="#2563eb"/>
+                      </linearGradient>
+                    </defs>
+                    <circle cx="160" cy="92" r="64" fill="rgba(59,130,246,0.08)"/>
+                    <path d="M88 78c-2 0-4 2-4 4 0 22 14 43 35 51l3-9c-14-6-24-20-25-36h8c0-9-7-10-17-10zm144 0c10 0 17 1 17 10h8c-1 16-11 30-25 36l3 9c21-8 35-29 35-51 0-2-2-4-4-4-10 0-17 1-17 10h-17z" fill="#93c5fd" opacity="0.65"/>
+                    <rect x="114" y="148" width="92" height="22" rx="5" fill="url(#lbTrophyBlue)"/>
+                    <rect x="100" y="170" width="120" height="16" rx="4" fill="#4f46e5"/>
+                    <rect x="126" y="146" width="68" height="10" rx="4" fill="#1e3a8a"/>
+                    <path d="M134 74h52v30c0 12-10 22-22 22h-8c-12 0-22-10-22-22V74z" fill="url(#lbTrophyGold)"/>
+                    <path d="M126 82h-14c-8 0-14 6-14 14s6 14 14 14h14" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round"/>
+                    <path d="M194 82h14c8 0 14 6 14 14s-6 14-14 14h-14" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round"/>
+                    <circle cx="160" cy="94" r="11" fill="#fff7ed"/>
+                    <path d="M160 84l2.6 5.2 5.8.8-4.2 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.2-4.1 5.8-.8z" fill="#fbbf24"/>
+                  </svg>
+                </div>
               </div>
-              <div class="leaderboard-modal-illustration" aria-hidden="true">
-                <svg viewBox="0 0 320 220" class="leaderboard-modal-graphic" role="img" aria-label="">
-                  <defs>
-                    <linearGradient id="lbTrophyGold" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stop-color="#facc15"/>
-                      <stop offset="100%" stop-color="#f59e0b"/>
-                    </linearGradient>
-                    <linearGradient id="lbTrophyBlue" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stop-color="#4f6dfc"/>
-                      <stop offset="100%" stop-color="#2563eb"/>
-                    </linearGradient>
-                  </defs>
-                  <circle cx="160" cy="92" r="64" fill="rgba(59,130,246,0.08)"/>
-                  <path d="M88 78c-2 0-4 2-4 4 0 22 14 43 35 51l3-9c-14-6-24-20-25-36h8c0-9-7-10-17-10zm144 0c10 0 17 1 17 10h8c-1 16-11 30-25 36l3 9c21-8 35-29 35-51 0-2-2-4-4-4-10 0-17 1-17 10h-17z" fill="#93c5fd" opacity="0.65"/>
-                  <rect x="114" y="148" width="92" height="22" rx="5" fill="url(#lbTrophyBlue)"/>
-                  <rect x="100" y="170" width="120" height="16" rx="4" fill="#4f46e5"/>
-                  <rect x="126" y="146" width="68" height="10" rx="4" fill="#1e3a8a"/>
-                  <path d="M134 74h52v30c0 12-10 22-22 22h-8c-12 0-22-10-22-22V74z" fill="url(#lbTrophyGold)"/>
-                  <path d="M126 82h-14c-8 0-14 6-14 14s6 14 14 14h14" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round"/>
-                  <path d="M194 82h14c8 0 14 6 14 14s-6 14-14 14h-14" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round"/>
-                  <circle cx="160" cy="94" r="11" fill="#fff7ed"/>
-                  <path d="M160 84l2.6 5.2 5.8.8-4.2 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.2-4.1 5.8-.8z" fill="#fbbf24"/>
-                </svg>
+              
+              <div class="leaderboard-modal-badge-container">
+                <span class="leaderboard-center-badge badge-${leaderboardToneClass(info.tone)}">${info.label}</span>
+              </div>
+              
+              <!-- 2x3 Grid -->
+              <div class="leaderboard-stats-card-grid">
+                <div class="lb-stat-tile">
+                  <span class="svg-icon lb-stat-icon" data-icon="star"></span>
+                  <div class="lb-stat-info">
+                    <span class="lb-stat-label">RANK</span>
+                    <strong class="lb-stat-val">#${r.rank}</strong>
+                  </div>
+                </div>
+                <div class="lb-stat-tile">
+                  <span class="svg-icon lb-stat-icon" data-icon="user-outline"></span>
+                  <div class="lb-stat-info">
+                    <span class="lb-stat-label">STUDENT</span>
+                    <strong class="lb-stat-val">${leaderboardDisplayName(r)}</strong>
+                  </div>
+                </div>
+                <div class="lb-stat-tile">
+                  <span class="svg-icon lb-stat-icon" data-icon="dashboard"></span>
+                  <div class="lb-stat-info">
+                    <span class="lb-stat-label">STUDENT ID</span>
+                    <strong class="lb-stat-val">ID: ${leaderboardDisplayId(r)}</strong>
+                  </div>
+                </div>
+                <div class="lb-stat-tile">
+                  <span class="svg-icon lb-stat-icon" data-icon="results"></span>
+                  <div class="lb-stat-info">
+                    <span class="lb-stat-label">SCORE</span>
+                    <strong class="lb-stat-val">${fmtScore(r.score)}</strong>
+                  </div>
+                </div>
+                <div class="lb-stat-tile">
+                  <span class="svg-icon lb-stat-icon" data-icon="analytics"></span>
+                  <div class="lb-stat-info">
+                    <span class="lb-stat-label">PERCENTAGE</span>
+                    <strong class="lb-stat-val">${pct(r.percentage)}</strong>
+                  </div>
+                </div>
+                <div class="lb-stat-tile">
+                  <span class="svg-icon lb-stat-icon" data-icon="leaderboard"></span>
+                  <div class="lb-stat-info">
+                    <span class="lb-stat-label">MODE</span>
+                    <strong class="lb-stat-val">${st.leaderboard?.mode === 'exam' ? 'Exam Specific' : 'Global'}</strong>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Bottom Banner -->
+              <div class="leaderboard-bottom-banner">
+                <div class="lb-banner-left">
+                  <span class="svg-icon" data-icon="analytics"></span>
+                  <span class="lb-banner-text"><strong>PERFORMANCE</strong> ${leaderboardDisplayName(r)} is currently ranked #${r.rank}.</span>
+                </div>
+                <span class="leaderboard-banner-badge badge-${leaderboardToneClass(info.tone)}">${info.label}</span>
               </div>
             </div>
-            <div class="leaderboard-modal-badge ${leaderboardToneClass(info.tone)}">${info.label}</div>
-            <div class="leaderboard-modal-grid">
-              <div class="leaderboard-stat">
-                <span class="svg-icon leaderboard-stat-icon" data-icon="star"></span>
-                <div>
-                  <span>Rank</span>
-                  <strong>#${r.rank}</strong>
-                </div>
-              </div>
-              <div class="leaderboard-stat">
-                <span class="svg-icon leaderboard-stat-icon" data-icon="profile"></span>
-                <div>
-                  <span>Student</span>
-                  <strong>${leaderboardDisplayName(r)}</strong>
-                </div>
-              </div>
-              <div class="leaderboard-stat">
-                <span class="svg-icon leaderboard-stat-icon" data-icon="dashboard"></span>
-                <div>
-                  <span>Student ID</span>
-                  <strong>${leaderboardDisplayId(r)}</strong>
-                </div>
-              </div>
-              <div class="leaderboard-stat">
-                <span class="svg-icon leaderboard-stat-icon" data-icon="results"></span>
-                <div>
-                  <span>Score</span>
-                  <strong>${fmtScore(r.score)}</strong>
-                </div>
-              </div>
-              <div class="leaderboard-stat">
-                <span class="svg-icon leaderboard-stat-icon" data-icon="analytics"></span>
-                <div>
-                  <span>Percentage</span>
-                  <strong>${pct(r.percentage)}</strong>
-                </div>
-              </div>
-              <div class="leaderboard-stat">
-                <span class="svg-icon leaderboard-stat-icon" data-icon="leaderboard"></span>
-                <div>
-                  <span>Mode</span>
-                  <strong>${st.leaderboard.mode === 'global' ? 'Global' : 'Exam'}</strong>
-                </div>
-              </div>
-            </div>
-            <div class="leaderboard-modal-footer">
-              <span class="leaderboard-performance-label"><span class="svg-icon" data-icon="leaderboard"></span>Performance</span>
-              <div class="leaderboard-performance-copy">${performanceCopy}</div>
-              <strong class="performance-badge ${info.tone}">${info.label}</strong>
-            </div>
-          </div>`,
-        foot:'<button class="btn ghost" data-close-modal type="button">Close</button>'
+          </div>
+        `,
+        foot: '<button class="btn-modal-ghost" data-close-modal type="button">Close</button>'
       });
       hydrateIcons(el.detailModalBody);
       return;
@@ -3968,6 +4315,7 @@
   }
   function wire() {
     el.toggle.addEventListener('click', toggleSidebar);
+    document.getElementById('mobile-sidebar-toggle')?.addEventListener('click', toggleSidebar);
     el.logout.addEventListener('click', goLogout);
     el.profileLogout.addEventListener('click', goLogout);
     
@@ -4022,7 +4370,16 @@
     if (el.scheduleDateFilter) {
       el.scheduleDateFilter.addEventListener('change', renderSchedule);
     }
-    $$('.support-tabs .tab-btn').forEach((btn) => btn.addEventListener('click', () => setSupportTab(btn.dataset.supportTab)));
+    if (el.btnTimelineMore) {
+      el.btnTimelineMore.addEventListener('click', () => setSection('exams'));
+    }
+    $$('.support-tabs-grid .support-tab-card').forEach((btn) => btn.addEventListener('click', () => setSupportTab(btn.dataset.supportTab)));
+    if (el.faqSearch) {
+      el.faqSearch.addEventListener('input', () => renderHelpSupport());
+    }
+    if (el.btnSupportBannerAction) {
+      el.btnSupportBannerAction.addEventListener('click', () => setSupportTab('contact'));
+    }
     if (el.contactSupportForm) {
       el.contactSupportForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -4101,10 +4458,21 @@
         toast('Certificates reset', 'Certificate filters cleared.', 'info');
       }, 420);
     });
-    el.leaderboardModeButtons.forEach((btn) => btn.addEventListener('click', () => {
+    el.leaderboardModeButtons.forEach((btn) => btn.addEventListener('click', async () => {
       st.leaderboard.mode = btn.dataset.leaderboardMode || 'global';
-      renderLeaderboard();
+      if (st.leaderboard.mode === 'exam') {
+        el.leaderboardExamFilter?.classList.remove('hidden');
+        populateLeaderboardExamFilter();
+        await fetchExamLeaderboard(st.leaderboard.examCode);
+      } else {
+        el.leaderboardExamFilter?.classList.add('hidden');
+        renderLeaderboard();
+      }
     }));
+    el.leaderboardExamFilter?.addEventListener('change', async (e) => {
+      st.leaderboard.examCode = e.target.value;
+      await fetchExamLeaderboard(st.leaderboard.examCode);
+    });
     $('leaderboardSearch').addEventListener('input', renderLeaderboard);
     $('leaderboardSort').addEventListener('change', renderLeaderboard);
     $('leaderboardRefresh').addEventListener('click', (e) => {

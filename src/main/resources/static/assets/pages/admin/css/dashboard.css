@@ -4881,3 +4881,94 @@ body.admin-page .chip-btn.active {
   font-size: 0.58rem;
   color: #0f172a;
 }
+
+/* Multi-Step Stepper Layout Styles */
+.stepper-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding: 0 8px;
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.step-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  transition: all 0.25s ease;
+}
+
+.step-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all 0.25s ease;
+}
+
+.step-indicator.active .step-num {
+  background: #6366F1 !important;
+  border-color: #6366F1 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.35);
+}
+
+.step-indicator.active .step-label {
+  color: var(--text-primary) !important;
+  font-weight: 700;
+}
+
+.step-indicator.completed .step-num {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border-color: #10B981 !important;
+  color: #10B981 !important;
+}
+
+.step-indicator.completed .step-label {
+  color: #10B981 !important;
+}
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border-subtle);
+  margin: 0 16px;
+  transition: all 0.25s ease;
+}
+
+.stepper-step {
+  display: none;
+}
+
+.stepper-step.active {
+  display: block;
+  animation: stepFadeIn 0.35s ease-out;
+}
+
+@keyframes stepFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hidden {
+  display: none !important;
+}

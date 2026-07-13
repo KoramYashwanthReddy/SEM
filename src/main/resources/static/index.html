@@ -40,7 +40,6 @@
 
     <ul class="nav-links">
       <li><a href="#features">Features</a></li>
-      <li><a href="#proctoring">Proctoring</a></li>
       <li><a href="#analytics">Analytics</a></li>
       <li><a href="#certificate">Certificates</a></li>
       <li><a href="#admin">Admin</a></li>
@@ -48,33 +47,6 @@
     </ul>
 
     <div class="nav-actions">
-      <div class="theme-toggle" role="group" aria-label="Theme selector">
-        <button class="theme-btn" data-theme="dark" title="Dark mode">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-          </svg>
-        </button>
-        <button class="theme-btn" data-theme="system" title="System mode">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-            <line x1="8" y1="21" x2="16" y2="21" />
-            <line x1="12" y1="17" x2="12" y2="21" />
-          </svg>
-        </button>
-        <button class="theme-btn" data-theme="light" title="Light mode">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="5" />
-            <line x1="12" y1="1" x2="12" y2="3" />
-            <line x1="12" y1="21" x2="12" y2="23" />
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-            <line x1="1" y1="12" x2="3" y2="12" />
-            <line x1="21" y1="12" x2="23" y2="12" />
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-          </svg>
-        </button>
-      </div>
       <a href="pages/role-selection.html" class="btn btn-ghost nav-btn">Sign In</a>
       <a href="pages/signup.html" class="btn btn-primary nav-btn">Get Started</a>
     </div>
@@ -426,79 +398,7 @@
 <!-- ════════════════════════════════════════════════════════════
      AI PROCTORING
      ════════════════════════════════════════════════════════════ -->
-<section id="proctoring">
-  <div class="container">
-    <div class="proctoring-layout">
 
-      <!-- Webcam mockup -->
-      <div class="reveal-left">
-        <div class="webcam-mockup">
-          <div class="webcam-screen">
-            <div class="webcam-grid"></div>
-            <div class="student-silhouette"></div>
-            <div class="face-detect-box"></div>
-            <div class="detection-rings">
-              <div class="d-ring" style="width:60px;height:60px;"></div>
-              <div class="d-ring" style="width:100px;height:100px;"></div>
-              <div class="d-ring" style="width:140px;height:140px;"></div>
-            </div>
-          </div>
-
-          <div class="webcam-overlays">
-            <div class="webcam-badge">
-              <div class="pulse-dot" style="width:5px;height:5px;"></div>
-              LIVE · PROCTORED
-            </div>
-
-            <div class="alert-overlay">
-              <div class="alert-chip info">👁️ Face Tracked</div>
-              <div class="alert-chip warn" style="animation-delay:0.5s">⚠️ Gaze Drift</div>
-            </div>
-
-            <div class="webcam-scanline"></div>
-          </div>
-
-          <div class="webcam-toolbar">
-            <span class="webcam-status">● RECORDING · 00:23:14</span>
-            <div class="threat-score">
-              THREAT
-              <div class="threat-bar"><div class="threat-fill"></div></div>
-              <span style="font-size:10px;color:var(--accent-green);">LOW</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Alert Feed -->
-      <div class="reveal-right">
-        <div class="section-label">AI Proctoring Engine</div>
-        <h2 class="section-title">Zero Tolerance<br><span class="text-gradient">Zero Loopholes</span></h2>
-        <p class="section-subtitle" style="margin-bottom:28px;">
-          Our multi-modal AI monitors 12 behavioral signals simultaneously — from eye movement to ambient noise — with sub-second response time.
-        </p>
-
-        <div class="ws-indicator">
-          <div class="pulse-dot"></div>
-          WebSocket Connected · ws://nexam.ai/proctor · Ping: 12ms
-        </div>
-
-        <div class="alert-feed" id="alert-feed">
-          <!-- Populated by JS -->
-        </div>
-
-        <div style="margin-top:28px;display:flex;gap:12px;flex-wrap:wrap;">
-          <div class="badge">👁️ Eye Tracking</div>
-          <div class="badge purple">🔊 Noise Analysis</div>
-          <div class="badge green">🖥️ Tab Monitor</div>
-          <div class="badge">📱 Device Detect</div>
-          <div class="badge purple">🤳 Multi-Face</div>
-          <div class="badge green">⌨️ Keystroke AI</div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
 
 <!-- ════════════════════════════════════════════════════════════
      ANALYTICS

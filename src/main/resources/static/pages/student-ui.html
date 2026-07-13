@@ -20,8 +20,8 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="brand">
-          <span class="brand-badge">SEM</span>
-          <span class="brand-text">Smart Examination Monitor</span>
+          <span class="logo-icon">🧠</span>
+          <span class="brand-text">SEM</span>
         </div>
         <button id="toggle-sidebar" class="icon-btn sidebar-toggle" type="button" aria-label="Toggle sidebar">
           <span class="svg-icon" data-icon="menu"></span>
@@ -60,6 +60,11 @@
     <main class="main-content">
       <header class="top-nav">
         <div class="nav-left">
+          <button id="mobile-sidebar-toggle" class="mobile-sidebar-toggle" type="button" aria-label="Open menu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
           <div class="topbar-brand">
             <span class="topbar-kicker">Project Alpha</span>
             <span class="topbar-divider" aria-hidden="true"></span>
@@ -460,6 +465,7 @@
                 <button type="button" class="segmented-btn active" data-leaderboard-mode="global">Global</button>
                 <button type="button" class="segmented-btn" data-leaderboard-mode="exam">Exam</button>
               </div>
+              <select id="leaderboardExamFilter" class="inline-select hidden" aria-label="Select Exam"></select>
               <label class="search-wrap" aria-label="Search leaderboard">
                 <span class="search-icon svg-icon" data-icon="search"></span>
                 <input id="leaderboardSearch" class="inline-search" type="text" placeholder="Search student name..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
@@ -704,36 +710,87 @@
           <div class="section-head">
             <div class="header-titles">
               <h1 class="page-title">Exam <span class="text-gradient">Schedule</span></h1>
-              <p class="page-desc">Upcoming exams, live windows, and a timeline view organized by nearest session.</p>
+              <p class="page-desc">Upcoming exams, live windows, and timeline view organized by nearest session.</p>
             </div>
             <div class="head-actions">
-              <select id="scheduleDateFilter" class="inline-select">
+              <select id="scheduleDateFilter" class="inline-select schedule-date-select">
                 <option value="all">All Dates</option>
                 <option value="today">Today</option>
                 <option value="week">Next 7 Days</option>
               </select>
             </div>
           </div>
+
+          <!-- Schedule KPI Stats Grid -->
+          <div class="stats-grid schedule-stats-grid">
+            <div class="stat-card schedule-kpi-card" id="statTodayExams">
+              <div class="stat-icon schedule-icon-today">
+                <span class="svg-icon" data-icon="calendar"></span>
+              </div>
+              <div class="stat-copy">
+                <span class="stat-label">Today's Exams</span>
+                <span class="stat-value" id="kpiTodayCount">0</span>
+                <span class="stat-hint" id="kpiTodayDesc">No exams scheduled today</span>
+              </div>
+            </div>
+            <div class="stat-card schedule-kpi-card" id="statUpcoming">
+              <div class="stat-icon schedule-icon-upcoming">
+                <span class="svg-icon" data-icon="clock"></span>
+              </div>
+              <div class="stat-copy">
+                <span class="stat-label">Upcoming</span>
+                <span class="stat-value" id="kpiUpcomingCount">0</span>
+                <span class="stat-hint" id="kpiUpcomingDesc">No upcoming exams</span>
+              </div>
+            </div>
+            <div class="stat-card schedule-kpi-card" id="statLiveNow">
+              <div class="stat-icon schedule-icon-live">
+                <span class="svg-icon" data-icon="wifi"></span>
+              </div>
+              <div class="stat-copy">
+                <span class="stat-label">Live Now</span>
+                <span class="stat-value" id="kpiLiveCount">0</span>
+                <span class="stat-hint" id="kpiLiveDesc">No exams in progress</span>
+              </div>
+            </div>
+            <div class="stat-card schedule-kpi-card" id="statTotalScheduled">
+              <div class="stat-icon schedule-icon-total">
+                <span class="svg-icon" data-icon="alarm"></span>
+              </div>
+              <div class="stat-copy">
+                <span class="stat-label">Total Scheduled</span>
+                <span class="stat-value" id="kpiTotalCount">0</span>
+                <span class="stat-hint" id="kpiTotalDesc">Across all subjects</span>
+              </div>
+            </div>
+          </div>
+
           <div class="split-grid schedule-grid">
-            <article class="card schedule-hero">
-              <div class="card-head">
+            <article class="card schedule-hero-card">
+              <div class="card-head schedule-card-head">
                 <div>
                   <h3>Today</h3>
                   <p class="card-copy">Your nearest scheduled exams with countdown awareness.</p>
                 </div>
-                <span class="tag neutral" id="scheduleTodayLabel">0 exams today</span>
+                <span class="tag schedule-today-badge" id="scheduleTodayBadge">0 Exams Today</span>
               </div>
-              <div class="scroll-panel schedule-list" id="scheduleList"></div>
+              <div class="scroll-panel schedule-list-container" id="scheduleList"></div>
             </article>
-            <article class="card schedule-hero">
-              <div class="card-head">
+            <article class="card schedule-hero-card">
+              <div class="card-head schedule-card-head">
                 <div>
                   <h3>Timeline</h3>
                   <p class="card-copy">A compact execution view for the next exam windows.</p>
                 </div>
-                <span class="tag success">Ordered</span>
+                <span class="tag schedule-timeline-badge">Ordered by Time <span class="sort-arrows">⇅</span></span>
               </div>
-              <div class="scroll-panel timeline-list" id="scheduleTimeline"></div>
+              <div class="scroll-panel timeline-list-container" id="scheduleTimeline"></div>
+              <div class="timeline-footer">
+                <button type="button" class="btn-timeline-more" id="btnTimelineMore">
+                  <span>View Full Timeline</span>
+                  <span class="arrow-right">→</span>
+                </button>
+              </div>
             </article>
           </div>
         </section>
@@ -744,28 +801,64 @@
               <h1 class="page-title">Proctoring <span class="text-gradient">Status</span></h1>
               <p class="page-desc">Live device, environment, and identity checks for the active session.</p>
             </div>
+            <div class="head-actions">
+              <button class="btn-proctoring-info" id="proctoringInfoBtn" type="button">
+                <span class="svg-icon" data-icon="info"></span>
+                <span>Session Info</span>
+              </button>
+            </div>
           </div>
+          
           <div class="split-grid proctoring-grid">
-            <article class="card proctoring-summary">
-              <div class="card-head">
-                <div>
-                  <h3>Monitoring Status</h3>
-                  <p class="card-copy">Enterprise proctoring controls are displayed below.</p>
+            <article class="card proctoring-card proctoring-left-card">
+              <div class="card-head proctoring-card-head">
+                <div class="proctoring-title-area">
+                  <div class="proctoring-header-icon bg-icon-light-green">
+                    <span class="svg-icon" data-icon="monitor-check"></span>
+                  </div>
+                  <div>
+                    <h3>Monitoring Status</h3>
+                    <p class="card-copy">Enterprise proctoring controls are displayed below.</p>
+                  </div>
                 </div>
-                <span class="tag success">AI monitoring active</span>
+                <span class="tag success proctoring-status-tag">AI MONITORING ACTIVE</span>
               </div>
-              <div class="status-grid" id="proctoringStatusGrid"></div>
+              <div class="status-grid proctoring-status-grid" id="proctoringStatusGrid"></div>
+              <div class="proctoring-banner-area" id="proctoringStatusBanner"></div>
             </article>
-            <article class="card proctoring-summary">
-              <div class="card-head">
-                <div>
-                  <h3>Session Summary</h3>
-                  <p class="card-copy">Identity enforcement and violation tracking.</p>
+
+            <article class="card proctoring-card proctoring-right-card">
+              <div class="card-head proctoring-card-head">
+                <div class="proctoring-title-area">
+                  <div class="proctoring-header-icon bg-icon-light-blue">
+                    <span class="svg-icon" data-icon="pulse"></span>
+                  </div>
+                  <div>
+                    <h3>Session Summary</h3>
+                    <p class="card-copy">Identity enforcement and violation tracking.</p>
+                  </div>
                 </div>
-                <span class="tag neutral">Live pulse</span>
+                <span class="tag info proctoring-status-tag">LIVE PULSE</span>
               </div>
               <div class="proctoring-summary-panel" id="proctoringSummaryPanel"></div>
             </article>
+          </div>
+
+          <!-- Bottom Full Width Proctoring Banner -->
+          <div class="proctoring-footer-banner">
+            <div class="footer-banner-left">
+              <div class="footer-banner-icon">
+                <span class="svg-icon" data-icon="shield"></span>
+              </div>
+              <div class="footer-banner-text">
+                <strong>Why we monitor?</strong>
+                <p>We use advanced AI proctoring to ensure a fair and secure exam experience for everyone.</p>
+              </div>
+            </div>
+            <button type="button" class="btn-proctoring-learn" id="btnProctoringLearn">
+              <span>Learn more about proctoring</span>
+              <span class="arrow-right">→</span>
+            </button>
           </div>
         </section>
 
@@ -776,7 +869,9 @@
               <p class="page-desc">Self-service support, guided FAQs, and secure reporting in one place.</p>
             </div>
           </div>
+          
           <div class="support-layout">
+            <!-- Category Selector Card -->
             <article class="card support-card">
               <div class="card-head">
                 <div>
@@ -784,35 +879,175 @@
                   <p class="card-copy">Switch between FAQ, contact, and issue workflows.</p>
                 </div>
               </div>
-              <div class="tab-group support-tabs" role="tablist" aria-label="Help categories">
-                <button class="tab-btn active" data-support-tab="faq" type="button">FAQ</button>
-                <button class="tab-btn" data-support-tab="contact" type="button">Contact Support</button>
-                <button class="tab-btn" data-support-tab="report" type="button">Report Issue</button>
-              </div>
-              <div class="support-tab-panels">
-                <div class="support-panel active" data-support-panel="faq">
-                  <div id="faqAccordion" class="faq-accordion"></div>
-                </div>
-                <div class="support-panel" data-support-panel="contact">
-                  <form id="contactSupportForm" class="support-form">
-                    <label class="verification-field"><span>Subject</span><input name="subject" type="text" placeholder="Short summary" required><p class="field-error" data-error-for="subject"></p></label>
-                    <label class="verification-field"><span>Issue Type</span><select name="issueType" class="inline-select" required><option value="">Select type</option><option value="exam">Exam</option><option value="account">Account</option><option value="certificate">Certificate</option><option value="technical">Technical</option></select><p class="field-error" data-error-for="issueType"></p></label>
-                    <label class="verification-field support-textarea"><span>Description</span><textarea name="description" rows="5" placeholder="Describe the issue clearly" required></textarea><p class="field-error" data-error-for="description"></p></label>
-                    <label class="verification-field"><span>Priority</span><select name="priority" class="inline-select" required><option value="">Select priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select><p class="field-error" data-error-for="priority"></p></label>
-                    <div class="support-form-actions"><button class="btn primary" type="submit">Submit Request</button></div>
-                  </form>
-                </div>
-                <div class="support-panel" data-support-panel="report">
-                  <form id="reportIssueForm" class="support-form">
-                    <label class="verification-field"><span>Subject</span><input name="subject" type="text" placeholder="Issue subject" required><p class="field-error" data-error-for="subject"></p></label>
-                    <label class="verification-field"><span>Priority</span><select name="priority" class="inline-select" required><option value="">Select priority</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select><p class="field-error" data-error-for="priority"></p></label>
-                    <label class="verification-field support-textarea"><span>Description</span><textarea name="description" rows="5" placeholder="Explain the issue with context" required></textarea><p class="field-error" data-error-for="description"></p></label>
-                    <label class="verification-field"><span>Attachment</span><input name="attachment" type="file" accept=".png,.jpg,.jpeg,.pdf,.txt"><p class="field-error" data-error-for="attachment"></p></label>
-                    <div class="support-form-actions"><button class="btn primary" type="submit">Report Issue</button></div>
-                  </form>
-                </div>
+              
+              <div class="support-tabs-grid" role="tablist" aria-label="Help categories">
+                <button class="support-tab-card active" data-support-tab="faq" type="button">
+                  <div class="tab-card-icon bg-circle-blue">
+                    <span class="svg-icon" data-icon="help"></span>
+                  </div>
+                  <div class="tab-card-text">
+                    <strong>FAQ</strong>
+                    <span>Find answers quickly</span>
+                  </div>
+                </button>
+                <button class="support-tab-card" data-support-tab="contact" type="button">
+                  <div class="tab-card-icon bg-circle-green">
+                    <span class="svg-icon" data-icon="chat"></span>
+                  </div>
+                  <div class="tab-card-text">
+                    <strong>Contact Support</strong>
+                    <span>Get help from our team</span>
+                  </div>
+                </button>
+                <button class="support-tab-card" data-support-tab="report" type="button">
+                  <div class="tab-card-icon bg-circle-orange">
+                    <span class="svg-icon" data-icon="warning"></span>
+                  </div>
+                  <div class="tab-card-text">
+                    <strong>Report Issue</strong>
+                    <span>Report a problem</span>
+                  </div>
+                </button>
               </div>
             </article>
+
+            <!-- FAQ Panel (Card) -->
+            <div class="support-tab-panels">
+              <div class="support-panel active" data-support-panel="faq">
+                <article class="card faq-container-card">
+                  <div class="faq-header-bar">
+                    <div class="faq-header-left">
+                      <h3>Frequently Asked Questions</h3>
+                      <span class="tag info faq-topic-badge">12 Topics</span>
+                    </div>
+                    <label class="faq-search-wrap" aria-label="Search FAQs">
+                      <span class="search-icon svg-icon" data-icon="search"></span>
+                      <input id="faqSearch" type="text" placeholder="Search FAQs..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                    </label>
+                  </div>
+                  <div id="faqAccordion" class="faq-accordion"></div>
+                </article>
+              </div>
+              
+              <div class="support-panel" data-support-panel="contact">
+                <article class="card support-form-card">
+                  <div class="card-head">
+                    <div>
+                      <h3>Contact Support</h3>
+                      <p class="card-copy">Submit a direct inquiry to our student success team.</p>
+                    </div>
+                  </div>
+                  <form id="contactSupportForm" class="support-form proctoring-style-form">
+                    <div class="form-row-two-col">
+                      <div class="form-field-card">
+                        <label class="form-field-label">SUBJECT</label>
+                        <input name="subject" type="text" placeholder="Short summary" required class="form-field-input">
+                        <p class="field-error" data-error-for="subject"></p>
+                      </div>
+                      <div class="form-field-card">
+                        <label class="form-field-label">ISSUE TYPE</label>
+                        <select name="issueType" class="form-field-select" required>
+                          <option value="">Select type</option>
+                          <option value="exam">Exam</option>
+                          <option value="account">Account</option>
+                          <option value="certificate">Certificate</option>
+                          <option value="technical">Technical</option>
+                        </select>
+                        <p class="field-error" data-error-for="issueType"></p>
+                      </div>
+                    </div>
+                    
+                    <div class="form-field-card full-width">
+                      <label class="form-field-label">DESCRIPTION</label>
+                      <textarea name="description" rows="5" placeholder="Describe the issue clearly" required class="form-field-textarea"></textarea>
+                      <p class="field-error" data-error-for="description"></p>
+                    </div>
+                    
+                    <div class="form-row-half-width">
+                      <div class="form-field-card">
+                        <label class="form-field-label">PRIORITY</label>
+                        <select name="priority" class="form-field-select" required>
+                          <option value="">Select priority</option>
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                        <p class="field-error" data-error-for="priority"></p>
+                      </div>
+                    </div>
+                    
+                    <div class="form-actions-right">
+                      <button class="btn-form-submit" type="submit">Submit Request</button>
+                    </div>
+                  </form>
+                </article>
+              </div>
+              
+              <div class="support-panel" data-support-panel="report">
+                <article class="card support-form-card">
+                  <div class="card-head">
+                    <div>
+                      <h3>Report Issue</h3>
+                      <p class="card-copy">Flag any system failures or security vulnerabilities.</p>
+                    </div>
+                  </div>
+                  <form id="reportIssueForm" class="support-form proctoring-style-form">
+                    <div class="form-row-two-col">
+                      <div class="form-field-card">
+                        <label class="form-field-label">SUBJECT</label>
+                        <input name="subject" type="text" placeholder="Issue subject" required class="form-field-input">
+                        <p class="field-error" data-error-for="subject"></p>
+                      </div>
+                      <div class="form-field-card">
+                        <label class="form-field-label">PRIORITY</label>
+                        <select name="priority" class="form-field-select" required>
+                          <option value="">Select priority</option>
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                        <p class="field-error" data-error-for="priority"></p>
+                      </div>
+                    </div>
+                    
+                    <div class="form-field-card full-width">
+                      <label class="form-field-label">DESCRIPTION</label>
+                      <textarea name="description" rows="5" placeholder="Explain the issue with context" required class="form-field-textarea"></textarea>
+                      <p class="field-error" data-error-for="description"></p>
+                    </div>
+
+                    <div class="form-row-half-width">
+                      <div class="form-field-card">
+                        <label class="form-field-label">ATTACHMENT</label>
+                        <input name="attachment" type="file" accept=".png,.jpg,.jpeg,.pdf,.txt" class="form-field-file">
+                        <p class="field-error" data-error-for="attachment"></p>
+                      </div>
+                    </div>
+                    
+                    <div class="form-actions-right">
+                      <button class="btn-form-submit" type="submit">Report Issue</button>
+                    </div>
+                  </form>
+                </article>
+              </div>
+            </div>
+
+            <!-- Bottom Support Banner -->
+            <div class="support-footer-banner">
+              <div class="footer-banner-left">
+                <div class="footer-banner-icon bg-circle-blue">
+                  <span class="svg-icon" data-icon="headphones"></span>
+                </div>
+                <div class="footer-banner-text">
+                  <strong>Still need help?</strong>
+                  <p>Our support team is here to assist you with any issues.</p>
+                </div>
+              </div>
+              <button type="button" class="btn-support-banner-action" id="btnSupportBannerAction">
+                <span>Contact Support</span>
+                <span class="arrow-right">→</span>
+              </button>
+            </div>
           </div>
         </section>
       </div>
@@ -828,14 +1063,17 @@
   </div>
 
   <div class="modal-backdrop hidden" id="detailModal" aria-hidden="true">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle">
-      <div class="modal-head">
-        <div>
-          <p class="panel-kicker" id="detailModalKicker">Student Detail</p>
-          <h3 id="detailModalTitle">Details</h3>
+    <div class="modal-card detail-modal-card" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle">
+      <div class="modal-head detail-modal-head">
+        <div class="modal-header-left">
+          <div class="modal-title-icon" id="detailModalTitleIcon"></div>
+          <div class="modal-title-text">
+            <p class="panel-kicker" id="detailModalKicker">Student Detail</p>
+            <h3 id="detailModalTitle">Details</h3>
+          </div>
         </div>
-        <button class="icon-btn" id="detailModalClose" type="button" aria-label="Close modal">
-          <span class="svg-icon" data-icon="logout"></span>
+        <button class="modal-close-x" id="detailModalCloseBtn" type="button" aria-label="Close modal">
+          <span class="close-x-char">&times;</span>
         </button>
       </div>
       <div class="modal-body" id="detailModalBody"></div>

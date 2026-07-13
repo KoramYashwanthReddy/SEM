@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    ADMIN DASHBOARD CORE LOGIC
    ============================================================ */
 
@@ -992,6 +992,9 @@ window.handleActionBtn = async function(btn, normalText, processingText, success
 window.openModal = function(id) { 
     const el = document.getElementById(id);
     if(el) el.classList.add('open', 'active'); 
+    if(id === 'addTeacherModal') {
+        resetTeacherStepper();
+    }
 };
 window.closeModal = function(id) { 
     const el = document.getElementById(id);
@@ -1005,6 +1008,101 @@ window.closeModalOutside = function(event, id) {
         closeModal(id);
     }
 };
+
+let currentTeacherStep = 1;
+
+window.resetTeacherStepper = function() {
+    currentTeacherStep = 1;
+    showTeacherStep(1);
+    
+    // Clear old errors on first open
+    document.querySelectorAll('#createTeacherForm .form-control').forEach(input => {
+        setError(input.id, false);
+    });
+};
+
+window.showTeacherStep = function(step) {
+    currentTeacherStep = step;
+    
+    // Hide all steps, show active
+    document.querySelectorAll('#createTeacherForm .stepper-step').forEach(el => {
+        el.classList.toggle('active', parseInt(el.dataset.step) === step);
+    });
+    
+    // Update step indicator header
+    document.querySelectorAll('#addTeacherModal .step-indicator').forEach(el => {
+        const stepNum = parseInt(el.dataset.step);
+        el.classList.toggle('active', stepNum === step);
+        el.classList.toggle('completed', stepNum < step);
+    });
+    
+    // Show/hide buttons
+    const prevBtn = document.querySelector('#createTeacherForm .btn-prev');
+    const nextBtn = document.querySelector('#createTeacherForm .btn-next');
+    const submitBtn = document.querySelector('#createTeacherForm .btn-submit');
+    
+    if (prevBtn) prevBtn.classList.toggle('hidden', step === 1);
+    if (nextBtn) nextBtn.classList.toggle('hidden', step === 4);
+    if (submitBtn) submitBtn.classList.toggle('hidden', step !== 4);
+};
+
+window.nextTeacherStep = function() {
+    if (validateTeacherStep(currentTeacherStep)) {
+        showTeacherStep(currentTeacherStep + 1);
+    }
+};
+
+window.prevTeacherStep = function() {
+    showTeacherStep(currentTeacherStep - 1);
+};
+
+function validateTeacherStep(step) {
+    const val = (id) => document.getElementById(id)?.value?.trim() || '';
+    const check = (id, condition) => {
+        const isOk = condition;
+        setError(id, !isOk);
+        return isOk;
+    };
+
+    if (step === 1) {
+        const name = val('t-name');
+        const email = val('t-email');
+        const pwd = val('t-pwd');
+        
+        let valid = true;
+        if (!check('t-name', name.length >= 3)) valid = false;
+        
+        const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        if (!check('t-email', isEmailValid)) valid = false;
+        
+        const tId = val('t-id');
+        const isEdit = tId !== '';
+        if (!isEdit && !check('t-pwd', pwd.length >= 6)) valid = false;
+        
+        return valid;
+    }
+    
+    if (step === 2) {
+        const phone = val('t-phone');
+        const empid = val('t-empid');
+        
+        let valid = true;
+        if (!check('t-phone', phone === '' || /^\d{10}$/.test(phone))) valid = false;
+        
+        const isEmpIdUnique = empid === '' || empid !== 'EMP-0000';
+        if (!check('t-empid', isEmpIdUnique)) valid = false;
+        
+        return valid;
+    }
+    
+    if (step === 3) {
+        const expStr = val('t-exp');
+        const exp = parseFloat(expStr);
+        return check('t-exp', expStr === '' || (!isNaN(exp) && exp >= 0));
+    }
+    
+    return true;
+}
 
 window.showToast = function(msg) {
     const container = document.getElementById('toastContainer');
