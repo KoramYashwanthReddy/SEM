@@ -4590,7 +4590,7 @@ body.student-page.student-contrast .modal-card {
   border-radius: 999px;
   background: #22c55e;
   box-shadow: 0 0 0 0 rgba(34,197,94,0.3);
-  animation: pulseGlow 2s infinite;
+  animation: none;
 }
 
 .support-tabs {
@@ -5144,7 +5144,7 @@ body.student-page #help-support .support-form-actions .btn {
   font-weight: 900;
   letter-spacing: 0.03em;
   box-shadow: 0 10px 18px rgba(59,130,246,0.08);
-  animation: timePulse 2.8s ease-in-out infinite;
+  animation: none;
 }
 
 .time-remaining-badge svg {
@@ -17624,4 +17624,531 @@ body.student-page .side-nav .nav-link.active .nav-icon {
   border: 1px solid var(--card-border) !important;
   padding: 4px 12px !important;
   border-radius: 99px !important;
+}
+
+/* Exam Detail Modal Stages Timeline & Rules Styles */
+.stages-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 16px;
+  margin-bottom: 24px;
+  position: relative;
+  text-align: left;
+}
+
+.timeline-step {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  position: relative;
+}
+
+.stages-timeline::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  bottom: 14px;
+  width: 2px;
+  background: var(--border-subtle);
+  z-index: 0;
+}
+
+.step-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #6366F1;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  z-index: 1;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.25);
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-content h5 {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  margin: 0 0 4px 0 !important;
+  color: var(--text-primary) !important;
+}
+
+.step-content p {
+  font-size: 12.5px !important;
+  color: var(--text-secondary) !important;
+  margin: 0 !important;
+  line-height: 1.5 !important;
+}
+
+.stages-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+  text-align: left;
+}
+
+.rules-card {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.rules-card h6 {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: var(--text-primary) !important;
+  margin: 0 0 12px 0 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.6px !important;
+}
+
+.rules-card ul {
+  margin: 0 !important;
+  padding-left: 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  list-style-type: disc !important;
+}
+
+.rules-card li {
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.5 !important;
+}
+
+.rules-card strong {
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+}
+
+/* Disable card/button transforms on hover to prevent shaking/blinking loops */
+body.student-page .exam-card:hover,
+body.student-page #exams .exam-card:hover,
+body.student-page #my-exams .exam-card:hover,
+body.student-page .card:hover,
+body.student-page .btn:hover,
+body.student-page .podium-card:hover,
+body.student-page .stat-card:hover,
+body.student-page button:hover {
+  transform: none !important;
+}
+
+body.student-page #exams .exam-card,
+body.student-page #my-exams .exam-card,
+body.student-page #exams .exam-card *,
+body.student-page #my-exams .exam-card * {
+  animation: none !important;
+}
+
+body.student-page #exams .exam-card,
+body.student-page #my-exams .exam-card,
+body.student-page #exams .exam-card-shell,
+body.student-page #my-exams .exam-card-shell {
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease !important;
+  transform: none !important;
+}
+
+body.student-page #exams .exam-card:hover,
+body.student-page #my-exams .exam-card:hover,
+body.student-page #exams .exam-card:hover .exam-card-shell,
+body.student-page #my-exams .exam-card:hover .exam-card-shell {
+  transform: none !important;
+}
+
+/* ============================================================
+   STUDENT PROFILE - ENTERPRISE ACCOUNT VIEW
+   ============================================================ */
+
+body.student-page #profile .section-head {
+  align-items: flex-start;
+  margin-bottom: 22px;
+}
+
+body.student-page #profile .head-actions .btn {
+  min-height: 38px;
+  border-radius: 10px;
+  gap: 8px;
+  font-weight: 800;
+  border: 1px solid #d8e2f2;
+  background: #f8fbff;
+  color: #0f172a;
+}
+
+body.student-page #profile .head-actions .btn .svg-icon {
+  width: 15px;
+  height: 15px;
+  color: #2563eb;
+}
+
+body.student-page #profile .student-profile-layout {
+  display: grid;
+  grid-template-columns: 292px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+body.student-page #profile .student-profile-rail {
+  display: grid;
+  gap: 14px;
+}
+
+body.student-page #profile .student-profile-card,
+body.student-page #profile .student-profile-account,
+body.student-page #profile .student-profile-details {
+  border: 1px solid #dbe7f6;
+  background: #ffffff;
+  box-shadow: 0 14px 38px rgba(15, 23, 42, 0.06);
+}
+
+body.student-page #profile .student-profile-card,
+body.student-page #profile .student-profile-account {
+  border-radius: 22px;
+  padding: 22px;
+}
+
+body.student-page #profile .student-profile-card {
+  text-align: center;
+}
+
+body.student-page #profile .student-profile-photo {
+  width: 112px;
+  height: 112px;
+  margin: 0 auto 16px;
+  position: relative;
+  border-radius: 24px;
+  overflow: visible;
+  background: #eef4ff;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.14);
+}
+
+body.student-page #profile .student-profile-photo img {
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  object-fit: cover;
+  display: block;
+  border: 1px solid #cfe0f6;
+}
+
+body.student-page #profile .student-profile-status {
+  position: absolute;
+  top: 6px;
+  right: -8px;
+  min-height: 24px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #dffaf0;
+  color: #009b68;
+  border: 1px solid #99eacb;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+body.student-page #profile .student-profile-status.is-pending {
+  background: #fff7df;
+  color: #a16207;
+  border-color: #fde68a;
+}
+
+body.student-page #profile .student-profile-card h2 {
+  margin: 0;
+  font-size: 25px;
+  line-height: 1.1;
+  font-weight: 900;
+  color: #06152f;
+}
+
+body.student-page #profile .student-profile-card p {
+  margin: 6px 0 18px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+body.student-page #profile .student-profile-quick {
+  display: grid;
+  gap: 10px;
+  text-align: left;
+}
+
+body.student-page #profile .student-profile-quick > span {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: #475569;
+  font-size: 13px;
+}
+
+body.student-page #profile .student-profile-quick .svg-icon {
+  width: 16px;
+  height: 16px;
+  color: #64748b;
+}
+
+body.student-page #profile .student-profile-quick strong {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+body.student-page #profile .student-profile-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  color: #06152f;
+}
+
+body.student-page #profile .student-profile-card-title .svg-icon {
+  width: 22px;
+  height: 22px;
+  color: #2563eb;
+}
+
+body.student-page #profile .student-profile-card-title h3,
+body.student-page #profile .student-details-head h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.1;
+  font-weight: 900;
+  color: #06152f;
+}
+
+body.student-page #profile .student-account-list {
+  display: grid;
+}
+
+body.student-page #profile .student-account-list div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+  border-top: 1px solid #dbe7f6;
+  font-size: 12px;
+}
+
+body.student-page #profile .student-account-list span {
+  color: #53657d;
+  font-weight: 600;
+}
+
+body.student-page #profile .student-account-list strong {
+  color: #06152f;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+body.student-page #profile .student-status-pill {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #dffaf0;
+  border: 1px solid #99eacb;
+  color: #009b68 !important;
+}
+
+body.student-page #profile .student-status-pill.is-pending {
+  background: #fff7df;
+  border-color: #fde68a;
+  color: #a16207 !important;
+}
+
+body.student-page #profile .student-profile-details {
+  border-radius: 24px;
+  padding: 26px 20px 20px;
+}
+
+body.student-page #profile .student-details-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 22px 16px;
+  border-bottom: 1px solid #dbe7f6;
+}
+
+body.student-page #profile .student-details-icon,
+body.student-page #profile .student-detail-icon {
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #eff5ff;
+  color: #2563eb;
+}
+
+body.student-page #profile .student-details-icon {
+  width: 50px;
+  height: 50px;
+}
+
+body.student-page #profile .student-details-icon .svg-icon,
+body.student-page #profile .student-detail-icon {
+  width: 20px;
+  height: 20px;
+}
+
+body.student-page #profile .student-details-head p {
+  margin: 6px 0 0;
+  color: #53657d;
+  font-size: 13px;
+}
+
+body.student-page #profile .student-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body.student-page #profile .student-detail-item {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-height: 65px;
+  padding: 12px 22px;
+  border-bottom: 1px solid #dbe7f6;
+}
+
+body.student-page #profile .student-detail-item:nth-child(odd) {
+  border-right: 1px solid #dbe7f6;
+}
+
+body.student-page #profile .student-detail-item.is-highlight {
+  background: #edf4ff;
+}
+
+body.student-page #profile .student-detail-icon {
+  width: 34px;
+  height: 34px;
+}
+
+body.student-page #profile .student-detail-item span:not(.svg-icon) {
+  display: block;
+  margin-bottom: 4px;
+  color: #53657d;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+body.student-page #profile .student-detail-item strong {
+  display: block;
+  color: #06152f;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+body.student-page #profile .student-profile-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 0;
+  padding: 14px 22px;
+  background: #f3f7fd;
+  color: #37516e;
+}
+
+body.student-page #profile .student-profile-note .svg-icon {
+  width: 16px;
+  height: 16px;
+  color: #2563eb;
+}
+
+body.student-page #profile .student-profile-note p {
+  margin: 0;
+  font-size: 12px;
+}
+
+body.student-page #profile .student-profile-hidden-form {
+  display: none !important;
+}
+
+body.student-page .profile-editor-card .profile-editor-form select {
+  min-height: 48px;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  padding: 0 14px;
+  font: inherit;
+}
+
+@media (max-width: 1120px) {
+  body.student-page #profile .student-profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  body.student-page #profile .student-profile-rail {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  body.student-page #profile .section-head,
+  body.student-page #profile .head-actions {
+    align-items: stretch;
+  }
+
+  body.student-page #profile .head-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  body.student-page #profile .student-profile-rail,
+  body.student-page #profile .student-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body.student-page #profile .student-detail-item:nth-child(odd) {
+    border-right: 0;
+  }
+}
+
+html[data-theme="dark"] body.student-page #profile .student-profile-card,
+html[data-theme="dark"] body.student-page #profile .student-profile-account,
+html[data-theme="dark"] body.student-page #profile .student-profile-details {
+  background: #10131a;
+  border-color: rgba(148, 163, 184, 0.22);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] body.student-page #profile .student-profile-card h2,
+html[data-theme="dark"] body.student-page #profile .student-profile-card-title,
+html[data-theme="dark"] body.student-page #profile .student-profile-card-title h3,
+html[data-theme="dark"] body.student-page #profile .student-details-head h2,
+html[data-theme="dark"] body.student-page #profile .student-detail-item strong,
+html[data-theme="dark"] body.student-page #profile .student-account-list strong {
+  color: #f8fafc;
+}
+
+html[data-theme="dark"] body.student-page #profile .student-profile-quick span,
+html[data-theme="dark"] body.student-page #profile .student-details-head p,
+html[data-theme="dark"] body.student-page #profile .student-detail-item span:not(.svg-icon),
+html[data-theme="dark"] body.student-page #profile .student-account-list span {
+  color: #a8b3c7;
+}
+
+html[data-theme="dark"] body.student-page #profile .student-details-head,
+html[data-theme="dark"] body.student-page #profile .student-detail-item,
+html[data-theme="dark"] body.student-page #profile .student-account-list div {
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+html[data-theme="dark"] body.student-page #profile .student-detail-item.is-highlight,
+html[data-theme="dark"] body.student-page #profile .student-profile-note {
+  background: rgba(37, 99, 235, 0.12);
 }

@@ -171,7 +171,7 @@
         passFilter: 'all-exams',
         mixFilter: 'all-exams'
       },
-      profile: load(K.p, { fullName:'', email:'', phone:'', collegeName:'', department:'', year:'', rollNumber:'', section:'' }),
+      profile: load(K.p, { fullName:'', email:'', phone:'', collegeName:'', department:'', year:'', rollNumber:'', section:'', gender:'', dateOfBirth:'', profileCompleted:false }),
     settings: load(K.s, { emailAlerts:true, examReminders:true, compactDensity:false, highContrast:false }),
     examRegistration: load(K.er, {}),
     examSessions: load(K.es, {}),
@@ -181,7 +181,6 @@
     examUi: {
       minuteToken: '',
       secondToken: '',
-      countdownTimer: null,
       activeCode: null,
       mode: 'start',
       step: 1,
@@ -236,7 +235,10 @@
       year: profile.year || st.profile.year || '',
       rollNumber: profile.rollNumber || st.profile.rollNumber || '',
       section: profile.section || st.profile.section || '',
-      profilePhoto: profile.profilePhoto || st.profile.profilePhoto || ''
+      gender: profile.gender || st.profile.gender || '',
+      dateOfBirth: profile.dateOfBirth || st.profile.dateOfBirth || '',
+      profilePhoto: profile.profilePhoto || st.profile.profilePhoto || '',
+      profileCompleted: Boolean(profile.profileCompleted ?? st.profile.profileCompleted)
     };
 
     const dashboard = payload.dashboard || {};
@@ -448,6 +450,7 @@
     profile:'<svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>',
     analytics:'<svg viewBox="0 0 24 24"><path d="M5 19V5"/><path d="M5 19h14"/><path d="M8 16v-4M12 16V8M16 16v-6"/></svg>',
     settings:'<svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5z"/><path d="M19.4 15a1.8 1.8 0 0 0 .4 2l.1.1-1.8 3.1-.1-.1a1.8 1.8 0 0 0-2-.4l-.3.1a1.8 1.8 0 0 0-1.1 1.6V22H9.4v-.6a1.8 1.8 0 0 0-1.1-1.6l-.3-.1a1.8 1.8 0 0 0-2 .4l-.1.1L4.1 17l.1-.1a1.8 1.8 0 0 0 .4-2l-.1-.3A1.8 1.8 0 0 0 2.9 13H2V11h.6a1.8 1.8 0 0 0 1.6-1.1l.1-.3a1.8 1.8 0 0 0-.4-2l-.1-.1L5.6 4.4l.1.1a1.8 1.8 0 0 0 2 .4l.3-.1A1.8 1.8 0 0 0 9.1 3.2V2h5.8v.6a1.8 1.8 0 0 0 1.1 1.6l.3.1a1.8 1.8 0 0 0 2-.4l.1-.1L20.9 7l-.1.1a1.8 1.8 0 0 0-.4 2l.1.3A1.8 1.8 0 0 0 21.1 11h.9v2h-.6a1.8 1.8 0 0 0-1.6 1.1z"/></svg>',
+    phone:'<svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></svg>',
     logout:'<svg viewBox="0 0 24 24"><path d="M10 17l-1.5-1.5L11 13H4V11h7l-2.5-2.5L10 7l5 5z"/><path d="M20 4v16H9"/></svg>',
     star:'<svg viewBox="0 0 24 24"><path d="m12 3 2.9 6 6.6.9-4.8 4.7 1.1 6.6-5.8-3.1-5.8 3.1 1.1-6.6-4.8-4.7 6.6-.9z"/></svg>',
     calendar:'<svg viewBox="0 0 24 24"><path d="M7 3v3M17 3v3"/><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01"/></svg>',
@@ -834,6 +837,56 @@
       btn.setAttribute('aria-expanded', 'true');
     }
   }
+  function formatExamDescription(desc) {
+    if (!desc) return '<p>No description available.</p>';
+    if (desc.includes('Phase 1') || desc.includes('Phase 2')) {
+      return `
+        <div class="stages-timeline">
+          <div class="timeline-step">
+            <div class="step-badge">1</div>
+            <div class="step-content">
+              <h5>Phase 1: Registration Window</h5>
+              <p>Opens far in advance (e.g., 2+ days prior) at T-24h. Closed automatically when registration closes.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="step-badge">2</div>
+            <div class="step-content">
+              <h5>Phase 2: Verification Window</h5>
+              <p>Opens 1-2 hours before start, closing ~60 mins prior. Requires facial/identity validation.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="step-badge">3</div>
+            <div class="step-content">
+              <h5>Live Exam Access</h5>
+              <p>Opens immediately at scheduled start. Proctoring is active and logs violations in real time.</p>
+            </div>
+          </div>
+        </div>
+        <div class="stages-rules-grid">
+          <div class="rules-card">
+            <h6>Time Windows</h6>
+            <ul>
+              <li><strong>&gt; 24 hours:</strong> Opens at T-24h</li>
+              <li><strong>2 - 24 hours:</strong> Opens immediately</li>
+              <li><strong>1 - 2 hours:</strong> Opens immediately, closes in ~60m</li>
+            </ul>
+          </div>
+          <div class="rules-card">
+            <h6>Active Triggers</h6>
+            <ul>
+              <li><strong>Skipped:</strong> Phase 2 active immediately</li>
+              <li><strong>T-1h past:</strong> Live active right away</li>
+              <li><strong>At exam start:</strong> Registration closed</li>
+            </ul>
+          </div>
+        </div>
+      `;
+    }
+    return `<p>${escapeHtml(desc)}</p>`;
+  }
+
   function openExamDetailModal(exam) {
     const totalQuestions = toNumber(exam?.totalQuestions, toNumber(exam?.easyQuestionCount) + toNumber(exam?.mediumQuestionCount) + toNumber(exam?.difficultQuestionCount));
     const state = examRuntimeState(exam);
@@ -904,10 +957,11 @@
           ${sessionSummary}
           </div>
           <div class="result-modal-note exam-detail-note">
-            <strong>Description</strong>
-            <p>${exam.description || 'No description available.'}</p>
+            <strong>Exam Stages & Description</strong>
+            <div class="description-content">${formatExamDescription(exam.description)}</div>
           </div>
         </div>
+      </div>
       `,
       foot: `
         ${detailAction && !detailAction.disabled && detailAction.action !== 'exam-detail'
@@ -983,14 +1037,6 @@
         <span>${label}</span>
       </div>
     `).join('');
-  }
-  function startCountdownTimer() {
-    if (st.examUi.countdownTimer) return;
-    st.examUi.countdownTimer = setInterval(() => {
-      if (st.sec === 'exams') renderExamCatalog();
-      if (st.sec === 'my-exams') renderMyExams();
-      if (st.sec === 'schedule') renderSchedule();
-    }, 1000);
   }
   const sortExamStartAsc = (a, b) => getExamDate(a).getTime() - getExamDate(b).getTime();
   const sortExamEndDesc = (a, b) => getExamEndDate(b).getTime() - getExamEndDate(a).getTime();
@@ -1975,19 +2021,33 @@
   }
   function applyProfile() {
     save(K.p, st.profile);
-    el.sidebarName.textContent = st.profile.fullName;
-    el.sidebarRole.textContent = `${st.profile.department} Learner`;
+    const profileName = st.profile.fullName || 'Student';
+    const profileDept = st.profile.department || 'Department';
+    const profileEmail = st.profile.email || 'student@sem.edu';
+    const profileCollege = st.profile.collegeName || '-';
+    const profileCompleted = Boolean(st.profile.profileCompleted || (st.profile.fullName && st.profile.email && st.profile.collegeName && st.profile.department && st.profile.rollNumber));
+    const rawProfileDate = st.profile.dateOfBirth ? new Date(st.profile.dateOfBirth) : null;
+    const profileDate = rawProfileDate && !Number.isNaN(rawProfileDate.getTime())
+      ? rawProfileDate.toLocaleDateString([], { month: 'short', day: '2-digit', year: 'numeric' })
+      : '-';
+    const setProfileText = (id, value) => {
+      const node = $(id);
+      if (node) node.textContent = value || '-';
+    };
+
+    el.sidebarName.textContent = profileName;
+    el.sidebarRole.textContent = `${profileDept} Learner`;
     
     // Top nav name & role
-    el.topName.textContent = st.profile.fullName;
+    el.topName.textContent = profileName;
     const tr = $('topRole');
-    if (tr) tr.textContent = `${st.profile.department || 'Computer Science'} Learner`;
+    if (tr) tr.textContent = `${profileDept} Learner`;
     
     // Dropdown profile details
     const dn = $('dropdownName');
-    if (dn) dn.textContent = st.profile.fullName;
+    if (dn) dn.textContent = profileName;
     const de = $('dropdownEmail');
-    if (de) de.textContent = st.profile.email || 'student@sem.edu';
+    if (de) de.textContent = profileEmail;
     
     const photoSrc = (st.profile.profilePhoto && st.profile.profilePhoto.trim())
       ? st.profile.profilePhoto
@@ -1998,6 +2058,28 @@
     
     const da = $('dropdownAvatar');
     if (da) da.src = photoSrc;
+
+    setProfileText('studentProfileSubtitle', `${profileDept} Learner`);
+    setProfileText('studentProfileCollege', profileCollege);
+    setProfileText('studentProfileEmail', profileEmail);
+    setProfileText('profileStatusChip', profileCompleted ? 'Active' : 'Pending');
+    setProfileText('studentAccountRoll', st.profile.rollNumber);
+    setProfileText('studentAccountStatus', 'Active');
+    setProfileText('studentProfileComplete', profileCompleted ? 'Complete' : 'Pending');
+    setProfileText('studentAccountYear', st.profile.year);
+    setProfileText('studentAccountSection', st.profile.section);
+    setProfileText('studentDetailName', profileName);
+    setProfileText('studentDetailEmail', profileEmail);
+    setProfileText('studentDetailPhone', st.profile.phone);
+    setProfileText('studentDetailCollege', profileCollege);
+    setProfileText('studentDetailDepartment', profileDept);
+    setProfileText('studentDetailYear', st.profile.year);
+    setProfileText('studentDetailRoll', st.profile.rollNumber);
+    setProfileText('studentDetailSection', st.profile.section);
+    setProfileText('studentDetailDob', profileDate);
+    setProfileText('studentDetailGender', st.profile.gender);
+    $('profileStatusChip')?.classList.toggle('is-pending', !profileCompleted);
+    $('studentProfileComplete')?.classList.toggle('is-pending', !profileCompleted);
     
     fillProfileForm(el.profileForm);
     fillProfileForm(el.profileEditorForm);
@@ -2290,7 +2372,11 @@
                 ${view !== 'my' ? `
                   <button class="btn ghost btn-sm" type="button" data-action="exam-detail" data-code="${exam.examCode}">Details</button>
                 ` : ''}
-                <button class="btn ${access.disabled ? 'ghost' : 'primary'} btn-sm" type="button" data-action="${access.action}" data-code="${exam.examCode}" ${access.disabled ? 'disabled aria-disabled="true"' : ''}>${escapeHtml(access.label)}</button>
+                ${!access.disabled ? `
+                  <button class="btn primary btn-sm" type="button" data-action="${access.action}" data-code="${exam.examCode}">${escapeHtml(access.label)}</button>
+                ` : (view === 'my' ? `
+                  <button class="btn ghost btn-sm" type="button" data-action="${access.action}" data-code="${exam.examCode}" disabled aria-disabled="true">${escapeHtml(access.label)}</button>
+                ` : '')}
               </div>
             </div>
 
@@ -3192,11 +3278,7 @@
       }
       return;
     }
-    if (!window.__studentNotifPoller) {
-      window.__studentNotifPoller = setInterval(() => {
-        refreshNotifications(true).catch(() => {});
-      }, 15000);
-    }
+    // Notification poller disabled by request
   }
   function renderNotifications() {
     const filter = el.notificationTypeFilter?.value || 'all';
@@ -4214,7 +4296,9 @@
     department: 'department',
     year: 'year',
     rollNumber: 'rollNumber',
-    section: 'section'
+    section: 'section',
+    gender: 'gender',
+    dateOfBirth: 'dateOfBirth'
   };
   function fillProfileForm(formEl, profile = st.profile) {
     if (!formEl) return;
@@ -4230,7 +4314,7 @@
     const draftSrc = (st.profileEditorPhotoDraft && st.profileEditorPhotoDraft.trim())
       ? st.profileEditorPhotoDraft
       : photoSrc;
-    const title = 'Your Profile Photo';
+    const title = st.profile.fullName || 'Student Profile';
     if (el.profilePhotoPreview) {
       el.profilePhotoPreview.src = photoSrc;
       el.profilePhotoPreview.alt = `${st.profile.fullName || 'Student'} photo`;
@@ -4240,7 +4324,7 @@
       el.profileEditorPhotoPreview.alt = `${st.profile.fullName || 'Student'} photo`;
     }
     if (el.profilePhotoName) el.profilePhotoName.textContent = title;
-    if (el.profileEditorPhotoName) el.profileEditorPhotoName.textContent = title;
+    if (el.profileEditorPhotoName) el.profileEditorPhotoName.textContent = 'Your Profile Photo';
   }
   function openProfileEditor() {
     st.profileEditorPhotoDraft = st.profile.profilePhoto || '';
@@ -4272,6 +4356,8 @@
       year: String(f.get('year') || '').trim(),
       rollNumber: String(f.get('rollNumber') || '').trim(),
       section: String(f.get('section') || '').trim(),
+      gender: String(f.get('gender') || '').trim(),
+      dateOfBirth: String(f.get('dateOfBirth') || '').trim(),
       profilePhoto: st.profileEditorPhotoDraft || st.profile.profilePhoto || ''
     };
     if (!payload.fullName || !payload.collegeName || !payload.department || !payload.rollNumber) {
@@ -4295,7 +4381,10 @@
       year: saved?.year || payload.year,
       rollNumber: saved?.rollNumber || payload.rollNumber,
       section: saved?.section || payload.section,
-      profilePhoto: saved?.profilePhoto || payload.profilePhoto || st.profile.profilePhoto || ''
+      gender: saved?.gender || payload.gender,
+      dateOfBirth: saved?.dateOfBirth || payload.dateOfBirth,
+      profilePhoto: saved?.profilePhoto || payload.profilePhoto || st.profile.profilePhoto || '',
+      profileCompleted: Boolean(saved?.profileCompleted ?? st.profile.profileCompleted)
     };
     st.profileEditorPhotoDraft = '';
     applyProfile();
@@ -4306,12 +4395,6 @@
   function updateClock() {
     const d = new Date();
     el.liveClock.textContent = d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-    if (!booting && (st.sec === 'my-exams' || st.sec === 'exams')) {
-      renderMyExams();
-      if (st.sec === 'exams') {
-        renderExamCatalog();
-      }
-    }
   }
   function wire() {
     el.toggle.addEventListener('click', toggleSidebar);
@@ -4392,15 +4475,6 @@
         submitSupportForm(e.currentTarget, 'Issue report');
       });
     }
-    $('refreshDashboard').addEventListener('click', (e) => {
-      runButtonFeedback(e.currentTarget, 'Refreshing...', () => {
-        renderCards();
-        renderAnalyticsCards();
-        renderAllTables();
-        renderAnalyticsCharts();
-        toast('Dashboard refreshed', 'UI data has been re-rendered.', 'info');
-      }, 520);
-    });
     $('dashboardActionBtn').addEventListener('click', (e) => runButtonFeedback(e.currentTarget, 'Opening analytics...', () => setSection('analytics'), 420));
     $('attemptsResetBtn').addEventListener('click', (e) => {
       runButtonFeedback(e.currentTarget, 'Resetting...', () => {
@@ -4415,7 +4489,6 @@
     el.topSearch.addEventListener('input', (e) => { st.q = e.target.value; localStorage.setItem(K.q, st.q); refresh(); });
     el.examFilter.addEventListener('change', renderExamCatalog);
     el.examSearch.addEventListener('input', renderExamCatalog);
-    el.refreshExamsBtn.addEventListener('click', () => runButtonFeedback(el.refreshExamsBtn, 'Refreshing exams...', renderExamCatalog, 420));
     el.examTabs.forEach((btn) => btn.addEventListener('click', () => {
       el.examTabs.forEach((tab) => tab.classList.toggle('active', tab === btn));
       renderExamCatalog();
@@ -4475,12 +4548,6 @@
     });
     $('leaderboardSearch').addEventListener('input', renderLeaderboard);
     $('leaderboardSort').addEventListener('change', renderLeaderboard);
-    $('leaderboardRefresh').addEventListener('click', (e) => {
-      runButtonFeedback(e.currentTarget, 'Reshuffling...', () => {
-        refreshData();
-        toast('Leaderboard refreshed', 'Student positions were reshuffled locally.', 'info');
-      }, 520);
-    });
     el.analyticsTrendFilter?.addEventListener('change', (e) => {
       st.analytics.trendFilter = e.target.value || 'this-month';
       renderAnalyticsCharts();
@@ -4687,7 +4754,6 @@
     renderProctoringStatus();
     renderHelpSupport();
     setInterval(updateClock, 1000);
-    startCountdownTimer();
     setTimeout(() => { booting = false; document.getElementById('loaderOverlay')?.classList.add('hidden'); setTimeout(() => document.getElementById('loaderOverlay')?.remove(), 600); renderCards(); renderAnalyticsCards(); renderAllTables(); renderAnalyticsCharts(); toast('Student UI ready', 'Enterprise dashboard shell has loaded.', 'success'); refresh(); document.getElementById('loaderOverlay')?.classList.remove('active'); }, 450);
   }
   document.addEventListener('DOMContentLoaded', () => { init().catch((error) => console.error('Student UI init failed:', error)); });

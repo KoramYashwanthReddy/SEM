@@ -9,12 +9,12 @@ import java.time.LocalDateTime;
 @Table(
         name = "student_profiles",
         indexes = {
-                @Index(name = "idx_user_id", columnList = "userId"),
-                @Index(name = "idx_roll_number", columnList = "rollNumber")
+                @Index(name = "idx_user_id", columnList = "user_id"),
+                @Index(name = "idx_roll_number", columnList = "roll_number")
         },
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_user_id", columnNames = "userId"),
-                @UniqueConstraint(name = "uk_roll_number", columnNames = "rollNumber")
+                @UniqueConstraint(name = "uk_user_id", columnNames = "user_id"),
+                @UniqueConstraint(name = "uk_roll_number", columnNames = "roll_number")
         }
 )
 public class StudentProfile {
@@ -47,8 +47,7 @@ public class StudentProfile {
 
     private String section;
 
-    @Lob
-    @Column(columnDefinition = "LONGTEXT")
+    @Column(columnDefinition = "TEXT")
     private String profilePhoto;
 
     private boolean profileCompleted = false;

@@ -18,13 +18,13 @@ import java.time.LocalDateTime;
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_email_dispatch_unique",
-                        columnNames = {"recipientEmail", "eventType", "referenceKey"}
+                        columnNames = {"recipient_email", "event_type", "reference_key"}
                 )
         },
         indexes = {
-                @Index(name = "idx_email_dispatch_recipient", columnList = "recipientEmail"),
-                @Index(name = "idx_email_dispatch_event", columnList = "eventType"),
-                @Index(name = "idx_email_dispatch_reference", columnList = "referenceKey")
+                @Index(name = "idx_email_dispatch_recipient", columnList = "recipient_email"),
+                @Index(name = "idx_email_dispatch_event", columnList = "event_type"),
+                @Index(name = "idx_email_dispatch_reference", columnList = "reference_key")
         }
 )
 public class EmailDispatchLog {

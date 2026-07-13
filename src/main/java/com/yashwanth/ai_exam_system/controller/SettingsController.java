@@ -28,7 +28,6 @@ public class SettingsController {
 
         Map<String, Object> settings = settingsFor(auth.getName());
         settings.put("notifications", asBoolean(payload.get("notifications"), settings.get("notifications")));
-        settings.put("autoRefresh", asBoolean(payload.get("autoRefresh"), settings.get("autoRefresh")));
         settings.put("alerts", asBoolean(payload.get("alerts"), settings.get("alerts")));
         SETTINGS.put(auth.getName(), settings);
 
@@ -63,7 +62,6 @@ public class SettingsController {
         return SETTINGS.computeIfAbsent(teacherKey, key -> {
             Map<String, Object> defaults = new HashMap<>();
             defaults.put("notifications", true);
-            defaults.put("autoRefresh", true);
             defaults.put("alerts", true);
             return defaults;
         });

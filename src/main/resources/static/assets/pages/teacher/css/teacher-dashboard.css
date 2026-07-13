@@ -5744,3 +5744,13 @@ body.teacher-page .dropdown-menu button:hover {
   .qm-filter-chips { display: none; }
 }
 
+
+/* Disable card/button transforms on hover to prevent shaking/blinking loops */
+.card:hover,
+.btn:hover,
+.stat-card:hover,
+button:hover,
+.exam-card:hover,
+.metric-card:hover {
+  transform: none !important;
+}

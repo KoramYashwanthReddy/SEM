@@ -8,11 +8,11 @@ import java.time.LocalDateTime;
 @Table(
         name = "certificates",
         indexes = {
-                @Index(name = "idx_certificate_id", columnList = "certificateId"),
-                @Index(name = "idx_student_exam", columnList = "studentId, examCode")
+                @Index(name = "idx_certificate_id", columnList = "certificate_id"),
+                @Index(name = "idx_student_exam", columnList = "student_id, exam_code")
         },
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_certificate_id", columnNames = "certificateId")
+                @UniqueConstraint(name = "uk_certificate_id", columnNames = "certificate_id")
         }
 )
 public class Certificate {
@@ -61,7 +61,7 @@ public class Certificate {
 
     @Lob
     @JsonIgnore
-    @Column(name = "pdf_data", columnDefinition = "LONGBLOB")
+    @Column(name = "pdf_data", columnDefinition = "BYTEA")
     private byte[] pdfData;
 
     @Column(name = "template_version")

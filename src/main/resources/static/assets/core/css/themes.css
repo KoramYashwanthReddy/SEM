@@ -274,3 +274,48 @@ table {
   align-items: center !important;
   justify-content: center !important;
 }
+
+/* Fix Exam Action Shell alignment and center gaps when button is hidden */
+body.student-page #exams .exam-actions-shell,
+body.student-page #my-exams .exam-actions-shell {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex: 1 !important;
+  margin-top: 0 !important;
+}
+
+body.student-page #exams .exam-actions-shell .btn,
+body.student-page #my-exams .exam-actions-shell .btn {
+  flex: 1 !important;
+  max-width: 140px !important;
+  width: auto !important;
+}
+
+/* Stable Hover Overrides - Prevents shaking/flickering loops on hover */
+html .exam-card:hover,
+html .card:hover,
+html .btn:hover,
+html .podium-card:hover,
+html .stat-card:hover,
+html .nav-item:hover,
+html .nav-link:hover,
+html .btn-sm:hover,
+html button:hover,
+html .clickable-row:hover,
+html .theme-btn:hover,
+body.student-page .exam-card:hover,
+body.admin-page .exam-card:hover,
+body.teacher-page .exam-card:hover,
+body.student-page .btn:hover,
+body.admin-page .btn:hover,
+body.teacher-page .btn:hover,
+html[data-theme] .exam-card:hover,
+html[data-theme] .card:hover,
+html[data-theme] .btn:hover,
+html[data-theme] .podium-card:hover,
+html[data-theme] .stat-card:hover {
+  transform: none !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+}

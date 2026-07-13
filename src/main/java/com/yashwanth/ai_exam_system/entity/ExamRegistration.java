@@ -17,11 +17,11 @@ import java.time.LocalDateTime;
 @Table(
         name = "exam_registrations",
         indexes = {
-                @Index(name = "idx_exam_registration_student", columnList = "studentId"),
-                @Index(name = "idx_exam_registration_exam_code", columnList = "examCode")
+                @Index(name = "idx_exam_registration_student", columnList = "student_id"),
+                @Index(name = "idx_exam_registration_exam_code", columnList = "exam_code")
         },
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_exam_registration_student_exam", columnNames = {"studentId", "examCode"})
+                @UniqueConstraint(name = "uk_exam_registration_student_exam", columnNames = {"student_id", "exam_code"})
         }
 )
 public class ExamRegistration {

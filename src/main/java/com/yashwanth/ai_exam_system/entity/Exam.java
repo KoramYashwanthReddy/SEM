@@ -20,11 +20,11 @@ import jakarta.validation.constraints.PositiveOrZero;
 @Table(
         name = "exams",
         indexes = {
-                @Index(name = "idx_exam_code", columnList = "examCode"),
+                @Index(name = "idx_exam_code", columnList = "exam_code"),
                 @Index(name = "idx_exam_status", columnList = "status"),
-                @Index(name = "idx_exam_created_by", columnList = "createdBy"),
-                @Index(name = "idx_exam_start_time", columnList = "startTime"),
-                @Index(name = "idx_exam_end_time", columnList = "endTime")
+                @Index(name = "idx_exam_created_by", columnList = "created_by"),
+                @Index(name = "idx_exam_start_time", columnList = "start_time"),
+                @Index(name = "idx_exam_end_time", columnList = "end_time")
         }
 )
 public class Exam {

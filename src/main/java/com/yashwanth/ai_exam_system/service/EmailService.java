@@ -19,7 +19,7 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
+    @Value("${spring.mail.username:}")
     private String fromEmail;
 
     @Value("${app.email.from-name:AI Exam System}")
@@ -80,7 +80,7 @@ public class EmailService {
             MimeMessageHelper helper =
                     new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(fromEmail, fromName);
+            helper.setFrom(resolveFromEmail(), fromName);
             helper.setTo(to);
             helper.setSubject(subject == null ? "AI Exam System Notification" : subject);
             helper.setText(htmlContent == null ? "" : htmlContent, true);
@@ -99,13 +99,17 @@ public class EmailService {
             String certificateId,
             byte[] pdfData
     ) {
+        if (!emailEnabled) {
+            log.info("Email disabled. Skipping certificate message to {}", toEmail);
+            return;
+        }
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper =
                     new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(fromEmail, fromName);
+            helper.setFrom(resolveFromEmail(), fromName);
             helper.setTo(toEmail);
             helper.setSubject("Certificate Issued - " + certificateId);
 
@@ -134,6 +138,10 @@ public class EmailService {
 
     @Async("mailExecutor")
     public void sendPasswordResetEmail(String toEmail, String resetLink) {
+        if (!emailEnabled) {
+            log.info("Email disabled. Skipping password reset message to {}", toEmail);
+            return;
+        }
 
         String subject = "Password Reset - AI Exam System";
 
@@ -163,6 +171,10 @@ public class EmailService {
             String otp,
             int expiryMinutes
     ) {
+        if (!emailEnabled) {
+            log.info("Email disabled. Skipping signup OTP message to {}", toEmail);
+            return;
+        }
 
         String subject = "Your SEM Signup Verification Code";
         String safeName = recipientName == null || recipientName.isBlank() ? "Student" : recipientName;
@@ -191,6 +203,10 @@ public class EmailService {
             String verificationLink,
             int expiryMinutes
     ) {
+        if (!emailEnabled) {
+            log.info("Email disabled. Skipping phase 2 verification message to {}", toEmail);
+            return;
+        }
 
         String subject = "Phase 2 Verification - " + examCode;
         String safeName = recipientName == null || recipientName.isBlank() ? "Student" : recipientName;
@@ -214,6 +230,12 @@ public class EmailService {
                         "</div>";
 
         sendEmail(toEmail, subject, content);
+    }
+
+    private String resolveFromEmail() {
+        return fromEmail == null || fromEmail.isBlank()
+                ? "no-reply@ai-exam-system.local"
+                : fromEmail.trim();
     }
 
     private void sleepQuietly(long delayMs) {

@@ -4972,3 +4972,12 @@ body.admin-page .chip-btn.active {
 .hidden {
   display: none !important;
 }
+
+/* Disable card/button transforms on hover to prevent shaking/blinking loops */
+.card:hover,
+.btn:hover,
+.stat-card:hover,
+button:hover,
+.exam-card:hover {
+  transform: none !important;
+}

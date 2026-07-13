@@ -145,7 +145,6 @@
               <p class="page-desc">Academic overview, score trajectory, and recent exam activity.</p>
             </div>
             <div class="head-actions">
-              <button class="btn ghost" id="refreshDashboard" type="button"><span class="svg-icon" data-icon="refresh"></span>Refresh</button>
               <button class="btn primary" id="dashboardActionBtn" type="button"><span class="svg-icon" data-icon="spark"></span>Review Progress</button>
             </div>
           </div>
@@ -224,10 +223,6 @@
               <button class="tab-btn" data-tab="closed" type="button">Closed</button>
             </div>
             <div class="summary-pill" id="summaryPill">0 visible exams</div>
-            <button id="refreshExamsBtn" class="btn btn-secondary" type="button" title="Refresh exam catalog">
-              <span class="svg-icon" data-icon="refresh"></span>
-              Refresh
-            </button>
           </div>
 
           <div class="exam-legend" id="examStatusLegend"></div>
@@ -378,7 +373,7 @@
                 <span>Sorted by the most recent submissions and filtered locally.</span>
               </div>
             </div>
-            <button id="resultsResetBtn" class="btn ghost small" type="button"><span class="svg-icon" data-icon="refresh"></span>Reset</button>
+            <button id="resultsResetBtn" class="btn ghost small" type="button"><span class="svg-icon" data-icon="filter"></span>Reset</button>
           </div>
 
           <article class="card table-card results-table-card">
@@ -475,7 +470,6 @@
                 <option value="score">Score</option>
                 <option value="percentage">Percentage</option>
               </select>
-              <button id="leaderboardRefresh" class="btn ghost small" type="button"><span class="svg-icon" data-icon="refresh"></span>Refresh</button>
             </div>
           </div>
           <div class="results-summary-grid leaderboard-summary-grid" id="leaderboardSummaryGrid"></div>
@@ -590,33 +584,108 @@
           <div class="section-head">
             <div class="header-titles">
               <h1 class="page-title">Student <span class="text-gradient">Profile</span></h1>
-              <p class="page-desc">Manage your identity, academic details, and verification photo.</p>
+              <p class="page-desc">View your verified identity, academic profile, and account details.</p>
             </div>
             <div class="head-actions">
-              <button class="btn ghost" type="button" id="editProfileBtn">Edit Profile</button>
+              <button class="btn ghost" type="button" id="editProfileBtn">
+                <span class="svg-icon" data-icon="profile"></span>
+                <span>Edit Profile</span>
+              </button>
             </div>
           </div>
 
-          <!-- PHOTO PANEL -->
-          <article class="card profile-photo-card">
-            <div class="profile-photo-panel">
-              <div class="profile-photo-circle" id="profilePhotoCircle">
-                <img id="profilePhotoPreview" alt="Profile photo" src="">
-                <div class="profile-photo-overlay" id="profilePhotoOverlay">
-                  <span>Profile preview</span>
+          <div class="student-profile-layout">
+            <aside class="student-profile-rail">
+              <article class="student-profile-card">
+                <div class="student-profile-photo" id="profilePhotoCircle">
+                  <img id="profilePhotoPreview" alt="Profile photo" src="">
+                  <span class="student-profile-status" id="profileStatusChip">Active</span>
                 </div>
-              </div>
-              <div class="profile-photo-info">
-                <strong id="profilePhotoName">Your Profile Photo</strong>
-                <p>Your profile details stay visible here. Use Edit Profile to update personal information or photo in a popup.</p>
-                <div class="profile-photo-actions">
-                  <span class="tag neutral">Read only preview</span>
+                <h2 id="profilePhotoName">Student Name</h2>
+                <p id="studentProfileSubtitle">Verified learner</p>
+                <div class="student-profile-quick">
+                  <span><span class="svg-icon" data-icon="certificates"></span><strong id="studentProfileCollege">-</strong></span>
+                  <span><span class="svg-icon" data-icon="exams"></span><strong id="studentProfileEmail">-</strong></span>
                 </div>
-              </div>
-            </div>
-          </article>
+              </article>
 
-          <article class="card profile-card">
+              <article class="student-profile-account">
+                <div class="student-profile-card-title">
+                  <span class="svg-icon" data-icon="info"></span>
+                  <h3>Account Information</h3>
+                </div>
+                <div class="student-account-list">
+                  <div><span>Roll Number</span><strong id="studentAccountRoll">-</strong></div>
+                  <div><span>Account Status</span><strong class="student-status-pill" id="studentAccountStatus">Active</strong></div>
+                  <div><span>Profile Status</span><strong class="student-status-pill" id="studentProfileComplete">Pending</strong></div>
+                  <div><span>Year</span><strong id="studentAccountYear">-</strong></div>
+                  <div><span>Section</span><strong id="studentAccountSection">-</strong></div>
+                </div>
+              </article>
+            </aside>
+
+            <article class="student-profile-details">
+              <div class="student-details-head">
+                <div class="student-details-icon">
+                  <span class="svg-icon" data-icon="profile"></span>
+                </div>
+                <div>
+                  <h2>Profile Details</h2>
+                  <p>Personal and academic information</p>
+                </div>
+              </div>
+
+              <div class="student-detail-grid">
+                <div class="student-detail-item">
+                  <span class="student-detail-icon svg-icon" data-icon="profile"></span>
+                  <div><span>Full Name</span><strong id="studentDetailName">-</strong></div>
+                </div>
+                <div class="student-detail-item">
+                  <span class="student-detail-icon svg-icon" data-icon="exams"></span>
+                  <div><span>Email</span><strong id="studentDetailEmail">-</strong></div>
+                </div>
+                <div class="student-detail-item">
+                  <span class="student-detail-icon svg-icon" data-icon="phone"></span>
+                  <div><span>Phone Number</span><strong id="studentDetailPhone">-</strong></div>
+                </div>
+                <div class="student-detail-item">
+                  <span class="student-detail-icon svg-icon" data-icon="certificates"></span>
+                  <div><span>College / University</span><strong id="studentDetailCollege">-</strong></div>
+                </div>
+                <div class="student-detail-item">
+                  <span class="student-detail-icon svg-icon" data-icon="dashboard"></span>
+                  <div><span>Department</span><strong id="studentDetailDepartment">-</strong></div>
+                </div>
+                <div class="student-detail-item">
+                  <span class="student-detail-icon svg-icon" data-icon="analytics"></span>
+                  <div><span>Year of Study</span><strong id="studentDetailYear">-</strong></div>
+                </div>
+                <div class="student-detail-item is-highlight">
+                  <span class="student-detail-icon svg-icon" data-icon="shield"></span>
+                  <div><span>Roll Number</span><strong id="studentDetailRoll">-</strong></div>
+                </div>
+                <div class="student-detail-item">
+                  <span class="student-detail-icon svg-icon" data-icon="calendar"></span>
+                  <div><span>Section</span><strong id="studentDetailSection">-</strong></div>
+                </div>
+                <div class="student-detail-item">
+                  <span class="student-detail-icon svg-icon" data-icon="calendar"></span>
+                  <div><span>Date of Birth</span><strong id="studentDetailDob">-</strong></div>
+                </div>
+                <div class="student-detail-item">
+                  <span class="student-detail-icon svg-icon" data-icon="profile"></span>
+                  <div><span>Gender</span><strong id="studentDetailGender">-</strong></div>
+                </div>
+              </div>
+
+              <div class="student-profile-note">
+                <span class="svg-icon" data-icon="info"></span>
+                <p>If any information is incorrect, update it through Edit Profile before starting exam verification.</p>
+              </div>
+            </article>
+          </div>
+
+          <article class="card profile-card student-profile-hidden-form" aria-hidden="true">
             <form class="profile-form" id="profileForm">
               <label>
                 <span>Full Name</span>
@@ -649,6 +718,14 @@
               <label>
                 <span>Section</span>
                 <input type="text" id="sectionField" name="section">
+              </label>
+              <label>
+                <span>Gender</span>
+                <input type="text" id="genderField" name="gender">
+              </label>
+              <label>
+                <span>Date of Birth</span>
+                <input type="date" id="dateOfBirthField" name="dateOfBirth">
               </label>
             </form>
           </article>
@@ -1142,6 +1219,19 @@
           <label>
             <span>Section</span>
             <input type="text" id="profileEditorSection" name="section">
+          </label>
+          <label>
+            <span>Gender</span>
+            <select id="profileEditorGender" name="gender">
+              <option value="">Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+          <label>
+            <span>Date of Birth</span>
+            <input type="date" id="profileEditorDateOfBirth" name="dateOfBirth">
           </label>
         </form>
       </div>

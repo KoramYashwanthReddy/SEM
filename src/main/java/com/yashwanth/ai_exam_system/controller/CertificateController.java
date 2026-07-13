@@ -85,7 +85,7 @@ public class CertificateController {
     // ================= VERIFY =================
 
     @GetMapping("/verify/{certificateId}")
-    public ResponseEntity<?> verify(@PathVariable String certificateId) {
+    public ResponseEntity<?> verify(@PathVariable String certificateId, HttpServletRequest request) {
 
         Certificate cert = certificateRepository
                 .findByCertificateId(certificateId)
@@ -93,7 +93,10 @@ public class CertificateController {
 
         if (cert.isRevoked()) {
             return ResponseEntity.status(HttpStatus.GONE)
-                    .body("Certificate has been revoked");
+                    .body(Map.of(
+                            "status", "ERROR",
+                            "errorCode", "GONE",
+                            "message", "Certificate has been revoked"));
         }
 
         String baseUrl = ServletUriComponentsBuilder

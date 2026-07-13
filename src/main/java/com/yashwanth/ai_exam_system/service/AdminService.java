@@ -743,6 +743,9 @@ public class AdminService {
         map.put("qualification", user.getQualification());
         map.put("employeeId", user.getEmployeeId());
         map.put("profileImage", user.getProfileImage());
+        map.put("profilePhoto", user.getProfileImage());
+        map.put("avatar", user.getProfileImage());
+        map.put("imageUrl", user.getProfileImage());
         map.put("enabled", user.isEnabled());
         map.put("accountNonLocked", user.isAccountNonLocked());
         map.put("createdAt", user.getCreatedAt());

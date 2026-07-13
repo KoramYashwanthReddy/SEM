@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
         name = "users",
         uniqueConstraints = {
                 @UniqueConstraint(columnNames = "email"),
-                @UniqueConstraint(columnNames = "employeeId")
+                @UniqueConstraint(columnNames = "employee_id")
         },
         indexes = {
                 @Index(name = "idx_user_email", columnList = "email"),
@@ -41,8 +41,7 @@ public class User {
     @Column(length = 15)
     private String phone;
 
-    @Lob
-    @Column(columnDefinition = "LONGTEXT")
+    @Column(columnDefinition = "TEXT")
     private String profileImage;
 
     @Column(length = 100)

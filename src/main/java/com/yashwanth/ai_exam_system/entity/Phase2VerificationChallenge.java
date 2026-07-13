@@ -16,8 +16,8 @@ import java.time.LocalDateTime;
 @Table(
         name = "phase2_verification_challenges",
         indexes = {
-                @Index(name = "idx_phase2_challenge_student_exam", columnList = "studentId,examCode"),
-                @Index(name = "idx_phase2_challenge_token_hash", columnList = "verificationTokenHash")
+                @Index(name = "idx_phase2_challenge_student_exam", columnList = "student_id,exam_code"),
+                @Index(name = "idx_phase2_challenge_token_hash", columnList = "verification_token_hash")
         }
 )
 public class Phase2VerificationChallenge {

@@ -136,12 +136,7 @@
               <h1 class="page-title">Admin <span class="text-gradient">Overview.</span></h1>
               <p class="page-desc">System intelligence, forensic proctoring metrics, and operational health.</p>
             </div>
-            <div class="header-actions">
-              <button class="btn btn-ghost btn-sm" id="dashboard-refresh-btn" onclick="AdminDashboard.refreshOverview()">
-                <i class="fa-solid fa-rotate"></i> <span>Refresh Console</span>
-              </button>
-              <div class="last-updated-tag">Auto-updating in <span id="dash-timer">30</span>s</div>
-            </div>
+            <div class="header-actions"></div>
           </div>
 
           <!-- ─── TOP METRIC CARDS ─── -->
@@ -285,7 +280,6 @@
               <div class="glass-card health-card">
                 <div class="card-header">
                   <h3 class="card-title">Core Infrastructure Health</h3>
-                  <button class="icon-btn refresh-health" onclick="AdminDashboard.refreshHealth()"><i class="fa-solid fa-rotate"></i></button>
                 </div>
                 <div class="health-metrics-grid">
                   <div class="health-item">
@@ -320,7 +314,6 @@
               </div>
             </div>
           </div>
-
           <!-- ─── QUICK ACTION BAR ─── -->
           <div class="quick-action-bar-wrap">
              <div class="quick-action-bar">
@@ -483,7 +476,6 @@
                   <option value="global">Global Statistics</option>
                   <!-- Populate from examsData -->
                </select>
-               <button class="btn btn-primary btn-refresh-analytics" onclick="refreshAnalytics()"><i class="fa-solid fa-rotate"></i> Refresh</button>
             </div>
           </div>
           
@@ -701,7 +693,6 @@
               <p class="page-desc">Advanced AI-driven surveillance and granular forensic session auditing.</p>
             </div>
             <div style="display:flex; align-items:center; gap:16px">
-               <button class="btn btn-primary" onclick="refreshProctoring()"><i class="fas fa-sync-alt"></i> Refresh Forensic Engine</button>
             </div>
           </div>
 
@@ -792,8 +783,6 @@
               <h1 class="page-title">Attempt <span class="text-gradient">Intelligence.</span></h1>
             </div>
             <div style="display:flex; align-items:center; gap:16px">
-               <span id="autoRefreshBadge" class="status-badge" style="background:rgba(59, 130, 246, 0.1); color:var(--accent-blue); padding:4px 12px; font-weight:700; font-size:11px">AUTO-SYNC: 30s</span>
-               <button class="btn btn-primary" onclick="refreshAttempts()"><i class="fas fa-sync-alt"></i> Sync Engine</button>
             </div>
           </div>
 
@@ -946,7 +935,6 @@
                 <p class="page-desc">Manage and view all issued certificates</p>
               </div>
               <div class="header-actions">
-                <button class="btn btn-ghost" onclick="refreshCertificates()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
               </div>
             </div>
 
@@ -1024,7 +1012,6 @@
                 </div>
                 <div class="cert-filter-actions">
                   <button class="btn btn-ghost" onclick="resetCertFilters()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
-                  <button class="btn btn-primary" onclick="refreshCertificates()"><i class="fa-solid fa-arrows-rotate"></i> Sync</button>
                 </div>
               </div>
             </div>
@@ -1119,7 +1106,6 @@
                 </div>
                 <div style="display:flex; gap:8px">
                     <button class="btn btn-ghost" onclick="resetCertFilters()" style="padding:0 16px; border:1px solid var(--border-subtle)" title="Reset Filters"><i class="fa-solid fa-rotate-left"></i> Reset</button>
-                    <button class="btn btn-primary" onclick="refreshCertificates()" style="padding:0 16px; min-width:110px" title="Refresh Data"><i class="fa-solid fa-arrows-rotate"></i> Sync</button>
                 </div>
              </div>
           </div>
@@ -1170,7 +1156,6 @@
             <h1 class="page-title">Leaderboard / <span class="text-gradient">Performance Rankings.</span></h1>
             <div class="header-actions">
                <button class="btn btn-ghost" onclick="exportLeaderboard()" style="border:1px solid var(--border-subtle)"><i class="fa-solid fa-file-export"></i> Export CSV</button>
-               <button class="btn btn-primary" onclick="refreshLeaderboard()"><i class="fa-solid fa-arrows-rotate"></i> Sync Rankings</button>
             </div>
           </div>
 
@@ -1259,7 +1244,6 @@
                  </div>
                 <div class="f-item action">
                     <button class="btn btn-ghost reset-btn" onclick="resetLeaderboardFilters()" title="Reset All"><i class="fa-solid fa-rotate-left"></i></button>
-                    <button class="btn btn-primary refresh-btn" onclick="refreshLeaderboard()" title="Sync"><i class="fa-solid fa-arrows-rotate"></i></button>
                 </div>
              </div>
           </div>

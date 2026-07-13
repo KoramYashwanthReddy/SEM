@@ -6,7 +6,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.Lob;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -37,8 +36,7 @@ public class TeacherNotification {
     @Column(name = "title", nullable = false)
     private String title;
 
-    @Lob
-    @Column(name = "message", nullable = false)
+    @Column(name = "message", nullable = false, columnDefinition = "TEXT")
     private String message;
 
     @Column(name = "source")

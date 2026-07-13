@@ -531,16 +531,7 @@
     }
   }
 
-  let attemptsAutoRefreshInterval = null;
   let attemptsRefreshInFlight = false;
-
-  function ensureAttemptsAutoRefresh() {
-    if (attemptsAutoRefreshInterval) return;
-    attemptsAutoRefreshInterval = setInterval(() => {
-      if (attemptsRefreshInFlight) return;
-      refreshAttempts().catch((error) => console.error("Admin attempts auto refresh failed:", error));
-    }, 30000);
-  }
 
   async function loadAll() {
     if (!hasToken()) {
@@ -732,7 +723,6 @@
         console.warn("Admin analytics refresh failed after live sync:", error);
       });
     }
-    ensureAttemptsAutoRefresh();
   }
 
   window.AdminLive = { loadAll, api, live, refreshAuditLogs };
@@ -758,7 +748,6 @@
       window.filteredAttempts = [...window.attemptsData];
       window.handleAttemptFilters?.();
       window.updateAttemptStats?.();
-      ensureAttemptsAutoRefresh();
     } finally {
       attemptsRefreshInFlight = false;
     }

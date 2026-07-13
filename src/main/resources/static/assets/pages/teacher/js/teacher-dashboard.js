@@ -80,7 +80,6 @@ ensureAuthGuard();
     },
     settings: {
       notifications: true,
-      autoRefresh: true,
       alerts: true
     },
     ui: {
@@ -322,7 +321,6 @@ ensureAuthGuard();
       exportExamsBtn: "Exporting exams...",
       examJumpBtn: "Loading page...",
       exportDashboardBtn: "Exporting dashboard report...",
-      refreshDashboard: "Refreshing dashboard...",
       stSave: "Saving settings...",
       stSessionReset: "Resetting sessions...",
       stApiTest: "Testing API connectivity...",
@@ -1304,6 +1302,21 @@ ensureAuthGuard();
     return `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(initials)}`;
   }
 
+  function resolveProfileImageSource(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    if (
+      raw.startsWith("data:") ||
+      raw.startsWith("blob:") ||
+      raw.startsWith("http://") ||
+      raw.startsWith("https://") ||
+      raw.startsWith("/")
+    ) {
+      return raw;
+    }
+    return `/${raw.replace(/^\.?\//, "")}`;
+  }
+
   function normalizeTeacher(raw = {}) {
     const source = raw && typeof raw === "object"
       ? (raw.teacher && typeof raw.teacher === "object" ? raw.teacher
@@ -1319,7 +1332,18 @@ ensureAuthGuard();
     );
     const enabled = Boolean(source.enabled !== false);
     const accountNonLocked = Boolean(source.accountNonLocked !== false);
-    const img = String(source.profileImage || source.avatar || "").trim();
+    const img = resolveProfileImageSource(
+      source.profileImage ||
+      source.profilePhoto ||
+      source.avatar ||
+      source.imageUrl ||
+      source.url ||
+      source.image ||
+      source.teacher?.profileImage ||
+      source.teacher?.profilePhoto ||
+      source.teacher?.avatar ||
+      ""
+    );
     return {
       name: resolvedName,
       email: String(source.email || source.username || state.teacher.email || ""),
@@ -1414,11 +1438,21 @@ ensureAuthGuard();
   }
 
   function populateTeacher() {
+    const fallbackAvatar = profileInitialAvatar(state.teacher.name);
+    const resolvedImage = resolveProfileImageSource(state.teacher.profileImage);
     dom.teacherNameTop.textContent = state.teacher.name;
     dom.teacherNameMini.textContent = state.teacher.name;
     dom.teacherDeptMini.textContent = state.teacher.department;
-    dom.teacherAvatarTop.src = state.teacher.profileImage;
-    dom.teacherAvatarMini.src = state.teacher.profileImage;
+    dom.teacherAvatarTop.src = resolvedImage || fallbackAvatar;
+    dom.teacherAvatarTop.onerror = () => {
+      dom.teacherAvatarTop.onerror = null;
+      dom.teacherAvatarTop.src = fallbackAvatar;
+    };
+    dom.teacherAvatarMini.src = resolvedImage || fallbackAvatar;
+    dom.teacherAvatarMini.onerror = () => {
+      dom.teacherAvatarMini.onerror = null;
+      dom.teacherAvatarMini.src = fallbackAvatar;
+    };
     // Legacy hidden form inputs (kept for JS compat)
     if (dom.pfName) dom.pfName.value = state.teacher.name;
     if (dom.pfEmail) dom.pfEmail.value = state.teacher.email;
@@ -1430,7 +1464,13 @@ ensureAuthGuard();
     if (dom.pfEmployeeId) dom.pfEmployeeId.value = state.teacher.employeeId;
     if (dom.pfImage) dom.pfImage.value = state.teacher.profileImage;
     // Avatar preview
-    if (dom.pfAvatarPreview) dom.pfAvatarPreview.src = state.teacher.profileImage || profileInitialAvatar(state.teacher.name);
+    if (dom.pfAvatarPreview) {
+      dom.pfAvatarPreview.src = resolvedImage || fallbackAvatar;
+      dom.pfAvatarPreview.onerror = () => {
+        dom.pfAvatarPreview.onerror = null;
+        dom.pfAvatarPreview.src = fallbackAvatar;
+      };
+    }
     // New read-only view fields
     if (dom.pfHeaderName) dom.pfHeaderName.textContent = state.teacher.name || "Teacher";
     if (dom.pfHeaderDesignation) dom.pfHeaderDesignation.textContent = state.teacher.designation || "-";
@@ -1502,7 +1542,6 @@ ensureAuthGuard();
   function normalizeSettings(raw = {}) {
     return {
       notifications: Boolean(raw.enableNotifications ?? raw.notifications ?? state.settings.notifications),
-      autoRefresh: Boolean(raw.liveAutoRefresh ?? raw.autoRefresh ?? state.settings.autoRefresh),
       alerts: Boolean(raw.proctoringAlerts ?? raw.alerts ?? state.settings.alerts)
     };
   }
@@ -1510,7 +1549,6 @@ ensureAuthGuard();
   function settingsPayload() {
     return {
       enableNotifications: !!state.settings.notifications,
-      liveAutoRefresh: !!state.settings.autoRefresh,
       proctoringAlerts: !!state.settings.alerts
     };
   }
@@ -1518,7 +1556,7 @@ ensureAuthGuard();
   function setSettingsLoadingUI(active) {
     state.ui.settings.loading = !!active;
     if (dom.settingsLoading) dom.settingsLoading.classList.toggle("hidden", !active);
-    [dom.stNotif, dom.stAutoRefresh, dom.stAlerts, dom.stSessionReset, dom.stApiTest, dom.stSave].forEach((el) => {
+    [dom.stNotif, dom.stAlerts, dom.stSessionReset, dom.stApiTest, dom.stSave].forEach((el) => {
       if (el) el.disabled = !!active;
     });
   }
@@ -1532,16 +1570,12 @@ ensureAuthGuard();
 
   function renderSettings() {
     if (dom.stNotif) dom.stNotif.checked = !!state.settings.notifications;
-    if (dom.stAutoRefresh) dom.stAutoRefresh.checked = !!state.settings.autoRefresh;
     if (dom.stAlerts) dom.stAlerts.checked = !!state.settings.alerts;
-    if (dom.dashAutoRefresh) dom.dashAutoRefresh.checked = !!state.settings.autoRefresh;
     const baseline = state.ui.settings.baseline || {
       notifications: state.settings.notifications,
-      autoRefresh: state.settings.autoRefresh,
       alerts: state.settings.alerts
     };
     const dirty = baseline.notifications !== state.settings.notifications
-      || baseline.autoRefresh !== state.settings.autoRefresh
       || baseline.alerts !== state.settings.alerts;
     state.ui.settings.dirty = dirty;
     if (dom.stSave) dom.stSave.disabled = !dirty || state.ui.settings.loading || state.ui.settings.saving;
@@ -1555,7 +1589,6 @@ ensureAuthGuard();
       state.settings = { ...state.settings, ...normalizeSettings(raw || {}) };
       state.ui.settings.baseline = {
         notifications: state.settings.notifications,
-        autoRefresh: state.settings.autoRefresh,
         alerts: state.settings.alerts
       };
       renderSettings();
@@ -5099,11 +5132,6 @@ ensureAuthGuard();
         renderAttempts();
         renderProctoring();
       });
-      on(dom.dashAutoRefresh, "change", () => {
-        state.settings.autoRefresh = dom.dashAutoRefresh.checked;
-        toast(`Auto refresh ${state.settings.autoRefresh ? "enabled" : "disabled"}.`);
-        renderSettings();
-      });
       on(dom.dashDateRange, "change", () => {
         state.ui.dashDateRange = dom.dashDateRange.value;
         const custom = state.ui.dashDateRange === "custom";
@@ -5189,10 +5217,6 @@ ensureAuthGuard();
         state.ui.analytics.dateTo = dom.analyticsDateTo.value || "";
         scheduleAnalyticsReload(false);
       });
-      on(dom.analyticsRefreshBtn, "click", async () => {
-        await loadAnalyticsData(true);
-        toast("Analytics refreshed.");
-      });
       on(dom.analyticsRetryBtn, "click", async () => {
         await loadAnalyticsData(true);
       });
@@ -5209,10 +5233,6 @@ ensureAuthGuard();
       on(dom.aiExamFilter, "change", () => {
         state.ui.aiInsights.examCode = dom.aiExamFilter.value || "all";
         scheduleAiReload(false);
-      });
-      on(dom.aiRefreshBtn, "click", async () => {
-        await loadAiInsightsData(true);
-        toast("AI insights refreshed.");
       });
       on(dom.aiRetryBtn, "click", async () => {
         await loadAiInsightsData(true);
@@ -5297,26 +5317,6 @@ ensureAuthGuard();
           card.classList.toggle("collapsed");
           btn.textContent = card.classList.contains("collapsed") ? "Expand" : "Collapse";
         });
-      });
-
-      on(dom.refreshDashboard, "click", async () => {
-        await withLoading(async () => {
-          pulseDashboardSkeleton();
-          await api.ping();
-          renderApiStatusPill();
-          await loadDashboardSummary();
-          await loadExamsData();
-          await loadAttemptsData();
-          await loadAnalyticsData();
-          await loadAiInsightsData(true);
-          await loadCertificatesData();
-          addNotification(`Dashboard refreshed (${state.api.online ? "API live" : "mock mode"}).`);
-          renderAll();
-        });
-      });
-      on(dom.certificatesRefreshBtn, "click", async () => {
-        await loadCertificatesData();
-        toast("Certificates refreshed.");
       });
 
       // ─── Profile Edit: staged popup modal ───────────────────────────────────
@@ -5659,20 +5659,18 @@ ensureAuthGuard();
 
       const syncSettingsFromInputs = () => {
         state.settings.notifications = !!dom.stNotif?.checked;
-        state.settings.autoRefresh = !!dom.stAutoRefresh?.checked;
         state.settings.alerts = !!dom.stAlerts?.checked;
         renderSettings();
       };
-      [dom.stNotif, dom.stAutoRefresh, dom.stAlerts].forEach((el) => on(el, "change", syncSettingsFromInputs));
+      [dom.stNotif, dom.stAlerts].forEach((el) => on(el, "change", syncSettingsFromInputs));
       on(dom.stSave, "click", async () => {
         if (!state.ui.settings.dirty || state.ui.settings.saving) return;
         const snapshot = state.ui.settings.baseline || {
           notifications: state.settings.notifications,
-          autoRefresh: state.settings.autoRefresh,
           alerts: state.settings.alerts
         };
         state.ui.settings.saving = true;
-        [dom.stNotif, dom.stAutoRefresh, dom.stAlerts, dom.stSessionReset, dom.stApiTest, dom.stSave].forEach((el) => {
+        [dom.stNotif, dom.stAlerts, dom.stSessionReset, dom.stApiTest, dom.stSave].forEach((el) => {
           if (el) el.disabled = true;
         });
         const restore = startButtonBuffer(dom.stSave, "Saving settings...");
@@ -5683,7 +5681,6 @@ ensureAuthGuard();
           state.settings = { ...state.settings, ...normalized };
           state.ui.settings.baseline = {
             notifications: state.settings.notifications,
-            autoRefresh: state.settings.autoRefresh,
             alerts: state.settings.alerts
           };
           renderSettings();
@@ -5694,7 +5691,7 @@ ensureAuthGuard();
           toast("Failed to save settings.", "error");
         } finally {
           state.ui.settings.saving = false;
-          [dom.stNotif, dom.stAutoRefresh, dom.stAlerts, dom.stSessionReset, dom.stApiTest].forEach((el) => {
+          [dom.stNotif, dom.stAlerts, dom.stSessionReset, dom.stApiTest].forEach((el) => {
             if (el) el.disabled = false;
           });
           renderSettings();
@@ -5770,21 +5767,7 @@ ensureAuthGuard();
     }
 
     function startLiveUpdates() {
-      setInterval(() => {
-        if (!state.settings.autoRefresh) return;
-        const idx = Math.floor(Math.random() * state.data.attempts.length);
-        const item = state.data.attempts[idx];
-        if (!item) return;
-        item.cheatingScore = clamp(item.cheatingScore + Math.round((Math.random() - 0.4) * 16), 0, 100);
-        item.riskLevel = riskFromScore(item.cheatingScore);
-        item.severity = item.riskLevel;
-        if (item.cheatingScore > 80 && state.settings.alerts) addNotification(`Critical proctoring flag: ${item.studentName} (${item.cheatingScore})`);
-        renderDashboardFeeds();
-        renderAttempts();
-        renderProctoring();
-        renderAiInsights();
-        drawAllCharts();
-      }, 12000);
+      // Live updates disabled by request
     }
 
     async function init() {

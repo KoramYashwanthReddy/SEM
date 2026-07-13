@@ -92,9 +92,7 @@
             </select>
             <input id="dashStartDate" class="inline-date hidden" type="date">
             <input id="dashEndDate" class="inline-date hidden" type="date">
-            <label class="toggle mini-toggle">Auto Refresh<input id="dashAutoRefresh" type="checkbox" checked><span></span></label>
             <button id="exportDashboardBtn" class="btn ghost"><i class="fa-solid fa-file-arrow-down"></i>Export Dashboard Report</button>
-            <button id="refreshDashboard" class="btn ghost"><i class="fa-solid fa-rotate"></i>Refresh</button>
             <button class="btn primary" data-section-jump="exams"><i class="fa-solid fa-plus"></i>Create Exam</button>
           </div>
         </div>
@@ -230,7 +228,6 @@
           </select>
           <input id="analyticsDateFrom" type="date" aria-label="Analytics date from">
           <input id="analyticsDateTo" type="date" aria-label="Analytics date to">
-          <button id="analyticsRefreshBtn" class="btn ghost small" type="button" data-no-buffer="true"><i class="fa-solid fa-rotate"></i>Refresh</button>
           <button id="analyticsExportCsvBtn" class="btn ghost small" type="button" data-no-buffer="true"><i class="fa-solid fa-file-csv"></i>Export CSV</button>
           <button id="analyticsExportPdfBtn" class="btn ghost small" type="button" data-no-buffer="true"><i class="fa-solid fa-file-pdf"></i>Export PDF</button>
         </div>
@@ -324,7 +321,6 @@
         <div class="card ai-toolbar">
           <select id="aiStudentFilter"><option value="">Select Student</option></select>
           <select id="aiExamFilter"><option value="all">All Exams</option></select>
-          <button id="aiRefreshBtn" class="btn ghost small" type="button" data-no-buffer="true"><i class="fa-solid fa-rotate"></i>Refresh</button>
         </div>
         <div id="aiLoading" class="ai-loading hidden">
           <div class="ai-skeleton card"></div>
@@ -376,9 +372,6 @@
             <h1>Certificates <span>Issued</span></h1>
             <p class="cert-section-subtitle">Manage and view all issued certificates</p>
           </div>
-          <button id="certificatesRefreshBtn" type="button" class="btn ghost cert-refresh-btn" data-no-buffer="true">
-            <i class="fa-solid fa-rotate-right"></i>Refresh
-          </button>
         </div>
         <div id="certificatesSummary" class="certificates-summary-grid"></div>
         <div id="certificatesGrid" class="certificates-grid"></div>
@@ -591,7 +584,6 @@
           <article class="card settings-card">
             <h3>Preferences</h3>
             <label class="toggle setting-toggle">Enable Notifications<input id="stNotif" type="checkbox" checked><span></span></label>
-            <label class="toggle setting-toggle">Live Auto Refresh<input id="stAutoRefresh" type="checkbox" checked><span></span></label>
             <label class="toggle setting-toggle">Proctoring Alerts<input id="stAlerts" type="checkbox" checked><span></span></label>
           </article>
           <article class="card settings-card settings-security-card">

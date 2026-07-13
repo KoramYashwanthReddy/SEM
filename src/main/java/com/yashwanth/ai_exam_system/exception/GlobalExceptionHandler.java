@@ -20,6 +20,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.yashwanth.ai_exam_system.dto.ApiResponse;
+import com.yashwanth.ai_exam_system.web.ErrorPageSupport;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -39,6 +40,9 @@ public class GlobalExceptionHandler {
         if (request.getRequestURI().endsWith(".ico")) {
             return ResponseEntity.notFound().build();
         }
+        if (ErrorPageSupport.prefersHtml(request)) {
+            return (ResponseEntity) ErrorPageSupport.render(HttpStatus.NOT_FOUND, "static/error/404.html");
+        }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("NOT_FOUND", "Resource not found"));
     }
 
@@ -50,6 +54,12 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         HttpStatus status = resolveStatus(ex);
+        if (status == HttpStatus.UNAUTHORIZED && ErrorPageSupport.prefersHtml(request)) {
+            return (ResponseEntity) ErrorPageSupport.render(HttpStatus.UNAUTHORIZED, "static/error/401.html");
+        }
+        if (status == HttpStatus.NOT_FOUND && ErrorPageSupport.prefersHtml(request)) {
+            return (ResponseEntity) ErrorPageSupport.render(HttpStatus.NOT_FOUND, "static/error/404.html");
+        }
 
         log.error("[BASE_EXCEPTION] code={}, message={}, path={}",
                 safe(ex.getErrorCode()),
@@ -128,6 +138,10 @@ public class GlobalExceptionHandler {
         log.warn("[AUTH_FAILED] path={}, message={}",
                 safePath(request),
                 safe(ex.getMessage()));
+
+        if (ErrorPageSupport.prefersHtml(request)) {
+            return (ResponseEntity) ErrorPageSupport.render(HttpStatus.UNAUTHORIZED, "static/error/401.html");
+        }
 
         return buildErrorResponse(
                 "UNAUTHORIZED",

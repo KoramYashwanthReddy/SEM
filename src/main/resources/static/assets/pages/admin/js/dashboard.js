@@ -355,21 +355,7 @@
     },
 
     startDashTimer() {
-        const el = document.getElementById('dash-timer');
-        if(!el) return;
-        
-        // Prevent multiple intervals
-        if(this.dashTimerInterval) clearInterval(this.dashTimerInterval);
-
-        el.textContent = this.dashboardState.refreshTimer;
-        this.dashTimerInterval = setInterval(() => {
-            const btn = document.getElementById('dashboard-refresh-btn');
-            if(btn && btn.classList.contains('loading')) return;
-
-            this.refreshOverview();
-            this.dashboardState.refreshTimer = 30;
-            if(el) el.textContent = this.dashboardState.refreshTimer;
-        }, 30000);
+        // Dashboard auto-refresh disabled by request
     },
 
     autoLogCycle() {
@@ -2655,18 +2641,7 @@ window.attemptsData = [];
 window.filteredAttempts = [];
 window.currentAttPage = 1;
 const attPageSize = 8;
-let attemptsAutoRefreshInterval = null;
 let attemptsRefreshInFlight = false;
-
-function ensureAttemptsAutoRefresh() {
-    if (attemptsAutoRefreshInterval) return;
-    const badge = document.getElementById('autoRefreshBadge');
-    if (badge) badge.textContent = 'AUTO-SYNC: 30s';
-    attemptsAutoRefreshInterval = setInterval(() => {
-        if (attemptsRefreshInFlight) return;
-        window.refreshAttempts();
-    }, 30000);
-}
 
 window.refreshAttempts = async function() {
     if (attemptsRefreshInFlight) return;
@@ -2691,7 +2666,6 @@ window.refreshAttempts = async function() {
 
         window.handleAttemptFilters();
         window.updateAttemptStats();
-        ensureAttemptsAutoRefresh();
     } catch (error) {
         console.error("Failed to refresh attempts:", error);
         window.attemptsData = [];
@@ -2700,13 +2674,6 @@ window.refreshAttempts = async function() {
     } finally {
         if(btn) btn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync Engine';
         attemptsRefreshInFlight = false;
-    }
-};
-
-window.stopAttemptsAutoRefresh = function() {
-    if (attemptsAutoRefreshInterval) {
-        clearInterval(attemptsAutoRefreshInterval);
-        attemptsAutoRefreshInterval = null;
     }
 };
 

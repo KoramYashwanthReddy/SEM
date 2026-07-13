@@ -5,6 +5,7 @@ import com.yashwanth.ai_exam_system.repository.AdminNotificationRepository;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -24,7 +25,7 @@ public class AdminNotificationService {
         this.messagingTemplate = messagingTemplate;
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public AdminNotification createNotification(String category,
                                                 String title,
                                                 String message,

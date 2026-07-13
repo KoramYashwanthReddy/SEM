@@ -7,6 +7,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 @Component
@@ -41,7 +42,7 @@ public class StartupSecurityValidator {
         boolean insecureJwt = jwtSecret == null
                 || jwtSecret.isBlank()
                 || DEFAULT_JWT_SECRET.equals(jwtSecret)
-                || jwtSecret.length() < 64;
+                || jwtSecret.getBytes(StandardCharsets.UTF_8).length < 32;
 
         if (productionLikeProfile) {
             if (insecureJwt) {
