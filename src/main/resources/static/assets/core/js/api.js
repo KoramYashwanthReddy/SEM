@@ -56,11 +56,7 @@ const API = (() => {
       sessionStorage.removeItem(k);
     });
     
-    const loginPage = role === 'admin' ? '/pages/admin-login.html' : 
-                      role === 'teacher' ? '/pages/teacher-login.html' : 
-                      '/pages/login.html';
-    
-    window.location.href = loginPage;
+    window.location.href = '/pages/login.html';
   }
 
   /**
@@ -104,16 +100,17 @@ const API = (() => {
       
       if (options.raw) return response;
 
-      if (!response.ok) {
-        // Handle 401 Unauthorized
-        if (response.status === 401) {
-          console.warn('Unauthorized request, logging out...');
-          if (!window.location.pathname.includes('login')) {
-            logout(localStorage.getItem('role')?.toLowerCase());
-          }
+    if (!response.ok) {
+      // Handle 401 Unauthorized
+      if (response.status === 401) {
+          console.warn('Unauthorized request received.');
         }
+        const error = new Error(await readErrorBody(response));
+        error.status = response.status;
+        error.url = url;
+        error.endpoint = endpoint;
+        throw error;
         
-        throw new Error(await readErrorBody(response));
       }
 
       const json = await response.json();

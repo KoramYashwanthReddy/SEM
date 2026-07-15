@@ -28,6 +28,10 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
 
     Optional<ExamAttempt> findByStudentIdAndExamCode(Long studentId, String examCode);
 
+    List<ExamAttempt> findByStudentIdAndExamCodeOrderByCreatedAtDesc(Long studentId, String examCode);
+
+    long countByStudentIdAndExamCode(Long studentId, String examCode);
+
     Optional<ExamAttempt> findByExamIdAndStudentId(Long examId, Long studentId);
 
     // ================= ACTIVE ATTEMPT =================

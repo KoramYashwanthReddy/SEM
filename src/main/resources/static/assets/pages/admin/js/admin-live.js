@@ -30,6 +30,13 @@
     localStorage.removeItem("role");
     sessionStorage.removeItem("role");
   };
+  let authRedirectInFlight = false;
+  const redirectToLoginOnce = () => {
+    if (authRedirectInFlight) return;
+    authRedirectInFlight = true;
+    clearSession();
+    window.location.href = "login.html";
+  };
   const txt = (v, d = "") => (v == null ? d : String(v));
   const num = (v, d = 0) => {
     const n = Number(v);
@@ -94,6 +101,11 @@
       module: category,
       severity,
       source,
+      user: source,
+      email: txt(item?.email || item?.userEmail || "").trim(),
+      action: normalizeAuditLabel(title) || category,
+      role: "Admin",
+      ip: txt(item?.ip || item?.clientIp || item?.sourceIp || "-").trim() || "-",
       status: item?.unread ? "UNREAD" : "READ",
       unread: Boolean(item?.unread),
       targetUrl: txt(item?.targetUrl || "").trim(),
@@ -119,6 +131,11 @@
       module: category,
       severity: severityScore >= 8 || score >= 50 ? "HIGH" : severityScore >= 6 || score >= 30 ? "MEDIUM" : "LOW",
       source: attemptId,
+      user: txt(item?.actorName || item?.teacherName || item?.adminName || "System"),
+      email: txt(item?.actorEmail || item?.teacherEmail || item?.adminEmail || "").trim(),
+      action: eventType,
+      role: "System",
+      ip: txt(item?.ip || item?.clientIp || item?.sourceIp || "-").trim() || "-",
       status: score >= 30 || severityScore >= 6 ? "FLAGGED" : "INFO",
       unread: score >= 30 || severityScore >= 6,
       targetUrl: "",
@@ -156,6 +173,11 @@
       module: "ATTEMPTS",
       severity: riskLabel,
       source: student,
+      user: student,
+      email: txt(item?.studentEmail || item?.email || "").trim(),
+      action,
+      role: txt(item?.role || "Student"),
+      ip: txt(item?.ip || item?.clientIp || item?.sourceIp || "-").trim() || "-",
       status: cancelled ? "CANCELLED" : (cheatingScore >= 30 ? "FLAGGED" : "INFO"),
       unread: cheatingScore >= 30 || cancelled,
       targetUrl: "",
@@ -169,6 +191,180 @@
       ...arr(cheating).map(mapAuditCheatingEvent),
       ...arr(attempts).map(mapAuditAttempt)
     ].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  };
+
+  const stripHtml = (value) => txt(value).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+
+  const fallbackAuditLogsFromDashboard = () => {
+    const source = Array.isArray(window.AdminDashboard?.dashLogs) ? window.AdminDashboard.dashLogs : [];
+    return source.map((entry, idx) => {
+      const label = normalizeAuditLabel(entry?.type || entry?.badge || "DASHBOARD_ACTIVITY") || "DASHBOARD_ACTIVITY";
+      const title = stripHtml(entry?.msg || entry?.title || "Dashboard activity");
+      return {
+        id: `DASH-${idx + 1}`,
+        title,
+        message: stripHtml(entry?.summary || entry?.msg || title),
+        event: label,
+        category: label,
+        module: label,
+        severity: normalizeAuditLabel(entry?.badge || "LOW") || "LOW",
+        source: stripHtml(entry?.time || "Admin Dashboard") || "Admin Dashboard",
+        user: stripHtml(entry?.user || entry?.source || "System") || "System",
+        email: "",
+        action: label,
+        role: "System",
+        ip: "-",
+        status: normalizeAuditLabel(entry?.badge || "INFO") || "INFO",
+        unread: false,
+        targetUrl: "",
+        timestamp: Date.now() - (idx * 60000),
+        time: txt(entry?.time || "-")
+      };
+    });
+  };
+
+  const fallbackAuditLogsFromLiveData = () => {
+    const logs = [];
+
+    const pushLog = (entry) => {
+      if (!entry) return;
+      logs.push(entry);
+    };
+
+    const examSource = arr(window.examsData).length ? arr(window.examsData) : arr(live.exams);
+    examSource.slice(0, 50).forEach((exam, idx) => {
+      const rawStatus = txt(exam?.status || "PUBLISHED").toUpperCase();
+      const timestamp = exam?.updatedAt || exam?.createdAt || exam?.raw?.updatedAt || exam?.raw?.createdAt || null;
+      const title = rawStatus === "DRAFT" ? "EXAM DRAFTED" : rawStatus === "SCHEDULED" ? "EXAM SCHEDULED" : rawStatus === "ARCHIVED" ? "EXAM ARCHIVED" : "EXAM UPDATED";
+      pushLog({
+        id: `EXAM-${exam?.examCode || exam?.id || idx}`,
+        title,
+        message: `${txt(exam?.title || exam?.examCode || "Exam")} • ${txt(exam?.creator || exam?.createdBy || "Admin")}`,
+        event: normalizeAuditLabel(title),
+        category: "EXAM",
+        module: "EXAMS",
+        severity: rawStatus === "ARCHIVED" ? "MEDIUM" : "LOW",
+        source: txt(exam?.creator || exam?.createdBy || "Admin"),
+        user: txt(exam?.creator || exam?.createdBy || "Admin"),
+        email: "",
+        action: normalizeAuditLabel(title),
+        role: "Admin",
+        ip: "-",
+        status: rawStatus,
+        unread: rawStatus !== "PUBLISHED",
+        targetUrl: "",
+        timestamp: timestamp ? new Date(timestamp).getTime() : 0,
+        time: fmtDateTime(timestamp) || "-"
+      });
+    });
+
+    const studentSource = arr(window.studentsData).length ? arr(window.studentsData) : arr(live.users).filter((u) => txt(u.role).toUpperCase() === "STUDENT");
+    studentSource.slice(0, 50).forEach((student, idx) => {
+      const timestamp = student?.updatedAt || student?.createdAt || student?.lastLogin || student?.raw?.updatedAt || student?.raw?.createdAt || null;
+      const title = txt(student?.status || "Active").toUpperCase() === "DISABLED" ? "STUDENT DISABLED" : "STUDENT ACTIVE";
+      pushLog({
+        id: `STU-${student?.id || idx}`,
+        title,
+        message: `${txt(student?.name || "Student")} • ${txt(student?.email || "")}`,
+        event: normalizeAuditLabel(title),
+        category: "USER",
+        module: "USERS",
+        severity: title.includes("DISABLED") ? "MEDIUM" : "LOW",
+        source: txt(student?.email || student?.name || "Student"),
+        user: txt(student?.name || "Student"),
+        email: txt(student?.email || ""),
+        action: normalizeAuditLabel(title),
+        role: "Student",
+        ip: "-",
+        status: txt(student?.status || "ACTIVE").toUpperCase(),
+        unread: title.includes("DISABLED"),
+        targetUrl: "",
+        timestamp: timestamp ? new Date(timestamp).getTime() : 0,
+        time: fmtDateTime(timestamp) || txt(student?.lastLogin || "-")
+      });
+    });
+
+    const teacherSource = arr(window.teachersData).length ? arr(window.teachersData) : arr(live.users).filter((u) => txt(u.role).toUpperCase() === "TEACHER");
+    teacherSource.slice(0, 50).forEach((teacher, idx) => {
+      const timestamp = teacher?.updatedAt || teacher?.createdAt || teacher?.raw?.updatedAt || teacher?.raw?.createdAt || null;
+      const title = txt(teacher?.status || "Active").toUpperCase() === "DISABLED" ? "TEACHER DISABLED" : "TEACHER ACTIVE";
+      pushLog({
+        id: `TCH-${teacher?.id || idx}`,
+        title,
+        message: `${txt(teacher?.fullName || teacher?.name || "Teacher")} • ${txt(teacher?.department || "N/A")}`,
+        event: normalizeAuditLabel(title),
+        category: "USER",
+        module: "USERS",
+        severity: title.includes("DISABLED") ? "MEDIUM" : "LOW",
+        source: txt(teacher?.email || teacher?.fullName || "Teacher"),
+        user: txt(teacher?.fullName || teacher?.name || "Teacher"),
+        email: txt(teacher?.email || ""),
+        action: normalizeAuditLabel(title),
+        role: "Teacher",
+        ip: "-",
+        status: txt(teacher?.status || "ACTIVE").toUpperCase(),
+        unread: title.includes("DISABLED"),
+        targetUrl: "",
+        timestamp: timestamp ? new Date(timestamp).getTime() : 0,
+        time: fmtDateTime(timestamp) || "-"
+      });
+    });
+
+    const attemptSource = arr(window.attemptsData).length ? arr(window.attemptsData) : arr(live.attempts).map(mapAttempt);
+    attemptSource.slice(0, 100).forEach((attempt, idx) => {
+      const score = num(attempt?.cheatingScore, 0);
+      const rawStatus = txt(attempt?.status || "INFO").toUpperCase();
+      const title = score >= 80 ? "ATTEMPT CRITICAL" : score >= 60 ? "ATTEMPT HIGH RISK" : score >= 30 ? "ATTEMPT REVIEW" : rawStatus === "COMPLETED" ? "ATTEMPT COMPLETED" : "ATTEMPT RECORDED";
+      const timestamp = attempt?.startTime || attempt?.updatedAt || attempt?.endTime || attempt?.createdAt || attempt?.date || null;
+      pushLog({
+        id: `ATT-${attempt?.id || idx}`,
+        title,
+        message: `${txt(attempt?.studentName || attempt?.name || "Student")} • ${txt(attempt?.examTitle || attempt?.examCode || "Exam")} • ${score}% risk`,
+        event: normalizeAuditLabel(title),
+        category: "ATTEMPT",
+        module: "ATTEMPTS",
+        severity: score >= 80 ? "CRITICAL" : score >= 60 ? "HIGH" : score >= 30 ? "MEDIUM" : "LOW",
+        source: txt(attempt?.studentName || attempt?.name || "Student"),
+        user: txt(attempt?.studentName || attempt?.name || "Student"),
+        email: txt(attempt?.studentEmail || attempt?.email || ""),
+        action: normalizeAuditLabel(title),
+        role: "Student",
+        ip: txt(attempt?.ip || attempt?.ipAddress || attempt?.clientIp || "-"),
+        status: rawStatus || "INFO",
+        unread: score >= 30 || Boolean(attempt?.cancelled) || Boolean(attempt?.unread),
+        targetUrl: "",
+        timestamp: timestamp ? new Date(timestamp).getTime() : 0,
+        time: fmtDateTime(timestamp) || txt(attempt?.date || "-")
+      });
+    });
+
+    const certSource = arr(window.allCertificates).length ? arr(window.allCertificates) : arr(live.certificates);
+    certSource.slice(0, 50).forEach((cert, idx) => {
+      const timestamp = cert?.issuedAt || cert?.createdAt || cert?.raw?.issuedAt || cert?.raw?.createdAt || null;
+      const title = cert?.revoked ? "CERTIFICATE REVOKED" : "CERTIFICATE ISSUED";
+      pushLog({
+        id: `CERT-${cert?.certificateId || cert?.id || idx}`,
+        title,
+        message: `${txt(cert?.studentName || cert?.name || "Student")} • ${txt(cert?.examTitle || cert?.examCode || "Exam")}`,
+        event: normalizeAuditLabel(title),
+        category: "CERTIFICATE",
+        module: "CERTIFICATES",
+        severity: cert?.revoked ? "MEDIUM" : "LOW",
+        source: txt(cert?.issuer || "System"),
+        user: txt(cert?.issuer || "System"),
+        email: "",
+        action: normalizeAuditLabel(title),
+        role: "System",
+        ip: "-",
+        status: cert?.revoked ? "REVOKED" : "ISSUED",
+        unread: Boolean(cert?.revoked),
+        targetUrl: "",
+        timestamp: timestamp ? new Date(timestamp).getTime() : 0,
+        time: fmtDateTime(timestamp) || "-"
+      });
+    });
+
+    return logs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   };
 
   const readFileAsText = (file) => new Promise((resolve, reject) => {
@@ -291,8 +487,18 @@
     ].some((hit) => text.includes(hit));
   };
 
+  const isAuthNoise = (message = "") => {
+    const text = String(message || "").toLowerCase();
+    return text.includes("unauthorized")
+      || text.includes("forbidden")
+      || text.includes("401")
+      || text.includes("403")
+      || text.includes("failed to fetch");
+  };
+
   const emitUiError = (message) => {
     const msg = txt(message, "Unexpected error");
+    if (isAuthNoise(msg)) return;
     if (typeof window.showToast === "function") {
       window.showToast(msg, "error");
     } else {
@@ -305,6 +511,7 @@
     window.__adminUiErrorHandlersInstalled = true;
     window.addEventListener("error", (event) => {
       if (isUiNoise(event?.message, event?.filename)) return;
+      if (isAuthNoise(event?.message)) return;
       emitUiError(event?.message || "Unexpected admin UI error");
     });
     window.addEventListener("unhandledrejection", (event) => {
@@ -313,6 +520,7 @@
         ? reason
         : reason?.message || reason?.cause || "Unexpected admin UI error";
       if (isUiNoise(message)) return;
+      if (isAuthNoise(message)) return;
       emitUiError(message);
     });
   };
@@ -338,7 +546,7 @@
       // So we can pass it directly to API.request
       return await API.request(path, options);
     } catch (err) {
-      if (!options.silent) {
+      if (!options.silent && err?.status !== 401 && err?.status !== 403) {
         emitUiError(err.message);
       }
       throw err;
@@ -535,7 +743,7 @@
 
   async function loadAll() {
     if (!hasToken()) {
-      window.location.href = "admin-login.html";
+      window.location.href = "login.html";
       return;
     }
     const endpoints = [
@@ -558,6 +766,8 @@
 
     const payload = {};
     const failures = [];
+    let authFailure = false;
+    let dashboardAuthFailure = false;
 
     results.forEach((result, index) => {
       const [key, path] = endpoints[index];
@@ -566,8 +776,19 @@
       } else {
         failures.push(`${path}: ${result.reason?.message || result.reason || "Unknown error"}`);
         payload[key] = key === "dashboard" ? {} : [];
+        if ((result.reason?.status === 401 || result.reason?.status === 403) && key === "dashboard") {
+          dashboardAuthFailure = true;
+        }
+        if (result.reason?.status === 401 || result.reason?.status === 403) {
+          authFailure = true;
+        }
       }
     });
+
+    if (dashboardAuthFailure || (authFailure && failures.length === endpoints.length)) {
+      redirectToLoginOnce();
+      return;
+    }
 
     if (failures.length === endpoints.length) {
       throw new Error(`Admin sync failed for all endpoints. ${failures[0]}`);
@@ -586,8 +807,15 @@
     live.questions = arr(payload.questions);
     live.certificates = arr(payload.certs).map(mapCert);
     live.leaderboard = arr(payload.leaderboard);
-    window.allAuditLogs = mergeAuditFeeds(payload.notifications, payload.cheating, payload.attempts);
+    const notificationSource = arr(payload.notifications?.data || payload.notifications);
+    const cheatingSource = arr(payload.cheating?.data || payload.cheating);
+    const attemptSource = arr(payload.attempts?.data || payload.attempts);
+    const mergedAuditLogs = mergeAuditFeeds(notificationSource, cheatingSource, attemptSource);
+    window.allAuditLogs = mergedAuditLogs.length
+      ? mergedAuditLogs
+      : (fallbackAuditLogsFromLiveData().length ? fallbackAuditLogsFromLiveData() : fallbackAuditLogsFromDashboard());
     window.auditLogsLoaded = true;
+    window.renderAuditLogs?.();
 
     live.byExam = new Map(live.exams.map((e) => [txt(e.examCode), e]));
     live.byUser = new Map(live.users.map((u) => [txt(u.id), u]));
@@ -602,8 +830,9 @@
     live.byExamSummary = summary.byExam;
 
     window.examsData = live.exams.map((exam) => mapExam(exam, summary.byExam.get(txt(exam.examCode || exam.id))));
-    const studentSource = live.students.length > 0 ? live.students : live.users.filter((u) => txt(u.role).toUpperCase() === "STUDENT");
-    const teacherSource = live.teachers.length > 0 ? live.teachers : live.users.filter((u) => txt(u.role).toUpperCase() === "TEACHER");
+    const normalizeRole = (value) => txt(value).replace(/^ROLE_/i, "").toUpperCase();
+    const studentSource = live.students.length > 0 ? live.students : live.users.filter((u) => normalizeRole(u.role) === "STUDENT");
+    const teacherSource = live.teachers.length > 0 ? live.teachers : live.users.filter((u) => normalizeRole(u.role) === "TEACHER");
 
     window.studentsData = studentSource.map((u) => {
       const stats = summary.byStudent.get(txt(u.id)) || {};
@@ -709,6 +938,8 @@
       window.AdminDashboard.dashAlerts = window.proctoringMonitorData.slice(0, 5).map((item, idx) => ({ id: idx + 1, risk: item.riskLevel === "LOW" ? "low" : item.riskLevel === "MEDIUM" ? "med" : "high", title: item.violationType, user: item.studentName, time: item.date }));
     }
 
+    window.AdminDashboard?.renderDashboardOverview?.();
+
     safeRender("Exams", window.renderGlobalExams);
     safeRender("Students", window.renderGlobalStudents);
     safeRender("Teachers", window.renderGlobalTeachers);
@@ -716,8 +947,10 @@
     safeRender("Certificates", window.renderCertPage);
     safeRender("Leaderboard", window.renderLBSection);
     safeRender("Audit Logs", window.renderAuditLogs);
+    safeRender("Reports", window.renderReports);
     syncActivityFooter();
     applyMetrics();
+    window.udRender?.();
     if (typeof window.refreshAnalytics === "function") {
       window.refreshAnalytics().catch((error) => {
         console.warn("Admin analytics refresh failed after live sync:", error);
@@ -734,7 +967,10 @@
   };
   window.AdminDashboard.autoLogCycle = () => {};
   window.AdminDashboard.updateActivityFooter = () => syncActivityFooter();
-  window.AdminDashboard.refreshOverview = async () => { await loadAll(); };
+  window.AdminDashboard.refreshOverview = async () => {
+    await loadAll();
+    window.AdminDashboard?.renderDashboardOverview?.();
+  };
 
   async function refreshAttempts() {
     if (attemptsRefreshInFlight) return;
@@ -748,6 +984,7 @@
       window.filteredAttempts = [...window.attemptsData];
       window.handleAttemptFilters?.();
       window.updateAttemptStats?.();
+      window.AdminDashboard?.renderDashboardOverview?.();
     } finally {
       attemptsRefreshInFlight = false;
     }
@@ -763,9 +1000,13 @@
       const notifData = arr(notifications?.data || notifications);
       const cheatingData = arr(cheating?.data || cheating);
       const attemptData = arr(attempts?.data || attempts);
-      window.allAuditLogs = mergeAuditFeeds(notifData, cheatingData, attemptData);
+      const mergedAuditLogs = mergeAuditFeeds(notifData, cheatingData, attemptData);
+      window.allAuditLogs = mergedAuditLogs.length
+        ? mergedAuditLogs
+        : (fallbackAuditLogsFromLiveData().length ? fallbackAuditLogsFromLiveData() : fallbackAuditLogsFromDashboard());
       window.auditLogsLoaded = true;
       window.renderAuditLogs?.();
+    window.AdminDashboard?.renderDashboardOverview?.();
     } catch (error) {
       window.allAuditLogs = [];
       window.auditLogsLoaded = false;
@@ -895,7 +1136,7 @@
     }
     try {
       await handleActionBtn(btn, "Publish", "Publishing...", "Published", async () => {
-        await api(`/api/teacher/exams/${encodeURIComponent(examCode)}/publish`, { method: "POST" });
+        await api(`/api/admin/exams/${encodeURIComponent(examCode)}/publish`, { method: "POST" });
         await loadAll();
         return true;
       });
@@ -1110,9 +1351,10 @@
     const v = (id) => document.getElementById(id)?.value.trim() || "";
     const ni = (id) => parseInt(v(id), 10) || 0;
     const nf = (id) => parseFloat(v(id)) || 0;
+    const checked = (id) => Boolean(document.getElementById(id)?.checked);
     const payload = {
       title: v("ex-title"),
-      description: "",
+      description: v("ex-desc"),
       subject: v("ex-subj"),
       durationMinutes: ni("ex-dur"),
       startTime: v("ex-start") ? `${v("ex-start")}:00` : null,
@@ -1125,12 +1367,35 @@
       easyQuestionCount: ni("ex-easy"),
       mediumQuestionCount: ni("ex-med"),
       difficultQuestionCount: ni("ex-diff"),
-      shuffleQuestions: true,
-      shuffleOptions: true
+      shuffleQuestions: checked("ex-shuffle-q"),
+      shuffleOptions: checked("ex-shuffle-o")
     };
+    const totalPlannedQuestions = payload.easyQuestionCount + payload.mediumQuestionCount + payload.difficultQuestionCount;
+    const start = payload.startTime ? new Date(payload.startTime) : null;
+    const end = payload.endTime ? new Date(payload.endTime) : null;
+    if (!payload.title || !payload.subject || payload.durationMinutes <= 0 || payload.totalMarks <= 0) {
+      window.showToast?.("Fill title, subject, duration, and total marks before creating the exam.", "error");
+      return;
+    }
+    if (payload.passingMarks > payload.totalMarks) {
+      window.showToast?.("Passing marks cannot exceed total marks.", "error");
+      return;
+    }
+    if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end.getTime() <= start.getTime()) {
+      window.showToast?.("Choose a valid exam start and end window.", "error");
+      return;
+    }
+    if (payload.marksPerQuestion <= 0 || payload.negativeMarks < 0 || payload.negativeMarks > payload.marksPerQuestion) {
+      window.showToast?.("Marks per question and negative marking values are not valid.", "error");
+      return;
+    }
+    if (totalPlannedQuestions > 0 && totalPlannedQuestions * payload.marksPerQuestion > payload.totalMarks) {
+      window.showToast?.("Difficulty distribution exceeds total marks.", "error");
+      return;
+    }
     try {
       await handleActionBtn(btn, "Create Exam", "Creating...", "Created", async () => {
-        await api("/api/teacher/exams", { method: "POST", body: JSON.stringify(payload) });
+        await api("/api/admin/exams", { method: "POST", body: payload });
         await loadAll();
         closeModal("createExamModal");
         return true;
@@ -1168,7 +1433,7 @@
     };
     try {
       await handleActionBtn(btn, "Save Changes", "Saving...", "Saved", async () => {
-        await api(`/api/teacher/exams/${encodeURIComponent(examCode)}`, { method: "PUT", body: JSON.stringify(payload) });
+        await api(`/api/admin/exams/${encodeURIComponent(examCode)}`, { method: "PUT", body: payload });
         await loadAll();
         closeModal("editExamModal");
         return true;
@@ -1343,8 +1608,7 @@
         headers: { Accept: "application/json,text/plain,*/*", ...(token() ? { Authorization: `Bearer ${token()}` } : {}) }
       });
       if (res.status === 401 || res.status === 403) {
-        clearSession();
-        window.location.href = "admin-login.html";
+        redirectToLoginOnce();
         return;
       }
       let result = null;
@@ -1374,8 +1638,7 @@
         headers: { ...(token() ? { Authorization: `Bearer ${token()}` } : {}) }
       });
       if (res.status === 401 || res.status === 403) {
-        clearSession();
-        window.location.href = "admin-login.html";
+        redirectToLoginOnce();
         return;
       }
       if (res.status === 410) throw new Error("Certificate has been revoked");
@@ -1575,20 +1838,25 @@
       if (originalInit) originalInit();
     };
     window.AdminDashboard.populateMockData = () => loadAll().catch((error) => console.error("Admin live sync failed:", error?.message || error));
-    window.AdminDashboard.refreshOverview = async () => {
-      try {
-        await loadAll();
-      } catch (error) {
-        console.error(error);
-        window.showToast?.(error.message || "Failed to load admin data", "error");
+  window.AdminDashboard.refreshOverview = async () => {
+    try {
+      await loadAll();
+    } catch (error) {
+      console.error(error);
+      if (error?.status === 401 || error?.status === 403) {
+        redirectToLoginOnce();
+        return;
       }
-    };
+      window.showToast?.(error.message || "Failed to load admin data", "error");
+    }
+  };
     window.AdminDashboard.initDashboardEngine = function () {
       this.dashboardState = this.dashboardState || { logFilter: "all", examPage: 1, examSize: 5, examSort: "active", examSortAsc: false, refreshTimer: 30 };
       this.startDashTimer?.();
     };
     window.AdminDashboard.autoLogCycle = () => {};
-    window.AdminDashboard.updateActivityFooter = () => {};
+    window.AdminDashboard.updateActivityFooter = window.AdminDashboard.updateActivityFooter || (() => {});
+    window.AdminDashboard.renderDashboardOverview = window.AdminDashboard.renderDashboardOverview || (() => {});
     window.AdminDashboard.renderSettings = window.AdminDashboard.renderSettings || (() => {});
     window.AdminDashboard.renderNotifications = window.AdminDashboard.renderNotifications || (() => {});
     window.AdminDashboard.renderAdminProfile = window.AdminDashboard.renderAdminProfile || (() => {});
@@ -1597,9 +1865,16 @@
       window.renderLBSection?.();
       window.updateLBCharts?.();
     };
+
+    queueMicrotask(() => {
+      window.AdminDashboard.refreshOverview?.().catch((error) => {
+        console.error("Admin dashboard bootstrap refresh failed:", error);
+      });
+    });
   }
 
   window.AdminLive = { loadAll, api, live };
+  window.AdminLive.refreshAuditLogs = refreshAuditLogs;
   window.refreshAttempts = refreshAttempts;
   window.refreshProctoring = refreshProctoring;
   window.initCertificatesEngine = initCertificatesEngine;

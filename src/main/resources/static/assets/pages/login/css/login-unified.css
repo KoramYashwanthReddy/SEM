@@ -1,0 +1,541 @@
+/* Unified MNC-Level Split Login Page Styles */
+:root {
+  --primary-accent: #6366f1;
+  --primary-accent-rgb: 99, 102, 241;
+  --accent-glow: rgba(99, 102, 241, 0.12);
+  --font-sans: 'DM Sans', sans-serif;
+  --font-display: 'Syne', sans-serif;
+}
+
+/* Full Screen Split Layout */
+.split-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Left panel: Enterprise Branding & Showcase */
+.showcase-panel {
+  flex: 1.15;
+  position: relative;
+  background: radial-gradient(circle at 10% 10%, #151926 0%, #090b11 100%);
+  color: #ffffff;
+  padding: 32px 38px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Subtle glow orb behind showcase */
+.showcase-glow {
+  position: absolute;
+  top: 40%;
+  left: 20%;
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.showcase-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: #fff;
+  font-family: var(--font-display);
+}
+
+.brand-logo-sso {
+  font-weight: 800;
+  font-size: 1.1rem;
+  background: linear-gradient(135deg, var(--primary-accent), #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  padding: 3px 8px;
+  border: 2px solid rgba(var(--primary-accent-rgb), 0.4);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 16px rgba(var(--primary-accent-rgb), 0.15);
+}
+
+.brand-name-sso {
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: -0.5px;
+}
+
+/* Tab Content Display */
+.showcase-info {
+  margin-top: 8px;
+}
+
+.portal-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 10px;
+  color: #fff;
+  letter-spacing: -0.5px;
+  background: linear-gradient(to right, #ffffff, rgba(255,255,255,0.75));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.portal-desc {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  margin-bottom: 24px;
+  max-width: 480px;
+}
+
+.portal-features-sso {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.portal-features-sso li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.feature-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  color: var(--primary-accent);
+  flex-shrink: 0;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.feature-icon-wrapper svg {
+  width: 14px;
+  height: 14px;
+}
+
+.feature-text-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.feature-title-sso {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #ffffff;
+}
+
+.feature-desc-sso {
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.4;
+}
+
+/* Premium System Status & Metrics Widget */
+.platform-metrics-widget {
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  padding: 16px 18px;
+  backdrop-filter: blur(10px);
+}
+
+.metrics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.metrics-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metrics-title svg {
+  width: 12px;
+  height: 12px;
+}
+
+.metrics-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.08);
+  color: #10b981;
+  padding: 3px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.status-dot-green {
+  width: 5px;
+  height: 5px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metric-value {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.metric-label {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.showcase-footer {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Right panel: Modern Form Center */
+.form-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 50px;
+  background: var(--bg-primary);
+  position: relative;
+  overflow-y: auto;
+}
+
+.form-container {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-header-sso h2 {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+
+.form-header-sso p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Dynamic Badge in Form Header */
+.form-badge-sso {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(var(--primary-accent-rgb), 0.06);
+  border: 1px solid rgba(var(--primary-accent-rgb), 0.12);
+  color: var(--primary-accent);
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  align-self: flex-start;
+}
+
+/* Fields Styles */
+.field-sso {
+  position: relative;
+  margin-bottom: 18px;
+}
+
+.field-sso input {
+  width: 100%;
+  padding: 14px 14px;
+  background: rgba(var(--primary-accent-rgb), 0.01);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.field-sso input:focus {
+  border-color: var(--primary-accent);
+  box-shadow: 0 0 0 3px rgba(var(--primary-accent-rgb), 0.08);
+  background: var(--bg-primary);
+}
+
+/* Floating Label styling */
+.field-sso label {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.field-sso input:focus ~ label,
+.field-sso input:not(:placeholder-shown) ~ label {
+  top: 0;
+  transform: translateY(-50%) scale(0.85);
+  left: 10px;
+  background: var(--bg-primary);
+  padding: 0 5px;
+  color: var(--primary-accent);
+  font-weight: 500;
+}
+
+/* Password Toggle */
+.password-toggle-sso {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px;
+}
+
+.password-toggle-sso:hover {
+  color: var(--primary-accent);
+}
+
+/* Action Checkbox & Forgot Link */
+.form-actions-sso {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  font-size: 0.85rem;
+}
+
+.remember-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.remember-checkbox-label input {
+  accent-color: var(--primary-accent);
+  width: 14px;
+  height: 14px;
+}
+
+.forgot-link-sso {
+  color: var(--primary-accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.forgot-link-sso:hover {
+  text-decoration: underline;
+}
+
+/* Login submit button */
+.btn-submit-sso {
+  width: 100%;
+  padding: 14px;
+  background: var(--primary-accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 3px 8px rgba(var(--primary-accent-rgb), 0.15);
+}
+
+.btn-submit-sso:hover:not(:disabled) {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(var(--primary-accent-rgb), 0.2);
+}
+
+.btn-submit-sso:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* SSO Animations */
+@keyframes ssoFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Error Box Specificity Fix */
+.sso-error-box[hidden] {
+  display: none !important;
+}
+
+/* Error Box Styling */
+.sso-error-box {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  animation: ssoFadeIn 0.3s ease;
+}
+
+.sso-error-box svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Responsive Overrides */
+@media (max-width: 992px) {
+  .split-container {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .showcase-panel {
+    flex: none;
+    width: 100%;
+    min-height: auto;
+    padding: 30px 24px;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .showcase-glow {
+    width: 250px;
+    height: 250px;
+  }
+
+  .showcase-info {
+    min-height: auto;
+    margin-top: 20px;
+  }
+
+  .portal-title {
+    font-size: 1.7rem;
+  }
+
+  .portal-desc {
+    margin-bottom: 20px;
+  }
+
+  .form-panel {
+    flex: 1;
+    width: 100%;
+    padding: 30px 24px;
+  }
+
+  .form-container {
+    max-width: 100%;
+  }
+}
+
+/* ── Stepper Connector Line & Style Upgrades ─────────── */
+.signup-stepper {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+.signup-stepper::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 12.5%;
+  right: 12.5%;
+  height: 2px;
+  background: #e2e8f0;
+  z-index: 1;
+}
+.signup-step {
+  z-index: 2;
+  position: relative;
+  background: transparent;
+  padding: 0 10px;
+}
+

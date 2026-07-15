@@ -1,18 +1,21 @@
 package com.yashwanth.ai_exam_system.controller;
 
 import com.yashwanth.ai_exam_system.dto.CreateTeacherRequest;
+import com.yashwanth.ai_exam_system.dto.ExamRequest;
 import com.yashwanth.ai_exam_system.entity.CheatingEvidence;
 import com.yashwanth.ai_exam_system.entity.Exam;
 import com.yashwanth.ai_exam_system.entity.ProctoringEvent;
 import com.yashwanth.ai_exam_system.entity.Question;
 import com.yashwanth.ai_exam_system.entity.Role;
 import com.yashwanth.ai_exam_system.service.AdminService;
+import com.yashwanth.ai_exam_system.service.ExamService;
 
 import jakarta.validation.Valid;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,9 +28,11 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminService adminService;
+    private final ExamService examService;
 
-    public AdminController(AdminService adminService) {
+    public AdminController(AdminService adminService, ExamService examService) {
         this.adminService = adminService;
+        this.examService = examService;
     }
 
     // =====================================================
@@ -127,6 +132,43 @@ public class AdminController {
     @GetMapping("/exams")
     public ResponseEntity<List<Exam>> getAllExams() {
         return ResponseEntity.ok(adminService.getAllExams());
+    }
+
+    @PostMapping("/exams")
+    public ResponseEntity<Map<String, Object>> createExam(
+            @Valid @RequestBody ExamRequest request,
+            Authentication auth) {
+
+        Exam exam = examService.createExam(request, auth);
+        return ResponseEntity.ok(Map.of(
+                "status", "SUCCESS",
+                "message", "Exam created successfully",
+                "data", exam));
+    }
+
+    @PutMapping("/exams/{examCode}")
+    public ResponseEntity<Map<String, Object>> updateExam(
+            @PathVariable String examCode,
+            @Valid @RequestBody ExamRequest request,
+            Authentication auth) {
+
+        Exam exam = examService.updateExam(examCode, request, auth);
+        return ResponseEntity.ok(Map.of(
+                "status", "SUCCESS",
+                "message", "Exam updated successfully",
+                "data", exam));
+    }
+
+    @PostMapping("/exams/{examCode}/publish")
+    public ResponseEntity<Map<String, Object>> publishExam(
+            @PathVariable String examCode,
+            Authentication auth) {
+
+        Exam exam = examService.publishExam(examCode, auth);
+        return ResponseEntity.ok(Map.of(
+                "status", "SUCCESS",
+                "message", "Exam published successfully",
+                "data", exam));
     }
 
     @DeleteMapping("/exams/{examCode}")

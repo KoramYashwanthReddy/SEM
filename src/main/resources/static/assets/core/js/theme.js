@@ -12,10 +12,7 @@ const ThemeController = (() => {
 
   const forceLightPages = [
     'index.html',
-    'role-selection.html',
     'login.html',
-    'admin-login.html',
-    'teacher-login.html',
     'signup.html',
     'welcome-onboarding.html',
     'forgot-password.html',

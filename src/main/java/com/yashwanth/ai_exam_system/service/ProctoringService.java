@@ -51,6 +51,9 @@ public class ProctoringService {
         }
 
         String normalizedType = normalizeEventType(request.getEventType());
+        if (isSubmissionLifecycleEvent(normalizedType)) {
+            return;
+        }
 
         ProctoringEvent event = new ProctoringEvent();
         event.setAttemptId(request.getAttemptId());
@@ -335,6 +338,10 @@ public class ProctoringService {
     private String normalizeEventType(String eventType) {
         String normalized = eventType == null ? "" : eventType.trim().toUpperCase();
         return normalized.isBlank() ? "ACTION_UNKNOWN" : normalized;
+    }
+
+    private boolean isSubmissionLifecycleEvent(String eventType) {
+        return "EXAM_SUBMITTED".equals(eventType) || "EXAM_AUTO_SUBMITTED".equals(eventType);
     }
 
     private String buildViolationSummary(ProctoringEventRequest request, String normalizedType) {

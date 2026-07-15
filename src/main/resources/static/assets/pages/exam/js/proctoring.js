@@ -36,8 +36,12 @@ class ProctoringSystem {
     return !!(this.setupOverlay && this.setupOverlay.classList.contains('active'));
   }
 
+  isExamClosing() {
+    return Boolean(window.__examSubmitting || window.__examSubmitted || document.body.innerHTML.includes('Submitted Successfully'));
+  }
+
   isExamStarted() {
-    return !this.isOverlayActive();
+    return !this.isOverlayActive() && !this.isExamClosing();
   }
 
   resolveViolationType(reason, category) {
@@ -90,7 +94,7 @@ class ProctoringSystem {
         
         // Re-lock Fullscreen if it was exited during the exam
         const isStarted = this.isExamStarted();
-        const isSubmitted = document.body.innerHTML.includes('Submitted Successfully');
+        const isSubmitted = this.isExamClosing();
         if (isStarted && !isSubmitted && !document.fullscreenElement) {
            document.documentElement.requestFullscreen().catch(err => console.warn(err.message));
         }
@@ -117,7 +121,7 @@ class ProctoringSystem {
           });
         } else {
           // If exam is running, don't allow manual exit via button
-          if (this.isExamStarted() && !document.body.innerHTML.includes('Submitted Successfully')) {
+          if (this.isExamStarted() && !this.isExamClosing()) {
              showToast('Manual exit disabled during examination.', 'warning');
              return;
           }
@@ -130,7 +134,7 @@ class ProctoringSystem {
 
     // Mandatory Re-lock logic
     document.addEventListener('fullscreenchange', () => {
-       const isSubmitted = document.body.innerHTML.includes('Submitted Successfully');
+       const isSubmitted = this.isExamClosing();
        const isStarted = this.isExamStarted();
        
        if (isStarted && !isSubmitted && !document.fullscreenElement) {
@@ -204,6 +208,7 @@ class ProctoringSystem {
   }
 
   triggerWarning(reason, category = 'general') {
+    if (this.isExamClosing()) return;
     let count, max;
     const categoryLabel = category === 'voice' ? 'Audio/Voice' : 'Visual/System';
     
@@ -348,7 +353,7 @@ class ProctoringSystem {
         const monitor = () => {
           // Stay running to capture logs even if warnings count is maxed out, 
           // but stop triggering modals after submission.
-          if (document.body.innerHTML.includes('Submitted Successfully')) return;
+          if (this.isExamClosing()) return;
 
           // 1. Mandatory Persistence Check: Ensure Mic is still active
           const micTrack = stream.getAudioTracks()[0];
@@ -454,7 +459,7 @@ class ProctoringSystem {
            let lastTimeCheck = Date.now();
            
            setInterval(() => {
-              if (this.isExamStarted()) { // only monitor while exam is running
+              if (this.isExamStarted() && !this.isExamClosing()) { // only monitor while exam is running
                  // 1. Mandatory Persistence Check: Ensure Camera is still active
                  const camTrack = stream.getVideoTracks()[0];
                  if (!stream.active || !camTrack || camTrack.readyState !== 'live' || !camTrack.enabled) {
@@ -541,6 +546,7 @@ class ProctoringSystem {
     // Disable copy, cut, paste events
     ['copy', 'cut', 'paste'].forEach(evt => {
       document.addEventListener(evt, (e) => {
+        if (this.isExamClosing()) return;
         e.preventDefault();
         this.triggerWarning(`User attempted '${evt}' (Copy/Paste Restricted)`, 'general');
       });
@@ -548,6 +554,7 @@ class ProctoringSystem {
 
     // Disable specific keyboard shortcuts (F12, Ctrl/Cmd + C, V, X, P, S, U, etc)
     document.addEventListener('keydown', (e) => {
+      if (this.isExamClosing()) return;
       // Prevent F12
       if (e.key === 'F12') {
         e.preventDefault();

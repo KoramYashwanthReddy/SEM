@@ -53,6 +53,10 @@ public class ExamQuestionSelectionService {
             return orderByDifficulty(activeQuestions, exam, studentId, attemptId);
         }
 
+        if (Boolean.TRUE.equals(exam.getShuffleQuestions())) {
+            selected.sort(Comparator.comparing(question -> question.getId() == null ? Long.MAX_VALUE : question.getId()));
+            Collections.shuffle(selected, new Random(seedFor(exam.getExamCode(), studentId, attemptId, "FINAL")));
+        }
         return selected;
     }
 

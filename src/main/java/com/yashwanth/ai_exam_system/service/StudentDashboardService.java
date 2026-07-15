@@ -1,5 +1,6 @@
 package com.yashwanth.ai_exam_system.service;
 
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -8,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -22,6 +24,7 @@ import com.yashwanth.ai_exam_system.entity.Certificate;
 import com.yashwanth.ai_exam_system.entity.Exam;
 import com.yashwanth.ai_exam_system.entity.ExamAttempt;
 import com.yashwanth.ai_exam_system.entity.ExamRegistration;
+import com.yashwanth.ai_exam_system.entity.ExamResult;
 import com.yashwanth.ai_exam_system.entity.Role;
 import com.yashwanth.ai_exam_system.entity.StudentProfile;
 import com.yashwanth.ai_exam_system.entity.User;
@@ -47,6 +50,8 @@ public class StudentDashboardService {
     private final CertificateRepository certificateRepository;
     private final ExamResultRepository examResultRepository;
     private final LeaderboardService leaderboardService;
+    private final CertificateService certificateService;
+
     public StudentDashboardService(ExamAttemptRepository attemptRepository,
             ExamRepository examRepository,
             UserRepository userRepository,
@@ -54,7 +59,8 @@ public class StudentDashboardService {
             ExamRegistrationRepository examRegistrationRepository,
             CertificateRepository certificateRepository,
             ExamResultRepository examResultRepository,
-            LeaderboardService leaderboardService) {
+            LeaderboardService leaderboardService,
+            CertificateService certificateService) {
         this.attemptRepository = attemptRepository;
         this.examRepository = examRepository;
         this.userRepository = userRepository;
@@ -63,6 +69,7 @@ public class StudentDashboardService {
         this.certificateRepository = certificateRepository;
         this.examResultRepository = examResultRepository;
         this.leaderboardService = leaderboardService;
+        this.certificateService = certificateService;
     }
 
     public StudentDashboardResponse getDashboardForIdentifier(String identifier) {
@@ -180,6 +187,7 @@ public class StudentDashboardService {
 
     public Map<String, Object> getStudentUiBootstrap(String identifier) {
         User student = getVerifiedStudentByIdentifier(identifier);
+        ensurePassedResultCertificates(student.getId());
         StudentDashboardResponse dashboard = getDashboard(student.getId());
         StudentProfile profile = studentProfileRepository.findByUserId(student.getId()).orElse(null);
 
@@ -256,6 +264,51 @@ public class StudentDashboardService {
         return response;
     }
 
+    private void ensurePassedResultCertificates(Long studentId) {
+        if (studentId == null) {
+            return;
+        }
+
+        List<ExamResult> passedResults = examResultRepository.findByStudentIdOrderBySubmittedAtAsc(studentId)
+                .stream()
+                .filter(this::isCertificateEligibleResult)
+                .toList();
+
+        for (ExamResult result : passedResults) {
+            String examCode = result.getExamCode() == null ? "" : result.getExamCode().trim();
+            if (examCode.isBlank() || certificateRepository.existsByStudentIdAndExamCode(studentId, examCode)) {
+                continue;
+            }
+
+            String examTitle = examRepository.findByExamCode(examCode)
+                    .map(Exam::getTitle)
+                    .orElse(examCode);
+            double certificateScore = result.getPercentage() > 0d ? result.getPercentage() : result.getScore();
+            try {
+                certificateService.ensureCertificateIssued(
+                        studentId,
+                        examCode,
+                        examTitle,
+                        certificateScore,
+                        "");
+            } catch (Exception certError) {
+                System.err.println("Certificate backfill failed for studentId="
+                        + studentId + ", examCode=" + examCode + ": " + certError.getMessage());
+            }
+        }
+    }
+
+    private boolean isCertificateEligibleResult(ExamResult result) {
+        if (result == null) {
+            return false;
+        }
+        if (Boolean.TRUE.equals(result.getPassed())) {
+            return true;
+        }
+        String status = result.getResultStatus() == null ? "" : result.getResultStatus().trim();
+        return "PASS".equalsIgnoreCase(status) || result.getPercentage() >= 40d;
+    }
+
     private String calculateBadge(double percentage) {
 
         if (percentage >= 90)
@@ -330,7 +383,7 @@ public class StudentDashboardService {
             throw new ResourceNotFoundException("Verified student not found");
         }
 
-        User user = userRepository.findByEmailIgnoreCase(value).orElse(null);
+        User user = findUserByIdentifier(value);
         if (user == null && value.matches("\\d+")) {
             user = userRepository.findById(Long.parseLong(value)).orElse(null);
         }
@@ -344,6 +397,64 @@ public class StudentDashboardService {
             throw new ForbiddenException("Please verify your account before accessing student dashboard");
         }
         return user;
+    }
+
+    private User findUserByIdentifier(String identifier) {
+        String value = identifier == null ? "" : identifier.trim();
+        if (value.isBlank()) {
+            return null;
+        }
+
+        User byEmail = userRepository.findByEmailIgnoreCase(value).orElse(null);
+        if (byEmail != null) {
+            return byEmail;
+        }
+
+        String normalized = value.toLowerCase(Locale.ROOT);
+        return userRepository.findAll().stream()
+                .filter((user) -> matchesIdentifier(user, normalized))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean matchesIdentifier(User user, String normalizedNeedle) {
+        if (user == null || normalizedNeedle == null || normalizedNeedle.isBlank()) {
+            return false;
+        }
+
+        String[] candidateMethods = {
+                "getUsername",
+                "getUserName",
+                "getEmail",
+                "getPhone",
+                "getPhoneNumber",
+                "getMobile",
+                "getMobileNumber",
+                "getRollNumber",
+                "getStudentCode",
+                "getLoginId",
+                "getName",
+                "getFullName"
+        };
+
+        for (String methodName : candidateMethods) {
+            String candidate = readStringProperty(user, methodName);
+            if (candidate != null && candidate.trim().toLowerCase(Locale.ROOT).equals(normalizedNeedle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private String readStringProperty(User user, String methodName) {
+        try {
+            Method method = user.getClass().getMethod(methodName);
+            Object value = method.invoke(user);
+            return value == null ? null : String.valueOf(value);
+        } catch (ReflectiveOperationException ex) {
+            return null;
+        }
     }
 
     private Map<String, Object> toUserMap(User user) {

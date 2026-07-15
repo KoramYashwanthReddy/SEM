@@ -120,6 +120,7 @@ const logExamEvent = async (payload = {}) => {
   if (!Number.isFinite(attemptId) || attemptId <= 0) return;
   const eventType = String(payload.eventType || '').trim().toUpperCase();
   if (!eventType) return;
+  if (eventType === 'EXAM_SUBMITTED' || eventType === 'EXAM_AUTO_SUBMITTED') return;
   const dedupeKey = payload.dedupeKey ? `${eventType}:${payload.dedupeKey}` : '';
   if (dedupeKey && shouldThrottleEvent(dedupeKey)) return;
   const body = {
@@ -289,6 +290,7 @@ class ExamController {
     this.currentQIndex = 0;
     this.attemptId = attemptId;
     this.heartbeatInterval = null;
+    this.submitting = false;
     this.pendingSaveRequests = new Map();
     
     // State storage: { questionId: { answer: string|array, status: string } }
@@ -1063,10 +1065,13 @@ class ExamController {
   }
 
   async submitExam(isAuto = false, options = {}) {
+    if (this.submitting || window.__examSubmitting || window.__examSubmitted) return;
+    this.submitting = true;
+    window.__examSubmitting = true;
     const autoReason = String(options.autoReason || (isAuto ? 'TIMER_EXPIRED' : '')).toUpperCase() || 'MANUAL';
     this.lastAutoSubmitReason = autoReason;
     const timeTaken = this.timer ? this.timer.getElapsedTime() : { formatted: 'N/A' };
-    this.timer.stop();
+    if (this.timer) this.timer.stop();
     this.submitModal.classList.remove('active');
     this.reviewModal.classList.remove('active');
     
@@ -1101,10 +1106,15 @@ class ExamController {
         }, 'exam-submit');
       } catch (error) {
         console.error('Final submit failed:', error);
+        this.submitting = false;
+        window.__examSubmitting = false;
+        if (this.timer) this.timer.start();
         showToast('Final submit failed', error.message || 'Please try again.', 'error');
         return;
       }
     }
+
+    window.__examSubmitted = true;
 
     if (isAuto) {
        this.setAutoSubmitModalContent(autoReason === 'PROCTORING_LIMIT_REACHED' ? 'cheating' : 'timer', options);
@@ -1119,6 +1129,8 @@ class ExamController {
   }
 
   renderFinalSuccess(isAutoTimeOut, timeTaken) {
+    window.__examSubmitted = true;
+    window.__examSubmitting = false;
     if(this.timeUpModal) this.timeUpModal.classList.remove('active');
     window.location.href = `result.html?attemptId=${encodeURIComponent(this.attemptId)}`;
   }

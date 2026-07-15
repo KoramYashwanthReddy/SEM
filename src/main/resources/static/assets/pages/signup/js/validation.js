@@ -29,8 +29,15 @@ const Validation = (() => {
     strengthBar.style.width = `${(score / 4) * 100}%`;
   }
 
-  function validateFields() {
+  function validateStep1() {
     let valid = true;
+    const nameEl = document.getElementById('fullName');
+    if (!nameEl || !nameEl.value.trim()) {
+      showMessage('fullName', 'Full Name is required.');
+      valid = false;
+    } else {
+      showMessage('fullName', '');
+    }
 
     if (!validateEmail(email.value)) {
       showMessage('email', 'Enter a valid email address.');
@@ -38,7 +45,11 @@ const Validation = (() => {
     } else {
       showMessage('email', '');
     }
+    return valid;
+  }
 
+  function validateStep2() {
+    let valid = true;
     if (password.value.length < 8) {
       showMessage('password', 'Password must be at least 8 characters.');
       valid = false;
@@ -59,8 +70,11 @@ const Validation = (() => {
     } else {
       showMessage('terms', '');
     }
-
     return valid;
+  }
+
+  function validateFields() {
+    return validateStep1() && validateStep2();
   }
 
   function init() {
@@ -68,7 +82,8 @@ const Validation = (() => {
     password.addEventListener('input', updateStrength);
   }
 
-  return { init, validateFields };
+  return { init, validateFields, validateStep1, validateStep2 };
 })();
 
 document.addEventListener('DOMContentLoaded', Validation.init);
+

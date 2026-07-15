@@ -47,8 +47,7 @@
     const data = raw ? (() => { try { return JSON.parse(raw); } catch (_) { return raw; } })() : null;
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
-        clearSession();
-        window.location.href = "admin-login.html";
+        throw Object.assign(new Error("Unauthorized"), { status: res.status, data });
       }
       throw new Error((data && typeof data === "object" && (data.message || data.error)) || `Request failed (${res.status})`);
     }

@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -80,11 +81,23 @@ public class ForgotPasswordService {
         tokenRepository.save(resetToken);
 
         String role = user.getRole() == null ? "" : user.getRole().name().toLowerCase();
-        String resetLink = resetBaseUrl + "?token=" + token + (role.isBlank() ? "" : "&role=" + role);
+        String resetLink = buildResetLink(token, role);
 
         emailService.sendPasswordResetEmail(email, resetLink);
 
         log.info("Reset link sent to {}", email);
+    }
+
+    private String buildResetLink(String token, String role) {
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromUriString(resetBaseUrl)
+                .replaceQueryParam("token", token);
+
+        if (role != null && !role.isBlank()) {
+            builder.replaceQueryParam("role", role);
+        }
+
+        return builder.build().encode().toUriString();
     }
 
     /*

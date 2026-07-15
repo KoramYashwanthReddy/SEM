@@ -83,7 +83,7 @@
     localStorage.removeItem('role');
     sessionStorage.removeItem('role');
   };
-  const redirectToLogin = () => { window.location.href = 'role-selection.html'; };
+  const redirectToLogin = () => { window.location.href = 'login.html'; };
   const getToken = () => {
     for (const key of AUTH_KEYS) {
       const localValue = normalizeToken(localStorage.getItem(key));
@@ -221,7 +221,7 @@
     const token = getToken();
     if (!token) return;
 
-    const payload = await apiRequest('/student/bootstrap');
+    const payload = await fetchStudentBootstrapPayload();
     if (!payload || typeof payload !== 'object') return;
 
     const profile = payload.profile || {};
@@ -426,6 +426,60 @@
 
     save(K.p, st.profile);
     save(K.ea, st.examAttemptIds);
+  }
+
+  async function fetchStudentBootstrapPayload() {
+    const safeObject = (value) => (value && typeof value === 'object' ? value : {});
+    const requests = {
+      bootstrap: apiRequest('/student/bootstrap'),
+      dashboard: apiRequest('/student/dashboard'),
+      stats: apiRequest('/student/stats'),
+      alerts: apiRequest('/student/alerts'),
+      performance: apiRequest('/student/performance'),
+      weakTopics: apiRequest('/student/weak-topics')
+    };
+
+    const [bootstrap, dashboard, stats, alerts, performance, weakTopics] = await Promise.allSettled([
+      requests.bootstrap,
+      requests.dashboard,
+      requests.stats,
+      requests.alerts,
+      requests.performance,
+      requests.weakTopics
+    ]);
+
+    const payload = safeObject(bootstrap.status === 'fulfilled' ? bootstrap.value : null);
+
+    const dashboardValue = safeObject(dashboard.status === 'fulfilled' ? dashboard.value : null);
+    const statsValue = safeObject(stats.status === 'fulfilled' ? stats.value : null);
+    const alertsValue = safeObject(alerts.status === 'fulfilled' ? alerts.value : null);
+    const performanceValue = safeObject(performance.status === 'fulfilled' ? performance.value : null);
+    const weakTopicsValue = safeObject(weakTopics.status === 'fulfilled' ? weakTopics.value : null);
+
+    if (!payload.dashboard && Object.keys(dashboardValue).length) {
+      payload.dashboard = dashboardValue;
+    }
+    if (!payload.dashboard && Object.keys(statsValue).length) {
+      payload.dashboard = {
+        totalExams: statsValue.totalExams ?? 0,
+        attemptedCount: statsValue.attempted ?? statsValue.attemptedCount ?? 0,
+        averageScore: statsValue.averageScore ?? 0,
+        certificatesEarned: statsValue.certificates ?? statsValue.certificatesEarned ?? 0,
+        performanceTrend: performanceValue.trend || [],
+        attempted: []
+      };
+    }
+    if (!payload.analytics && Object.keys(performanceValue).length) {
+      payload.analytics = performanceValue;
+    }
+    if (!payload.alerts && Object.keys(alertsValue).length) {
+      payload.alerts = alertsValue;
+    }
+    if (!payload.weakTopics && Object.keys(weakTopicsValue).length) {
+      payload.weakTopics = weakTopicsValue;
+    }
+
+    return payload;
   }
 
   let booting = true;
@@ -684,7 +738,14 @@
         return { label: 'Expired', action: 'exam-detail', tone: 'ghost', hint: 'Session closed.', disabled: true };
       }
       if (state.verificationOpen) {
-        return { label: 'Enter Exam', action: 'exam-access', tone: 'primary', hint: 'You are registered. Open the exam access hover.', disabled: false };
+        const liveNow = canEnterExamNow(exam);
+        return {
+          label: 'Enter Exam',
+          action: 'exam-access',
+          tone: liveNow ? 'primary' : 'ghost',
+          hint: liveNow ? 'Exam is live now.' : 'Registered & Verified. Unlocks at scheduled start time.',
+          disabled: !liveNow
+        };
       }
       if (state.preStartLock) {
         return {
@@ -1200,6 +1261,7 @@
       idConfirmationNumber: '',
       rulesAccepted: false,
       termsAccepted: false,
+      camMicConsent: false,
       declarationAccepted: false,
       registrationConfirmed: false,
       phase2VerificationCode: '',
@@ -1344,43 +1406,289 @@
       </div>
     `;
   }
-  function openReexamReadyModal(exam) {
-    modal({
-      kicker: 'EXAM READY',
-      title: `${exam.examCode} – ${exam.title}`,
-      titleIcon: `<span class="svg-icon" data-icon="clipboard-check"></span>`,
-      body: readyModalBodyMarkup(exam),
-      foot: `
+
+  // ══════════════════════════════════════════════════
+  // region SECURE STEPPER & WEBCAM UTILITIES
+  // ══════════════════════════════════════════════════
+  let activeVerificationStream = null;
+
+  async function startVerificationCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: { ideal: 640 }, 
+          height: { ideal: 480 },
+          facingMode: 'user'
+        } 
+      });
+      activeVerificationStream = stream;
+      const video = document.getElementById('verificationVideo');
+      if (video) {
+        video.srcObject = stream;
+        video.play().catch(e => console.error('Video play error:', e));
+      }
+    } catch (error) {
+      console.error('Webcam access error:', error);
+      toast('Camera failed', 'Could not access webcam. Verify browser permissions.', 'warn');
+    }
+  }
+
+  function stopVerificationCamera() {
+    if (activeVerificationStream) {
+      activeVerificationStream.getTracks().forEach((track) => track.stop());
+      activeVerificationStream = null;
+    }
+  }
+
+  function captureVerificationPhoto() {
+    const video = document.getElementById('verificationVideo');
+    if (video) {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg');
+      st.examUi.imageData = dataUrl;
+      st.examUi.imageName = 'capture_' + Date.now() + '.jpg';
+      stopVerificationCamera();
+      updateExamVerificationUi();
+    }
+  }
+
+  function retakeVerificationPhoto() {
+    st.examUi.imageData = '';
+    st.examUi.imageName = '';
+    updateExamVerificationUi();
+  }
+
+
+  let activeAccessStream = null;
+  let accessWizardStep = 1;
+  let accessImageData = '';
+
+  async function startAccessCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' } 
+      });
+      activeAccessStream = stream;
+      const video = document.getElementById('accessVideo');
+      if (video) {
+        video.srcObject = stream;
+        video.play().catch(e => console.error('Video play error:', e));
+      }
+    } catch (error) {
+      console.error('Access webcam error:', error);
+      toast('Camera failed', 'Could not access webcam. Verify browser permissions.', 'warn');
+    }
+  }
+
+  function stopAccessCamera() {
+    if (activeAccessStream) {
+      activeAccessStream.getTracks().forEach((track) => track.stop());
+      activeAccessStream = null;
+    }
+  }
+
+  function captureAccessPhoto(exam) {
+    const video = document.getElementById('accessVideo');
+    if (video) {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg');
+      accessImageData = dataUrl;
+      stopAccessCamera();
+      renderExamAccessStep(exam);
+    }
+  }
+
+  function retakeAccessPhoto(exam) {
+    accessImageData = '';
+    renderExamAccessStep(exam);
+  }
+
+  function renderExamAccessStep(exam) {
+    const body = document.getElementById('detailModalBody');
+    const foot = document.getElementById('detailModalFoot');
+    if (!body || !foot) return;
+
+    // Header Stepper Indicator
+    const stepperHTML = `
+      <div class="profile-editor-stepper" style="margin-bottom: 20px; padding: 0 0 16px; border-bottom: 1px solid var(--border-subtle);">
+        <div class="step-node ${accessWizardStep === 1 ? 'active' : (accessWizardStep > 1 ? 'completed' : '')}">
+          <span class="step-num">1</span>
+          <span class="step-label">Exam Details</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-node ${accessWizardStep === 2 ? 'active' : (accessWizardStep > 2 ? 'completed' : '')}">
+          <span class="step-num">2</span>
+          <span class="step-label">Face Verification</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-node ${accessWizardStep === 3 ? 'active' : ''}">
+          <span class="step-num">3</span>
+          <span class="step-label">Launch Exam</span>
+        </div>
+      </div>
+    `;
+
+    if (accessWizardStep === 1) {
+      body.innerHTML = stepperHTML + readyModalBodyMarkup(exam);
+      foot.innerHTML = `
         <button class="btn-modal-ghost" data-close-modal type="button">Close</button>
-        <button class="btn-modal-primary" data-action="exam-reexam-enter" data-code="${exam.examCode}" type="button">
-          <span>Enter Exam</span>
+        <button class="btn-modal-primary" id="accessNextBtn" type="button">
+          <span>Continue to Verification</span>
           <span class="arrow-right">→</span>
-        </button>`
-    });
-    hydrateIcons(el.detailModalBody);
-    if (el.detailModalTitleIcon) hydrateIcons(el.detailModalTitleIcon);
+        </button>
+      `;
+      stopAccessCamera();
+    } else if (accessWizardStep === 2) {
+      let previewHTML = '';
+      if (accessImageData) {
+        previewHTML = `
+          <div class="verification-preview-box" style="margin-top: 14px;">
+            <img src="${accessImageData}" alt="Verification preview" style="max-width: 100%; border-radius: 12px;">
+          </div>
+          <div class="verification-upload-row" style="margin-top: 14px; text-align: center;">
+            <button class="btn ghost" id="accessRetakeBtn" type="button">Retake Snapshot</button>
+          </div>
+        `;
+      } else {
+        previewHTML = `
+          <div class="verification-preview-box" style="margin-top: 14px;">
+            <div class="verification-camera-wrap">
+              <video id="accessVideo" autoplay playsinline muted></video>
+              <div class="camera-reticle"></div>
+            </div>
+          </div>
+          <div class="verification-upload-row" style="margin-top: 14px; text-align: center;">
+            <button class="btn primary" id="accessCaptureBtn" type="button">Capture Photo</button>
+          </div>
+        `;
+      }
+
+      body.innerHTML = stepperHTML + `
+        <div class="exam-step-panel" style="padding: 10px 0;">
+          <div class="verification-image-copy">
+            <strong>Secure Proctoring Verification</strong>
+            <p>A quick face snapshot is required to verify identity before entering the secure workspace.</p>
+          </div>
+          ${previewHTML}
+        </div>
+      `;
+
+      foot.innerHTML = `
+        <button class="btn-modal-ghost" id="accessBackBtn" type="button">Back</button>
+        <button class="btn-modal-primary" id="accessNextBtn" ${!accessImageData ? 'disabled' : ''} type="button">
+          <span>Continue</span>
+          <span class="arrow-right">→</span>
+        </button>
+      `;
+
+      if (!accessImageData) {
+        setTimeout(() => startAccessCamera(), 100);
+      }
+    } else if (accessWizardStep === 3) {
+      body.innerHTML = stepperHTML + `
+        <div class="exam-step-panel" style="text-align: center; padding: 24px 0;">
+          <div class="success-verification-hero" style="font-size: 48px; margin-bottom: 16px;">🛡️</div>
+          <h4 style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); margin-bottom: 8px;">Identity Verified Successfully</h4>
+          <p style="font-size: 0.88rem; color: var(--text-secondary); max-width: 45ch; margin: 0 auto 20px;">Your secure verification credentials have been approved. You are ready to start the examination.</p>
+          <div class="verification-preview-box" style="width: 120px; height: 120px; margin: 0 auto; border-radius: 50%; overflow: hidden; border: 3px solid #10b981;">
+            <img src="${accessImageData}" style="width: 100%; height: 100%; object-fit: cover;">
+          </div>
+        </div>
+      `;
+
+      foot.innerHTML = `
+        <button class="btn-modal-ghost" id="accessBackBtn" type="button">Back</button>
+        <button class="btn-modal-primary" data-action="exam-enter-confirm" data-code="${exam.examCode}" type="button">
+          <span>Start Exam</span>
+          <span class="arrow-right">→</span>
+        </button>
+      `;
+      stopAccessCamera();
+    }
+
+    // Bind navigation buttons
+    const localNextBtn = document.getElementById('accessNextBtn');
+    if (localNextBtn) {
+      localNextBtn.addEventListener('click', () => {
+        accessWizardStep++;
+        renderExamAccessStep(exam);
+      });
+    }
+
+    const localBackBtn = document.getElementById('accessBackBtn');
+    if (localBackBtn) {
+      localBackBtn.addEventListener('click', () => {
+        accessWizardStep--;
+        renderExamAccessStep(exam);
+      });
+    }
+
+    const localCaptureBtn = document.getElementById('accessCaptureBtn');
+    if (localCaptureBtn) {
+      localCaptureBtn.addEventListener('click', () => captureAccessPhoto(exam));
+    }
+
+    const localRetakeBtn = document.getElementById('accessRetakeBtn');
+    if (localRetakeBtn) {
+      localRetakeBtn.addEventListener('click', () => retakeAccessPhoto(exam));
+    }
+
+    hydrateIcons(body);
+  }
+  // endregion
+  function openReexamReadyModal(exam) {
+    openExamAccess(exam);
   }
   function openExamAccess(exam) {
     if (!canEnterExamNow(exam)) {
       toast('Exam not live yet', `You can enter ${exam.examCode} at ${formatExamDateTime(exam)}.`, 'warn');
       return;
     }
+    accessWizardStep = 1;
+    accessImageData = '';
+    
     modal({
       kicker: 'EXAM READY',
       title: `${exam.examCode} – ${exam.title}`,
       titleIcon: `<span class="svg-icon" data-icon="clipboard-check"></span>`,
-      body: readyModalBodyMarkup(exam),
-      foot: `
-        <button class="btn-modal-ghost" data-close-modal type="button">Close</button>
-        <button class="btn-modal-primary" data-action="exam-enter-confirm" data-code="${exam.examCode}" type="button">
-          <span>Enter Exam</span>
-          <span class="arrow-right">→</span>
-        </button>`
+      body: '<div id="detailModalBodyContent"></div>',
+      foot: '<div></div>'
     });
-    hydrateIcons(el.detailModalBody);
+
+    renderExamAccessStep(exam);
+
     if (el.detailModalTitleIcon) hydrateIcons(el.detailModalTitleIcon);
+
+    const modalCloseX = document.getElementById('detailModalCloseBtn');
+    if (modalCloseX) {
+      modalCloseX.addEventListener('click', () => stopAccessCamera());
+    }
+    const modalWrap = document.getElementById('detailModal');
+    if (modalWrap) {
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.attributeName === 'class' && modalWrap.classList.contains('hidden')) {
+            stopAccessCamera();
+          }
+        });
+      });
+      observer.observe(modalWrap, { attributes: true });
+    }
   }
   function closeExamVerification() {
+    stopVerificationCamera();
     if (!el.examVerificationModal) return;
     el.examVerificationModal.classList.add('hidden');
     el.examVerificationModal.setAttribute('aria-hidden', 'true');
@@ -1434,60 +1742,39 @@
   }
   function isStep1Valid() {
     const f = st.examUi.form || {};
-    return !!(String(f.mobileNumber || '').trim() && String(f.emergencyContact || '').trim() && String(f.currentLocation || '').trim() && String(f.idConfirmationNumber || '').trim());
+    return !!(f.termsAccepted && f.rulesAccepted && f.camMicConsent);
   }
   function isStep2Valid() {
     return !!st.examUi.imageData;
   }
   function isStep3Valid() {
-    return !!st.examUi.form.rulesAccepted;
-  }
-  function isStep4Valid() {
-    return !!st.examUi.form.termsAccepted;
-  }
-  function isStep5Valid() {
-    return !!st.examUi.form.declarationAccepted;
-  }
-  function isStep6Valid() {
     return !!st.examUi.form.registrationConfirmed;
   }
-  function isStep7Valid() {
+  function isStep4Valid() {
     return /^\d{6}$/.test(String(st.examUi.form.phase2VerificationCode || '').trim());
   }
-  function isStep8Valid() {
+  function isStep5Valid() {
     return !!st.examUi.form.phase2Confirmed;
   }
+  function isStep6Valid() { return true; }
+  function isStep7Valid() { return true; }
+  function isStep8Valid() { return true; }
   function canStartExam() {
     const isPhase2 = (st.examUi.mode || 'start') === 'register-phase2';
-    const isRegistration = (st.examUi.mode || 'start') === 'register';
-    const baseValid = isStep1Valid() && isStep2Valid() && isStep3Valid() && isStep4Valid() && isStep5Valid();
-    if (isPhase2) {
-      return baseValid && isStep7Valid() && isStep8Valid();
-    }
-    if (isRegistration) {
-      return baseValid && isStep6Valid();
-    }
-    return baseValid;
+    const base = isStep1Valid() && isStep2Valid() && isStep3Valid();
+    if (isPhase2) return base && isStep4Valid() && isStep5Valid();
+    return base;
   }
   function renderExamStepper() {
     if (!el.examStepper) return;
-    const steps = [
-      'Student Details',
-      'Image Verification',
-      'Exam Rules',
-      'Terms & Conditions',
-      'Declaration'
-    ];
     const isPhase2 = (st.examUi.mode || 'start') === 'register-phase2';
-    if ((st.examUi.mode || 'start') === 'register' || isPhase2) {
-      steps.push('Registration Review');
-      if (isPhase2) steps.push('Phase 2 Verification', 'Final Confirmation');
-      else steps.push('Final Confirmation');
-    }
+    const steps = ['Consent & Access', 'Photo Capture', 'Review & Register'];
+    if (isPhase2) steps.push('Phase 2 Verification', 'Final Confirmation');
+    const completeMap = { 1: isStep1Valid, 2: isStep2Valid, 3: isStep3Valid, 4: isStep4Valid, 5: isStep5Valid };
     el.examStepper.innerHTML = steps.map((label, index) => {
       const step = index + 1;
       const active = st.examUi.step === step;
-      const complete = st.examUi.step > step || (step === 1 && isStep1Valid()) || (step === 2 && isStep2Valid()) || (step === 3 && isStep3Valid()) || (step === 4 && isStep4Valid());
+      const complete = st.examUi.step > step || !!(completeMap[step] && completeMap[step]());
       return `
         <div class="exam-step ${active ? 'active' : ''} ${complete ? 'complete' : ''}" data-step="${step}">
           <span class="exam-step-index">${step}</span>
@@ -1502,64 +1789,118 @@
   function renderVerificationStep1(exam) {
     const form = st.examUi.form || createDefaultExamForm(exam);
     return `
-      <div class="exam-step-panel">
-        <div class="verification-grid">
-          <div class="detail-item readonly"><span>Full Name</span><strong>${escapeHtml(form.fullName)}</strong></div>
-          <div class="detail-item readonly"><span>Registration Number</span><strong>${escapeHtml(form.registrationNumber)}</strong></div>
-          <div class="detail-item readonly"><span>Email</span><strong>${escapeHtml(form.email)}</strong></div>
-          <div class="detail-item readonly"><span>Department</span><strong>${escapeHtml(form.department)}</strong></div>
-          <div class="detail-item readonly"><span>Academic Year</span><strong>${escapeHtml(form.academicYear)}</strong></div>
-          <div class="detail-item readonly"><span>Exam Name</span><strong>${escapeHtml(form.examName)}</strong></div>
-          <div class="detail-item readonly"><span>Exam Start Time</span><strong>${escapeHtml(form.examStartTime)}</strong></div>
-          <label class="verification-field ${form.mobileNumber ? 'valid' : ''}">
-            <span>Mobile Number</span>
-            <input id="examMobileNumber" type="text" value="${escapeHtml(form.mobileNumber || '')}" placeholder="Enter mobile number" required>
-            <small id="examMobileError" class="field-error">Mobile number is required.</small>
+      <div class="exam-step-panel ev-step1">
+        <p class="ev-section-label">Your Information</p>
+        <div class="ev-info-grid">
+          <div class="ev-info-cell"><span>Full Name</span><strong>${escapeHtml(form.fullName)}</strong></div>
+          <div class="ev-info-cell"><span>Registration No.</span><strong>${escapeHtml(form.registrationNumber)}</strong></div>
+          <div class="ev-info-cell"><span>Email</span><strong>${escapeHtml(form.email)}</strong></div>
+          <div class="ev-info-cell"><span>Department</span><strong>${escapeHtml(form.department)}</strong></div>
+          <div class="ev-info-cell"><span>Academic Year</span><strong>${escapeHtml(form.academicYear)}</strong></div>
+          <div class="ev-info-cell"><span>Exam</span><strong>${escapeHtml(form.examName)}</strong></div>
+          <div class="ev-info-cell ev-info-cell--full"><span>Exam Start Time</span><strong>${escapeHtml(form.examStartTime)}</strong></div>
+        </div>
+
+        <p class="ev-section-label">Consent & Permissions</p>
+        <div class="ev-consent-group">
+          <label class="ev-consent-card ${form.termsAccepted ? 'is-checked' : ''}">
+            <input id="examTermsAccepted" type="checkbox" ${form.termsAccepted ? 'checked' : ''}>
+            <span class="ev-consent-icon">📋</span>
+            <span class="ev-consent-body">
+              <strong>Terms & Conditions</strong>
+              <small>I have read and agree to the exam <u>Terms of Service</u> and <u>Privacy Policy</u>.</small>
+            </span>
+            <span class="ev-consent-check" aria-hidden="true"></span>
           </label>
-          <label class="verification-field ${form.emergencyContact ? 'valid' : ''}">
-            <span>Emergency Contact</span>
-            <input id="examEmergencyContact" type="text" value="${escapeHtml(form.emergencyContact || '')}" placeholder="Enter emergency contact" required>
-            <small id="examEmergencyError" class="field-error">Emergency contact is required.</small>
+          <label class="ev-consent-card ${form.rulesAccepted ? 'is-checked' : ''}">
+            <input id="examRulesAccepted" type="checkbox" ${form.rulesAccepted ? 'checked' : ''}>
+            <span class="ev-consent-icon">📜</span>
+            <span class="ev-consent-body">
+              <strong>Exam Rules & Code of Conduct</strong>
+              <small>I accept all exam rules and understand violations lead to disqualification.</small>
+            </span>
+            <span class="ev-consent-check" aria-hidden="true"></span>
           </label>
-          <label class="verification-field ${form.currentLocation ? 'valid' : ''}">
-            <span>Current Location</span>
-            <input id="examCurrentLocation" type="text" value="${escapeHtml(form.currentLocation || '')}" placeholder="Enter current location" required>
-            <small id="examLocationError" class="field-error">Current location is required.</small>
-          </label>
-          <label class="verification-field ${form.idConfirmationNumber ? 'valid' : ''}">
-            <span>ID Confirmation Number</span>
-            <input id="examIdConfirmationNumber" type="text" value="${escapeHtml(form.idConfirmationNumber || '')}" placeholder="Enter ID confirmation number" required>
-            <small id="examIdError" class="field-error">ID confirmation number is required.</small>
+          <label class="ev-consent-card ${form.camMicConsent ? 'is-checked' : ''}">
+            <input id="examCamMicConsent" type="checkbox" ${form.camMicConsent ? 'checked' : ''}>
+            <span class="ev-consent-icon">🎥</span>
+            <span class="ev-consent-body">
+              <strong>Camera & Microphone Access</strong>
+              <small>I consent to the use of my camera and microphone for AI proctoring during the exam.</small>
+            </span>
+            <span class="ev-consent-check" aria-hidden="true"></span>
           </label>
         </div>
       </div>`;
   }
   function renderVerificationStep2() {
-    const preview = st.examUi.imageData ? `<img src="${st.examUi.imageData}" alt="Verification preview">` : `<div class="verification-preview-empty"><strong>No image uploaded</strong><span>Upload or capture a clear face image to continue.</span></div>`;
+    if (st.examUi.imageData) {
+      return `
+        <div class="exam-step-panel">
+          <div class="verification-image-copy">
+            <strong>Photo Selected Successfully</strong>
+            <p>Review the image below before proceeding to the final verification step.</p>
+          </div>
+          <div class="verification-preview-box">
+            <img src="${st.examUi.imageData}" alt="Verification preview">
+          </div>
+          <div class="verification-upload-row" style="display: flex; gap: 12px; justify-content: center; margin-top: 10px;">
+            <button class="btn ghost" type="button" data-verification-action="retake-photo">Retake / Re-upload</button>
+          </div>
+        </div>`;
+    }
+
     return `
       <div class="exam-step-panel">
         <div class="verification-image-copy">
-          <strong>This image will be used for identity verification during exam</strong>
-          <p>Upload a clear, well-lit photo or capture one directly from your camera.</p>
+          <strong>Secure Face Verification</strong>
+          <p>Please capture a live photo or upload an identity photo from your device.</p>
         </div>
-        <div class="verification-upload-row">
-          <button class="btn ghost" type="button" data-verification-action="upload">Upload Image</button>
-          <button class="btn ghost" type="button" data-verification-action="capture">Camera Capture</button>
-          <input id="examImageUploadInput" type="file" accept="image/*" hidden>
-          <input id="examImageCaptureInput" type="file" accept="image/*" capture="environment" hidden>
+        <div class="verification-preview-box">
+          <div class="verification-camera-wrap">
+            <video id="verificationVideo" autoplay playsinline muted></video>
+            <div class="camera-reticle"></div>
+          </div>
         </div>
-        <div class="verification-preview-box">${preview}</div>
+        <div class="verification-upload-row" style="display: flex; gap: 12px; justify-content: center; margin-top: 10px;">
+          <button class="btn primary" type="button" data-verification-action="capture-photo">Capture Photo</button>
+          <button class="btn ghost" type="button" data-verification-action="upload">Upload Photo</button>
+          <input id="examImageUploadInput" type="file" accept="image/*" style="display: none;">
+        </div>
       </div>`;
   }
+
   function renderVerificationStep3() {
+    const form = st.examUi.form || {};
+    const photoHtml = st.examUi.imageData
+      ? `<img class="ev-review-photo" src="${st.examUi.imageData}" alt="Captured photo">`
+      : `<div class="ev-review-photo ev-review-photo--empty"><span>📷</span><small>No photo</small></div>`;
     return `
-      <div class="exam-step-panel">
-        <div class="verification-scroll">
-          <ul class="rules-list">${verificationRules.map((rule) => `<li>${rule}</li>`).join('')}</ul>
+      <div class="exam-step-panel ev-step3">
+        <div class="ev-review-hero">
+          <div class="ev-review-photo-wrap">${photoHtml}</div>
+          <div class="ev-review-identity">
+            <strong>${escapeHtml(form.fullName || '-')}</strong>
+            <span>${escapeHtml(form.registrationNumber || '-')}</span>
+            <span>${escapeHtml(form.department || '-')}</span>
+          </div>
         </div>
-        <label class="verification-check">
-          <input id="examRulesAccepted" type="checkbox" ${st.examUi.form.rulesAccepted ? 'checked' : ''}>
-          <span>I have read and understood all exam rules</span>
+        <p class="ev-section-label">Registration Summary</p>
+        <div class="ev-review-grid">
+          <div class="ev-review-cell"><span>Email</span><strong>${escapeHtml(form.email || '-')}</strong></div>
+          <div class="ev-review-cell"><span>Academic Year</span><strong>${escapeHtml(form.academicYear || '-')}</strong></div>
+          <div class="ev-review-cell"><span>Exam</span><strong>${escapeHtml(form.examName || '-')}</strong></div>
+          <div class="ev-review-cell"><span>Start Time</span><strong>${escapeHtml(form.examStartTime || '-')}</strong></div>
+        </div>
+        <div class="ev-review-consents">
+          <span class="ev-consent-badge ${form.termsAccepted ? 'ok' : 'fail'}">📋 Terms & Conditions</span>
+          <span class="ev-consent-badge ${form.rulesAccepted ? 'ok' : 'fail'}">📜 Exam Rules</span>
+          <span class="ev-consent-badge ${form.camMicConsent ? 'ok' : 'fail'}">🎥 Camera & Mic</span>
+        </div>
+        <label class="ev-confirm-check ${form.registrationConfirmed ? 'is-checked' : ''}">
+          <input id="examRegistrationConfirmed" type="checkbox" ${form.registrationConfirmed ? 'checked' : ''}>
+          <span class="ev-confirm-check-box" aria-hidden="true"></span>
+          <span>I confirm that all details are correct and I am ready to register for this exam.</span>
         </label>
       </div>`;
   }
@@ -1723,15 +2064,13 @@
     const exam = getActiveVerificationExam();
     if (!exam || !el.examVerificationBody) return;
     const step = st.examUi.step;
+    const isPhase2 = (st.examUi.mode || 'start') === 'register-phase2';
     const map = {
       1: renderVerificationStep1(exam),
       2: renderVerificationStep2(),
       3: renderVerificationStep3(),
-      4: renderVerificationStep4(),
-      5: renderVerificationStep5(exam),
-      6: renderVerificationStep6(exam),
-      7: (st.examUi.mode === 'register-phase2' ? renderVerificationStep7Phase2(exam) : renderVerificationStep7Regular(exam)),
-      8: renderVerificationStep8Phase2(exam)
+      4: isPhase2 ? renderVerificationStep7Phase2(exam) : renderVerificationStep3(),
+      5: isPhase2 ? renderVerificationStep8Phase2(exam) : renderVerificationStep3()
     };
     el.examVerificationBody.innerHTML = map[step] || map[1];
   }
@@ -1739,28 +2078,22 @@
     if (!el.examVerificationFoot) return;
     const step = st.examUi.step;
     const mode = st.examUi.mode || 'start';
-    const prevDisabled = step === 1;
     const isPhase2 = mode === 'register-phase2';
-    const nextDisabled = (step === 1 && !isStep1Valid())
-      || (step === 2 && !isStep2Valid())
-      || (step === 3 && !isStep3Valid())
-      || (step === 4 && !isStep4Valid())
-      || (step === 5 && !isStep5Valid())
-      || (step === 7 && !isPhase2 && mode === 'register' && !isStep6Valid())
-      || (step === 7 && isPhase2 && !isStep7Valid())
-      || (step === 8 && isPhase2 && !isStep8Valid());
-    const primaryLabel = step === 5
-      ? (mode === 'start' ? 'Start Exam' : 'Review Registration')
-      : step === 6
-        ? (isPhase2 ? 'Continue to Phase 2 Verification' : 'Continue to Confirmation')
-        : step === 7
-          ? (isPhase2 ? 'Continue to Final Confirmation' : 'Confirm Registration')
-        : step === 8
-          ? 'Complete Phase 2 Registration'
-        : 'Next Step';
+    const prevDisabled = step === 1;
+    const maxStep = isPhase2 ? 5 : 3;
+    const nextDisabled =
+      (step === 1 && !isStep1Valid()) ||
+      (step === 2 && !isStep2Valid()) ||
+      (step === 3 && !isStep3Valid()) ||
+      (step === 4 && isPhase2 && !isStep4Valid()) ||
+      (step === 5 && isPhase2 && !isStep5Valid());
+    const isLastStep = step === maxStep;
+    const primaryLabel = isLastStep
+      ? (isPhase2 ? 'Complete Phase 2 Registration' : 'Confirm Registration')
+      : (step === 3 && !isPhase2 ? 'Confirm & Register' : 'Next Step →');
     el.examVerificationFoot.innerHTML = `
       <button class="btn ghost" type="button" data-verification-nav="close">Close</button>
-      <button class="btn ghost" type="button" data-verification-nav="back" ${prevDisabled ? 'disabled' : ''}>Back</button>
+      <button class="btn ghost" type="button" data-verification-nav="back" ${prevDisabled ? 'disabled' : ''}>← Back</button>
       <button class="btn primary" type="button" data-verification-nav="next" ${nextDisabled ? 'disabled' : ''}>${primaryLabel}</button>`;
   }
   function updateExamVerificationUi() {
@@ -1769,6 +2102,14 @@
     renderExamVerificationBody();
     renderExamVerificationFoot();
     syncVerificationFieldStyles();
+
+    if (st.examUi.step === 2 && !st.examUi.imageData) {
+      setTimeout(() => {
+        startVerificationCamera();
+      }, 80);
+    } else {
+      stopVerificationCamera();
+    }
   }
   function syncVerificationFieldStyles() {
     const map = [
@@ -1799,10 +2140,11 @@
     if (target.id === 'examCurrentLocation') setVerificationField('currentLocation', target.value);
     if (target.id === 'examIdConfirmationNumber') setVerificationField('idConfirmationNumber', target.value);
     if (target.id === 'examPhase2Code') setVerificationField('phase2VerificationCode', target.value);
-    if (target.id === 'examRulesAccepted') setVerificationField('rulesAccepted', target.checked);
-    if (target.id === 'examTermsAccepted') setVerificationField('termsAccepted', target.checked);
+    if (target.id === 'examRulesAccepted') { setVerificationField('rulesAccepted', target.checked); target.closest('.ev-consent-card')?.classList.toggle('is-checked', target.checked); }
+    if (target.id === 'examTermsAccepted') { setVerificationField('termsAccepted', target.checked); target.closest('.ev-consent-card')?.classList.toggle('is-checked', target.checked); }
+    if (target.id === 'examCamMicConsent') { setVerificationField('camMicConsent', target.checked); target.closest('.ev-consent-card')?.classList.toggle('is-checked', target.checked); }
     if (target.id === 'examDeclarationAccepted') setVerificationField('declarationAccepted', target.checked);
-    if (target.id === 'examRegistrationConfirmed') setVerificationField('registrationConfirmed', target.checked);
+    if (target.id === 'examRegistrationConfirmed') { setVerificationField('registrationConfirmed', target.checked); target.closest('.ev-confirm-check')?.classList.toggle('is-checked', target.checked); }
     if (target.id === 'examPhase2Confirmed') setVerificationField('phase2Confirmed', target.checked);
     if (target.id === 'examImageUploadInput' || target.id === 'examImageCaptureInput') {
       const file = target.files?.[0];
@@ -1823,8 +2165,9 @@
     syncVerificationFieldStyles();
   }
   function moveVerificationStep(nextStep) {
+    stopVerificationCamera();
     const mode = st.examUi.mode || 'start';
-    const maxStep = mode === 'register-phase2' ? 8 : (mode === 'register' ? 7 : 5);
+    const maxStep = mode === 'register-phase2' ? 5 : 3;
     st.examUi.step = clamp(nextStep, 1, maxStep);
     updateExamVerificationUi();
   }
@@ -1942,7 +2285,9 @@
     closeExamVerification();
     renderExamCatalog();
     renderMyExams();
-    if (exam) openExamAccess(exam);
+    if (exam && attemptId) {
+      window.location.href = `exam/exam.html?code=${encodeURIComponent(code)}&attemptId=${encodeURIComponent(attemptId)}`;
+    }
   }
   async function navigateToExamPage(code) {
     if (!code) {
@@ -4168,21 +4513,18 @@
         return;
       }
       closeModal();
-      navigateToExamPage(code).catch((error) => {
-        console.error('Failed to navigate to exam page:', error);
-        toast('Navigation failed', error?.message || 'Please try again.', 'warn');
-      });
-      return;
-    }
-    if (type === 'exam-reexam-enter') {
-      const e = st.data.exams.find((x) => x.examCode === code);
-      if (!e) return;
-      if (!canEnterExamNow(e)) {
-        toast('Exam not live yet', `You can enter ${e.examCode} at ${formatExamDateTime(e)}.`, 'warn');
-        return;
+      const state = examRuntimeState(e);
+      if (state.reexamEligible) {
+        startVerifiedExam(code).catch((error) => {
+          console.error('Failed to start re-exam:', error);
+          toast('Start failed', error?.message || 'Please try again.', 'warn');
+        });
+      } else {
+        navigateToExamPage(code).catch((error) => {
+          console.error('Failed to navigate to exam page:', error);
+          toast('Navigation failed', error?.message || 'Please try again.', 'warn');
+        });
       }
-      closeModal();
-      startVerifiedExam(code);
       return;
     }
     if (type === 'result-view') {
@@ -4391,7 +4733,7 @@
     closeProfileEditor();
     toast('Profile saved', 'Student profile has been synced to the server.', 'success');
   }
-  function goLogout() { toast('Logging out', 'Returning to role selection.', 'info'); setTimeout(() => { location.href = 'role-selection.html'; }, 180); }
+  function goLogout() { toast('Logging out', 'Returning to login gateway.', 'info'); setTimeout(() => { location.href = 'login.html'; }, 180); }
   function updateClock() {
     const d = new Date();
     el.liveClock.textContent = d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
@@ -4608,67 +4950,38 @@
             moveVerificationStep(st.examUi.step - 1);
             return;
           }
-        if (step === 'next') {
-          if (st.examUi.step === 1 && !isStep1Valid()) return toast('Missing fields', 'Complete the student details before continuing.', 'warn');
-          if (st.examUi.step === 2 && !isStep2Valid()) return toast('Image required', 'Upload or capture a verification image.', 'warn');
-          if (st.examUi.step === 3 && !isStep3Valid()) return toast('Rules not accepted', 'Please confirm the exam rules.', 'warn');
-          if (st.examUi.step === 4 && !isStep4Valid()) return toast('Terms not accepted', 'Please agree to the terms and conditions.', 'warn');
-          if (st.examUi.step === 5 && !isStep5Valid()) return toast('Declaration required', 'Please confirm the declaration before continuing.', 'warn');
-          if (st.examUi.step < 5) {
-            moveVerificationStep(st.examUi.step + 1);
-            return;
-          }
-          if ((st.examUi.mode || 'start') !== 'start' && st.examUi.step === 5) {
-            moveVerificationStep(6);
-            return;
-          }
-          if ((st.examUi.mode || 'start') === 'register' && st.examUi.step === 6) {
-            moveVerificationStep(7);
-            return;
-          }
-          if (st.examUi.mode === 'register-phase2' && st.examUi.step === 6) {
-            moveVerificationStep(7);
-            return;
-          }
-          if (st.examUi.mode === 'register-phase2' && st.examUi.step === 7 && !isStep7Valid()) {
-            return toast('Verification code required', 'Enter a valid 6-digit phase 2 verification code.', 'warn');
-          }
-          if (st.examUi.mode === 'register-phase2' && st.examUi.step === 7) {
-            moveVerificationStep(8);
-            return;
-          }
-          if (st.examUi.mode === 'register' && st.examUi.step === 7 && !isStep6Valid()) {
-            return toast('Confirmation required', 'Please confirm the reviewed registration details.', 'warn');
-          }
-          if (st.examUi.mode === 'register-phase2' && st.examUi.step === 8 && !isStep8Valid()) {
-            return toast('Final confirmation required', 'Please confirm the phase 2 registration before submitting.', 'warn');
-          }
-          if (!canStartExam()) {
-            toast('Verification incomplete', 'Please complete all required checks.', 'warn');
-            return;
-          }
-          const exam = getActiveVerificationExam();
-          if (!exam) return;
-          if ((st.examUi.mode || 'start') === 'register') {
-            if (!isStep6Valid()) return toast('Confirmation required', 'Please confirm the reviewed registration details.', 'warn');
-            completeExamRegistration(exam.examCode).catch((error) => {
-              console.error('Failed to complete exam registration:', error);
-              toast('Registration failed', error?.message || 'Unable to register exam right now.', 'warn');
-            });
-            return;
-          }
-          if (st.examUi.mode === 'register-phase2') {
-            completeExamRegistration(exam.examCode).catch((error) => {
-              console.error('Failed to complete exam registration:', error);
-              toast('Registration failed', error?.message || 'Unable to register exam right now.', 'warn');
-            });
-            return;
+          if (step === 'next') {
+            const mode = st.examUi.mode || 'start';
+            const isPhase2 = mode === 'register-phase2';
+            const cur = st.examUi.step;
+            // Validation guards
+            if (cur === 1 && !isStep1Valid()) return toast('Incomplete', 'Fill all fields and accept all consents to continue.', 'warn');
+            if (cur === 2 && !isStep2Valid()) return toast('Photo required', 'Capture your photo before continuing.', 'warn');
+            if (cur === 3 && !isStep3Valid()) return toast('Confirmation required', 'Check the confirmation box before registering.', 'warn');
+            if (cur === 4 && isPhase2 && !isStep4Valid()) return toast('Code required', 'Enter a valid 6-digit Phase 2 verification code.', 'warn');
+            if (cur === 5 && isPhase2 && !isStep5Valid()) return toast('Final confirmation required', 'Confirm the Phase 2 registration before submitting.', 'warn');
+            // Step 3 = final step for register / start modes
+            if (cur === 3 && !isPhase2) {
+              const exam = getActiveVerificationExam();
+              if (!exam) return;
+              completeExamRegistration(exam.examCode).catch((error) => {
+                console.error('Failed to complete exam registration:', error);
+                toast('Registration failed', error?.message || 'Unable to register exam right now.', 'warn');
+              });
+              return;
             }
-            startVerifiedExam(exam.examCode).catch((error) => {
-              console.error('Failed to start verified exam:', error);
-              toast('Exam start failed', error?.message || 'Please try again.', 'warn');
-            });
-            toast('Verification complete', 'The exam session is ready to enter.', 'success');
+            // Step 5 = final step for phase2
+            if (cur === 5 && isPhase2) {
+              const exam = getActiveVerificationExam();
+              if (!exam) return;
+              completeExamRegistration(exam.examCode).catch((error) => {
+                console.error('Failed to complete exam registration:', error);
+                toast('Registration failed', error?.message || 'Unable to register exam right now.', 'warn');
+              });
+              return;
+            }
+            // Otherwise advance
+            moveVerificationStep(cur + 1);
             return;
           }
         }
@@ -4677,6 +4990,8 @@
           const action = upload.dataset.verificationAction;
           if (action === 'upload') $('examImageUploadInput')?.click();
           if (action === 'capture') $('examImageCaptureInput')?.click();
+          if (action === 'capture-photo') captureVerificationPhoto();
+          if (action === 'retake-photo') retakeVerificationPhoto();
           if (action === 'send-phase2-email') {
             const exam = getActiveVerificationExam();
             if (!exam) {
@@ -4687,6 +5002,7 @@
           }
         }
       });
+
       el.examVerificationModal.addEventListener('input', (e) => handleVerificationInput(e.target));
       el.examVerificationModal.addEventListener('change', (e) => handleVerificationInput(e.target));
     }
@@ -4759,5 +5075,4 @@
   document.addEventListener('DOMContentLoaded', () => { init().catch((error) => console.error('Student UI init failed:', error)); });
   window.studentUI = { renderCards, renderChart: renderAnalyticsCharts, renderTable: renderAllTables, renderLeaderboard };
 })();
-
 

@@ -3,145 +3,184 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SEM — Student Login</title>
-  <meta name="description" content="SEM — securely access your examination terminal." />
+  <title>SEM — Unified Security Gateway</title>
+  <meta name="description" content="Securely access your AI-powered examination terminal." />
 
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
+  <!-- Style Sheets -->
   <link rel="stylesheet" href="../assets/core/css/themes.css">
   <link rel="stylesheet" href="../assets/pages/signup/css/base.css">
-  <link rel="stylesheet" href="../assets/pages/signup/css/layout.css">
   <link rel="stylesheet" href="../assets/pages/signup/css/components.css">
   <link rel="stylesheet" href="../assets/pages/signup/css/animations.css">
-  <link rel="stylesheet" href="../assets/pages/signup/css/responsive.css">
-  <link rel="stylesheet" href="../assets/pages/login/css/login-enterprise.css">
+  <link rel="stylesheet" href="../assets/pages/login/css/login-unified.css">
   <link rel="stylesheet" href="/assets/core/css/brand.css">
 </head>
 <body>
   <div class="noise-overlay"></div>
-  <div class="page">
-    <div class="bg-orb orb-1"></div>
-    <div class="bg-orb orb-2"></div>
-    <div class="stardust"></div>
-    <div class="bg-scroll-overlay">
-      <div class="scrolling-track track-1">
-        ENTERPRISE &bull; SECURE &bull; SCALABLE &bull; RELIABLE &bull; FAST &bull; ENTERPRISE &bull; SECURE &bull; SCALABLE &bull; RELIABLE &bull; FAST &bull; ENTERPRISE &bull; SECURE &bull; SCALABLE &bull; RELIABLE &bull; FAST &bull; ENTERPRISE &bull; SECURE &bull; SCALABLE &bull; RELIABLE &bull; FAST &bull; ENTERPRISE &bull; SECURE &bull; SCALABLE &bull; RELIABLE &bull; FAST &bull;
-      </div>
-      <div class="scrolling-track track-2">
-        INNOVATION &bull; WORKFLOW &bull; INTEGRATION &bull; ANALYTICS &bull; CLOUD &bull; INNOVATION &bull; WORKFLOW &bull; INTEGRATION &bull; ANALYTICS &bull; CLOUD &bull; INNOVATION &bull; WORKFLOW &bull; INTEGRATION &bull; ANALYTICS &bull; CLOUD &bull; INNOVATION &bull; WORKFLOW &bull; INTEGRATION &bull; ANALYTICS &bull; CLOUD &bull; INNOVATION &bull; WORKFLOW &bull; INTEGRATION &bull; ANALYTICS &bull; CLOUD &bull;
+  
+  <div class="split-container" id="sso-container">
+    <div class="showcase-glow"></div>
+    
+    <!-- Left Column: Unified Platform Showcase -->
+    <div class="showcase-panel">
+      <div class="showcase-content">
+        <!-- Logo Header -->
+        <a href="../index.html" class="brand-section">
+          <span class="brand-logo-sso">SEM</span>
+          <span class="brand-name-sso">Smart Examination Monitor</span>
+        </a>
+
+        <!-- Consolidated Portal Info Showcase -->
+        <div class="showcase-info">
+          <div class="portal-details">
+            <h1 class="portal-title">Enterprise Security Gateway</h1>
+            <p class="portal-desc">Unified identity layer for the Smart Examination Monitor. Authenticate once via multi-factor verification and gain role-provisioned access to your designated workspace cluster.</p>
+            
+            <ul class="portal-features-sso">
+              <li>
+                <div class="feature-icon-wrapper">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </div>
+                <div class="feature-text-wrapper">
+                  <span class="feature-title-sso">Zero-Trust Authentication</span>
+                  <span class="feature-desc-sso">Cryptographic session tokens, rotating key pairs, and ML-driven behavioral anomaly detection on every request.</span>
+                </div>
+              </li>
+              <li>
+                <div class="feature-icon-wrapper">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                  </svg>
+                </div>
+                <div class="feature-text-wrapper">
+                  <span class="feature-title-sso">Neural Proctoring Engine</span>
+                  <span class="feature-desc-sso">Real-time computer vision surveillance across geo-distributed exam clusters with sub-20ms latency SLA guarantees.</span>
+                </div>
+              </li>
+              <li>
+                <div class="feature-icon-wrapper">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                  </svg>
+                </div>
+                <div class="feature-text-wrapper">
+                  <span class="feature-title-sso">Compliance Orchestration</span>
+                  <span class="feature-desc-sso">SOC 2 Type II certified pipeline with end-to-end AES-256 audit trails and automated governance policy enforcement.</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Premium Status/Metrics Widget -->
+        <div class="platform-metrics-widget">
+          <div class="metrics-header">
+            <span class="metrics-title">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+              Platform Monitor
+            </span>
+            <span class="metrics-status-badge">
+              <span class="status-dot-green"></span>
+              Operational
+            </span>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <span class="metric-value">99.98%</span>
+              <span class="metric-label">AI Proctor Accuracy</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-value">12ms</span>
+              <span class="metric-label">Server Latency</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-value">100%</span>
+              <span class="metric-label">Data Encrypted</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="showcase-footer">
+          <span>Enterprise Secure Connection</span>
+          <span>v2.4.0</span>
+        </div>
       </div>
     </div>
 
-    <header class="topbar">
-      <a href="../index.html" class="brand" style="text-decoration:none;">
-        <span class="brand-icon">SEM</span>
-        <span class="brand-text">Smart Examination Monitor</span>
-      </a>
-    </header>
+    <!-- Right Column: Login Form -->
+    <div class="form-panel">
+      <div class="form-container">
+        
+        <!-- Header -->
+        <div class="form-header-sso">
+          <span class="form-badge-sso" id="active-sso-badge">
+            <span class="pulse-dot"></span>
+            Secure Gateway Terminal
+          </span>
+          <h2 id="sso-title">Sign In</h2>
+          <p id="sso-subtitle">Please enter your credentials to authenticate your session.</p>
+        </div>
 
-    <main class="center">
-      <div class="card-float-wrapper">
-        <section class="card glass-card" aria-label="Login">
-          <div class="card-spotlight"></div>
-          
-          <div class="card-columns">
-            <!-- Left Panel: Benefits (Mirrored from Signup) -->
-            <div class="card-left">
-              <div class="card-badge">
-                <span class="pulse-dot"></span>
-                Student Terminal
-              </div>
-              <div class="branding">
-                <h1>Welcome Back</h1>
-                <p>Access your dashboard and manage your AI-powered examinations with precision.</p>
-              </div>
-              <ul class="benefits">
-                <li>
-                  <span class="benefit-icon">🛡️</span>
-                  <div>
-                    <strong>Encrypted Login</strong>
-                    <p>Secured with JWT &amp; rotating session tokens.</p>
-                  </div>
-                </li>
-                <li>
-                  <span class="benefit-icon">📡</span>
-                  <div>
-                    <strong>Real-time Sync</strong>
-                    <p>Instant analytics and proctoring feedback.</p>
-                  </div>
-                </li>
-                <li>
-                  <span class="benefit-icon">🧠</span>
-                  <div>
-                    <strong>AI Assistant</strong>
-                    <p>24/7 automated support and monitoring.</p>
-                  </div>
-                </li>
-              </ul>
-            </div>
+        <!-- Errors -->
+        <div class="sso-error-box" id="sso-error-container" role="alert" aria-live="polite" hidden>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#ef4444" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.73 3h16.9a2 2 0 001.73-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          <span id="sso-error-message"></span>
+        </div>
 
-            <!-- Right Panel: Login Form -->
-            <div class="card-right">
-              <div class="card-header-slim">
-                <h2>Student Login</h2>
-                <p>Welcome back! Access your assigned examinations.</p>
-              </div>
-
-              <form id="login-form" novalidate>
-                <div class="login-error" id="student-login-error" role="alert" aria-live="polite" hidden>
-                  <span class="error-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M12 9v4" />
-                      <path d="M12 17h.01" />
-                      <path d="M10.29 3.86L1.82 18a2 2 0 001.73 3h16.9a2 2 0 001.73-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                    </svg>
-                  </span>
-                  <span class="error-message" id="student-login-error-message"></span>
-                </div>
-
-                <div class="form-grid" style="grid-template-columns: 1fr;">
-                  <div class="field">
-                    <input id="email" name="email" type="email" required placeholder=" " autocomplete="email" />
-                    <label for="email">Email Address</label>
-                    <div class="field-msg" data-for="email"></div>
-                  </div>
-
-                  <div class="field field-password">
-                    <input id="password" name="password" type="password" required placeholder=" " autocomplete="current-password" />
-                    <label for="password">Password</label>
-                    <button type="button" class="toggle-visibility" data-target="password">Show</button>
-                    <div class="field-msg" data-for="password"></div>
-                  </div>
-                </div>
-
-                <div class="form-options">
-                  <label class="checkbox">
-                    <input type="checkbox" id="remember-me" />
-                    <span>Remember me</span>
-                  </label>
-                  <a href="forgot-password.html?role=student" class="forgot-link">Forgot password?</a>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
-                  <span class="btn-text">Sign In</span>
-                  <span class="btn-loader" aria-hidden="true"></span>
-                </button>
-
-                <div class="form-footer">
-                  <div class="login-link">Don't have an account? <a href="signup.html">Create Account</a></div>
-                </div>
-              </form>
-            </div>
+        <!-- Form -->
+        <form id="sso-login-form" novalidate>
+          <div class="field-sso">
+            <input id="email" name="email" type="email" required placeholder=" " autocomplete="email" />
+            <label for="email">Email / Account Identifier</label>
           </div>
-        </section>
+
+          <div class="field-sso">
+            <input id="password" name="password" type="password" required placeholder=" " autocomplete="current-password" />
+            <label for="password">Security Password</label>
+            <button type="button" class="password-toggle-sso" id="password-visibility-btn">Show</button>
+          </div>
+
+          <div class="form-actions-sso">
+            <label class="remember-checkbox-label">
+              <input type="checkbox" id="remember-me" />
+              <span>Remember this session</span>
+            </label>
+            <a href="forgot-password.html" class="forgot-link-sso" id="sso-forgot-link">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="btn-submit-sso" id="sso-submit-btn">
+            <span id="btn-text">Authenticate Credentials</span>
+          </button>
+        </form>
+
+        <!-- Secondary CTA -->
+        <div style="text-align: center; font-size: 0.9rem; color: var(--text-secondary); margin-top: 10px;">
+          Don't have an account? <a href="signup.html" style="color: var(--primary-accent); text-decoration: none; font-weight: 600;">Create Account</a>
+        </div>
+
       </div>
-    </main>
+    </div>
   </div>
 
+  <!-- Scripts -->
   <script src="../assets/core/js/theme.js"></script>
   <script src="../assets/core/js/api.js"></script>
-  <script src="../assets/pages/login/js/login.js?v=20260409a"></script>
+  <script src="../assets/pages/login/js/login.js?v=20260713c"></script>
 </body>
 </html>

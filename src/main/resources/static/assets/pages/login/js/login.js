@@ -1,21 +1,146 @@
 /**
- * Professional Student Login Module
+ * Unified SSO Authentication Logic
  * Connected to Spring Boot Backend
  */
-const Login = (() => {
-
+const UnifiedLogin = (() => {
   // Elements
-  const form = document.getElementById('login-form');
-  const submitBtn = document.getElementById('submit-btn');
-  const btnText = submitBtn?.querySelector('.btn-text');
+  const form = document.getElementById('sso-login-form');
+  const submitBtn = document.getElementById('sso-submit-btn');
+  const btnText = document.getElementById('btn-text');
   const emailInput = document.getElementById('email');
   const passwordInput = document.getElementById('password');
   const rememberCheckbox = document.getElementById('remember-me');
-  const loginErrorBox = document.getElementById('student-login-error');
-  const loginErrorMessage = document.getElementById('student-login-error-message');
-  const card = document.querySelector('.card');
-  const REMEMBER_KEY = 'remember.student.identifier';
-  let speedTimeout;
+  const errorContainer = document.getElementById('sso-error-container');
+  const errorMessage = document.getElementById('sso-error-message');
+  
+  const REMEMBER_KEY = 'remember.sso.identifier';
+  const API_BASE = /^https?:/i.test(window.location.origin)
+    ? window.location.origin
+    : "http://localhost:8080";
+
+  function init() {
+    if (typeof ThemeController !== "undefined") {
+      ThemeController.init();
+    }
+    setupListeners();
+    hydrateRemembered();
+    console.log("SSO Secure Login Engine Active");
+  }
+
+  function setupListeners() {
+    // Password visibility toggle
+    const toggleBtn = document.getElementById('password-visibility-btn');
+    if (toggleBtn && passwordInput) {
+      toggleBtn.addEventListener('click', () => {
+        const isPassword = passwordInput.getAttribute('type') === 'password';
+        passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+        toggleBtn.textContent = isPassword ? 'Hide' : 'Show';
+      });
+    }
+
+    // Clear errors on input
+    emailInput?.addEventListener('input', clearError);
+    passwordInput?.addEventListener('input', clearError);
+
+    // Form submission
+    form?.addEventListener('submit', handleLogin);
+  }
+
+  async function readErrorMessage(response) {
+    const fallback = response?.statusText || `Request failed (${response?.status || "unknown"})`;
+    try {
+      const raw = await response.clone().text();
+      if (!raw) return fallback;
+      const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+      if (contentType.includes("application/json")) {
+        const data = JSON.parse(raw);
+        return String(data?.message || data?.error || data?.cause || data?.detail || fallback).trim() || fallback;
+      }
+      return String(raw).trim() || fallback;
+    } catch (_e) {
+      return fallback;
+    }
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    clearError();
+
+    const email = emailInput?.value.trim();
+    const password = passwordInput?.value.trim();
+    const remember = Boolean(rememberCheckbox?.checked);
+
+    if (!email || !password) {
+      showError("Please enter your account email and password.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      if (!response.ok) {
+        throw new Error(await readErrorMessage(response));
+      }
+
+      const raw = await response.json();
+      const data = raw?.data ?? raw;
+      
+      const token = data.accessToken || data.token || data.jwt;
+      if (!token) {
+        throw new Error("Invalid response from authorization server.");
+      }
+
+      const resolvedRole = String(data.role || "")
+        .replace(/^ROLE_/i, "")
+        .trim()
+        .toUpperCase();
+      
+      // Save credentials for the authenticated role
+      persistAuthData({
+        token,
+        role: resolvedRole,
+        user: sanitizeUserForStorage(data),
+        teacher: resolvedRole === 'TEACHER' ? {
+          id: data.userId || data.id,
+          name: data.name,
+          email: data.email,
+          department: data.department,
+          designation: data.designation,
+          qualification: data.qualification,
+          employeeId: data.employeeId
+        } : null,
+        remember
+      });
+
+      persistRememberedIdentifier(email, remember);
+      setSuccess();
+
+      // Redirect dynamically based on role
+      setTimeout(() => {
+        if (resolvedRole === 'ADMIN') {
+          window.location.href = 'admin-dashboard.html';
+        } else if (resolvedRole === 'TEACHER') {
+          window.location.href = 'teacher-dashboard.html';
+        } else {
+          window.location.href = 'student-ui.html';
+        }
+      }, 1000);
+
+    } catch (error) {
+      console.error("Login Failure:", error);
+      setLoading(false);
+      showError(error.message);
+    }
+  }
 
   function sanitizeUserForStorage(raw) {
     const user = raw && typeof raw === "object" ? { ...raw } : {};
@@ -28,7 +153,7 @@ const Login = (() => {
       userId: user.userId || user.id || null,
       name: user.name || "",
       email: user.email || "",
-      role: user.role || "STUDENT",
+      role: String(user.role || "STUDENT").replace(/^ROLE_/i, "").trim().toUpperCase(),
       phone: user.phone || "",
       department: user.department || "",
       designation: user.designation || "",
@@ -38,219 +163,82 @@ const Login = (() => {
     };
   }
 
-  function safeSetStorage(key, value) {
-    try {
-      localStorage.setItem(key, value);
-      return true;
-    } catch (error) {
-      console.warn(`Skipping localStorage key '${key}' due to quota/storage error`, error);
-      return false;
-    }
-  }
-
-  /**
-   * Initialize Module
-   */
-  function init() {
-    if (typeof ThemeController !== "undefined") {
-      ThemeController.init();
-    }
-    setupListeners();
-    setup3DCardTilt();
-    hydrateRememberedIdentifier();
-    console.log('Student Login Module Initialized');
-  }
-
-  /**
-   * Setup Event Listeners
-   */
-  function setupListeners() {
-
-    // Password visibility
-    document.querySelectorAll('.toggle-visibility').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const input = document.getElementById(btn.dataset.target || 'password');
-        const isPassword = input.getAttribute('type') === 'password';
-        input.setAttribute('type', isPassword ? 'text' : 'password');
-        btn.textContent = isPassword ? 'Hide' : 'Show';
-      });
-    });
-
-    form?.addEventListener('submit', handleLogin);
-    submitBtn?.addEventListener('click', speedMarquee);
-    emailInput?.addEventListener('input', clearError);
-    passwordInput?.addEventListener('input', clearError);
-  }
-
-  /**
-   * Background Speed Interaction
-   */
-  function speedMarquee() {
-    document.documentElement.style.setProperty('--marquee-speed', '0.5s');
-    document.documentElement.style.setProperty('--marquee-speed-fast', '0.4s');
-
-    clearTimeout(speedTimeout);
-    speedTimeout = setTimeout(() => {
-      document.documentElement.style.setProperty('--marquee-speed', '5s');
-      document.documentElement.style.setProperty('--marquee-speed-fast', '4.5s');
-    }, 1500);
-  }
-
-  /**
-   * Handle Login
-   */
-  async function handleLogin(e) {
-    e.preventDefault();
-    clearError();
-
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-    const remember = Boolean(rememberCheckbox?.checked);
-
-    if (!email || !password) {
-      showError('Please enter your email and password.');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const data = await API.post('/api/auth/login', {
-        email: email,
-        password: password
-      });
-
-      // Save token
-      const token = data.accessToken || data.token || data.jwt;
-      if (!token) {
-        throw new Error("Invalid authentication response");
-      }
-      if (data.role !== 'STUDENT') {
-        throw new Error('Access denied. Student only.');
-      }
-      persistAuthData({
-        role: data.role,
-        token,
-        user: sanitizeUserForStorage(data),
-        remember
-      });
-      persistRememberedIdentifier(email, remember);
-
-      setSuccess();
-
-      // Redirect
-      setTimeout(() => {
-        window.location.href = 'student-ui.html';
-      }, 1000);
-
-    } catch (error) {
-      setLoading(false);
-      showError(error.message || 'Unable to connect to server');
-    }
-  }
-
-  function setLoading(isLoading) {
-    if (!submitBtn) return;
-
-    if (isLoading) {
-      submitBtn.classList.add('loading');
-      if (btnText) btnText.textContent = 'Authenticating...';
-      submitBtn.disabled = true;
-    } else {
-      submitBtn.classList.remove('loading');
-      if (btnText) btnText.textContent = 'Sign In';
-      submitBtn.disabled = false;
-    }
-  }
-
-  function setSuccess() {
-    submitBtn.classList.remove('loading');
-    submitBtn.classList.add('success');
-    if (btnText) btnText.textContent = 'Login Successful';
-  }
-
-  function showError(msg) {
-    const finalMessage = normalizeLoginErrorMessage(msg);
-    console.warn('Login Error:', finalMessage);
-    if (loginErrorMessage) loginErrorMessage.textContent = finalMessage;
-    loginErrorBox?.removeAttribute('hidden');
-  }
-
-  function clearError() {
-    if (loginErrorMessage) loginErrorMessage.textContent = '';
-    loginErrorBox?.setAttribute('hidden', 'hidden');
-  }
-
-  function normalizeLoginErrorMessage(message) {
-    const text = String(message || '').toLowerCase();
-    if (text.includes('invalid credentials')) {
-      return 'Invalid credentials. Please verify your email and password.';
-    }
-    if (text.includes('user not found')) {
-      return 'No student account matched that email. Sign up first or use the seeded demo credentials.';
-    }
-    return message || 'Unable to connect to server. Please try again.';
-  }
-
-  function persistRememberedIdentifier(identifier, remember) {
-    if (remember) {
-      safeSetStorage(REMEMBER_KEY, identifier);
-      return;
-    }
-    localStorage.removeItem(REMEMBER_KEY);
-  }
-
-  function hydrateRememberedIdentifier() {
-    const remembered = String(localStorage.getItem(REMEMBER_KEY) || '').trim();
-    if (!remembered || !emailInput) return;
-    emailInput.value = remembered;
-    if (rememberCheckbox) rememberCheckbox.checked = true;
-  }
-
-  function persistAuthData({ role, token, user, remember }) {
+  function persistAuthData({ token, role, user, teacher, remember }) {
     const primary = remember ? localStorage : sessionStorage;
     const secondary = remember ? sessionStorage : localStorage;
 
     ['token', 'accessToken', 'role', 'user', 'teacher'].forEach((key) => {
       secondary.removeItem(key);
+      primary.removeItem(key);
     });
 
     primary.setItem('token', token);
     primary.setItem('accessToken', token);
     primary.setItem('role', role);
     primary.setItem('user', JSON.stringify(user));
+    if (teacher) {
+      primary.setItem('teacher', JSON.stringify(teacher));
+    }
   }
 
-  /**
-   * 3D Card Tilt Effect
-   */
-  function setup3DCardTilt() {
-    const wrapper = card?.parentElement;
-    if (!wrapper || !card) return;
+  function persistRememberedIdentifier(identifier, remember) {
+    if (remember) {
+      localStorage.setItem(REMEMBER_KEY, identifier);
+      return;
+    }
+    localStorage.removeItem(REMEMBER_KEY);
+  }
 
-    wrapper.addEventListener('mousemove', (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+  function hydrateRemembered() {
+    const remembered = String(localStorage.getItem(REMEMBER_KEY) || '').trim();
+    if (!remembered || !emailInput) return;
+    emailInput.value = remembered;
+    if (rememberCheckbox) rememberCheckbox.checked = true;
+  }
 
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
+  function setLoading(isLoading) {
+    if (!submitBtn) return;
+    submitBtn.disabled = isLoading;
+    if (isLoading) {
+      submitBtn.classList.add('loading');
+      if (btnText) btnText.textContent = 'Verifying Credentials...';
+    } else {
+      submitBtn.classList.remove('loading');
+      if (btnText) btnText.textContent = 'Authenticate Credentials';
+    }
+  }
 
-      const rotateX = (y - centerY) / 30;
-      const rotateY = (centerX - x) / 30;
+  function setSuccess() {
+    if (submitBtn) {
+      submitBtn.classList.remove('loading');
+      submitBtn.classList.add('success');
+    }
+    if (btnText) btnText.textContent = 'Identity Authorized';
+  }
 
-      card.style.transform =
-        `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-    });
+  function showError(msg) {
+    const cleanMsg = normalizeErrorMessage(msg);
+    if (errorMessage) errorMessage.textContent = cleanMsg;
+    errorContainer?.removeAttribute('hidden');
+  }
 
-    wrapper.addEventListener('mouseleave', () => {
-      card.style.transform =
-        'perspective(1000px) rotateX(0deg) rotateY(0deg)';
-    });
+  function clearError() {
+    errorContainer?.setAttribute('hidden', 'hidden');
+    if (errorMessage) errorMessage.textContent = '';
+  }
+
+  function normalizeErrorMessage(msg) {
+    const txt = String(msg || '').toLowerCase();
+    if (txt.includes('invalid credentials') || txt.includes('bad credentials')) {
+      return 'Invalid credentials. Check your email/password combination.';
+    }
+    if (txt.includes('user not found')) {
+      return 'User account not found. Verify your email.';
+    }
+    return msg || 'Unable to connect to the login terminal.';
   }
 
   return { init };
-
 })();
 
-document.addEventListener('DOMContentLoaded', Login.init);
+document.addEventListener('DOMContentLoaded', UnifiedLogin.init);

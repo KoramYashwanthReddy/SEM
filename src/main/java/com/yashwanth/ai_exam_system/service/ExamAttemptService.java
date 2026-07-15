@@ -75,9 +75,8 @@ public class ExamAttemptService {
         if (!exam.isPublished() || !exam.isActive()) {
             throw new BadRequestException("Exam is not available for attempts");
         }
-        boolean registered = examRegistrationRepository.findByStudentIdAndExamCode(studentId, examCode)
-                .map(ExamRegistration::getActive)
-                .orElse(false);
+        boolean registered = examRegistrationRepository.findByStudentIdAndExamCodeAndActiveTrue(studentId, examCode)
+                .isPresent();
         if (!registered) {
             throw new BadRequestException("Please register for the exam first");
         }
@@ -102,7 +101,23 @@ public class ExamAttemptService {
                 AttemptStatus.STARTED);
 
         if (active.isPresent()) {
-            return active.get();
+            ExamAttempt activeAttempt = active.get();
+            if (activeAttempt.isActive()) {
+                return activeAttempt;
+            }
+            activeAttempt.setStatus(AttemptStatus.EXPIRED);
+            activeAttempt.setActive(false);
+            activeAttempt.setEndTime(activeAttempt.getExpiryTime() != null ? activeAttempt.getExpiryTime() : now);
+            activeAttempt.setTimeTakenSeconds(activeAttempt.getStartTime() != null && activeAttempt.getEndTime() != null
+                    ? Duration.between(activeAttempt.getStartTime(), activeAttempt.getEndTime()).getSeconds()
+                    : activeAttempt.getTimeTakenSeconds());
+            attemptRepository.save(activeAttempt);
+        }
+
+        long previousAttempts = attemptRepository.countByStudentIdAndExamCode(studentId, examCode);
+        int maxAttempts = exam.getMaxAttempts() == null || exam.getMaxAttempts() <= 0 ? 1 : exam.getMaxAttempts();
+        if (previousAttempts >= maxAttempts) {
+            throw new BadRequestException("Maximum exam attempts reached");
         }
 
         ExamAttempt attempt = new ExamAttempt();
@@ -113,8 +128,18 @@ public class ExamAttemptService {
         attempt.setCancelled(false);
 
         attempt.setStartTime(now);
-        attempt.setDurationMinutes(exam.getDurationMinutes());
-        attempt.setExpiryTime(now.plusMinutes(exam.getDurationMinutes()));
+        int durationMinutes = exam.getDurationMinutes() == null || exam.getDurationMinutes() <= 0
+                ? 60
+                : exam.getDurationMinutes();
+        LocalDateTime expiryTime = now.plusMinutes(durationMinutes);
+        if (exam.getEndTime() != null && exam.getEndTime().isBefore(expiryTime)) {
+            expiryTime = exam.getEndTime();
+        }
+
+        attempt.setDurationMinutes(durationMinutes);
+        attempt.setExpiryTime(expiryTime);
+        attempt.setAttemptNumber((int) previousAttempts + 1);
+        attempt.setLastAiCheckTime(now);
 
         attempt.setStatus(AttemptStatus.STARTED);
 

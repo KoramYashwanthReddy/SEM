@@ -1,16 +1,19 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student UI | Smart Examination Monitor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="../assets/core/css/themes.css">
   <link rel="stylesheet" href="../assets/pages/student/css/student-ui.css">
   <link rel="stylesheet" href="/assets/core/css/brand.css">
 </head>
+
 <body class="student-page">
   <div class="noise-overlay"></div>
   <div class="bg-orb orb-1"></div>
@@ -29,22 +32,33 @@
         </button>
       </div>
       <nav class="side-nav" id="sideNav" aria-label="Student navigation">
-        <button class="nav-link active" data-section="dashboard" title="Dashboard"><span class="nav-icon" data-icon="dashboard"></span><span>Dashboard</span></button>
-        <button class="nav-link" data-section="exams" title="Exam"><span class="nav-icon" data-icon="exams"></span><span>Exam</span></button>
-        <button class="nav-link" data-section="my-exams" title="My Exams"><span class="nav-icon" data-icon="exams"></span><span>My Exams</span></button>
-        <button class="nav-link" data-section="results" title="Results"><span class="nav-icon" data-icon="results"></span><span>Results</span></button>
-        <button class="nav-link" data-section="certificates" title="Certificates"><span class="nav-icon" data-icon="certificates"></span><span>Certificates</span></button>
-        <button class="nav-link" data-section="leaderboard" title="Leaderboard"><span class="nav-icon" data-icon="leaderboard"></span><span>Leaderboard</span></button>
-        <button class="nav-link" data-section="analytics" title="Analytics"><span class="nav-icon" data-icon="analytics"></span><span>Analytics</span></button>
+        <button class="nav-link active" data-section="dashboard" title="Dashboard"><span class="nav-icon"
+            data-icon="dashboard"></span><span>Dashboard</span></button>
+        <button class="nav-link" data-section="exams" title="Exam"><span class="nav-icon"
+            data-icon="exams"></span><span>Exam</span></button>
+        <button class="nav-link" data-section="my-exams" title="My Exams"><span class="nav-icon"
+            data-icon="exams"></span><span>My Exams</span></button>
+        <button class="nav-link" data-section="results" title="Results"><span class="nav-icon"
+            data-icon="results"></span><span>Results</span></button>
+        <button class="nav-link" data-section="certificates" title="Certificates"><span class="nav-icon"
+            data-icon="certificates"></span><span>Certificates</span></button>
+        <button class="nav-link" data-section="leaderboard" title="Leaderboard"><span class="nav-icon"
+            data-icon="leaderboard"></span><span>Leaderboard</span></button>
+        <button class="nav-link" data-section="analytics" title="Analytics"><span class="nav-icon"
+            data-icon="analytics"></span><span>Analytics</span></button>
         <button class="nav-link" data-section="notifications" title="Notifications">
           <span class="nav-icon" data-icon="bell"></span>
           <span>Notifications</span>
           <span class="nav-badge" id="notifNavCount">0</span>
         </button>
-        <button class="nav-link" data-section="schedule" title="Schedule"><span class="nav-icon" data-icon="calendar"></span><span>Schedule</span></button>
-        <button class="nav-link" data-section="proctoring" title="Proctoring Status"><span class="nav-icon" data-icon="shield"></span><span>Proctoring Status</span></button>
-        <button class="nav-link" data-section="help-support" title="Help &amp; Support"><span class="nav-icon" data-icon="help"></span><span>Help &amp; Support</span></button>
-        <button class="nav-link logout" id="logoutBtn" type="button" title="Logout"><span class="nav-icon" data-icon="logout"></span><span>Logout</span></button>
+        <button class="nav-link" data-section="schedule" title="Schedule"><span class="nav-icon"
+            data-icon="calendar"></span><span>Schedule</span></button>
+        <button class="nav-link" data-section="proctoring" title="Proctoring Status"><span class="nav-icon"
+            data-icon="shield"></span><span>Proctoring Status</span></button>
+        <button class="nav-link" data-section="help-support" title="Help &amp; Support"><span class="nav-icon"
+            data-icon="help"></span><span>Help &amp; Support</span></button>
+        <button class="nav-link logout" id="logoutBtn" type="button" title="Logout"><span class="nav-icon"
+            data-icon="logout"></span><span>Logout</span></button>
       </nav>
       <div class="sidebar-footer">
         <div class="student-mini">
@@ -75,13 +89,17 @@
         <div class="nav-right">
           <label class="search-wrap top-search" aria-label="Search dashboard data">
             <span class="search-icon svg-icon" data-icon="search"></span>
-            <input id="top-nav-search" type="text" placeholder="Search exams, results, certificates..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <input id="top-nav-search" type="text" placeholder="Search exams, results, certificates..."
+              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
           </label>
           <div class="live-pill"><span class="dot"></span><span id="liveClock">LIVE</span></div>
           <div class="theme-toggle" id="themeToggle" role="group" aria-label="Theme modes">
-            <button type="button" class="theme-toggle-btn" data-theme-mode="light"><span class="svg-icon" data-icon="sun"></span><span>Light</span></button>
-            <button type="button" class="theme-toggle-btn" data-theme-mode="system"><span class="svg-icon" data-icon="system"></span><span>System</span></button>
-            <button type="button" class="theme-toggle-btn" data-theme-mode="dark"><span class="svg-icon" data-icon="moon"></span><span>Dark</span></button>
+            <button type="button" class="theme-toggle-btn" data-theme-mode="light"><span class="svg-icon"
+                data-icon="sun"></span><span>Light</span></button>
+            <button type="button" class="theme-toggle-btn" data-theme-mode="system"><span class="svg-icon"
+                data-icon="system"></span><span>System</span></button>
+            <button type="button" class="theme-toggle-btn" data-theme-mode="dark"><span class="svg-icon"
+                data-icon="moon"></span><span>Dark</span></button>
           </div>
           <button id="notifBtn" class="notification-trigger" type="button" aria-label="Notifications">
             <span class="svg-icon" data-icon="bell"></span>
@@ -145,7 +163,8 @@
               <p class="page-desc">Academic overview, score trajectory, and recent exam activity.</p>
             </div>
             <div class="head-actions">
-              <button class="btn primary" id="dashboardActionBtn" type="button"><span class="svg-icon" data-icon="spark"></span>Review Progress</button>
+              <button class="btn primary" id="dashboardActionBtn" type="button"><span class="svg-icon"
+                  data-icon="spark"></span>Review Progress</button>
             </div>
           </div>
 
@@ -204,7 +223,8 @@
             <div class="head-actions">
               <label class="search-wrap" aria-label="Search exams">
                 <span class="search-icon svg-icon" data-icon="search"></span>
-                <input id="examSearch" type="text" placeholder="Search title, code, subject..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                <input id="examSearch" type="text" placeholder="Search title, code, subject..." autocomplete="off"
+                  autocorrect="off" autocapitalize="off" spellcheck="false">
               </label>
               <select id="examFilter" class="inline-select">
                 <option value="all">All</option>
@@ -272,7 +292,8 @@
             <div class="head-actions">
               <label class="search-wrap" aria-label="Search my exams">
                 <span class="search-icon svg-icon" data-icon="search"></span>
-                <input id="myExamSearch" type="text" placeholder="Search registered exams..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                <input id="myExamSearch" type="text" placeholder="Search registered exams..." autocomplete="off"
+                  autocorrect="off" autocapitalize="off" spellcheck="false">
               </label>
               <select id="myExamFilter" class="inline-select">
                 <option value="all">All</option>
@@ -351,7 +372,8 @@
             <div class="head-actions">
               <label class="search-wrap" aria-label="Search results">
                 <span class="search-icon svg-icon" data-icon="search"></span>
-                <input id="resultsSearch" type="text" placeholder="Search exam code..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                <input id="resultsSearch" type="text" placeholder="Search exam code..." autocomplete="off"
+                  autocorrect="off" autocapitalize="off" spellcheck="false">
               </label>
               <select id="resultsFilter" class="inline-select">
                 <option value="all">All Exams</option>
@@ -373,7 +395,8 @@
                 <span>Sorted by the most recent submissions and filtered locally.</span>
               </div>
             </div>
-            <button id="resultsResetBtn" class="btn ghost small" type="button"><span class="svg-icon" data-icon="filter"></span>Reset</button>
+            <button id="resultsResetBtn" class="btn ghost small" type="button"><span class="svg-icon"
+                data-icon="filter"></span>Reset</button>
           </div>
 
           <article class="card table-card results-table-card">
@@ -412,7 +435,8 @@
             <div class="head-actions">
               <label class="search-wrap" aria-label="Search certificates">
                 <span class="search-icon svg-icon" data-icon="search"></span>
-                <input id="certificatesSearch" type="text" placeholder="Search certificate ID or exam title..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                <input id="certificatesSearch" type="text" placeholder="Search certificate ID or exam title..."
+                  autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
               </label>
               <select id="certificatesFilter" class="inline-select">
                 <option value="all">All</option>
@@ -430,7 +454,11 @@
               <span class="cert-gallery-hint">Sorted by issuance date (newest first)</span>
             </div>
             <button id="certificatesResetBtn" class="btn ghost small cert-reset-btn" type="button">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
               Reset
             </button>
           </div>
@@ -439,11 +467,15 @@
             <span class="cert-count-label" id="certCountLabel">Showing 0 of 0 certificates</span>
             <div class="cert-pagination" id="certPagination" aria-label="Certificate pages">
               <button class="cert-page-btn" id="certPrevBtn" type="button" aria-label="Previous page" disabled>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
               </button>
               <span class="cert-page-nums" id="certPageNums"></span>
               <button class="cert-page-btn" id="certNextBtn" type="button" aria-label="Next page" disabled>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
               </button>
             </div>
           </div>
@@ -463,7 +495,8 @@
               <select id="leaderboardExamFilter" class="inline-select hidden" aria-label="Select Exam"></select>
               <label class="search-wrap" aria-label="Search leaderboard">
                 <span class="search-icon svg-icon" data-icon="search"></span>
-                <input id="leaderboardSearch" class="inline-search" type="text" placeholder="Search student name..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                <input id="leaderboardSearch" class="inline-search" type="text" placeholder="Search student name..."
+                  autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
               </label>
               <select id="leaderboardSort" class="inline-select">
                 <option value="rank">Rank</option>
@@ -478,7 +511,9 @@
           </div>
           <div class="podium-grid" id="podiumGrid"></div>
           <article class="card table-card">
-            <div class="card-head leaderboard-table-head"><h3>Rankings</h3><span class="card-hint">Top 15 students</span></div>
+            <div class="card-head leaderboard-table-head">
+              <h3>Rankings</h3><span class="card-hint">Top 15 students</span>
+            </div>
             <div class="table-wrap leaderboard-table-wrap">
               <table class="dash-table leaderboard-table">
                 <thead>
@@ -604,8 +639,10 @@
                 <h2 id="profilePhotoName">Student Name</h2>
                 <p id="studentProfileSubtitle">Verified learner</p>
                 <div class="student-profile-quick">
-                  <span><span class="svg-icon" data-icon="certificates"></span><strong id="studentProfileCollege">-</strong></span>
-                  <span><span class="svg-icon" data-icon="exams"></span><strong id="studentProfileEmail">-</strong></span>
+                  <span><span class="svg-icon" data-icon="certificates"></span><strong
+                      id="studentProfileCollege">-</strong></span>
+                  <span><span class="svg-icon" data-icon="exams"></span><strong
+                      id="studentProfileEmail">-</strong></span>
                 </div>
               </article>
 
@@ -616,8 +653,10 @@
                 </div>
                 <div class="student-account-list">
                   <div><span>Roll Number</span><strong id="studentAccountRoll">-</strong></div>
-                  <div><span>Account Status</span><strong class="student-status-pill" id="studentAccountStatus">Active</strong></div>
-                  <div><span>Profile Status</span><strong class="student-status-pill" id="studentProfileComplete">Pending</strong></div>
+                  <div><span>Account Status</span><strong class="student-status-pill"
+                      id="studentAccountStatus">Active</strong></div>
+                  <div><span>Profile Status</span><strong class="student-status-pill"
+                      id="studentProfileComplete">Pending</strong></div>
                   <div><span>Year</span><strong id="studentAccountYear">-</strong></div>
                   <div><span>Section</span><strong id="studentAccountSection">-</strong></div>
                 </div>
@@ -680,7 +719,8 @@
 
               <div class="student-profile-note">
                 <span class="svg-icon" data-icon="info"></span>
-                <p>If any information is incorrect, update it through Edit Profile before starting exam verification.</p>
+                <p>If any information is incorrect, update it through Edit Profile before starting exam verification.
+                </p>
               </div>
             </article>
           </div>
@@ -740,16 +780,24 @@
           </div>
           <div class="split-grid settings-grid">
             <article class="card setting-card">
-              <div class="card-head"><h3>Notifications</h3><span class="tag success">Enabled</span></div>
+              <div class="card-head">
+                <h3>Notifications</h3><span class="tag success">Enabled</span>
+              </div>
               <p class="card-copy">Email reminders, exam alerts, and certificate updates.</p>
-              <label class="toggle-row"><span>Email Alerts</span><span class="toggle"><input type="checkbox" checked><span></span></span></label>
-              <label class="toggle-row"><span>Exam Reminders</span><span class="toggle"><input type="checkbox" checked><span></span></span></label>
+              <label class="toggle-row"><span>Email Alerts</span><span class="toggle"><input type="checkbox"
+                    checked><span></span></span></label>
+              <label class="toggle-row"><span>Exam Reminders</span><span class="toggle"><input type="checkbox"
+                    checked><span></span></span></label>
             </article>
             <article class="card setting-card">
-              <div class="card-head"><h3>Display Preferences</h3><span class="tag neutral">Theme</span></div>
+              <div class="card-head">
+                <h3>Display Preferences</h3><span class="tag neutral">Theme</span>
+              </div>
               <p class="card-copy">Theme and density controls aligned with the existing enterprise shell.</p>
-              <label class="toggle-row"><span>Compact Table Density</span><span class="toggle"><input type="checkbox"><span></span></span></label>
-              <label class="toggle-row"><span>High Contrast Focus</span><span class="toggle"><input type="checkbox"><span></span></span></label>
+              <label class="toggle-row"><span>Compact Table Density</span><span class="toggle"><input
+                    type="checkbox"><span></span></span></label>
+              <label class="toggle-row"><span>High Contrast Focus</span><span class="toggle"><input
+                    type="checkbox"><span></span></span></label>
             </article>
           </div>
         </section>
@@ -885,7 +933,7 @@
               </button>
             </div>
           </div>
-          
+
           <div class="split-grid proctoring-grid">
             <article class="card proctoring-card proctoring-left-card">
               <div class="card-head proctoring-card-head">
@@ -946,7 +994,7 @@
               <p class="page-desc">Self-service support, guided FAQs, and secure reporting in one place.</p>
             </div>
           </div>
-          
+
           <div class="support-layout">
             <!-- Category Selector Card -->
             <article class="card support-card">
@@ -956,7 +1004,7 @@
                   <p class="card-copy">Switch between FAQ, contact, and issue workflows.</p>
                 </div>
               </div>
-              
+
               <div class="support-tabs-grid" role="tablist" aria-label="Help categories">
                 <button class="support-tab-card active" data-support-tab="faq" type="button">
                   <div class="tab-card-icon bg-circle-blue">
@@ -999,13 +1047,14 @@
                     </div>
                     <label class="faq-search-wrap" aria-label="Search FAQs">
                       <span class="search-icon svg-icon" data-icon="search"></span>
-                      <input id="faqSearch" type="text" placeholder="Search FAQs..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                      <input id="faqSearch" type="text" placeholder="Search FAQs..." autocomplete="off"
+                        autocorrect="off" autocapitalize="off" spellcheck="false">
                     </label>
                   </div>
                   <div id="faqAccordion" class="faq-accordion"></div>
                 </article>
               </div>
-              
+
               <div class="support-panel" data-support-panel="contact">
                 <article class="card support-form-card">
                   <div class="card-head">
@@ -1033,13 +1082,14 @@
                         <p class="field-error" data-error-for="issueType"></p>
                       </div>
                     </div>
-                    
+
                     <div class="form-field-card full-width">
                       <label class="form-field-label">DESCRIPTION</label>
-                      <textarea name="description" rows="5" placeholder="Describe the issue clearly" required class="form-field-textarea"></textarea>
+                      <textarea name="description" rows="5" placeholder="Describe the issue clearly" required
+                        class="form-field-textarea"></textarea>
                       <p class="field-error" data-error-for="description"></p>
                     </div>
-                    
+
                     <div class="form-row-half-width">
                       <div class="form-field-card">
                         <label class="form-field-label">PRIORITY</label>
@@ -1052,14 +1102,14 @@
                         <p class="field-error" data-error-for="priority"></p>
                       </div>
                     </div>
-                    
+
                     <div class="form-actions-right">
                       <button class="btn-form-submit" type="submit">Submit Request</button>
                     </div>
                   </form>
                 </article>
               </div>
-              
+
               <div class="support-panel" data-support-panel="report">
                 <article class="card support-form-card">
                   <div class="card-head">
@@ -1086,10 +1136,11 @@
                         <p class="field-error" data-error-for="priority"></p>
                       </div>
                     </div>
-                    
+
                     <div class="form-field-card full-width">
                       <label class="form-field-label">DESCRIPTION</label>
-                      <textarea name="description" rows="5" placeholder="Explain the issue with context" required class="form-field-textarea"></textarea>
+                      <textarea name="description" rows="5" placeholder="Explain the issue with context" required
+                        class="form-field-textarea"></textarea>
                       <p class="field-error" data-error-for="description"></p>
                     </div>
 
@@ -1100,7 +1151,7 @@
                         <p class="field-error" data-error-for="attachment"></p>
                       </div>
                     </div>
-                    
+
                     <div class="form-actions-right">
                       <button class="btn-form-submit" type="submit">Report Issue</button>
                     </div>
@@ -1170,85 +1221,131 @@
           <span class="svg-icon" data-icon="logout"></span>
         </button>
       </div>
-      <div class="modal-body profile-editor-body">
-        <div class="profile-editor-banner">
-          <div class="profile-editor-photo">
-            <div class="profile-photo-circle profile-editor-photo-circle" id="profileEditorPhotoCircle">
-              <img id="profileEditorPhotoPreview" alt="Profile photo preview" src="">
-            </div>
-          </div>
-          <div class="profile-editor-copy">
-            <strong id="profileEditorPhotoName">Your Profile Photo</strong>
-            <p>Upload a clear facial portrait. It is used for identity verification and certificate records.</p>
-            <div class="profile-photo-actions profile-editor-actions">
-              <input type="file" id="profileEditorPhotoInput" accept="image/*" hidden>
-              <button type="button" class="btn primary small" id="profileEditorPhotoUploadBtn">Upload Photo</button>
-              <button type="button" class="btn ghost small" id="profileEditorPhotoRemoveBtn">Remove</button>
-            </div>
-          </div>
+
+      <!-- STEPPER HEADER -->
+      <div class="profile-editor-stepper">
+        <div class="step-node active" data-profile-step="1">
+          <span class="step-num">1</span>
+          <span class="step-label">Identity</span>
         </div>
+        <div class="step-line"></div>
+        <div class="step-node" data-profile-step="2">
+          <span class="step-num">2</span>
+          <span class="step-label">Academic</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-node" data-profile-step="3">
+          <span class="step-num">3</span>
+          <span class="step-label">Personal</span>
+        </div>
+      </div>
+
+      <div class="modal-body profile-editor-body">
         <form class="profile-form profile-editor-form" id="profileEditorForm">
-          <label>
-            <span>Full Name</span>
-            <input type="text" id="profileEditorFullName" name="fullName">
-          </label>
-          <label>
-            <span>Email</span>
-            <input type="email" id="profileEditorEmail" name="email" readonly>
-          </label>
-          <label>
-            <span>Phone</span>
-            <input type="text" id="profileEditorPhone" name="phone">
-          </label>
-          <label>
-            <span>College Name</span>
-            <input type="text" id="profileEditorCollegeName" name="collegeName">
-          </label>
-          <label>
-            <span>Department</span>
-            <input type="text" id="profileEditorDepartment" name="department">
-          </label>
-          <label>
-            <span>Year</span>
-            <input type="text" id="profileEditorYear" name="year">
-          </label>
-          <label>
-            <span>Roll Number</span>
-            <input type="text" id="profileEditorRollNumber" name="rollNumber">
-          </label>
-          <label>
-            <span>Section</span>
-            <input type="text" id="profileEditorSection" name="section">
-          </label>
-          <label>
-            <span>Gender</span>
-            <select id="profileEditorGender" name="gender">
-              <option value="">Select gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
-          </label>
-          <label>
-            <span>Date of Birth</span>
-            <input type="date" id="profileEditorDateOfBirth" name="dateOfBirth">
-          </label>
+
+          <!-- STEP 1: IDENTITY -->
+          <div class="profile-step-section active" data-profile-section="1">
+            <div class="profile-editor-banner">
+              <div class="profile-editor-photo">
+                <div class="profile-photo-circle profile-editor-photo-circle" id="profileEditorPhotoCircle">
+                  <img id="profileEditorPhotoPreview" alt="Profile photo preview" src="">
+                </div>
+              </div>
+              <div class="profile-editor-copy">
+                <strong id="profileEditorPhotoName">Your Profile Photo</strong>
+                <p>Upload a clear facial portrait. It is used for identity verification and certificate records.</p>
+                <div class="profile-photo-actions profile-editor-actions">
+                  <input type="file" id="profileEditorPhotoInput" accept="image/*" hidden>
+                  <button type="button" class="btn primary small" id="profileEditorPhotoUploadBtn">Upload Photo</button>
+                  <button type="button" class="btn ghost small" id="profileEditorPhotoRemoveBtn">Remove</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-step-grid">
+              <label class="span-2">
+                <span>Full Name</span>
+                <input type="text" id="profileEditorFullName" name="fullName">
+              </label>
+              <label class="span-2">
+                <span>Email</span>
+                <input type="email" id="profileEditorEmail" name="email" readonly>
+              </label>
+              <label>
+                <span>Phone</span>
+                <input type="text" id="profileEditorPhone" name="phone">
+              </label>
+            </div>
+          </div>
+
+          <!-- STEP 2: ACADEMIC -->
+          <div class="profile-step-section" data-profile-section="2" style="display: none;">
+            <div class="profile-step-grid">
+              <label class="span-2">
+                <span>College Name</span>
+                <input type="text" id="profileEditorCollegeName" name="collegeName">
+              </label>
+              <label class="span-2">
+                <span>Department</span>
+                <input type="text" id="profileEditorDepartment" name="department">
+              </label>
+              <label>
+                <span>Year</span>
+                <input type="text" id="profileEditorYear" name="year">
+              </label>
+              <label>
+                <span>Roll Number</span>
+                <input type="text" id="profileEditorRollNumber" name="rollNumber">
+              </label>
+              <label>
+                <span>Section</span>
+                <input type="text" id="profileEditorSection" name="section">
+              </label>
+            </div>
+          </div>
+
+          <!-- STEP 3: PERSONAL -->
+          <div class="profile-step-section" data-profile-section="3" style="display: none;">
+            <div class="profile-step-grid">
+              <label>
+                <span>Gender</span>
+                <select id="profileEditorGender" name="gender">
+                  <option value="">Select gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </label>
+              <label>
+                <span>Date of Birth</span>
+                <input type="date" id="profileEditorDateOfBirth" name="dateOfBirth">
+              </label>
+            </div>
+          </div>
+
         </form>
       </div>
+
       <div class="modal-foot profile-editor-foot">
         <button class="btn ghost" id="profileEditorCancel" type="button">Cancel</button>
-        <button class="btn primary" id="profileEditorSave" type="button">Save Profile</button>
+        <div class="profile-wizard-nav">
+          <button class="btn ghost" id="profileEditorBack" type="button" style="display: none;">Back</button>
+          <button class="btn primary" id="profileEditorNext" type="button">Next</button>
+          <button class="btn primary" id="profileEditorSave" type="button" style="display: none;">Save Profile</button>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="modal-backdrop hidden exam-modal-backdrop" id="examVerificationModal" aria-hidden="true">
-    <div class="modal-card exam-verification-card" role="dialog" aria-modal="true" aria-labelledby="examVerificationTitle">
+    <div class="modal-card exam-verification-card" role="dialog" aria-modal="true"
+      aria-labelledby="examVerificationTitle">
       <div class="exam-verification-head">
         <div class="exam-verification-copy">
           <p class="panel-kicker">Pre-Exam Verification</p>
           <h3 id="examVerificationTitle">Verify Your Identity</h3>
-          <p class="exam-verification-subtitle" id="examVerificationSubtitle">Complete the verification steps before starting the exam.</p>
+          <p class="exam-verification-subtitle" id="examVerificationSubtitle">Complete the verification steps before
+            starting the exam.</p>
         </div>
         <button class="icon-btn" id="examVerificationClose" type="button" aria-label="Close verification modal">
           <span class="svg-icon" data-icon="logout"></span>
@@ -1268,5 +1365,108 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
   <script src="../assets/pages/student/js/student-ui.js?v=20260409f"></script>
+
+  <!-- Profile Editor Stepper Controller -->
+  <script>
+    (function () {
+      var currentStep = 1;
+      var totalSteps = 3;
+
+      function updateStepUI() {
+        // Toggle step section visibility
+        document.querySelectorAll('.profile-step-section').forEach(function (section) {
+          var step = parseInt(section.getAttribute('data-profile-section'), 10);
+          section.style.display = (step === currentStep) ? 'block' : 'none';
+        });
+
+        // Toggle active nodes in stepper header
+        document.querySelectorAll('.step-node').forEach(function (node) {
+          var step = parseInt(node.getAttribute('data-profile-step'), 10);
+          if (step === currentStep) {
+            node.classList.add('active');
+            node.classList.remove('completed');
+          } else if (step < currentStep) {
+            node.classList.remove('active');
+            node.classList.add('completed');
+          } else {
+            node.classList.remove('active');
+            node.classList.remove('completed');
+          }
+        });
+
+        // Toggle footer buttons visibility
+        var backBtn = document.getElementById('profileEditorBack');
+        var nextBtn = document.getElementById('profileEditorNext');
+        var saveBtn = document.getElementById('profileEditorSave');
+
+        if (backBtn) backBtn.style.display = (currentStep > 1) ? 'inline-block' : 'none';
+        if (nextBtn) nextBtn.style.display = (currentStep < totalSteps) ? 'inline-block' : 'none';
+        if (saveBtn) saveBtn.style.display = (currentStep === totalSteps) ? 'inline-block' : 'none';
+      }
+
+      function resetWizard() {
+        currentStep = 1;
+        updateStepUI();
+      }
+
+      // Initialize event listeners
+      var nextBtn = document.getElementById('profileEditorNext');
+      var backBtn = document.getElementById('profileEditorBack');
+      var editBtn = document.getElementById('editProfileBtn');
+      var closeBtn = document.getElementById('profileEditorClose');
+      var cancelBtn = document.getElementById('profileEditorCancel');
+
+      if (nextBtn) {
+        nextBtn.addEventListener('click', function () {
+          if (currentStep < totalSteps) {
+            currentStep++;
+            updateStepUI();
+          }
+        });
+      }
+
+      if (backBtn) {
+        backBtn.addEventListener('click', function () {
+          if (currentStep > 1) {
+            currentStep--;
+            updateStepUI();
+          }
+        });
+      }
+
+      // Reset wizard to step 1 when opening the modal
+      if (editBtn) {
+        editBtn.addEventListener('click', function () {
+          resetWizard();
+        });
+      }
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function () {
+          resetWizard();
+        });
+      }
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', function () {
+          resetWizard();
+        });
+      }
+
+      // In case another button opens it or class changes on backdrop:
+      var modal = document.getElementById('profileEditorModal');
+      if (modal) {
+        var observer = new MutationObserver(function (mutations) {
+          mutations.forEach(function (mutation) {
+            if (mutation.attributeName === 'class') {
+              if (!modal.classList.contains('hidden')) {
+                resetWizard();
+              }
+            }
+          });
+        });
+        observer.observe(modal, { attributes: true });
+      }
+    })();
+  </script>
 </body>
+
 </html>

@@ -388,6 +388,8 @@ public class ExamAttemptController {
         response.put("expiryTime", attempt.getExpiryTime());
         response.put("durationMinutes", attempt.getDurationMinutes());
         response.put("active", attempt.getActive());
+        response.put("canEnter", attempt.isActive());
+        response.put("examUrl", "exam/exam.html?code=" + attempt.getExamCode() + "&attemptId=" + attempt.getId());
         response.put("score", attempt.getScore());
         response.put("percentage", attempt.getPercentage());
         response.put("timeTakenSeconds", attempt.getTimeTakenSeconds());

@@ -1,7 +1,7 @@
 // ================= AUTH GUARD =================
 const AUTH_TOKEN_KEY = "token";
 const AUTH_TOKEN_KEYS = ["token", "accessToken", "jwt", "authToken", "access_token"];
-const LOGIN_REDIRECT_PAGE = "teacher-login.html";
+const LOGIN_REDIRECT_PAGE = "login.html";
 
 function redirectToLogin() {
   window.location.href = LOGIN_REDIRECT_PAGE;
@@ -1827,7 +1827,7 @@ ensureAuthGuard();
             <div class="stage-line"></div>
             <button type="button" class="stage-chip" data-stage-go="4">
               <span class="stage-num">4</span>
-              <span class="stage-label">Options</span>
+              <span class="stage-label">Questions</span>
             </button>
           </div>
 
@@ -1898,7 +1898,7 @@ ensureAuthGuard();
               </div>
             </div>
 
-            <!-- Stage 3: Schedule -->
+            <!-- Stage 3: Schedule & Options -->
             <div class="ecm-pane" data-stage="3">
               <div class="ecm-field-group">
                 <label class="ecm-label ecm-full">
@@ -1909,16 +1909,9 @@ ensureAuthGuard();
                   <span>End Date &amp; Time</span>
                   <input id="mxEndTime" class="ecm-input" type="datetime-local" value="${end}" required>
                 </label>
-                <div class="ecm-schedule-hint">
-                  <span class="ecm-hint-icon">ℹ️</span>
-                  <span>Students can only access the exam within the scheduled window. The exam auto-submits when time expires.</span>
-                </div>
               </div>
-            </div>
 
-            <!-- Stage 4: Options -->
-            <div class="ecm-pane" data-stage="4">
-              <div class="ecm-section-label">Randomisation</div>
+              <div class="ecm-section-label" style="margin-top: 14px;">Randomisation</div>
               <div class="ecm-toggle-group">
                 <div class="ecm-toggle-card">
                   <div class="ecm-toggle-info">
@@ -1947,34 +1940,44 @@ ensureAuthGuard();
                   </label>
                 </div>
               </div>
-              <div class="ecm-section-label">Default Exam Settings</div>
-              <div class="ecm-info-tiles">
-                <div class="ecm-info-tile">
-                  <span>🔒</span>
-                  <div>
-                    <strong>Proctored Mode</strong>
-                    <small>Webcam + tab-switch monitoring active</small>
+            </div>
+
+            <!-- Stage 4: Questions Upload -->
+            <div class="ecm-pane" data-stage="4">
+              <div class="ecm-section-label">Upload Questions File</div>
+              <div class="ecm-field-group">
+                <div class="upload-file-row" style="display: flex; align-items: center; gap: 12px; margin-top: 10px;">
+                  <input id="mxFile" type="file" accept=".csv,.xlsx,.xls" hidden>
+                  <button id="mxBrowse" type="button" class="btn ghost small">Choose File</button>
+                  <span id="mxFileName" class="file-name" style="font-size: 0.88rem; color: var(--text-secondary);">No file selected</span>
+                  <button id="mxRemove" type="button" class="btn ghost small upload-remove-btn" disabled>Remove</button>
+                </div>
+                <p class="upload-help" style="margin-top: 8px; font-size: 0.8rem; color: var(--text-tertiary);">Supported formats: <strong>.csv</strong>, <strong>.xlsx</strong>, <strong>.xls</strong></p>
+
+                <div class="template-download-card" style="margin-top: 16px; padding: 14px; background: rgba(255,255,255,0.03); border: 1px dashed var(--border-subtle); border-radius: 8px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                      <strong style="display: block; font-size: 0.88rem; color: var(--text-primary);">Excel / CSV Template File</strong>
+                      <span style="font-size: 0.8rem; color: var(--text-secondary);">Download the standard format to fill in questions easily.</span>
+                    </div>
+                    <button id="mxDownloadTemplate" type="button" class="btn primary small" style="display: flex; align-items: center; gap: 6px;">
+                      <span>📥 Download</span>
+                    </button>
                   </div>
                 </div>
-                <div class="ecm-info-tile">
-                  <span>⏱️</span>
-                  <div>
-                    <strong>Auto-Submit</strong>
-                    <small>Submits automatically when time expires</small>
-                  </div>
-                </div>
-                <div class="ecm-info-tile">
-                  <span>📊</span>
-                  <div>
-                    <strong>Instant Results</strong>
-                    <small>Students see scores right after submission</small>
-                  </div>
-                </div>
-                <div class="ecm-info-tile">
-                  <span>🏅</span>
-                  <div>
-                    <strong>Auto Certificate</strong>
-                    <small>Issued automatically on passing</small>
+
+                <div class="ecm-schedule-hint" style="margin-top: 16px;">
+                  <strong style="display: block; font-size: 0.82rem; margin-bottom: 6px; color: var(--text-secondary);">EXPECTED FILE COLUMNS:</strong>
+                  <div class="column-badges-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+                    <span style="font-size: 0.76rem; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-subtle); text-align: center; color: var(--text-secondary);">Question Text</span>
+                    <span style="font-size: 0.76rem; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-subtle); text-align: center; color: var(--text-secondary);">Question Type</span>
+                    <span style="font-size: 0.76rem; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-subtle); text-align: center; color: var(--text-secondary);">Marks</span>
+                    <span style="font-size: 0.76rem; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-subtle); text-align: center; color: var(--text-secondary);">Difficulty</span>
+                    <span style="font-size: 0.76rem; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-subtle); text-align: center; color: var(--text-secondary);">Topic</span>
+                    <span style="font-size: 0.76rem; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-subtle); text-align: center; color: var(--text-secondary);">Correct Answer</span>
+                    <span style="font-size: 0.76rem; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-subtle); text-align: center; color: var(--text-secondary);">Option A</span>
+                    <span style="font-size: 0.76rem; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-subtle); text-align: center; color: var(--text-secondary);">Option B</span>
+                    <span style="font-size: 0.76rem; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-subtle); text-align: center; color: var(--text-secondary);">Option C / D</span>
                   </div>
                 </div>
               </div>
@@ -1997,7 +2000,6 @@ ensureAuthGuard();
       </div>
     `);
 
-    // ── Stage data for left panel ──
     const STAGE_META = [
       {
         icon: "📋", title: "Basic Info", badge: "1 / 4",
@@ -2010,14 +2012,14 @@ ensureAuthGuard();
         tips: ["Passing marks should be 30–50% of total", "Enable negative marking to discourage guessing", "Balance difficulty: aim for 40% Easy, 40% Medium, 20% Hard"]
       },
       {
-        icon: "📅", title: "Schedule", badge: "3 / 4",
-        desc: "Set the exact window during which students can start the exam. It auto-submits at the end time.",
-        tips: ["Allow at least 15 min buffer before start", "Ensure end time > start time + duration", "Avoid scheduling during system maintenance windows"]
+        icon: "📅", title: "Schedule & Options", badge: "3 / 4",
+        desc: "Set the start/end window and configure randomisation parameters.",
+        tips: ["Allow at least 15 min buffer before start", "Shuffle questions and options to reduce cheating", "End time must exceed start time + duration"]
       },
       {
-        icon: "⚙️", title: "Options", badge: "4 / 4",
-        desc: "Configure randomisation, proctoring, and review which default features are enabled for every exam.",
-        tips: ["Shuffle both questions and options to reduce cheating", "Proctoring and auto-submit are always on", "Certificates are issued automatically on pass"]
+        icon: "📤", title: "Questions", badge: "4 / 4",
+        desc: "Upload a structured CSV/Excel file containing the exam questions. This will automatically import the questions for this exam.",
+        tips: ["Supported formats: .csv, .xlsx, .xls", "MCQs require correct answers and choices A-D", "Incorrect values will result in a verification error"]
       }
     ];
 
@@ -2058,6 +2060,46 @@ ensureAuthGuard();
     document.querySelectorAll(".stage-chip").forEach(chip => {
       chip.addEventListener("click", () => { currentStage = Number(chip.dataset.stageGo); syncStage(); });
     });
+
+    // File Upload Stage 4 Bindings
+    const fileInput = document.getElementById("mxFile");
+    const browseBtn = document.getElementById("mxBrowse");
+    const removeBtn = document.getElementById("mxRemove");
+    const fileNameEl = document.getElementById("mxFileName");
+
+    if (browseBtn && fileInput) {
+      browseBtn.addEventListener("click", () => fileInput.click());
+    }
+    if (removeBtn && fileInput) {
+      removeBtn.addEventListener("click", () => {
+        fileInput.value = "";
+        fileNameEl.textContent = "No file selected";
+        removeBtn.disabled = true;
+      });
+    }
+    if (fileInput) {
+      fileInput.addEventListener("change", () => {
+        const file = fileInput.files && fileInput.files[0];
+        fileNameEl.textContent = file ? file.name : "No file selected";
+        removeBtn.disabled = !file;
+      });
+    }
+
+    const downloadBtn = document.getElementById("mxDownloadTemplate");
+    if (downloadBtn) {
+      downloadBtn.addEventListener("click", () => {
+        const headers = ["Question Text", "Question Type", "Marks", "Difficulty", "Topic", "Option A", "Option B", "Option C", "Option D", "Option E", "Option F", "Correct Answer"];
+        const sample = ["What is the value of 2 + 2?", "MCQ", "2", "Easy", "General Math", "1", "2", "3", "4", "5", "6", "4"];
+        const content = "data:text/csv;charset=utf-8," + [headers.join(","), sample.join(",")].join("\n");
+        const encodedUri = encodeURI(content);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "exam_questions_template.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
+    }
 
     const publishBtn = document.getElementById("mxPublish");
     const requiredFieldIds = [
@@ -2141,6 +2183,24 @@ ensureAuthGuard();
       toast("End time must be after start time.", "error");
       return;
     }
+    if (payload.passingMarks > payload.totalMarks) {
+      toast("Passing marks cannot be greater than total marks.", "error");
+      return;
+    }
+    if (payload.marksPerQuestion <= 0 || payload.negativeMarks < 0 || payload.negativeMarks > payload.marksPerQuestion) {
+      toast("Marks per question and negative marking values are not valid.", "error");
+      return;
+    }
+    const plannedQuestionCount = payload.easyQuestionCount + payload.mediumQuestionCount + payload.difficultQuestionCount;
+    if (plannedQuestionCount > 0 && plannedQuestionCount * payload.marksPerQuestion > payload.totalMarks) {
+      toast("Difficulty distribution exceeds total marks.", "error");
+      return;
+    }
+    const scheduledMinutes = Math.floor((endDateTime.getTime() - startDateTime.getTime()) / 60000);
+    if (scheduledMinutes < payload.durationMinutes) {
+      toast("Exam window must be at least as long as the duration.", "error");
+      return;
+    }
     const requestPayload = {
       title: payload.title,
       description: payload.description,
@@ -2184,6 +2244,40 @@ ensureAuthGuard();
             mediumCount: requestPayload.mediumQuestionCount,
             hardCount: requestPayload.difficultQuestionCount
           });
+
+          // Upload Question File if present (Stage 4)
+          const fileInput = document.getElementById("mxFile");
+          const file = fileInput ? fileInput.files[0] : null;
+          if (file) {
+            const parsed = await parseQuestionFile(file);
+            const resolvedCode = exam.examCode || examId;
+            const imported = (parsed.rows || []).map((row, idx) => ({
+              examCode: resolvedCode,
+              questionText: String(rowValue(row, ["Question", "Questions", "Question Text", "QuestionText", "question_text", "Q", "Prompt", "Title"]) || "").trim(),
+              questionType: normalizeUploadQuestionType(rowValue(row, ["Question Type", "QuestionType", "Type", "question_type"])),
+              marks: Number(rowValue(row, ["Marks", "Mark", "Score", "Points"]) || 1),
+              difficulty: String(rowValue(row, ["Difficulty", "Level"]) || "Easy").trim(),
+              topic: String(rowValue(row, ["Topic", "Section", "Subject", "Category"]) || "Imported").trim(),
+              optionA: String(rowValue(row, ["Option A", "OptionA", "Choice A", "ChoiceA", "A", "Option 1", "Option1", "opt_a"]) || "").trim(),
+              optionB: String(rowValue(row, ["Option B", "OptionB", "Choice B", "ChoiceB", "B", "Option 2", "Option2", "opt_b"]) || "").trim(),
+              optionC: String(rowValue(row, ["Option C", "OptionC", "Choice C", "ChoiceC", "C", "Option 3", "Option3", "opt_c"]) || "").trim(),
+              optionD: String(rowValue(row, ["Option D", "OptionD", "Choice D", "ChoiceD", "D", "Option 4", "Option4", "opt_d"]) || "").trim(),
+              optionE: String(rowValue(row, ["Option E", "OptionE", "Choice E", "ChoiceE", "E", "Option 5", "Option5", "opt_e"]) || "").trim(),
+              optionF: String(rowValue(row, ["Option F", "OptionF", "Choice F", "ChoiceF", "F", "Option 6", "Option6", "opt_f"]) || "").trim(),
+              sampleInput: String(rowValue(row, ["Sample Input", "SampleInput", "Input"]) || "").trim(),
+              sampleOutput: String(rowValue(row, ["Sample Output", "SampleOutput", "Output"]) || "").trim(),
+              correctAnswer: String(rowValue(row, ["Correct Answer", "CorrectAnswer", "Answer", "Correct", "Key"]) || "").trim(),
+              shuffleOptions: false,
+              displayOrder: idx + 1,
+              shuffleGroup: ""
+            })).filter((q) => q.questionText);
+
+            if (imported.length > 0) {
+              await api.bulkUploadQuestions(resolvedCode, imported);
+              exam.questionsUploaded = true;
+            }
+          }
+
           toast("Exam updated.");
         } else {
           const apiCreated = await api.createExam(requestPayload);
@@ -2196,7 +2290,41 @@ ensureAuthGuard();
             ...createdData
           });
           state.data.exams.unshift(persistedExam);
-          if (status === "Published") {
+
+          // Upload Question File if present (Stage 4)
+          const fileInput = document.getElementById("mxFile");
+          const file = fileInput ? fileInput.files[0] : null;
+          if (file) {
+            const parsed = await parseQuestionFile(file);
+            const resolvedCode = createdData.examCode;
+            const imported = (parsed.rows || []).map((row, idx) => ({
+              examCode: resolvedCode,
+              questionText: String(rowValue(row, ["Question", "Questions", "Question Text", "QuestionText", "question_text", "Q", "Prompt", "Title"]) || "").trim(),
+              questionType: normalizeUploadQuestionType(rowValue(row, ["Question Type", "QuestionType", "Type", "question_type"])),
+              marks: Number(rowValue(row, ["Marks", "Mark", "Score", "Points"]) || 1),
+              difficulty: String(rowValue(row, ["Difficulty", "Level"]) || "Easy").trim(),
+              topic: String(rowValue(row, ["Topic", "Section", "Subject", "Category"]) || "Imported").trim(),
+              optionA: String(rowValue(row, ["Option A", "OptionA", "Choice A", "ChoiceA", "A", "Option 1", "Option1", "opt_a"]) || "").trim(),
+              optionB: String(rowValue(row, ["Option B", "OptionB", "Choice B", "ChoiceB", "B", "Option 2", "Option2", "opt_b"]) || "").trim(),
+              optionC: String(rowValue(row, ["Option C", "OptionC", "Choice C", "ChoiceC", "C", "Option 3", "Option3", "opt_c"]) || "").trim(),
+              optionD: String(rowValue(row, ["Option D", "OptionD", "Choice D", "ChoiceD", "D", "Option 4", "Option4", "opt_d"]) || "").trim(),
+              optionE: String(rowValue(row, ["Option E", "OptionE", "Choice E", "ChoiceE", "E", "Option 5", "Option5", "opt_e"]) || "").trim(),
+              optionF: String(rowValue(row, ["Option F", "OptionF", "Choice F", "ChoiceF", "F", "Option 6", "Option6", "opt_f"]) || "").trim(),
+              sampleInput: String(rowValue(row, ["Sample Input", "SampleInput", "Input"]) || "").trim(),
+              sampleOutput: String(rowValue(row, ["Sample Output", "SampleOutput", "Output"]) || "").trim(),
+              correctAnswer: String(rowValue(row, ["Correct Answer", "CorrectAnswer", "Answer", "Correct", "Key"]) || "").trim(),
+              shuffleOptions: false,
+              displayOrder: idx + 1,
+              shuffleGroup: ""
+            })).filter((q) => q.questionText);
+
+            if (imported.length > 0) {
+              await api.bulkUploadQuestions(resolvedCode, imported);
+              persistedExam.questionsUploaded = true;
+            }
+          }
+
+          if (status === "Published" && !persistedExam.questionsUploaded) {
             toast("Exam created as draft. Upload questions before publish.", "error");
           } else {
             toast("Exam created.");
@@ -2431,7 +2559,7 @@ ensureAuthGuard();
       return null;
     });
     const backendQuestions = Array.isArray(remoteResponse?.data) ? remoteResponse.data : [];
-    const rawHeaders = ["examCode", "questionType", "difficulty", "questionText", "optionA", "optionB", "optionC", "optionD", "correctAnswer", "marks", "topic"];
+    const rawHeaders = ["examCode", "questionType", "difficulty", "questionText", "optionA", "optionB", "optionC", "optionD", "optionE", "optionF", "correctAnswer", "marks", "topic"];
     const rawRows = backendQuestions.length
       ? backendQuestions.map((q, index) => ({
         rowLabel: `Row ${index + 2}`,
@@ -2443,6 +2571,8 @@ ensureAuthGuard();
         optionB: String(q.optionB || ""),
         optionC: String(q.optionC || ""),
         optionD: String(q.optionD || ""),
+        optionE: String(q.optionE || ""),
+        optionF: String(q.optionF || ""),
         correctAnswer: String(q.correctAnswer || q.answer || ""),
         marks: String(q.marks ?? ""),
         topic: String(q.topic || "general")
@@ -5749,7 +5879,7 @@ ensureAuthGuard();
           if (ok) {
             toast("Logged out.");
             localStorage.clear();
-            window.location.href = "role-selection.html";
+            window.location.href = "login.html";
           }
         });
       });

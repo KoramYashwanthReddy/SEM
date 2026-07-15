@@ -104,8 +104,7 @@ public class ExamEvaluationService {
                 continue;
             }
 
-            boolean isCorrect = correctAnswer != null &&
-                    studentAnswerValue.trim().equalsIgnoreCase(correctAnswer.trim());
+            boolean isCorrect = isCorrectAnswer(question, studentAnswerValue);
 
             if (isCorrect) {
                 studentAnswer.setIsCorrect(true);
@@ -198,6 +197,55 @@ public class ExamEvaluationService {
         }
 
         return result;
+    }
+
+    private boolean isCorrectAnswer(Question question, String studentAnswerValue) {
+        if (question == null || studentAnswerValue == null || studentAnswerValue.trim().isEmpty()) {
+            return false;
+        }
+        String submitted = normalizeAnswer(studentAnswerValue);
+        String correct = normalizeAnswer(question.getCorrectAnswer());
+        if (correct.isEmpty()) {
+            return false;
+        }
+        if (submitted.equals(correct)) {
+            return true;
+        }
+
+        String correctOptionValue = normalizeAnswer(optionValueForKey(question, correct));
+        if (!correctOptionValue.isEmpty() && submitted.equals(correctOptionValue)) {
+            return true;
+        }
+
+        String submittedOptionValue = normalizeAnswer(optionValueForKey(question, submitted));
+        return !submittedOptionValue.isEmpty()
+                && (submittedOptionValue.equals(correct) || submittedOptionValue.equals(correctOptionValue));
+    }
+
+    private String optionValueForKey(Question question, String key) {
+        if (question == null || key == null) {
+            return "";
+        }
+        return switch (key.trim().toUpperCase()) {
+            case "A", "OPTIONA", "OPTION A" -> question.getOptionA();
+            case "B", "OPTIONB", "OPTION B" -> question.getOptionB();
+            case "C", "OPTIONC", "OPTION C" -> question.getOptionC();
+            case "D", "OPTIOND", "OPTION D" -> question.getOptionD();
+            case "E", "OPTIONE", "OPTION E" -> question.getOptionE();
+            case "F", "OPTIONF", "OPTION F" -> question.getOptionF();
+            default -> "";
+        };
+    }
+
+    private String normalizeAnswer(String value) {
+        if (value == null) {
+            return "";
+        }
+        String normalized = value.trim();
+        if (normalized.matches("(?i)^option\\s+[a-f]$")) {
+            normalized = normalized.substring(normalized.length() - 1);
+        }
+        return normalized.trim().toLowerCase();
     }
 
     private long resolveTimeTakenSeconds(Long attemptId, LocalDateTime fallbackEndTime) {

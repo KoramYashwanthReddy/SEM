@@ -111,8 +111,8 @@ public class EmailNotificationOrchestrator {
                             "Hello " + safe(student.getName()) + ",",
                             "A new exam has been published and is open for registration.",
                             details,
-                            "Go To Student Dashboard",
-                            buildAbsoluteUrl("/pages/student-ui.html")
+                            "Open Student Exams",
+                            buildStudentPageLink("exams")
                     )
             );
         }
@@ -156,7 +156,7 @@ public class EmailNotificationOrchestrator {
                         "Your teacher account has been provisioned by the admin team.",
                         details,
                         "Open Teacher Login",
-                        buildAbsoluteUrl("/pages/teacher-login.html")
+                        buildLoginLink(Role.TEACHER)
                 )
         );
     }
@@ -230,8 +230,8 @@ public class EmailNotificationOrchestrator {
                         "Hello " + safe(student.getName()) + ",",
                         "You have successfully registered for an exam.",
                         details,
-                        "Open Student Dashboard",
-                        buildAbsoluteUrl("/pages/student-ui.html")
+                        "Open My Exams",
+                        buildStudentPageLink("my-exams")
                 )
         );
 
@@ -242,7 +242,7 @@ public class EmailNotificationOrchestrator {
                 "You are registered for " + safe(exam.getTitle()) + " (" + safe(exam.getExamCode()) + ").",
                 "Registration Service",
                 "medium",
-                buildAbsoluteUrl("/pages/student-ui.html?section=exams")
+                buildStudentPageLink("my-exams")
         );
     }
 
@@ -266,8 +266,8 @@ public class EmailNotificationOrchestrator {
                         "Hello " + safe(student.getName()) + ",",
                         "This is a reminder for your registered exam.",
                         details,
-                        "Open Student Dashboard",
-                        buildAbsoluteUrl("/pages/student-ui.html")
+                        "Open Schedule",
+                        buildStudentPageLink("schedule")
                 )
         );
 
@@ -278,7 +278,7 @@ public class EmailNotificationOrchestrator {
                 "Your exam " + safe(exam.getTitle()) + " starts at " + formatDateTime(exam.getStartTime()) + ".",
                 "Reminder Scheduler",
                 "medium",
-                buildAbsoluteUrl("/pages/student-ui.html?section=schedule")
+                buildStudentPageLink("schedule")
         );
     }
 
@@ -327,7 +327,7 @@ public class EmailNotificationOrchestrator {
                         "Your exam session has started.",
                         details,
                         "Return To Exam Portal",
-                        buildAbsoluteUrl("/pages/exam/exam.html")
+                        buildAbsoluteUrl("/pages/exam/exam.html?attemptId=" + safe(attempt.getId()))
                 )
         );
 
@@ -592,6 +592,10 @@ public class EmailNotificationOrchestrator {
                 + "style='display:inline-block;padding:11px 16px;background:#1d4ed8;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;'>"
                 + escape(ctaLabel)
                 + "</a>"
+                + "<p style='margin:14px 0 0 0;font-size:12px;color:#475569;'>If the button does not open, copy this link:</p>"
+                + "<p style='margin:6px 0 0 0;font-size:12px;line-height:1.45;word-break:break-all;'>"
+                + "<a href='" + escapeUrl(ctaLink) + "' style='color:#1d4ed8;'>" + escape(ctaLink) + "</a>"
+                + "</p>"
                 + "<p style='margin:16px 0 0 0;font-size:12px;color:#475569;'>For support: " + escape(supportEmail) + "</p>"
                 + "</div>"
                 + "</div>"
@@ -628,11 +632,8 @@ public class EmailNotificationOrchestrator {
     }
 
     private String buildLoginLink(Role role) {
-        if (role == Role.ADMIN) {
-            return buildAbsoluteUrl("/pages/admin-login.html");
-        }
-        if (role == Role.TEACHER) {
-            return buildAbsoluteUrl("/pages/teacher-login.html");
+        if (role == Role.ADMIN || role == Role.TEACHER || role == Role.STUDENT) {
+            return buildAbsoluteUrl("/pages/login.html?role=" + role.name().toLowerCase(Locale.ROOT));
         }
         return buildAbsoluteUrl("/pages/login.html");
     }
@@ -645,6 +646,13 @@ public class EmailNotificationOrchestrator {
             return buildAbsoluteUrl("/pages/teacher-dashboard.html");
         }
         return buildAbsoluteUrl("/pages/student-ui.html");
+    }
+
+    private String buildStudentPageLink(String section) {
+        if (!hasText(section)) {
+            return buildAbsoluteUrl("/pages/student-ui.html");
+        }
+        return buildAbsoluteUrl("/pages/student-ui.html?section=" + section.trim());
     }
 
     private String formatDateTime(LocalDateTime value) {

@@ -39,7 +39,7 @@ public class Certificate {
 
     private String section;
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String profilePhoto;
 
     // ================= EXAM INFO =================

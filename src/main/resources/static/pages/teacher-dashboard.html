@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
@@ -127,19 +127,47 @@
             <button id="openExamModalBtn" class="btn primary"><i class="fa-solid fa-plus"></i>Create New Exam</button>
           </div>
         </div>
-        <div class="toolbar card">
-          <input id="examSearch" type="text" placeholder="Search by title or exam code...">
-          <select id="examSubjectFilter"><option value="all">All Subjects</option></select>
-          <select id="examDurationFilter"><option value="all">All Duration</option><option value="short">Up to 60 min</option><option value="medium">61-120 min</option><option value="long">121+ min</option></select>
-          <input id="examDateFrom" type="date">
-          <input id="examDateTo" type="date">
-          <select id="examCreatedByFilter"><option value="all">All Creators</option></select>
-          <select id="examActiveFilter"><option value="all">Active / Inactive</option><option value="active">Active</option><option value="inactive">Inactive</option></select>
-          <select id="examStatusFilter"><option value="all">All Status</option><option value="Published">Published</option><option value="Draft">Draft</option></select>
-          <div class="status-tabs">
-            <button id="exTabAll" class="tab-btn active" data-exam-tab="all">All</button>
-            <button id="exTabPublished" class="tab-btn" data-exam-tab="Published">Published</button>
-            <button id="exTabDraft" class="tab-btn" data-exam-tab="Draft">Draft</button>
+        <!-- SMART EXAM TOOLBAR -->
+        <div class="em-toolbar">
+          <label class="em-search-wrap">
+            <svg class="em-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input id="examSearch" type="text" class="em-search-input" placeholder="Search by title or exam code&hellip;" autocomplete="off">
+          </label>
+          <div class="em-status-pill">
+            <button class="tab-btn active" id="exTabAll" data-exam-tab="all">All</button>
+            <button class="tab-btn" id="exTabPublished" data-exam-tab="Published">Published</button>
+            <button class="tab-btn" id="exTabDraft" data-exam-tab="Draft">Draft</button>
+          </div>
+          <div class="em-filter-anchor" id="emFilterAnchor">
+            <button class="em-filter-btn" id="emFilterBtn" type="button" data-no-buffer="true" aria-expanded="false" aria-controls="emFilterPanel">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+              <span>Filters</span>
+              <span class="em-filter-badge" id="emFilterBadge" hidden>0</span>
+            </button>
+            <div class="em-filter-panel" id="emFilterPanel" role="dialog" aria-label="Exam Filters" hidden>
+              <div class="em-filter-panel-header">
+                <span class="em-filter-panel-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                  Filter Exams
+                </span>
+                <button class="em-filter-close" id="emFilterClose" type="button" data-no-buffer="true" aria-label="Close filters">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+              <div class="em-filter-grid">
+                <div class="em-filter-field"><label class="em-filter-label">Subject</label><select id="examSubjectFilter" class="em-filter-select"><option value="all">All Subjects</option></select></div>
+                <div class="em-filter-field"><label class="em-filter-label">Duration</label><select id="examDurationFilter" class="em-filter-select"><option value="all">Any Duration</option><option value="short">Up to 60 min</option><option value="medium">61-120 min</option><option value="long">121+ min</option></select></div>
+                <div class="em-filter-field"><label class="em-filter-label">Creator</label><select id="examCreatedByFilter" class="em-filter-select"><option value="all">All Creators</option></select></div>
+                <div class="em-filter-field"><label class="em-filter-label">Active State</label><select id="examActiveFilter" class="em-filter-select"><option value="all">Active / Inactive</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+                <div class="em-filter-field"><label class="em-filter-label">Status</label><select id="examStatusFilter" class="em-filter-select"><option value="all">All Status</option><option value="Published">Published</option><option value="Draft">Draft</option></select></div>
+                <div class="em-filter-field"><label class="em-filter-label">From Date</label><input id="examDateFrom" type="date" class="em-filter-select"></div>
+                <div class="em-filter-field"><label class="em-filter-label">To Date</label><input id="examDateTo" type="date" class="em-filter-select"></div>
+              </div>
+              <div class="em-filter-panel-footer">
+                <button class="em-filter-reset-btn" id="emFilterReset" type="button" data-no-buffer="true">Reset All</button>
+                <button class="em-filter-apply-btn" id="emFilterApply" type="button" data-no-buffer="true">Apply Filters</button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="card exams-cards-card">
@@ -622,6 +650,39 @@
   <script src="../assets/core/js/api.js"></script>
   <script src="../assets/pages/teacher/js/teacher-dashboard.js?v=20260409a"></script>
   <script src="../assets/pages/teacher/js/teacher-notifications.js"></script>
+
+  <!-- Exam Filter Popup Controller -->
+  <script>
+    (function () {
+      var btn   = document.getElementById('emFilterBtn');
+      var panel = document.getElementById('emFilterPanel');
+      var close = document.getElementById('emFilterClose');
+      var apply = document.getElementById('emFilterApply');
+      var reset = document.getElementById('emFilterReset');
+      var badge = document.getElementById('emFilterBadge');
+      var filterIds = ['examSubjectFilter','examDurationFilter','examCreatedByFilter','examActiveFilter','examStatusFilter','examDateFrom','examDateTo'];
+      function countActive() {
+        return filterIds.reduce(function(n,id){ var el=document.getElementById(id); return n + (el && el.value && el.value!=='all' ? 1 : 0); }, 0);
+      }
+      function updateBadge() { var n=countActive(); badge.textContent=n; badge.hidden=n===0; }
+      function openPanel()  { panel.hidden=false; btn.setAttribute('aria-expanded','true'); }
+      function closePanel() { panel.hidden=true;  btn.setAttribute('aria-expanded','false'); }
+      btn   && btn.addEventListener('click', function(e){ e.stopPropagation(); panel.hidden ? openPanel() : closePanel(); });
+      close && close.addEventListener('click', closePanel);
+      apply && apply.addEventListener('click', function(){
+        closePanel(); updateBadge();
+        filterIds.forEach(function(id){ var el=document.getElementById(id); if(el) el.dispatchEvent(new Event('change',{bubbles:true})); });
+      });
+      reset && reset.addEventListener('click', function(){
+        filterIds.forEach(function(id){ var el=document.getElementById(id); if(!el)return; el.tagName==='SELECT'?el.value='all':el.value=''; });
+        updateBadge(); closePanel();
+        filterIds.forEach(function(id){ var el=document.getElementById(id); if(el) el.dispatchEvent(new Event('change',{bubbles:true})); });
+      });
+      document.addEventListener('click', function(e){
+        if(panel&&!panel.hidden){ var a=document.getElementById('emFilterAnchor'); if(a&&!a.contains(e.target)) closePanel(); }
+      });
+    })();
+  </script>
 </body>
 </html>
 

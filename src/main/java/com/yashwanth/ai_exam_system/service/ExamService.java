@@ -78,7 +78,7 @@ public class ExamService {
         if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
             throw new ForbiddenException("Authenticated teacher/admin is required");
         }
-        validateExamRequest(request, true);
+        validateExamRequest(request);
 
         Exam exam = new Exam();
         exam.setExamCode(generateExamCode());
@@ -140,7 +140,7 @@ public class ExamService {
     // ================= UPDATE =================
     public Exam updateExam(String examCode, ExamRequest request, Authentication auth) {
 
-        validateExamRequest(request, true);
+        validateExamRequest(request);
         Exam exam = getExamByCodeForActor(examCode, auth);
 
         if (exam.isPublished()) {
@@ -380,10 +380,6 @@ public class ExamService {
     // ================= HELPERS =================
 
     private void validateExamRequest(ExamRequest request) {
-        validateExamRequest(request, false);
-    }
-
-    private void validateExamRequest(ExamRequest request, boolean allowEmptyDifficultyDistribution) {
         if (request == null) {
             throw new BadRequestException("Exam request is required");
         }
@@ -416,6 +412,13 @@ public class ExamService {
         if (request.getNegativeMarks() == null || request.getNegativeMarks() < 0) {
             throw new BadRequestException("Negative marks cannot be negative");
         }
+        if (request.getNegativeMarks() != null
+                && request.getMarksPerQuestion() != null
+                && request.getNegativeMarks() > request.getMarksPerQuestion()) {
+            throw new BadRequestException("Negative marks cannot be greater than marks per question");
+        }
+
+        normalizeDifficultyDistribution(request);
         if (request.getEasyQuestionCount() == null || request.getEasyQuestionCount() < 0
                 || request.getMediumQuestionCount() == null || request.getMediumQuestionCount() < 0
                 || request.getDifficultQuestionCount() == null || request.getDifficultQuestionCount() < 0) {
@@ -424,8 +427,12 @@ public class ExamService {
         int totalDifficultyQuestions = request.getEasyQuestionCount()
                 + request.getMediumQuestionCount()
                 + request.getDifficultQuestionCount();
-        if (!allowEmptyDifficultyDistribution && totalDifficultyQuestions <= 0) {
+        if (totalDifficultyQuestions <= 0) {
             throw new BadRequestException("At least one question is required in difficulty distribution");
+        }
+        double expectedMarks = totalDifficultyQuestions * request.getMarksPerQuestion();
+        if (expectedMarks > request.getTotalMarks() + 0.0001) {
+            throw new BadRequestException("Difficulty distribution exceeds total marks");
         }
         if (request.getStartTime() == null || request.getStartTime().trim().isEmpty()
                 || request.getEndTime() == null || request.getEndTime().trim().isEmpty()) {
@@ -434,8 +441,14 @@ public class ExamService {
 
         LocalDateTime start = parseDateTime(request.getStartTime());
         LocalDateTime end = parseDateTime(request.getEndTime());
-        if (end != null && start != null && end.isBefore(start)) {
+        if (end != null && start != null && !end.isAfter(start)) {
             throw new BadRequestException("End time must be after start time");
+        }
+        if (end != null && start != null) {
+            long scheduledMinutes = Duration.between(start, end).toMinutes();
+            if (scheduledMinutes < request.getDurationMinutes()) {
+                throw new BadRequestException("Exam window must be at least as long as the exam duration");
+            }
         }
     }
 
@@ -457,6 +470,41 @@ public class ExamService {
         exam.setEasyQuestionCount(request.getEasyQuestionCount());
         exam.setMediumQuestionCount(request.getMediumQuestionCount());
         exam.setDifficultQuestionCount(request.getDifficultQuestionCount());
+        exam.setMcqCount(request.getEasyQuestionCount()
+                + request.getMediumQuestionCount()
+                + request.getDifficultQuestionCount());
+        exam.setCodingCount(0);
+        exam.setDescriptiveCount(0);
+    }
+
+    private void normalizeDifficultyDistribution(ExamRequest request) {
+        int easy = safeCount(request.getEasyQuestionCount());
+        int medium = safeCount(request.getMediumQuestionCount());
+        int difficult = safeCount(request.getDifficultQuestionCount());
+        if (easy + medium + difficult > 0) {
+            request.setEasyQuestionCount(easy);
+            request.setMediumQuestionCount(medium);
+            request.setDifficultQuestionCount(difficult);
+            return;
+        }
+
+        int plannedQuestions = Math.max(1, (int) Math.floor(request.getTotalMarks() / request.getMarksPerQuestion()));
+        int derivedEasy = Math.max(1, (int) Math.ceil(plannedQuestions * 0.4));
+        int derivedMedium = Math.max(0, (int) Math.floor(plannedQuestions * 0.4));
+        int derivedDifficult = Math.max(0, plannedQuestions - derivedEasy - derivedMedium);
+        while (derivedEasy + derivedMedium + derivedDifficult > plannedQuestions && derivedEasy > 1) {
+            derivedEasy -= 1;
+        }
+        while (derivedEasy + derivedMedium + derivedDifficult < plannedQuestions) {
+            derivedMedium += 1;
+        }
+        request.setEasyQuestionCount(derivedEasy);
+        request.setMediumQuestionCount(derivedMedium);
+        request.setDifficultQuestionCount(derivedDifficult);
+    }
+
+    private int safeCount(Integer value) {
+        return value == null ? 0 : value;
     }
 
     private LocalDateTime parseDateTime(String raw) {

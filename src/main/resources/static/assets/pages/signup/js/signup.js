@@ -177,31 +177,32 @@ const Signup = (() => {
     confirmName.textContent = fullName.value || "—";
     confirmEmail.textContent = email.value || "—";
     confirmPassword.textContent = password.value || "••••••••";
-    confirmOverlay.classList.add("is-open");
-    confirmOverlay.setAttribute("aria-hidden", "false");
+    signupCurrentStep = 3;
+    updateSignupStepPane();
   }
 
   function closeConfirm() {
-    confirmOverlay.classList.remove("is-open");
-    confirmOverlay.setAttribute("aria-hidden", "true");
+    signupCurrentStep = 2;
+    updateSignupStepPane();
   }
 
   function openOTP(seconds = currentOtpSeconds) {
     currentOtpSeconds = Number(seconds) > 0 ? Number(seconds) : DEFAULT_OTP_SECONDS;
-    overlay.classList.add("is-open");
-    overlay.setAttribute("aria-hidden", "false");
     const activeEmail = pendingSignup?.email || email.value || "your inbox";
     otpEmail.textContent = activeEmail;
     if (otpMetaEmail) otpMetaEmail.textContent = activeEmail;
     if (otpRequestId) otpRequestId.textContent = pendingSignupOtpId || "—";
     if (otpLiveFor) otpLiveFor.textContent = formatSeconds(currentOtpSeconds);
     OTP.activate(currentOtpSeconds);
+    signupCurrentStep = 4;
+    updateSignupStepPane();
   }
 
   function closeOTP() {
-    overlay.classList.remove("is-open");
-    overlay.setAttribute("aria-hidden", "true");
+    signupCurrentStep = 1;
+    updateSignupStepPane();
   }
+
 
   function saveAuthResponse(data) {
     const token = data?.accessToken || data?.token || data?.jwt;
@@ -243,32 +244,297 @@ const Signup = (() => {
     setButtonState("default", "Create Account");
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    await checkSignupEmailAvailability(email.value, false);
-    if (emailExists) {
-      setEmailMessage("This email is already registered.");
-      return;
-    }
-    if (!Validation.validateFields()) return;
-    speedMarquee();
-    setButtonState("default", "Create Account");
-    openConfirm();
+  let signupCurrentStep = 1;
+
+  function renderSignupStepper() {
+    const stepper = document.getElementById("signupStepper");
+    if (!stepper) return;
+    const steps = ["Info", "Credentials", "Confirm", "OTP"];
+    stepper.innerHTML = steps.map((label, index) => {
+      const step = index + 1;
+      const active = signupCurrentStep === step;
+      const complete = signupCurrentStep > step;
+      return `
+        <div class="signup-step ${active ? 'active' : ''} ${complete ? 'complete' : ''}" style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 2; position: relative;">
+          <span class="signup-step-index" style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; border: 2px solid ${active ? '#6366f1' : (complete ? '#10b981' : '#e2e8f0')}; background: ${active ? '#6366f1' : (complete ? '#10b981' : '#fff')}; color: ${active || complete ? '#fff' : '#64748b'}; box-shadow: ${active ? '0 0 0 3px rgba(99,102,241,0.2)' : 'none'}; transition: all 0.3s ease;">
+            ${complete ? '✓' : step}
+          </span>
+          <span class="signup-step-label" style="font-size: 10.5px; font-weight: 700; color: ${active ? '#6366f1' : (complete ? '#10b981' : '#64748b')}; transition: color 0.3s ease;">${label}</span>
+        </div>`;
+    }).join('');
   }
 
-  async function handleConfirm() {
-    if (btn?.disabled) return;
-    confirmBtn.disabled = true;
-    try {
-      await startSignup();
-    } catch (error) {
-      console.error("Signup start error:", error);
-      setButtonState("default", "Create Account");
-      alert(error.message || "Unable to send verification code");
-    } finally {
-      confirmBtn.disabled = false;
+  function updateSignupStepPane() {
+    document.querySelectorAll(".signup-step-pane").forEach((pane) => {
+      const step = parseInt(pane.dataset.signupStep, 10);
+      pane.style.display = (step === signupCurrentStep) ? "block" : "none";
+    });
+
+    const backBtn = document.getElementById("signup-back-btn");
+    if (backBtn) {
+      backBtn.style.display = (signupCurrentStep === 1 || signupCurrentStep === 4) ? "none" : "block";
+    }
+
+    const submitBtnText = document.querySelector("#submit-btn .btn-text");
+    if (submitBtnText) {
+      if (signupCurrentStep === 1) {
+        submitBtnText.textContent = "Next Step →";
+      } else if (signupCurrentStep === 2) {
+        submitBtnText.textContent = "Next Step →";
+      } else if (signupCurrentStep === 3) {
+        submitBtnText.textContent = "Continue to OTP";
+      } else if (signupCurrentStep === 4) {
+        submitBtnText.textContent = "Verify Code";
+      }
+    }
+
+
+    const showcase = document.getElementById("signupShowcaseContent");
+    if (showcase) {
+      if (signupCurrentStep === 1) {
+        showcase.innerHTML = `
+          <!-- Logo Header -->
+          <a href="../index.html" class="brand-section">
+            <span class="brand-logo-sso">SEM</span>
+            <span class="brand-name-sso">Smart Examination Monitor</span>
+          </a>
+
+          <!-- Consolidated Portal Info Showcase -->
+          <div class="showcase-info" style="animation: ssoFadeIn 0.3s ease;">
+            <div class="portal-details">
+              <span class="panel-kicker" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #6366f1; background: rgba(99, 102, 241, 0.08); padding: 4px 12px; border-radius: 99px; margin-bottom: 18px; border: 1px solid rgba(99, 102, 241, 0.12);">
+                <span class="status-dot-green" style="background: #6366f1; box-shadow: 0 0 6px #6366f1;"></span>
+                Student Registration Only
+              </span>
+              <h1 class="portal-title" style="margin-top: 10px;">Join the Future of Examination</h1>
+              <p class="portal-desc">Launch secure, AI-proctored exams in minutes with SEM. Your ultimate partner in academic integrity.</p>
+              
+              <ul class="portal-features-sso">
+                <li>
+                  <div class="feature-icon-wrapper">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </div>
+                  <div class="feature-text-wrapper">
+                    <span class="feature-title-sso">AI Proctored</span>
+                    <span class="feature-desc-sso">Real-time head/eye tracking & cheat detection.</span>
+                  </div>
+                </li>
+                <li>
+                  <div class="feature-icon-wrapper">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                    </svg>
+                  </div>
+                  <div class="feature-text-wrapper">
+                    <span class="feature-title-sso">Analytics</span>
+                    <span class="feature-desc-sso">Deep performance insights & behavioral metrics.</span>
+                  </div>
+                </li>
+                <li>
+                  <div class="feature-icon-wrapper">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                    </svg>
+                  </div>
+                  <div class="feature-text-wrapper">
+                    <span class="feature-title-sso">Global Leaderboard</span>
+                    <span class="feature-desc-sso">Compete with the world's best performers.</span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Premium Status/Metrics Widget -->
+          <div class="platform-metrics-widget">
+            <div class="metrics-header">
+              <span class="metrics-title">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 6v6l4 2"/>
+                </svg>
+                Platform Monitor
+              </span>
+              <span class="metrics-status-badge">
+                <span class="status-dot-green"></span>
+                Operational
+              </span>
+            </div>
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <span class="metric-value">99.98%</span>
+                <span class="metric-label">Proctor Accuracy</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-value">12ms</span>
+                <span class="metric-label">Server Latency</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-value">100%</span>
+                <span class="metric-label">Data Encrypted</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="showcase-footer">
+            <span>Enterprise Secure Connection</span>
+            <span>v2.4.0</span>
+          </div>
+        `;
+      } else {
+        showcase.innerHTML = `
+          <!-- Logo Header -->
+          <a href="../index.html" class="brand-section">
+            <span class="brand-logo-sso">SEM</span>
+            <span class="brand-name-sso">Smart Examination Monitor</span>
+          </a>
+
+          <!-- Consolidated Portal Info Showcase -->
+          <div class="showcase-info" style="animation: ssoFadeIn 0.3s ease;">
+            <div class="portal-details">
+              <span class="panel-kicker" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #a855f7; background: rgba(168, 85, 247, 0.08); padding: 4px 12px; border-radius: 99px; margin-bottom: 18px; border: 1px solid rgba(168, 85, 247, 0.12);">
+                <span class="status-dot-green" style="background: #a855f7; box-shadow: 0 0 6px #a855f7;"></span>
+                Security & Credentials
+              </span>
+              <h1 class="portal-title" style="margin-top: 10px;">Secure Your Profile Credentials</h1>
+              <p class="portal-desc">Set up a robust password security layer. Our system enforces standard zero-trust credential rules to ensure your session is always protected.</p>
+              
+              <ul class="portal-features-sso">
+                <li>
+                  <div class="feature-icon-wrapper">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </div>
+                  <div class="feature-text-wrapper">
+                    <span class="feature-title-sso">8+ Character Requirement</span>
+                    <span class="feature-desc-sso">Your password must include uppercase, lowercase, numbers, and symbols.</span>
+                  </div>
+                </li>
+                <li>
+                  <div class="feature-icon-wrapper">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                  </div>
+                  <div class="feature-text-wrapper">
+                    <span class="feature-title-sso">Secure Verification Layer</span>
+                    <span class="feature-desc-sso">Every registration receives a multi-factor email verification code.</span>
+                  </div>
+                </li>
+                <li>
+                  <div class="feature-icon-wrapper">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="12" y1="16" x2="12" y2="12"/>
+                      <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                  </div>
+                  <div class="feature-text-wrapper">
+                    <span class="feature-title-sso">Privacy & Terms Agreement</span>
+                    <span class="feature-desc-sso">We fully comply with global data governance and security regulations.</span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Premium Status/Metrics Widget -->
+          <div class="platform-metrics-widget">
+            <div class="metrics-header">
+              <span class="metrics-title">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 6v6l4 2"/>
+                </svg>
+                Platform Monitor
+              </span>
+              <span class="metrics-status-badge">
+                <span class="status-dot-green"></span>
+                Operational
+              </span>
+            </div>
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <span class="metric-value">99.98%</span>
+                <span class="metric-label">Proctor Accuracy</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-value">12ms</span>
+                <span class="metric-label">Server Latency</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-value">100%</span>
+                <span class="metric-label">Data Encrypted</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="showcase-footer">
+            <span>Enterprise Secure Connection</span>
+            <span>v2.4.0</span>
+          </div>
+        `;
+      }
+    }
+    renderSignupStepper();
+  }
+
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (signupCurrentStep === 1) {
+      if (!Validation.validateStep1()) return;
+      
+      // Check email availability on step 1 before letting them go to password step
+      setButtonState("loading", "Checking email...");
+      try {
+        await checkSignupEmailAvailability(email.value, false);
+        if (emailExists) {
+          setEmailMessage("This email is already registered.");
+          setButtonState("default", "Next Step →");
+          return;
+        }
+      } catch (err) {
+        console.error("Availability check error:", err);
+      }
+      setButtonState("default", "Next Step →");
+
+      signupCurrentStep = 2;
+      updateSignupStepPane();
+      return;
+    }
+
+    if (signupCurrentStep === 2) {
+      if (!Validation.validateStep2()) return;
+      speedMarquee();
+      openConfirm();
+      return;
+    }
+
+    if (signupCurrentStep === 3) {
+      try {
+        await startSignup();
+      } catch (error) {
+        console.error("Signup start error:", error);
+        alert(error.message || "Unable to send verification code");
+      }
+      return;
+    }
+
+    if (signupCurrentStep === 4) {
+      await handleVerify();
+      return;
     }
   }
+
 
   async function handleVerify() {
     const otpValue = OTP.getCode();
@@ -283,9 +549,11 @@ const Signup = (() => {
       return;
     }
 
-    verifyBtn.disabled = true;
-    verifyBtn.textContent = "Verifying...";
-    verifyBtn.classList.add("is-loading");
+    if (btn) {
+      btn.disabled = true;
+      if (btnText) btnText.textContent = "Verifying...";
+      btn.classList.add("is-loading");
+    }
 
     try {
       const result = await api("/signup/verify", {
@@ -296,7 +564,6 @@ const Signup = (() => {
       saveAuthResponse(result);
       OTP.setMessage("");
       setButtonState("success");
-      closeOTP();
       pendingSignupOtpId = null;
       sessionStorage.removeItem("signup.pendingEmail");
       sessionStorage.removeItem("signup.pendingRole");
@@ -304,14 +571,14 @@ const Signup = (() => {
       setTimeout(() => {
         window.location.href = "welcome-onboarding.html";
       }, 700);
-    } catch (error) {
-      console.error("OTP verification error:", error);
-      OTP.setMessage(error.message || "Verification failed");
-      setButtonState("default", "Create Account");
-    } finally {
-      verifyBtn.disabled = false;
-      verifyBtn.classList.remove("is-loading");
-      verifyBtn.textContent = "Verify Code";
+    } catch (err) {
+      console.error(err);
+      OTP.setMessage(err.message || "Invalid OTP code. Please try again.");
+      if (btn) {
+        btn.disabled = false;
+        if (btnText) btnText.textContent = "Verify Code";
+        btn.classList.remove("is-loading");
+      }
     }
   }
 
@@ -421,27 +688,31 @@ const Signup = (() => {
     initCardEffects();
     if (!form) return;
 
-    form.addEventListener("submit", handleSubmit);
-    confirmBtn.addEventListener("click", handleConfirm);
-    confirmClose.addEventListener("click", closeConfirm);
-    confirmOverlay.addEventListener("click", e => {
-      if (e.target === confirmOverlay) closeConfirm();
-    });
+    // Back button listener for signup steps
+    const backBtn = document.getElementById("signup-back-btn");
+    if (backBtn) {
+      backBtn.addEventListener("click", () => {
+        if (signupCurrentStep > 1 && signupCurrentStep < 4) {
+          signupCurrentStep--;
+          updateSignupStepPane();
+        }
+      });
+    }
+    updateSignupStepPane();
 
-    verifyBtn.addEventListener("click", handleVerify);
+    form.addEventListener("submit", handleSubmit);
+
     email.addEventListener("input", queueEmailAvailabilityCheck);
     email.addEventListener("blur", () => {
       checkSignupEmailAvailability(email.value, false).catch(() => {});
     });
-    changeLink.addEventListener("click", e => {
-      e.preventDefault();
-      closeOTP();
-      openConfirm();
-    });
-    closeBtn.addEventListener("click", closeOTP);
-    overlay.addEventListener("click", e => {
-      if (e.target === overlay) closeOTP();
-    });
+    
+    if (changeLink) {
+      changeLink.addEventListener("click", e => {
+        e.preventDefault();
+        closeOTP();
+      });
+    }
 
     document.addEventListener("click", handleToggle);
 
@@ -451,6 +722,8 @@ const Signup = (() => {
       getRole: () => ROLE
     };
   }
+
+
 
   return { init };
 })();

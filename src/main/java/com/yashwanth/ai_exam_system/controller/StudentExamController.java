@@ -1,6 +1,7 @@
 package com.yashwanth.ai_exam_system.controller;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -106,26 +107,35 @@ public class StudentExamController {
         if (!authenticatedStudentId.equals(studentId)) {
             throw new ForbiddenException("You can only start your own exam attempt");
         }
+        boolean resumed = examAttemptRepository
+                .findActiveAttempt(studentId, examCode, AttemptStatus.STARTED)
+                .map(ExamAttempt::isActive)
+                .orElse(false);
         ExamAttempt attempt = examAttemptService.startExam(studentId, examCode);
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
         Exam exam = examRepository.findByExamCode(examCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
-        emailNotificationOrchestrator.notifyStudentExamStarted(student, exam, attempt);
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("id", attempt.getId());
-        response.put("attemptId", attempt.getId());
-        response.put("examId", attempt.getExamId());
-        response.put("examCode", attempt.getExamCode());
-        response.put("studentId", attempt.getStudentId());
-        response.put("status", attempt.getStatus() != null ? attempt.getStatus().name() : "STARTED");
-        response.put("attemptNumber", attempt.getAttemptNumber());
-        response.put("startTime", attempt.getStartTime());
-        response.put("endTime", attempt.getEndTime());
-        response.put("expiryTime", attempt.getExpiryTime());
-        response.put("durationMinutes", attempt.getDurationMinutes());
-        response.put("active", attempt.getActive());
-        return ResponseEntity.ok(response);
+        if (!resumed) {
+            emailNotificationOrchestrator.notifyStudentExamStarted(student, exam, attempt);
+        }
+        return ResponseEntity.ok(toAttemptResponse(attempt, exam, resumed));
+    }
+
+    @PostMapping("/start/{examCode}")
+    public ResponseEntity<Map<String, Object>> startExamForAuthenticatedStudent(
+            @PathVariable String examCode,
+            Authentication auth) {
+
+        Long studentId = getAuthenticatedStudentId(auth);
+        boolean resumed = examAttemptRepository
+                .findActiveAttempt(studentId, examCode, AttemptStatus.STARTED)
+                .map(ExamAttempt::isActive)
+                .orElse(false);
+        ExamAttempt attempt = examAttemptService.startExam(studentId, examCode);
+        Exam exam = examRepository.findByExamCode(examCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+        return ResponseEntity.ok(toAttemptResponse(attempt, exam, resumed));
     }
 
     @PostMapping("/register/{examCode}")
@@ -138,6 +148,13 @@ public class StudentExamController {
             throw new ForbiddenException("Only active published exams can be registered");
         }
 
+        Optional<ExamRegistration> existing = examRegistrationRepository
+                .findByStudentIdAndExamCodeAndActiveTrue(studentId, examCode);
+
+        if (existing.isPresent()) {
+            return ResponseEntity.ok(toRegistrationResponse(existing.get(), exam, true));
+        }
+
         if (!exam.isRegistrationOpen()) {
             throw new ForbiddenException("Registration is not open for this exam");
         }
@@ -147,15 +164,6 @@ public class StudentExamController {
 
         if (exam.getEndTime() != null && LocalDateTime.now().isAfter(exam.getEndTime())) {
             throw new ForbiddenException("Exam window is closed");
-        }
-
-        // Check if already registered
-        boolean alreadyRegistered = examRegistrationRepository
-                .findByStudentIdAndExamCode(studentId, examCode)
-                .isPresent();
-
-        if (alreadyRegistered) {
-            throw new ForbiddenException("You are already registered for this exam");
         }
 
         ExamRegistration registration = new ExamRegistration();
@@ -172,23 +180,7 @@ public class StudentExamController {
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
         emailNotificationOrchestrator.notifyStudentRegistered(student, exam, "PHASE1");
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("registered", true);
-        response.put("studentId", studentId);
-        response.put("examCode", examCode);
-        response.put("registrationId", registration.getId());
-        response.put("registeredAt", registration.getRegisteredAt());
-        response.put("registrationPhase", exam.getCurrentRegistrationPhase().name());
-
-        if (exam.getStartTime() != null) {
-            response.put("registrationStartTime", exam.getRegistrationStartTime());
-            response.put("phase1EndTime", exam.getPhase1EndTime());
-            response.put("phase2StartTime", exam.getPhase2StartTime());
-            response.put("examStartsAt", exam.getStartTime());
-            response.put("requiresPhase2Verification", exam.requiresPhase2Verification());
-        }
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(toRegistrationResponse(registration, exam, false));
     }
 
     @GetMapping("/registration-status/{examCode}")
@@ -197,25 +189,37 @@ public class StudentExamController {
         Exam exam = examRepository.findByExamCode(examCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
 
-        boolean isRegistered = examRegistrationRepository
-                .findByStudentIdAndExamCode(studentId, examCode)
-                .isPresent();
+        Optional<ExamRegistration> registration = examRegistrationRepository
+                .findByStudentIdAndExamCodeAndActiveTrue(studentId, examCode);
+        boolean isRegistered = registration.isPresent();
+        boolean hasLiveAttempt = examAttemptRepository
+                .findActiveAttempt(studentId, examCode, AttemptStatus.STARTED)
+                .map(ExamAttempt::isActive)
+                .orElse(false);
+        boolean canEnter = isRegistered && exam.canAttempt();
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("examCode", examCode);
         response.put("studentId", studentId);
         response.put("isRegistered", isRegistered);
+        response.put("registered", isRegistered);
         response.put("examPublished", exam.isPublished());
         response.put("examActive", exam.isActive());
         response.put("registrationOpen", exam.isRegistrationOpen());
         response.put("currentPhase", exam.getCurrentRegistrationPhase().name());
+        response.put("requiresPhase2Verification", exam.requiresPhase2Verification());
+        response.put("phase2Verified", registration.map(ExamRegistration::getPhase2Verified).orElse(false));
+        response.put("canRegister", !isRegistered && exam.isRegistrationOpen());
+        response.put("canEnter", canEnter);
+        response.put("hasLiveAttempt", hasLiveAttempt);
+        registration.ifPresent(value -> response.put("registration", toRegistrationMap(value)));
 
         if (exam.getStartTime() != null) {
             response.put("examStartTime", exam.getStartTime());
+            response.put("examEndTime", exam.getEndTime());
             response.put("registrationStartTime", exam.getRegistrationStartTime());
             response.put("phase1EndTime", exam.getPhase1EndTime());
             response.put("phase2StartTime", exam.getPhase2StartTime());
-            response.put("requiresPhase2Verification", exam.requiresPhase2Verification());
         }
 
         return ResponseEntity.ok(response);
@@ -297,7 +301,7 @@ public class StudentExamController {
                 .orElse(null);
         List<Question> questions = questionSelectionService.selectQuestionsForExam(exam, studentId, attemptSeed);
         List<QuestionResponse> response = questions.stream()
-                .map(this::toStudentQuestionResponse)
+                .map(question -> toStudentQuestionResponse(question, exam, studentId, attemptSeed))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(response);
     }
@@ -476,25 +480,62 @@ public class StudentExamController {
         return user.getId();
     }
 
-    private QuestionResponse toStudentQuestionResponse(Question q) {
+    private QuestionResponse toStudentQuestionResponse(Question q, Exam exam, Long studentId, Long attemptId) {
         QuestionResponse response = new QuestionResponse();
         response.setId(q.getId());
         response.setQuestionText(q.getQuestionText());
-        response.setOptionA(q.getOptionA());
-        response.setOptionB(q.getOptionB());
-        response.setOptionC(q.getOptionC());
-        response.setOptionD(q.getOptionD());
-        response.setOptionE(q.getOptionE());
-        response.setOptionF(q.getOptionF());
+        List<String> options = orderedOptionsForStudent(q, exam, studentId, attemptId);
+        response.setOptionA(optionAt(options, 0));
+        response.setOptionB(optionAt(options, 1));
+        response.setOptionC(optionAt(options, 2));
+        response.setOptionD(optionAt(options, 3));
+        response.setOptionE(optionAt(options, 4));
+        response.setOptionF(optionAt(options, 5));
         response.setQuestionType(q.getQuestionType() != null ? q.getQuestionType().name() : null);
         response.setMarks(q.getMarks());
         response.setDifficulty(q.getDifficulty());
         response.setTopic(q.getTopic());
-        response.setShuffleOptions(q.getShuffleOptions());
+        response.setShuffleOptions(false);
         response.setDisplayOrder(q.getDisplayOrder());
         response.setSampleInput(q.getSampleInput());
         response.setSampleOutput(q.getSampleOutput());
         return response;
+    }
+
+    private List<String> orderedOptionsForStudent(Question question, Exam exam, Long studentId, Long attemptId) {
+        List<String> options = new ArrayList<>();
+        addOption(options, question.getOptionA());
+        addOption(options, question.getOptionB());
+        addOption(options, question.getOptionC());
+        addOption(options, question.getOptionD());
+        addOption(options, question.getOptionE());
+        addOption(options, question.getOptionF());
+        if (options.size() <= 1) {
+            return options;
+        }
+        boolean shouldShuffle = Boolean.TRUE.equals(exam.getShuffleOptions())
+                && !Boolean.FALSE.equals(question.getShuffleOptions());
+        if (shouldShuffle) {
+            Collections.shuffle(options, new Random(seedFor(exam.getExamCode(), studentId, attemptId, question.getId(), "OPTIONS")));
+        }
+        return options;
+    }
+
+    private void addOption(List<String> options, String value) {
+        if (value != null && !value.trim().isEmpty()) {
+            options.add(value.trim());
+        }
+    }
+
+    private String optionAt(List<String> options, int index) {
+        return options != null && index >= 0 && index < options.size() ? options.get(index) : null;
+    }
+
+    private long seedFor(Object... parts) {
+        String raw = java.util.Arrays.stream(parts)
+                .map(String::valueOf)
+                .collect(Collectors.joining(":"));
+        return raw.hashCode() & 0xffffffffL;
     }
 
     private Map<String, Object> toRegistrationMap(ExamRegistration registration) {
@@ -512,6 +553,50 @@ public class StudentExamController {
         map.put("createdAt", registration.getCreatedAt());
         map.put("updatedAt", registration.getUpdatedAt());
         return map;
+    }
+
+    private Map<String, Object> toRegistrationResponse(ExamRegistration registration, Exam exam, boolean alreadyRegistered) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("registered", true);
+        response.put("alreadyRegistered", alreadyRegistered);
+        response.put("studentId", registration.getStudentId());
+        response.put("examCode", registration.getExamCode());
+        response.put("registrationId", registration.getId());
+        response.put("registeredAt", registration.getRegisteredAt());
+        response.put("registrationPhase", registration.getRegistrationPhase());
+        response.put("currentPhase", exam.getCurrentRegistrationPhase().name());
+        response.put("phase2Verified", Boolean.TRUE.equals(registration.getPhase2Verified()));
+        response.put("requiresPhase2Verification", exam.requiresPhase2Verification());
+        response.put("registrationStartTime", exam.getRegistrationStartTime());
+        response.put("phase1EndTime", exam.getPhase1EndTime());
+        response.put("phase2StartTime", exam.getPhase2StartTime());
+        response.put("examStartsAt", exam.getStartTime());
+        response.put("examEndsAt", exam.getEndTime());
+        response.put("canEnter", exam.canAttempt());
+        response.put("registration", toRegistrationMap(registration));
+        return response;
+    }
+
+    private Map<String, Object> toAttemptResponse(ExamAttempt attempt, Exam exam, boolean resumed) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("id", attempt.getId());
+        response.put("attemptId", attempt.getId());
+        response.put("examId", attempt.getExamId());
+        response.put("examCode", attempt.getExamCode());
+        response.put("examTitle", exam.getTitle());
+        response.put("studentId", attempt.getStudentId());
+        response.put("status", attempt.getStatus() != null ? attempt.getStatus().name() : "STARTED");
+        response.put("attemptNumber", attempt.getAttemptNumber());
+        response.put("maxAttempts", exam.getMaxAttempts());
+        response.put("startTime", attempt.getStartTime());
+        response.put("endTime", attempt.getEndTime());
+        response.put("expiryTime", attempt.getExpiryTime());
+        response.put("durationMinutes", attempt.getDurationMinutes());
+        response.put("active", attempt.getActive());
+        response.put("resumed", resumed);
+        response.put("canEnter", attempt.isActive());
+        response.put("examUrl", "exam/exam.html?code=" + attempt.getExamCode() + "&attemptId=" + attempt.getId());
+        return response;
     }
 
 }

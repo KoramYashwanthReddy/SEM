@@ -90,6 +90,18 @@ public class CertificateService {
             String baseUrl,
             boolean forceReissue
     ) {
+        return generateCertificateInternal(studentId, examCode, examTitle, score, baseUrl, forceReissue, true);
+    }
+
+    private byte[] generateCertificateInternal(
+            Long studentId,
+            String examCode,
+            String examTitle,
+            double score,
+            String baseUrl,
+            boolean forceReissue,
+            boolean failOnPdfError
+    ) {
         StudentProfile profile = resolveCertificateProfile(studentId);
         double resolvedScore = resolveBestCertificateScore(studentId, examCode, score);
 
@@ -118,10 +130,25 @@ public class CertificateService {
             cert.setIssuedAt(LocalDateTime.now());
         }
         populateCertificate(cert, profile, examCode, examTitle, resolvedScore, baseUrl);
+        cert = certificateRepository.saveAndFlush(cert);
 
-        byte[] pdf = generateAndStoreCertificatePdf(cert, false);
-        sendEmailSafe(profile, cert.getCertificateId(), pdf);
-        notifyCertificateIssued(profile.getUserId(), examCode, examTitle, cert.getCertificateId(), resolvedScore);
+        byte[] pdf = null;
+        try {
+            pdf = generateAndStoreCertificatePdf(cert, false);
+        } catch (RuntimeException pdfError) {
+            if (failOnPdfError) {
+                throw pdfError;
+            }
+            System.err.println("Certificate PDF generation deferred for certificateId="
+                    + cert.getCertificateId() + ": " + pdfError.getMessage());
+        }
+
+        if (freshIssue) {
+            if (pdf != null) {
+                sendEmailSafe(profile, cert.getCertificateId(), pdf);
+            }
+            notifyCertificateIssued(profile.getUserId(), examCode, examTitle, cert.getCertificateId(), resolvedScore);
+        }
         return pdf;
     }
 
@@ -137,7 +164,7 @@ public class CertificateService {
             return false;
         }
 
-        generateCertificate(studentId, examCode, examTitle, score, baseUrl, false);
+        generateCertificateInternal(studentId, examCode, examTitle, score, baseUrl, false, false);
         return true;
     }
 
@@ -200,7 +227,7 @@ public class CertificateService {
         cert.setDepartment(profile.getDepartment());
         cert.setRollNumber(profile.getRollNumber());
         cert.setSection(profile.getSection());
-        cert.setProfilePhoto(profile.getProfilePhoto());
+        cert.setProfilePhoto(normalizeCertificateProfilePhoto(profile.getProfilePhoto()));
 
         cert.setExamCode(examCode);
         cert.setExamTitle(examTitle);
@@ -214,6 +241,17 @@ public class CertificateService {
         }
 
         return cert;
+    }
+
+    private String normalizeCertificateProfilePhoto(String profilePhoto) {
+        if (!StringUtils.hasText(profilePhoto)) {
+            return null;
+        }
+        String value = profilePhoto.trim();
+        if (value.length() > 1900) {
+            return null;
+        }
+        return value;
     }
 
     public byte[] refreshCertificatePdf(Certificate cert, String baseUrl) {

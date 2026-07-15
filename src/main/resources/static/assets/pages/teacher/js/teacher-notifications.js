@@ -42,7 +42,7 @@
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
         clearSession();
-        window.location.href = "teacher-login.html";
+        window.location.href = "login.html";
       }
       throw new Error((data && typeof data === "object" && (data.message || data.error)) || `Request failed (${res.status})`);
     }
