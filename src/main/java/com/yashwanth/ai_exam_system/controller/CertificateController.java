@@ -122,8 +122,7 @@ public class CertificateController {
             throw new ForbiddenException("Students can only view their own certificates");
         }
 
-        List<Certificate> certificates =
-                certificateRepository.findByStudentIdAndRevokedFalse(studentId);
+        List<Certificate> certificates = certificateService.repairAndListStudentCertificates(studentId);
         if (currentUser.getRole() == Role.TEACHER) {
             Set<String> teacherExamCodes = getTeacherExamCodes(currentUser);
             certificates = certificates.stream()

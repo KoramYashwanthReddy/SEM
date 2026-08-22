@@ -63,6 +63,9 @@ public class ExamResult {
     private LocalDateTime evaluatedAt;
     private String grade;
 
+    @Column(name = "certificate_id", length = 50)
+    private String certificateId;
+
     public ExamResult() {
     }
 
@@ -276,4 +279,12 @@ public class ExamResult {
     }
     public String getGrade() { return grade; }
     public void setGrade(String grade) { this.grade = grade; }
+
+    public String getCertificateId() {
+        return certificateId;
+    }
+
+    public void setCertificateId(String certificateId) {
+        this.certificateId = certificateId;
+    }
 }

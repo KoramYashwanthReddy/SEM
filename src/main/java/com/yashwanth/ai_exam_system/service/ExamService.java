@@ -314,23 +314,11 @@ public class ExamService {
                     attempt.getStudentId(),
                     attempt.getExamCode());
             if (result.getPassed() != null && result.getPassed()) {
-                Exam exam = examRepository.findByExamCode(attempt.getExamCode()).orElse(null);
-                if (exam != null) {
-                    double certificateScore = result.getPercentage();
-                    if (certificateScore <= 0) {
-                        certificateScore = result.getScore();
-                    }
-                    try {
-                        certificateService.ensureCertificateIssued(
-                                attempt.getStudentId(),
-                                attempt.getExamCode(),
-                                exam.getTitle(),
-                                certificateScore,
-                                "");
-                    } catch (Exception certError) {
-                        logger.warn("Certificate generation failed for attemptId={} studentId={}: {}",
-                                attemptId, attempt.getStudentId(), certError.getMessage());
-                    }
+                try {
+                    certificateService.issueCertificateForPassedResult(result, "");
+                } catch (Exception certError) {
+                    logger.warn("Certificate generation failed for attemptId={} studentId={}: {}",
+                            attemptId, attempt.getStudentId(), certError.getMessage());
                 }
             }
             attempt.setStatus(AttemptStatus.EVALUATED);

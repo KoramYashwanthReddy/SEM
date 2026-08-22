@@ -3,10 +3,12 @@ package com.yashwanth.ai_exam_system.service;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -245,7 +247,8 @@ public class ExamAttemptService {
         List<Question> questions = questionSelectionService.selectQuestionsForExam(exam, attempt.getStudentId(), attempt.getId());
 
         int totalMarks = questions.stream()
-                .mapToInt(q -> q.getMarks() == null ? 0 : q.getMarks())
+                .mapToInt(q -> q.getMarks() != null ? q.getMarks() :
+                        (exam.getMarksPerQuestion() != null ? exam.getMarksPerQuestion().intValue() : 0))
                 .sum();
 
         int obtainedMarks = (int) result.getScore();
@@ -265,17 +268,8 @@ public class ExamAttemptService {
         attemptRepository.save(attempt);
 
         if (Boolean.TRUE.equals(result.getPassed())) {
-            double certificateScore = result.getPercentage();
-            if (certificateScore <= 0) {
-                certificateScore = result.getScore();
-            }
             try {
-                certificateService.ensureCertificateIssued(
-                        attempt.getStudentId(),
-                        attempt.getExamCode(),
-                        exam.getTitle(),
-                        certificateScore,
-                        "");
+                certificateService.issueCertificateForPassedResult(result, "");
             } catch (Exception ignored) {
                 // Certificate issuance is best-effort here; the UI will still load the result.
             }
@@ -301,6 +295,7 @@ public class ExamAttemptService {
         response.setMediumWrong(result.getMediumWrong());
         response.setDifficultWrong(result.getDifficultWrong());
         response.setGrade(result.getGrade());
+        response.setCertificateId(result.getCertificateId());
         response.setTimeTakenSeconds(timeTaken);
         response.setPassed(result.getPassed());
         response.setStartedAt(attempt.getStartTime());
@@ -367,15 +362,17 @@ public class ExamAttemptService {
         List<Map<String, Object>> list = new ArrayList<>();
         for (Question q : questions) {
             StudentAnswer sa = answerMap.get(q.getId());
+            List<String> options = visibleOptionsForQuestion(q, exam, attempt.getStudentId(), attempt.getId());
             Map<String, Object> map = new HashMap<>();
             map.put("id", q.getId());
             map.put("questionText", q.getQuestionText());
-            map.put("optionA", q.getOptionA());
-            map.put("optionB", q.getOptionB());
-            map.put("optionC", q.getOptionC());
-            map.put("optionD", q.getOptionD());
-            map.put("optionE", q.getOptionE());
-            map.put("optionF", q.getOptionF());
+            map.put("optionA", optionAt(options, 0));
+            map.put("optionB", optionAt(options, 1));
+            map.put("optionC", optionAt(options, 2));
+            map.put("optionD", optionAt(options, 3));
+            map.put("optionE", null);
+            map.put("optionF", null);
+            map.put("options", options);
             map.put("questionType", q.getQuestionType() != null ? q.getQuestionType().name() : "MCQ");
             map.put("difficulty", q.getDifficulty());
             map.put("marks", q.getMarks());
@@ -450,5 +447,76 @@ public class ExamAttemptService {
                     answer.setStatus("MARKED_FOR_REVIEW");
                     answerRepository.save(answer);
                 });
+    }
+
+    private List<String> visibleOptionsForQuestion(Question question, Exam exam, Long studentId, Long attemptId) {
+        List<String> options = new ArrayList<>();
+        addOption(options, question.getOptionA());
+        addOption(options, question.getOptionB());
+        addOption(options, question.getOptionC());
+        addOption(options, question.getOptionD());
+        addOption(options, question.getOptionE());
+        addOption(options, question.getOptionF());
+
+        if (options.size() <= 4) {
+            if (options.size() > 1 && shouldShuffleOptions(exam, question)) {
+                Collections.shuffle(options, new Random(seedFor(exam.getExamCode(), studentId, attemptId, question.getId(), "REVIEW_OPTIONS")));
+            }
+            return options;
+        }
+
+        boolean shouldShuffle = shouldShuffleOptions(exam, question) || options.size() > 4;
+        if (!shouldShuffle) {
+            return new ArrayList<>(options.subList(0, 4));
+        }
+
+        String correctAnswer = question.getCorrectAnswer() == null ? "" : question.getCorrectAnswer().trim();
+        List<String> working = new ArrayList<>(options);
+        List<String> visible = new ArrayList<>();
+
+        if (!correctAnswer.isBlank()) {
+            String matchedCorrect = working.stream()
+                    .filter(option -> option != null && option.trim().equalsIgnoreCase(correctAnswer))
+                    .findFirst()
+                    .orElse(null);
+            if (matchedCorrect != null) {
+                visible.add(matchedCorrect);
+                working.removeIf(option -> option != null && option.trim().equalsIgnoreCase(matchedCorrect));
+                Collections.shuffle(working, new Random(seedFor(exam.getExamCode(), studentId, attemptId, question.getId(), "REVIEW_DISTRACTORS")));
+                for (String distractor : working) {
+                    if (visible.size() >= 4) {
+                        break;
+                    }
+                    visible.add(distractor);
+                }
+                Collections.shuffle(visible, new Random(seedFor(exam.getExamCode(), studentId, attemptId, question.getId(), "REVIEW_VISIBLE")));
+                return visible;
+            }
+        }
+
+        Collections.shuffle(working, new Random(seedFor(exam.getExamCode(), studentId, attemptId, question.getId(), "REVIEW_OPTIONS")));
+        return new ArrayList<>(working.subList(0, 4));
+    }
+
+    private void addOption(List<String> options, String value) {
+        if (value != null && !value.trim().isEmpty()) {
+            options.add(value.trim());
+        }
+    }
+
+    private boolean shouldShuffleOptions(Exam exam, Question question) {
+        return Boolean.TRUE.equals(exam.getShuffleOptions())
+                || Boolean.TRUE.equals(question.getShuffleOptions());
+    }
+
+    private String optionAt(List<String> options, int index) {
+        return options != null && index >= 0 && index < options.size() ? options.get(index) : null;
+    }
+
+    private long seedFor(Object... parts) {
+        String raw = java.util.Arrays.stream(parts)
+                .map(String::valueOf)
+                .collect(java.util.stream.Collectors.joining(":"));
+        return raw.hashCode() & 0xffffffffL;
     }
 }

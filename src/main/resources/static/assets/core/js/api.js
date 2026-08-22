@@ -3,6 +3,7 @@
  * Standardized Fetch Wrapper with JWT, Error Handling and ApiResponse support.
  */
 const API = (() => {
+  const AUTH_KEYS = ['token', 'accessToken', 'jwt', 'authToken', 'access_token'];
   const explicitBase = (window.__API_BASE_URL__ || localStorage.getItem('apiBaseUrl') || '').trim();
   const origin = window.location.origin || '';
   const isLocalFrontend = /:\/\/(localhost|127\.0\.0\.1)(:3000|:5173|:5500)?$/i.test(origin);
@@ -13,9 +14,24 @@ const API = (() => {
   /**
    * Get JWT token from storage
    */
+  function normalizeToken(raw) {
+    if (!raw) return '';
+    let value = String(raw).trim();
+    if (!value) return '';
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1).trim();
+    }
+    return value.replace(/^bearer\s+/i, '').trim();
+  }
+
   function getToken() {
-    return localStorage.getItem('token') || sessionStorage.getItem('token') ||
-           localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    for (const key of AUTH_KEYS) {
+      const localValue = normalizeToken(localStorage.getItem(key));
+      if (localValue) return localValue;
+      const sessionValue = normalizeToken(sessionStorage.getItem(key));
+      if (sessionValue) return sessionValue;
+    }
+    return '';
   }
 
   async function readErrorBody(response) {
@@ -51,7 +67,7 @@ const API = (() => {
    * Clear auth and redirect to login
    */
   function logout(role = 'student') {
-    ['token', 'accessToken', 'role', 'user', 'teacher'].forEach(k => {
+    [...AUTH_KEYS, 'role', 'user', 'teacher'].forEach(k => {
       localStorage.removeItem(k);
       sessionStorage.removeItem(k);
     });

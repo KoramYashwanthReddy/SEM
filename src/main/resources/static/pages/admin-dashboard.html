@@ -82,7 +82,7 @@
             <a href="#profile" class="nav-item" data-target="profile-section">
                <span class="nav-icon"><i class="fa-solid fa-user-gear"></i></span> <span>Admin Profile</span>
             </a>
-            <a href="admin-login.html" class="nav-item logout" onclick="logoutAdmin()">
+            <a href="/pages/login.html" class="nav-item logout" onclick="return logoutAdmin(event)">
                <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span> <span>Logout</span>
             </a>
          </nav>
@@ -266,7 +266,7 @@
                         <h3 class="mnc-card-title">Quick Actions</h3>
                      </div>
                      <div class="mnc-quick-actions">
-                        <div class="mnc-qa-item" onclick="openModal('createExamModal')">
+                        <div class="mnc-qa-item" onclick="openAdminExamWizard()">
                            <div class="mnc-qa-icon blue-bg"><i class="fa-solid fa-calendar-plus"></i></div>
                            <span class="mnc-qa-title">Create Exam</span>
                            <span class="mnc-qa-desc">Add New Exam</span>
@@ -299,7 +299,7 @@
                      <h1 class="em-title">Exam Management</h1>
                      <p class="em-subtitle">Create, manage and organize all exams in the system.</p>
                   </div>
-                  <button class="em-create-btn" onclick="openModal('createExamModal')">
+                  <button class="em-create-btn" onclick="openAdminExamWizard()">
                      <i class="fa-solid fa-plus"></i> Create New Exam
                   </button>
                </div>
@@ -1699,6 +1699,70 @@
                         <span class="aud-footer-info" id="auditPageSummary">Showing 0 to 0 of 0 logs</span>
                         <div class="aud-pagination" id="auditPagination"></div>
                      </div>
+
+                     <div id="auditDetailModal" class="modal-overlay" onclick="closeModalOutside(event, 'auditDetailModal')">
+                        <div class="modal-content large" style="width:760px; max-width:92vw;">
+                           <div class="modal-header">
+                              <div>
+                                 <h3 class="modal-title">Audit Log Details</h3>
+                                 <div style="font-size:12px; color:var(--text-tertiary); margin-top:4px">Full context for the selected security event.</div>
+                              </div>
+                              <button class="modal-close" onclick="closeModal('auditDetailModal')">&times;</button>
+                           </div>
+
+                           <div style="display:grid; grid-template-columns:1.2fr 0.8fr; gap:20px; padding-top:6px;">
+                              <div style="display:flex; flex-direction:column; gap:16px;">
+                                 <div style="padding:16px; border:1px solid var(--border-subtle); border-radius:16px; background:var(--bg-secondary);">
+                                    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:12px;">
+                                       <span id="audit-detail-severity" class="aud-severity">LOW</span>
+                                       <span id="audit-detail-status" class="aud-status"><span class="aud-status-dot"></span> Success</span>
+                                       <span id="audit-detail-module" class="aud-pill">Module</span>
+                                    </div>
+                                    <h4 id="audit-detail-title" style="margin:0 0 10px 0; font-size:22px; font-weight:800; color:var(--text-primary)">Audit Entry</h4>
+                                    <p id="audit-detail-message" style="margin:0; color:var(--text-secondary); line-height:1.6"></p>
+                                 </div>
+
+                                 <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px;">
+                                    <div style="padding:14px; border:1px solid var(--border-subtle); border-radius:14px; background:var(--bg-secondary);">
+                                       <div style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-tertiary); font-weight:700;">Timestamp</div>
+                                       <div id="audit-detail-time" style="margin-top:8px; font-weight:700; color:var(--text-primary)">-</div>
+                                    </div>
+                                    <div style="padding:14px; border:1px solid var(--border-subtle); border-radius:14px; background:var(--bg-secondary);">
+                                       <div style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-tertiary); font-weight:700;">Action Type</div>
+                                       <div id="audit-detail-action" style="margin-top:8px; font-weight:700; color:var(--text-primary)">-</div>
+                                    </div>
+                                    <div style="padding:14px; border:1px solid var(--border-subtle); border-radius:14px; background:var(--bg-secondary);">
+                                       <div style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-tertiary); font-weight:700;">User</div>
+                                       <div id="audit-detail-user" style="margin-top:8px; font-weight:700; color:var(--text-primary)">-</div>
+                                    </div>
+                                    <div style="padding:14px; border:1px solid var(--border-subtle); border-radius:14px; background:var(--bg-secondary);">
+                                       <div style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-tertiary); font-weight:700;">IP Address</div>
+                                       <div id="audit-detail-ip" style="margin-top:8px; font-weight:700; color:var(--text-primary)">-</div>
+                                    </div>
+                                 </div>
+                              </div>
+
+                              <div style="display:flex; flex-direction:column; gap:12px;">
+                                 <div style="padding:14px; border:1px solid var(--border-subtle); border-radius:14px; background:var(--bg-secondary);">
+                                    <div style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-tertiary); font-weight:700;">Event ID</div>
+                                    <div id="audit-detail-id" style="margin-top:8px; font-weight:700; color:var(--text-primary); word-break:break-all;">-</div>
+                                 </div>
+                                 <div style="padding:14px; border:1px solid var(--border-subtle); border-radius:14px; background:var(--bg-secondary);">
+                                    <div style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-tertiary); font-weight:700;">Related Target</div>
+                                    <div id="audit-detail-target" style="margin-top:8px; font-weight:700; color:var(--text-primary); word-break:break-word;">-</div>
+                                 </div>
+                                 <div style="padding:14px; border:1px solid var(--border-subtle); border-radius:14px; background:var(--bg-secondary); flex:1;">
+                                    <div style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-tertiary); font-weight:700; margin-bottom:8px;">Raw Details</div>
+                                    <pre id="audit-detail-raw" style="margin:0; white-space:pre-wrap; word-break:break-word; font-family:inherit; font-size:13px; line-height:1.6; color:var(--text-secondary);">-</pre>
+                                 </div>
+                              </div>
+                           </div>
+
+                           <div style="margin-top:20px; display:flex; justify-content:flex-end;">
+                              <button class="btn btn-primary" onclick="closeModal('auditDetailModal')">Close</button>
+                           </div>
+                        </div>
+                     </div>
                   </div>
 
                </div>
@@ -2139,133 +2203,6 @@
             </div>
          </div>
 
-         <div id="createExamModal" class="modal-overlay" onclick="closeModalOutside(event, 'createExamModal')">
-            <div class="modal-content large">
-               <div class="modal-header">
-                  <h3 class="modal-title">Create New Exam</h3>
-                  <button class="modal-close" onclick="closeModal('createExamModal')">&times;</button>
-               </div>
-
-               <form id="createExamForm" novalidate
-                  onsubmit="submitCreateExam(event, this.querySelector('button[type=submit]'))">
-                  <!-- Basic Settings -->
-                  <div class="form-section-title">Basic Information</div>
-                  <div class="form-grid">
-                     <div class="form-group full-span">
-                        <label>Exam Title *</label>
-                        <input type="text" id="ex-title" class="form-control" placeholder="e.g. Midterm 1: Advanced JS">
-                        <span class="error-msg">Title is required.</span>
-                     </div>
-                     <div class="form-group full-span">
-                        <label>Description</label>
-                        <textarea id="ex-desc" class="form-control" style="height: 60px; padding-top: 10px;"
-                           placeholder="Instructions or rules..."></textarea>
-                     </div>
-                     <div class="form-group full-span">
-                        <label>Subject *</label>
-                        <input type="text" id="ex-subj" class="form-control" placeholder="e.g. Computer Science">
-                        <span class="error-msg">Subject is required.</span>
-                     </div>
-                  </div>
-
-                  <!-- Timing -->
-                  <div class="form-section-title">Timing Configuration</div>
-                  <div class="form-grid">
-                     <div class="form-group full-span">
-                        <label>Duration (Minutes) *</label>
-                        <input type="number" id="ex-dur" class="form-control" min="1" placeholder="90">
-                        <span class="error-msg">Duration must be greater than 0.</span>
-                     </div>
-                     <div class="form-group">
-                        <label>Start Time *</label>
-                        <input type="datetime-local" id="ex-start" class="form-control">
-                        <span class="error-msg">Valid start time is required.</span>
-                     </div>
-                     <div class="form-group">
-                        <label>End Time *</label>
-                        <input type="datetime-local" id="ex-end" class="form-control">
-                        <span class="error-msg">End time must be after start time.</span>
-                     </div>
-                  </div>
-
-                  <!-- Marks & grading -->
-                  <div class="form-section-title">Grading Framework</div>
-                  <div class="form-grid">
-                     <div class="form-group">
-                        <label>Total Marks *</label>
-                        <input type="number" id="ex-total" class="form-control" min="1">
-                        <span class="error-msg">Must be > 0.</span>
-                     </div>
-                     <div class="form-group">
-                        <label>Passing Marks *</label>
-                        <input type="number" id="ex-pass" class="form-control" min="0">
-                        <span class="error-msg">Cannot exceed Total Marks.</span>
-                     </div>
-                     <div class="form-group">
-                        <label>Marks Per Question *</label>
-                        <input type="number" id="ex-perq" class="form-control" min="0.1" step="0.1">
-                        <span class="error-msg">Must be > 0.</span>
-                     </div>
-                     <div class="form-group">
-                        <label>Negative Marks (Optional)</label>
-                        <input type="number" id="ex-neg" class="form-control" value="0" min="0" step="0.1">
-                        <span class="error-msg">Must be >= 0.</span>
-                     </div>
-                  </div>
-
-                  <!-- Settings -->
-                  <div class="form-section-title">Attempt & Constraints</div>
-                  <div class="form-grid">
-                     <div class="form-group full-span">
-                        <label>Max Attempts *</label>
-                        <input type="number" id="ex-attempts" class="form-control" value="1" min="1">
-                        <span class="error-msg">Must be >= 1.</span>
-                     </div>
-
-                     <div class="form-group full-span" style="display:flex; flex-direction:column; gap:8px;">
-                        <div class="toggle-wrap">
-                           <label for="ex-shuffle-q">Shuffle Questions</label>
-                           <label class="toggle-switch">
-                              <input type="checkbox" id="ex-shuffle-q" checked>
-                              <span class="slider"></span>
-                           </label>
-                        </div>
-                        <div class="toggle-wrap">
-                           <label for="ex-shuffle-o">Shuffle Options</label>
-                           <label class="toggle-switch">
-                              <input type="checkbox" id="ex-shuffle-o" checked>
-                              <span class="slider"></span>
-                           </label>
-                        </div>
-                     </div>
-                  </div>
-
-                  <!-- Distribution -->
-                  <div class="form-section-title">Difficulty Distribution</div>
-                  <div class="form-grid">
-                     <div class="form-group">
-                        <label>Easy Count</label>
-                        <input type="number" id="ex-easy" class="form-control" value="0" min="0">
-                        <span class="error-msg">Must be >= 0.</span>
-                     </div>
-                     <div class="form-group">
-                        <label>Medium Count</label>
-                        <input type="number" id="ex-med" class="form-control" value="0" min="0">
-                        <span class="error-msg">Must be >= 0.</span>
-                     </div>
-                     <div class="form-group full-span">
-                        <label>Hard Count</label>
-                        <input type="number" id="ex-diff" class="form-control" value="0" min="0">
-                        <span class="error-msg">Must be >= 0.</span>
-                     </div>
-                  </div>
-
-                  <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--border-subtle)">
-                     <button type="submit" class="btn btn-primary" style="width:100%">Create Exam</button>
-                  </div>
-               </form>
-            </div>
-         </div>
          <div id="deleteConfirmModal" class="modal-overlay" onclick="closeModalOutside(event, 'deleteConfirmModal')">
             <div class="modal-content" style="width:400px; text-align:center">
                <div class="modal-header" style="justify-content:center; border-bottom:none">
@@ -2774,7 +2711,7 @@
    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
   <script src="../assets/pages/admin/js/dashboard.js?v=20260715c"></script>
-  <script src="../assets/pages/admin/js/admin-live.js?v=20260715c"></script>
+  <script src="../assets/pages/admin/js/admin-live.js?v=20260717a"></script>
    <script src="../assets/pages/admin/js/notifications.js?v=20240406100"></script>
 </body>
 

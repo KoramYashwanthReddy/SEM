@@ -14,6 +14,8 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
 
     Optional<Certificate> findByStudentIdAndExamCode(Long studentId, String examCode);
 
+    Optional<Certificate> findFirstByStudentIdAndExamCodeAndRevokedFalseOrderByIssuedAtDesc(Long studentId, String examCode);
+
     Optional<Certificate> findByCertificateId(String certificateId);
 
     List<Certificate> findByStudentId(Long studentId);
@@ -21,6 +23,8 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
     // ================= PERFORMANCE =================
 
     boolean existsByStudentIdAndExamCode(Long studentId, String examCode);
+
+    boolean existsByStudentIdAndExamCodeAndRevokedFalse(Long studentId, String examCode);
 
     boolean existsByCertificateId(String certificateId);
 
@@ -39,6 +43,8 @@ public interface CertificateRepository extends JpaRepository<Certificate, Long> 
     long countByRevokedTrue();
 
     long countByStudentId(Long studentId);
+
+    long countByStudentIdAndRevokedFalse(Long studentId);
 
     // ================= ANALYTICS =================
 

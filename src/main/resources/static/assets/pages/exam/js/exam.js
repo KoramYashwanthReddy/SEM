@@ -171,7 +171,8 @@ const toExamQuestion = (q) => {
     ? q.options
     : (Array.isArray(q.allOptions) ? q.allOptions : [q.optionA, q.optionB, q.optionC, q.optionD, q.optionE, q.optionF]);
   const rawOptions = optionPool
-    .filter((opt) => opt != null && String(opt).trim() !== '');
+    .filter((opt) => opt != null && String(opt).trim() !== '')
+    .slice(0, 4);
   const type = String(q.questionType || '').toLowerCase();
   let mappedType = 'mcq';
   if (type.includes('multiple') && type.includes('choice')) mappedType = 'mscq';

@@ -12571,3 +12571,431 @@ button:hover,
     align-items: center;
     gap: 4px;
 }
+
+/* ============================================================
+   ADMIN FINAL EXAM CREATION WIZARD
+   ============================================================ */
+.admin-exam-wizard-host {
+  position: fixed;
+  inset: 0;
+  z-index: 100500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+}
+
+.admin-exam-wizard-host.show {
+  display: flex;
+}
+
+.admin-exam-wizard-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(6px);
+}
+
+.admin-exam-wizard {
+  position: relative;
+  width: min(1225px, 96vw);
+  min-height: 720px;
+  max-height: calc(100vh - 56px);
+  display: grid;
+  grid-template-columns: 375px 1fr;
+  overflow: hidden;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgba(2, 6, 23, 0.34);
+  color: #0f172a;
+}
+
+.aew-side {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 45px 34px 38px;
+  background: linear-gradient(160deg, #2a235e 0%, #4438ca 100%);
+  color: #fff;
+}
+
+.aew-side-count {
+  align-self: flex-start;
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.aew-side-icon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffd394;
+  font-size: 31px;
+}
+
+.aew-side h2 {
+  margin: 4px 0 0;
+  font-family: "Syne", "DM Sans", sans-serif;
+  font-size: 29px;
+  line-height: 1;
+}
+
+.aew-side p {
+  max-width: 290px;
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.aew-side ul {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.aew-side li {
+  position: relative;
+  padding-left: 20px;
+}
+
+.aew-side li::before {
+  content: "+";
+  position: absolute;
+  left: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 900;
+}
+
+.aew-dots {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.aew-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.aew-dots span.active {
+  width: 30px;
+  background: #fff;
+}
+
+.aew-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #fff;
+}
+
+.aew-close {
+  position: absolute;
+  top: 34px;
+  right: 34px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #d7e4f5;
+  border-radius: 12px;
+  background: #fff;
+  color: #64748b;
+  font-size: 27px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.aew-header {
+  padding: 38px 84px 14px 34px;
+}
+
+.aew-header h2 {
+  margin: 0 0 10px;
+  font-family: "Syne", "DM Sans", sans-serif;
+  font-size: 29px;
+  color: #17233b;
+}
+
+.aew-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 15px;
+}
+
+.aew-progress {
+  display: grid;
+  grid-template-columns: 60px 1fr 60px 1fr 70px 1fr 70px;
+  align-items: start;
+  gap: 14px;
+  padding: 24px 34px 36px;
+}
+
+.aew-progress i {
+  display: block;
+  height: 2px;
+  margin-top: 20px;
+  background: #dbe6f5;
+}
+
+.aew-step {
+  border: 0;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+  text-align: center;
+}
+
+.aew-step span {
+  width: 40px;
+  height: 40px;
+  display: inline-grid;
+  place-items: center;
+  margin-bottom: 9px;
+  border: 3px solid #dbe6f5;
+  border-radius: 999px;
+  background: #edf4fc;
+  color: #475569;
+  font-weight: 900;
+}
+
+.aew-step.active span {
+  border-color: #d8ceff;
+  background: linear-gradient(135deg, #3057f5, #d62695);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.26);
+}
+
+.aew-step b {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.09em;
+}
+
+#adminExamWizardForm {
+  flex: 1;
+  padding: 0 34px 28px;
+  overflow-y: auto;
+}
+
+.aew-pane {
+  display: none;
+  animation: aewFadeIn 0.22s ease;
+}
+
+.aew-pane.active {
+  display: block;
+}
+
+.aew-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.aew-pane label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.aew-pane input,
+.aew-pane textarea {
+  width: 100%;
+  border: 1px solid #cfe0f5;
+  border-radius: 12px;
+  background: #f8fbff;
+  color: #0f172a;
+  font: inherit;
+  font-weight: 500;
+  outline: none;
+  padding: 14px 15px;
+}
+
+.aew-pane textarea {
+  min-height: 115px;
+  resize: vertical;
+}
+
+.aew-pane input:focus,
+.aew-pane textarea:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+}
+
+.aew-difficulty {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.aew-toggles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.aew-toggles label {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px;
+  border: 1px solid #dbe6f5;
+  border-radius: 14px;
+  background: #f8fbff;
+}
+
+.aew-toggles input {
+  width: 20px;
+  height: 20px;
+  accent-color: #4f46e5;
+}
+
+.aew-upload {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  min-height: 255px;
+  padding: 28px;
+  border: 2px dashed #cfdcf0;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fbfdff, #f5f8ff);
+  color: #475569;
+  text-align: center;
+}
+
+.aew-upload i {
+  color: #6366f1;
+  font-size: 38px;
+}
+
+.aew-upload strong {
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.aew-upload p {
+  max-width: 470px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.aew-upload input {
+  max-width: 430px;
+}
+
+.aew-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 34px 28px;
+  border-top: 1px solid #dbe6f5;
+}
+
+.aew-spacer {
+  flex: 1;
+}
+
+.aew-btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1px solid #d7e4f5;
+  padding: 0 24px;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.aew-btn.ghost {
+  background: #fff;
+  color: #1e3a5f;
+}
+
+.aew-btn.soft {
+  background: #eef5ff;
+  color: #0f2a4c;
+}
+
+.aew-btn.primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, #6d5dfc, #e07fc9);
+  color: #fff;
+  box-shadow: 0 12px 28px rgba(109, 93, 252, 0.22);
+}
+
+.aew-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+@keyframes aewFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-exam-wizard-host {
+    padding: 12px;
+  }
+
+  .admin-exam-wizard {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .aew-side {
+    display: none;
+  }
+
+  .aew-progress {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .aew-progress i {
+    display: none;
+  }
+
+  .aew-grid-2,
+  .aew-difficulty,
+  .aew-toggles {
+    grid-template-columns: 1fr;
+  }
+
+  .aew-footer {
+    flex-wrap: wrap;
+  }
+
+  .aew-spacer {
+    display: none;
+  }
+}

@@ -2,6 +2,9 @@ package com.yashwanth.ai_exam_system.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -59,8 +62,8 @@ public class Certificate {
 
     // ================= PDF STORAGE =================
 
-    @Lob
     @JsonIgnore
+    @JdbcTypeCode(SqlTypes.VARBINARY)
     @Column(name = "pdf_data", columnDefinition = "BYTEA")
     private byte[] pdfData;
 

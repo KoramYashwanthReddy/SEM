@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -62,21 +61,24 @@ public class StudentDashboardController {
         return ResponseEntity.ok(ApiResponse.success("Student bootstrap fetched", payload));
     }
 
+    @GetMapping("/certificates")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCertificates(
+            Authentication auth) {
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "Student certificates fetched",
+                dashboardService.getStudentCertificatesPayload(resolveStudentId(auth))));
+    }
+
     @GetMapping("/stats")
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getQuickStats(
             Authentication auth) {
 
-        StudentDashboardResponse dashboard =
-                dashboardService.getDashboardForIdentifier(auth.getName());
-
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("averageScore", dashboard.getAverageScore());
-        stats.put("attempted", dashboard.getAttemptedCount());
-        stats.put("rank", dashboard.getLeaderboardRank());
-        stats.put("certificates", dashboard.getCertificatesEarned());
-
-        return ResponseEntity.ok(ApiResponse.success("Stats fetched", stats));
+        return ResponseEntity.ok(ApiResponse.success(
+                "Stats fetched",
+                dashboardService.getStudentQuickStats(resolveStudentId(auth))));
     }
 
     @GetMapping("/stats/{studentId}")
@@ -84,16 +86,9 @@ public class StudentDashboardController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getQuickStats(
             @PathVariable Long studentId) {
 
-        StudentDashboardResponse dashboard =
-                dashboardService.getDashboard(studentId);
-
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("averageScore", dashboard.getAverageScore());
-        stats.put("attempted", dashboard.getAttemptedCount());
-        stats.put("rank", dashboard.getLeaderboardRank());
-        stats.put("certificates", dashboard.getCertificatesEarned());
-
-        return ResponseEntity.ok(ApiResponse.success("Stats fetched", stats));
+        return ResponseEntity.ok(ApiResponse.success(
+                "Stats fetched",
+                dashboardService.getStudentQuickStats(studentId)));
     }
 
     @GetMapping("/alerts")
@@ -101,13 +96,9 @@ public class StudentDashboardController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAlerts(
             Authentication auth) {
 
-        StudentDashboardResponse dashboard =
-                dashboardService.getDashboardForIdentifier(auth.getName());
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("cheatingAlerts", dashboard.getCheatingAlerts());
-
-        return ResponseEntity.ok(ApiResponse.success("Alerts fetched", data));
+        return ResponseEntity.ok(ApiResponse.success(
+                "Alerts fetched",
+                dashboardService.getStudentAlerts(resolveStudentId(auth))));
     }
 
     @GetMapping("/alerts/{studentId}")
@@ -115,13 +106,9 @@ public class StudentDashboardController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAlerts(
             @PathVariable Long studentId) {
 
-        StudentDashboardResponse dashboard =
-                dashboardService.getDashboard(studentId);
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("cheatingAlerts", dashboard.getCheatingAlerts());
-
-        return ResponseEntity.ok(ApiResponse.success("Alerts fetched", data));
+        return ResponseEntity.ok(ApiResponse.success(
+                "Alerts fetched",
+                dashboardService.getStudentAlerts(studentId)));
     }
 
     @GetMapping("/performance")
@@ -129,13 +116,9 @@ public class StudentDashboardController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getPerformance(
             Authentication auth) {
 
-        StudentDashboardResponse dashboard =
-                dashboardService.getDashboardForIdentifier(auth.getName());
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("trend", dashboard.getPerformanceTrend());
-
-        return ResponseEntity.ok(ApiResponse.success("Performance trend fetched", data));
+        return ResponseEntity.ok(ApiResponse.success(
+                "Performance trend fetched",
+                dashboardService.getStudentPerformance(resolveStudentId(auth))));
     }
 
     @GetMapping("/performance/{studentId}")
@@ -143,13 +126,9 @@ public class StudentDashboardController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getPerformance(
             @PathVariable Long studentId) {
 
-        StudentDashboardResponse dashboard =
-                dashboardService.getDashboard(studentId);
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("trend", dashboard.getPerformanceTrend());
-
-        return ResponseEntity.ok(ApiResponse.success("Performance trend fetched", data));
+        return ResponseEntity.ok(ApiResponse.success(
+                "Performance trend fetched",
+                dashboardService.getStudentPerformance(studentId)));
     }
 
     @GetMapping("/weak-topics")
@@ -157,13 +136,9 @@ public class StudentDashboardController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getWeakTopics(
             Authentication auth) {
 
-        StudentDashboardResponse dashboard =
-                dashboardService.getDashboardForIdentifier(auth.getName());
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("weakTopics", dashboard.getWeakTopics());
-
-        return ResponseEntity.ok(ApiResponse.success("Weak topics fetched", data));
+        return ResponseEntity.ok(ApiResponse.success(
+                "Weak topics fetched",
+                dashboardService.getStudentWeakTopics(resolveStudentId(auth))));
     }
 
     @GetMapping("/weak-topics/{studentId}")
@@ -171,12 +146,15 @@ public class StudentDashboardController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getWeakTopics(
             @PathVariable Long studentId) {
 
-        StudentDashboardResponse dashboard =
-                dashboardService.getDashboard(studentId);
+        return ResponseEntity.ok(ApiResponse.success(
+                "Weak topics fetched",
+                dashboardService.getStudentWeakTopics(studentId)));
+    }
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("weakTopics", dashboard.getWeakTopics());
-
-        return ResponseEntity.ok(ApiResponse.success("Weak topics fetched", data));
+    private Long resolveStudentId(Authentication auth) {
+        if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
+            return null;
+        }
+        return dashboardService.resolveStudentId(auth.getName());
     }
 }

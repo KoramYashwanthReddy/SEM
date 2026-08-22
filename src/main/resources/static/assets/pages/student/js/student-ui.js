@@ -1,5 +1,5 @@
 (() => {
-  const K = { p:'student-ui-profile', s:'student-ui-settings', sec:'student-ui-section', q:'student-ui-search', t:'student-ui-theme', er:'student-ui-exam-reg', es:'student-ui-exam-sessions', ea:'student-ui-exam-attempts', ev:'student-ui-exam-verification', nn:'student-ui-notifications' };
+  const K = { p: 'student-ui-profile', s: 'student-ui-settings', sec: 'student-ui-section', q: 'student-ui-search', t: 'student-ui-theme', er: 'student-ui-exam-reg', es: 'student-ui-exam-sessions', ea: 'student-ui-exam-attempts', ev: 'student-ui-exam-verification', nn: 'student-ui-notifications' };
   const API_BASE = /^https?:/i.test(window.location.origin) ? window.location.origin : 'http://localhost:8080';
   const AUTH_KEYS = ['token', 'accessToken', 'jwt', 'authToken', 'access_token'];
   const $ = (id) => document.getElementById(id);
@@ -161,18 +161,18 @@
       page: 1,
       pageSize: 10
     },
-      leaderboard: {
-        mode: 'global',
-        sort: 'rank',
-        q: ''
-      },
-      analytics: {
-        trendFilter: 'this-month',
-        passFilter: 'all-exams',
-        mixFilter: 'all-exams'
-      },
-      profile: load(K.p, { fullName:'', email:'', phone:'', collegeName:'', department:'', year:'', rollNumber:'', section:'', gender:'', dateOfBirth:'', profileCompleted:false }),
-    settings: load(K.s, { emailAlerts:true, examReminders:true, compactDensity:false, highContrast:false }),
+    leaderboard: {
+      mode: 'global',
+      sort: 'rank',
+      q: ''
+    },
+    analytics: {
+      trendFilter: 'this-month',
+      passFilter: 'all-exams',
+      mixFilter: 'all-exams'
+    },
+    profile: load(K.p, { fullName: '', email: '', phone: '', collegeName: '', department: '', year: '', rollNumber: '', section: '', gender: '', dateOfBirth: '', profileCompleted: false }),
+    settings: load(K.s, { emailAlerts: true, examReminders: true, compactDensity: false, highContrast: false }),
     examRegistration: load(K.er, {}),
     examSessions: load(K.es, {}),
     examAttemptIds: load(K.ea, {}),
@@ -190,7 +190,7 @@
       currentStepValid: false
     },
     data: {
-      dash: { totalExams:0, attemptedCount:0, averageScore:0, certificatesEarned:0, trend:[], attempts:[] },
+      dash: { totalExams: 0, attemptedCount: 0, averageScore: 0, certificatesEarned: 0, trend: [], attempts: [] },
       exams: [],
       results: [],
       certs: [],
@@ -198,13 +198,13 @@
         global: [],
         exam: []
       },
-      analytics: { attemptedExams:0, averageScore:0, highestScore:0, lowestScore:0, passRate:0 },
+      analytics: { attemptedExams: 0, averageScore: 0, highestScore: 0, lowestScore: 0, passRate: 0 },
       notifications: loadArray(K.nn, []),
       supportFaq: [
-        { question:'How do I start an exam?', answer:'Open the Exam section, verify the access window, and complete pre-exam verification when prompted.' },
-        { question:'Why is my exam locked?', answer:'Exams can be locked because registration is required, the window is closed, or the live timer has not started yet.' },
-        { question:'What happens if proctoring fails?', answer:'The session is paused or flagged according to policy, and you should contact support immediately.' },
-        { question:'How do I download certificates?', answer:'Go to the Certificates section and open a verified certificate to download it securely.' }
+        { question: 'How do I start an exam?', answer: 'Open the Exam section, verify the access window, and complete pre-exam verification when prompted.' },
+        { question: 'Why is my exam locked?', answer: 'Exams can be locked because registration is required, the window is closed, or the live timer has not started yet.' },
+        { question: 'What happens if proctoring fails?', answer: 'The session is paused or flagged according to policy, and you should contact support immediately.' },
+        { question: 'How do I download certificates?', answer: 'Go to the Certificates section and open a verified certificate to download it securely.' }
       ],
       proctoring: {
         cameraEnabled: true,
@@ -256,7 +256,7 @@
         percentage: Number(item.percentage || 0),
         badge: item.badge || 'PARTICIPANT',
         status: 'Completed',
-        date: 'Recent',
+        date: item.submittedAt || item.endTime || item.createdAt || 'Recent',
         duration: '-'
       }))
     };
@@ -430,8 +430,14 @@
 
   async function fetchStudentBootstrapPayload() {
     const safeObject = (value) => (value && typeof value === 'object' ? value : {});
+    const unwrapApiResponse = (value) => {
+      const object = safeObject(value);
+      const nested = safeObject(object.data);
+      return Object.keys(nested).length ? { ...object, ...nested } : object;
+    };
     const requests = {
       bootstrap: apiRequest('/student/bootstrap'),
+      certificates: apiRequest('/student/certificates'),
       dashboard: apiRequest('/student/dashboard'),
       stats: apiRequest('/student/stats'),
       alerts: apiRequest('/student/alerts'),
@@ -439,8 +445,9 @@
       weakTopics: apiRequest('/student/weak-topics')
     };
 
-    const [bootstrap, dashboard, stats, alerts, performance, weakTopics] = await Promise.allSettled([
+    const [bootstrap, certificates, dashboard, stats, alerts, performance, weakTopics] = await Promise.allSettled([
       requests.bootstrap,
+      requests.certificates,
       requests.dashboard,
       requests.stats,
       requests.alerts,
@@ -448,13 +455,31 @@
       requests.weakTopics
     ]);
 
-    const payload = safeObject(bootstrap.status === 'fulfilled' ? bootstrap.value : null);
+    const payload = unwrapApiResponse(bootstrap.status === 'fulfilled' ? bootstrap.value : null);
 
-    const dashboardValue = safeObject(dashboard.status === 'fulfilled' ? dashboard.value : null);
-    const statsValue = safeObject(stats.status === 'fulfilled' ? stats.value : null);
-    const alertsValue = safeObject(alerts.status === 'fulfilled' ? alerts.value : null);
-    const performanceValue = safeObject(performance.status === 'fulfilled' ? performance.value : null);
-    const weakTopicsValue = safeObject(weakTopics.status === 'fulfilled' ? weakTopics.value : null);
+    if (
+      payload &&
+      typeof payload === 'object' &&
+      payload.dashboard &&
+      Array.isArray(payload.certificates) &&
+      Array.isArray(payload.attempts) &&
+      Array.isArray(payload.results) &&
+      Array.isArray(payload.exams)
+    ) {
+      return payload;
+    }
+
+    const certificatesValue = unwrapApiResponse(certificates.status === 'fulfilled' ? certificates.value : null);
+    const dashboardValue = unwrapApiResponse(dashboard.status === 'fulfilled' ? dashboard.value : null);
+    const statsValue = unwrapApiResponse(stats.status === 'fulfilled' ? stats.value : null);
+    const alertsValue = unwrapApiResponse(alerts.status === 'fulfilled' ? alerts.value : null);
+    const performanceValue = unwrapApiResponse(performance.status === 'fulfilled' ? performance.value : null);
+    const weakTopicsValue = unwrapApiResponse(weakTopics.status === 'fulfilled' ? weakTopics.value : null);
+
+    if (Array.isArray(certificatesValue.certificates) && certificatesValue.certificates.length) {
+      payload.certificates = certificatesValue.certificates;
+      payload.certificateCount = certificatesValue.certificateCount ?? certificatesValue.certificates.length;
+    }
 
     if (!payload.dashboard && Object.keys(dashboardValue).length) {
       payload.dashboard = dashboardValue;
@@ -485,32 +510,32 @@
   let booting = true;
   const el = {};
   const ico = {
-    menu:'<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
-    search:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.8-3.8"/></svg>',
-    filter:'<svg viewBox="0 0 24 24"><path d="M4 5h16l-6 7v5l-4 2v-7z"/></svg>',
-    bell:'<svg viewBox="0 0 24 24"><path d="M15 17H5l1.4-2.1A2 2 0 0 0 7 13.7V10a5 5 0 0 1 10 0v3.7c0 .4.1.8.3 1.1L18 17h-3"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>',
-    chevron:'<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>',
-    collapse:'<svg viewBox="0 0 24 24"><path d="M10 5 4 12l6 7"/><path d="M20 12H4"/><path d="M14 5v14"/></svg>',
-    sun:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1l2.1-2.1M17 7l2.1-2.1"/></svg>',
-    moon:'<svg viewBox="0 0 24 24"><path d="M20 13.5A8.5 8.5 0 1 1 10.5 4 7 7 0 0 0 20 13.5z"/></svg>',
-    system:'<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="2"/><path d="M8 19h8M12 16v3"/></svg>',
-    refresh:'<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v6h-6"/></svg>',
-    spark:'<svg viewBox="0 0 24 24"><path d="M13 2l1.8 6.2L21 10l-6.2 1.8L13 18l-1.8-6.2L5 10l6.2-1.8L13 2z"/><path d="M4 20h16"/></svg>',
-    dashboard:'<svg viewBox="0 0 24 24"><path d="M4 5h7v7H4zM13 5h7v4h-7zM13 11h7v8h-7zM4 14h7v5H4z"/></svg>',
-    exams:'<svg viewBox="0 0 24 24"><path d="M7 4h10v16H7z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
-    results:'<svg viewBox="0 0 24 24"><path d="M5 20V4"/><path d="M5 20h14"/><path d="M8 15l3-3 2 2 4-5"/></svg>',
-    certificates:'<svg viewBox="0 0 24 24"><path d="M6 3h12v14H6z"/><path d="M10 17v4l2-1.5L14 21v-4"/><path d="M9 8h6M9 11h6"/></svg>',
-    leaderboard:'<svg viewBox="0 0 24 24"><path d="M5 20h14"/><path d="M8 20V9h3v11"/><path d="M13 20V4h3v16"/></svg>',
-    profile:'<svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>',
-    analytics:'<svg viewBox="0 0 24 24"><path d="M5 19V5"/><path d="M5 19h14"/><path d="M8 16v-4M12 16V8M16 16v-6"/></svg>',
-    settings:'<svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5z"/><path d="M19.4 15a1.8 1.8 0 0 0 .4 2l.1.1-1.8 3.1-.1-.1a1.8 1.8 0 0 0-2-.4l-.3.1a1.8 1.8 0 0 0-1.1 1.6V22H9.4v-.6a1.8 1.8 0 0 0-1.1-1.6l-.3-.1a1.8 1.8 0 0 0-2 .4l-.1.1L4.1 17l.1-.1a1.8 1.8 0 0 0 .4-2l-.1-.3A1.8 1.8 0 0 0 2.9 13H2V11h.6a1.8 1.8 0 0 0 1.6-1.1l.1-.3a1.8 1.8 0 0 0-.4-2l-.1-.1L5.6 4.4l.1.1a1.8 1.8 0 0 0 2 .4l.3-.1A1.8 1.8 0 0 0 9.1 3.2V2h5.8v.6a1.8 1.8 0 0 0 1.1 1.6l.3.1a1.8 1.8 0 0 0 2-.4l.1-.1L20.9 7l-.1.1a1.8 1.8 0 0 0-.4 2l.1.3A1.8 1.8 0 0 0 21.1 11h.9v2h-.6a1.8 1.8 0 0 0-1.6 1.1z"/></svg>',
-    phone:'<svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></svg>',
-    logout:'<svg viewBox="0 0 24 24"><path d="M10 17l-1.5-1.5L11 13H4V11h7l-2.5-2.5L10 7l5 5z"/><path d="M20 4v16H9"/></svg>',
-    star:'<svg viewBox="0 0 24 24"><path d="m12 3 2.9 6 6.6.9-4.8 4.7 1.1 6.6-5.8-3.1-5.8 3.1 1.1-6.6-4.8-4.7 6.6-.9z"/></svg>',
-    calendar:'<svg viewBox="0 0 24 24"><path d="M7 3v3M17 3v3"/><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01"/></svg>',
-    shield:'<svg viewBox="0 0 24 24"><path d="M12 3 20 6v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V6l8-3z"/><path d="M9.5 12.2 11.2 14 15 10.2"/></svg>',
-    help:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.8 2.8 0 1 1 4.4 2.3c-.8.5-1.4 1-1.4 2.2"/><path d="M12 17h.01"/></svg>',
-    brain:'<svg viewBox="0 0 24 24"><path d="M9 5a3 3 0 0 0-3 3v1a3 3 0 0 0 0 6v1a3 3 0 0 0 3 3"/><path d="M15 5a3 3 0 0 1 3 3v1a3 3 0 0 1 0 6v1a3 3 0 0 1-3 3"/><path d="M12 4v16"/><path d="M9 9a3 3 0 0 1 6 0v6a3 3 0 0 1-6 0z"/></svg>',
+    menu: '<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
+    search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.8-3.8"/></svg>',
+    filter: '<svg viewBox="0 0 24 24"><path d="M4 5h16l-6 7v5l-4 2v-7z"/></svg>',
+    bell: '<svg viewBox="0 0 24 24"><path d="M15 17H5l1.4-2.1A2 2 0 0 0 7 13.7V10a5 5 0 0 1 10 0v3.7c0 .4.1.8.3 1.1L18 17h-3"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>',
+    chevron: '<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>',
+    collapse: '<svg viewBox="0 0 24 24"><path d="M10 5 4 12l6 7"/><path d="M20 12H4"/><path d="M14 5v14"/></svg>',
+    sun: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1l2.1-2.1M17 7l2.1-2.1"/></svg>',
+    moon: '<svg viewBox="0 0 24 24"><path d="M20 13.5A8.5 8.5 0 1 1 10.5 4 7 7 0 0 0 20 13.5z"/></svg>',
+    system: '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="2"/><path d="M8 19h8M12 16v3"/></svg>',
+    refresh: '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v6h-6"/></svg>',
+    spark: '<svg viewBox="0 0 24 24"><path d="M13 2l1.8 6.2L21 10l-6.2 1.8L13 18l-1.8-6.2L5 10l6.2-1.8L13 2z"/><path d="M4 20h16"/></svg>',
+    dashboard: '<svg viewBox="0 0 24 24"><path d="M4 5h7v7H4zM13 5h7v4h-7zM13 11h7v8h-7zM4 14h7v5H4z"/></svg>',
+    exams: '<svg viewBox="0 0 24 24"><path d="M7 4h10v16H7z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
+    results: '<svg viewBox="0 0 24 24"><path d="M5 20V4"/><path d="M5 20h14"/><path d="M8 15l3-3 2 2 4-5"/></svg>',
+    certificates: '<svg viewBox="0 0 24 24"><path d="M6 3h12v14H6z"/><path d="M10 17v4l2-1.5L14 21v-4"/><path d="M9 8h6M9 11h6"/></svg>',
+    leaderboard: '<svg viewBox="0 0 24 24"><path d="M5 20h14"/><path d="M8 20V9h3v11"/><path d="M13 20V4h3v16"/></svg>',
+    profile: '<svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>',
+    analytics: '<svg viewBox="0 0 24 24"><path d="M5 19V5"/><path d="M5 19h14"/><path d="M8 16v-4M12 16V8M16 16v-6"/></svg>',
+    settings: '<svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5z"/><path d="M19.4 15a1.8 1.8 0 0 0 .4 2l.1.1-1.8 3.1-.1-.1a1.8 1.8 0 0 0-2-.4l-.3.1a1.8 1.8 0 0 0-1.1 1.6V22H9.4v-.6a1.8 1.8 0 0 0-1.1-1.6l-.3-.1a1.8 1.8 0 0 0-2 .4l-.1.1L4.1 17l.1-.1a1.8 1.8 0 0 0 .4-2l-.1-.3A1.8 1.8 0 0 0 2.9 13H2V11h.6a1.8 1.8 0 0 0 1.6-1.1l.1-.3a1.8 1.8 0 0 0-.4-2l-.1-.1L5.6 4.4l.1.1a1.8 1.8 0 0 0 2 .4l.3-.1A1.8 1.8 0 0 0 9.1 3.2V2h5.8v.6a1.8 1.8 0 0 0 1.1 1.6l.3.1a1.8 1.8 0 0 0 2-.4l.1-.1L20.9 7l-.1.1a1.8 1.8 0 0 0-.4 2l.1.3A1.8 1.8 0 0 0 21.1 11h.9v2h-.6a1.8 1.8 0 0 0-1.6 1.1z"/></svg>',
+    phone: '<svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></svg>',
+    logout: '<svg viewBox="0 0 24 24"><path d="M10 17l-1.5-1.5L11 13H4V11h7l-2.5-2.5L10 7l5 5z"/><path d="M20 4v16H9"/></svg>',
+    star: '<svg viewBox="0 0 24 24"><path d="m12 3 2.9 6 6.6.9-4.8 4.7 1.1 6.6-5.8-3.1-5.8 3.1 1.1-6.6-4.8-4.7 6.6-.9z"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24"><path d="M7 3v3M17 3v3"/><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01"/></svg>',
+    shield: '<svg viewBox="0 0 24 24"><path d="M12 3 20 6v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V6l8-3z"/><path d="M9.5 12.2 11.2 14 15 10.2"/></svg>',
+    help: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.8 2.8 0 1 1 4.4 2.3c-.8.5-1.4 1-1.4 2.2"/><path d="M12 17h.01"/></svg>',
+    brain: '<svg viewBox="0 0 24 24"><path d="M9 5a3 3 0 0 0-3 3v1a3 3 0 0 0 0 6v1a3 3 0 0 0 3 3"/><path d="M15 5a3 3 0 0 1 3 3v1a3 3 0 0 1 0 6v1a3 3 0 0 1-3 3"/><path d="M12 4v16"/><path d="M9 9a3 3 0 0 1 6 0v6a3 3 0 0 1-6 0z"/></svg>',
     wifi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.58 16.14a6 6 0 0 1 6.84 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg>',
     alarm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6M19 3l3 6M12 21v-1"/></svg>',
     info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
@@ -525,9 +550,9 @@
     'user-outline': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
     'clipboard-check': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/></svg>'
   };
-  const badge = { PLATINUM:'success', GOLD:'warning', SILVER:'neutral', BRONZE:'danger' };
-  const statusClass = { available:'available', upcoming:'upcoming', resume:'resume', closed:'closed' };
-  const statusLabel = { available:'AVAILABLE', upcoming:'UPCOMING', resume:'RESUME', closed:'CLOSED' };
+  const badge = { PLATINUM: 'success', GOLD: 'warning', SILVER: 'neutral', BRONZE: 'danger' };
+  const statusClass = { available: 'available', upcoming: 'upcoming', resume: 'resume', closed: 'closed' };
+  const statusLabel = { available: 'AVAILABLE', upcoming: 'UPCOMING', resume: 'RESUME', closed: 'CLOSED' };
   const examTabMap = { all: 'all', available: 'available', upcoming: 'upcoming', completed: 'completed', resume: 'resume' };
   const leaderboardBadge = (pctValue) => {
     const value = Number(pctValue) || 0;
@@ -537,7 +562,7 @@
     return { label: 'Needs Improvement', tone: 'needs' };
   };
   const svg = (n) => `<span class="svg-icon">${ico[n] || icoExt[n] || ico.spark}</span>`;
-  const initials = (n) => (n || 'Student').split(/\s+/).slice(0,2).map(x => x[0] || '').join('').toUpperCase();
+  const initials = (n) => (n || 'Student').split(/\s+/).slice(0, 2).map(x => x[0] || '').join('').toUpperCase();
   const avatar = (n) => `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs><rect width="96" height="96" rx="48" fill="url(#g)"/><text x="48" y="57" text-anchor="middle" font-family="Arial" font-size="30" font-weight="700" fill="#fff">${initials(n)}</text></svg>`)}`;
   const isMobile = () => matchMedia('(max-width: 768px)').matches;
   const themeQuery = matchMedia('(prefers-color-scheme: dark)');
@@ -1289,7 +1314,7 @@
     'save-profile': 'Saving changes...'
   };
   const isBusy = (btn) => btn?.classList.contains('is-loading');
-  const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (ch) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+  const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   function setButtonBusy(btn, text) {
     if (!btn) return;
     btn.dataset.originalHtml = btn.innerHTML;
@@ -1308,7 +1333,7 @@
     if (btn?.dataset.loadingText) return btn.dataset.loadingText;
     return busyCopy[type] || 'Please wait...';
   }
-  function bind() { Object.assign(el, { sidebar:$('sidebar'), toggle:$('toggle-sidebar'), logout:$('logoutBtn'), sideNav:$('sideNav'), sidebarAvatar:$('sidebarAvatar'), sidebarName:$('sidebarName'), sidebarRole:$('sidebarRole'), topAvatar:$('topAvatar'), topName:$('topName'), topSearch:$('top-nav-search'), notifBtn:$('notifBtn'), notifCount:$('notifCount'), notifNavCount:$('notifNavCount'), notifyDrop:$('notifyDrop'), notifyDropCount:$('notifyDropCount'), notifyList:$('notifyList'), notificationTypeFilter:$('notificationTypeFilter'), markAllReadBtn:$('markAllReadBtn'), clearNotificationsBtn:$('clearNotificationsBtn'), unreadNotificationCount:$('unreadNotificationCount'), notificationStream:$('notificationStream'), scheduleDateFilter:$('scheduleDateFilter'), scheduleList:$('scheduleList'), scheduleTimeline:$('scheduleTimeline'), scheduleTodayBadge:$('scheduleTodayBadge'), kpiTodayCount:$('kpiTodayCount'), kpiTodayDesc:$('kpiTodayDesc'), kpiUpcomingCount:$('kpiUpcomingCount'), kpiUpcomingDesc:$('kpiUpcomingDesc'), kpiLiveCount:$('kpiLiveCount'), kpiLiveDesc:$('kpiLiveDesc'), kpiTotalCount:$('kpiTotalCount'), kpiTotalDesc:$('kpiTotalDesc'), btnTimelineMore:$('btnTimelineMore'), proctoringStatusGrid:$('proctoringStatusGrid'), proctoringSummaryPanel:$('proctoringSummaryPanel'), proctoringStatusBanner:$('proctoringStatusBanner'), proctoringInfoBtn:$('proctoringInfoBtn'), btnProctoringLearn:$('btnProctoringLearn'), faqAccordion:$('faqAccordion'), faqSearch:$('faqSearch'), btnSupportBannerAction:$('btnSupportBannerAction'), contactSupportForm:$('contactSupportForm'), reportIssueForm:$('reportIssueForm'), supportTabs:$$('[data-support-tab]'), supportPanels:$$('[data-support-panel]'), profileDd:$('profileDd'), profileMenuBtn:$('profileMenuBtn'), profileMenu:$('profileMenu'), profileLogout:$('profileLogout'), themeToggle:$('themeToggle'), themeButtons:$$('[data-theme-mode]', $('themeToggle')), dashStatsGrid:$('dashStatsGrid'), recentAttemptsBody:$('recentAttemptsBody'), performanceTrendChart:$('performanceTrendChart'), chartPlaceholder:$('chartPlaceholder'), refreshDashboard:$('refreshDashboard'), dashboardActionBtn:$('dashboardActionBtn'), attemptsResetBtn:$('attemptsResetBtn'), examSearch:$('examSearch'), examFilter:$('examFilter'), refreshExamsBtn:$('refreshExamsBtn'), examTabs:$$('[data-tab]'), summaryPill:$('summaryPill'), examStatusLegend:$('examStatusLegend'), unregisteredGrid:$('unregisteredGrid'), upcomingGrid:$('upcomingGrid'), closedGrid:$('closedGrid'), unregisteredCount:$('unregisteredCount'), upcomingCount:$('upcomingCount'), closedCount:$('closedCount'), myExamSearch:$('myExamSearch'), myExamFilter:$('myExamFilter'), myExamTabs:$$('[data-my-tab]'), myExamSummaryPill:$('myExamSummaryPill'), registeredGrid:$('registeredGrid'), resumeMyGrid:$('resumeMyGrid'), completedGrid:$('completedGrid'), reexamGrid:$('reexamGrid'), registeredCount:$('registeredCount'), resumeMyCount:$('resumeMyCount'), completedMyCount:$('completedMyCount'), reexamCount:$('reexamCount'), resultsSummaryGrid:$('resultsSummaryGrid'), resultsFilter:$('resultsFilter'), resultsFilterBtn:$('resultsFilterBtn'), resultsSearch:$('resultsSearch'), resultsResetBtn:$('resultsResetBtn'), resultsBody:$('resultsBody'), resultsPageInfo:$('resultsPageInfo'), resultsPagination:$('resultsPagination'), certificatesSummaryGrid:$('certificatesSummaryGrid'), certificatesFilter:$('certificatesFilter'), certificatesSearch:$('certificatesSearch'), certificatesResetBtn:$('certificatesResetBtn'), certificatesGrid:$('certificatesGrid'), leaderboardModeToggle:$('leaderboardModeToggle'), leaderboardModeButtons:$$('[data-leaderboard-mode]', $('leaderboardModeToggle')), leaderboardSearch:$('leaderboardSearch'), leaderboardSort:$('leaderboardSort'), leaderboardRefresh:$('leaderboardRefresh'), leaderboardSummaryGrid:$('leaderboardSummaryGrid'), leaderboardExamFilter:$('leaderboardExamFilter'), yourRankCard:$('yourRankCard'), podiumGrid:$('podiumGrid'), leaderboardBody:$('leaderboardBody'), analyticsCards:$('analyticsCards'), analyticsLineChart:$('analyticsLineChart'), analyticsBarChart:$('analyticsBarChart'), analyticsDonutChart:$('analyticsDonutChart'), analyticsTrendFilter:$('analyticsTrendFilter'), analyticsPassFilter:$('analyticsPassFilter'), analyticsMixFilter:$('analyticsMixFilter'), editProfileBtn:$('editProfileBtn'), profileForm:$('profileForm'), profilePhotoPreview:$('profilePhotoPreview'), profilePhotoName:$('profilePhotoName'), profileEditorModal:$('profileEditorModal'), profileEditorClose:$('profileEditorClose'), profileEditorForm:$('profileEditorForm'), profileEditorCancel:$('profileEditorCancel'), profileEditorSave:$('profileEditorSave'), profileEditorPhotoInput:$('profileEditorPhotoInput'), profileEditorPhotoUploadBtn:$('profileEditorPhotoUploadBtn'), profileEditorPhotoRemoveBtn:$('profileEditorPhotoRemoveBtn'), profileEditorPhotoPreview:$('profileEditorPhotoPreview'), profileEditorPhotoCircle:$('profileEditorPhotoCircle'), profileEditorPhotoName:$('profileEditorPhotoName'), detailModal:$('detailModal'), detailModalKicker:$('detailModalKicker'), detailModalTitle:$('detailModalTitle'), detailModalBody:$('detailModalBody'), detailModalFoot:$('detailModalFoot'), detailModalClose:$('detailModalCloseBtn'), detailModalTitleIcon:$('detailModalTitleIcon'), examVerificationModal:$('examVerificationModal'), examVerificationClose:$('examVerificationClose'), examVerificationTitle:$('examVerificationTitle'), examVerificationSubtitle:$('examVerificationSubtitle'), examVerificationBody:$('examVerificationBody'), examVerificationFoot:$('examVerificationFoot'), examStepper:$('examStepper'), examSecurityIndicators:$('examSecurityIndicators'), toastStack:$('toastStack'), liveClock:$('liveClock') }); }
+  function bind() { Object.assign(el, { sidebar: $('sidebar'), toggle: $('toggle-sidebar'), logout: $('logoutBtn'), sideNav: $('sideNav'), sidebarAvatar: $('sidebarAvatar'), sidebarName: $('sidebarName'), sidebarRole: $('sidebarRole'), topAvatar: $('topAvatar'), topName: $('topName'), topSearch: $('top-nav-search'), notifBtn: $('notifBtn'), notifCount: $('notifCount'), notifNavCount: $('notifNavCount'), notifyDrop: $('notifyDrop'), notifyDropCount: $('notifyDropCount'), notifyList: $('notifyList'), notificationTypeFilter: $('notificationTypeFilter'), markAllReadBtn: $('markAllReadBtn'), clearNotificationsBtn: $('clearNotificationsBtn'), unreadNotificationCount: $('unreadNotificationCount'), notificationStream: $('notificationStream'), scheduleDateFilter: $('scheduleDateFilter'), scheduleList: $('scheduleList'), scheduleTimeline: $('scheduleTimeline'), scheduleTodayBadge: $('scheduleTodayBadge'), kpiTodayCount: $('kpiTodayCount'), kpiTodayDesc: $('kpiTodayDesc'), kpiUpcomingCount: $('kpiUpcomingCount'), kpiUpcomingDesc: $('kpiUpcomingDesc'), kpiLiveCount: $('kpiLiveCount'), kpiLiveDesc: $('kpiLiveDesc'), kpiTotalCount: $('kpiTotalCount'), kpiTotalDesc: $('kpiTotalDesc'), btnTimelineMore: $('btnTimelineMore'), proctoringStatusGrid: $('proctoringStatusGrid'), proctoringSummaryPanel: $('proctoringSummaryPanel'), proctoringStatusBanner: $('proctoringStatusBanner'), proctoringInfoBtn: $('proctoringInfoBtn'), btnProctoringLearn: $('btnProctoringLearn'), faqAccordion: $('faqAccordion'), faqSearch: $('faqSearch'), btnSupportBannerAction: $('btnSupportBannerAction'), contactSupportForm: $('contactSupportForm'), reportIssueForm: $('reportIssueForm'), supportTabs: $$('[data-support-tab]'), supportPanels: $$('[data-support-panel]'), profileDd: $('profileDd'), profileMenuBtn: $('profileMenuBtn'), profileMenu: $('profileMenu'), profileLogout: $('profileLogout'), themeToggle: $('themeToggle'), themeButtons: $$('[data-theme-mode]', $('themeToggle')), dashStatsGrid: $('dashStatsGrid'), recentAttemptsBody: $('recentAttemptsBody'), performanceTrendChart: $('performanceTrendChart'), chartPlaceholder: $('chartPlaceholder'), refreshDashboard: $('refreshDashboard'), dashboardActionBtn: $('dashboardActionBtn'), attemptsResetBtn: $('attemptsResetBtn'), examSearch: $('examSearch'), examFilter: $('examFilter'), refreshExamsBtn: $('refreshExamsBtn'), examTabs: $$('[data-tab]'), summaryPill: $('summaryPill'), examStatusLegend: $('examStatusLegend'), unregisteredGrid: $('unregisteredGrid'), upcomingGrid: $('upcomingGrid'), closedGrid: $('closedGrid'), unregisteredCount: $('unregisteredCount'), upcomingCount: $('upcomingCount'), closedCount: $('closedCount'), myExamSearch: $('myExamSearch'), myExamFilter: $('myExamFilter'), myExamTabs: $$('[data-my-tab]'), myExamSummaryPill: $('myExamSummaryPill'), registeredGrid: $('registeredGrid'), resumeMyGrid: $('resumeMyGrid'), completedGrid: $('completedGrid'), reexamGrid: $('reexamGrid'), registeredCount: $('registeredCount'), resumeMyCount: $('resumeMyCount'), completedMyCount: $('completedMyCount'), reexamCount: $('reexamCount'), resultsSummaryGrid: $('resultsSummaryGrid'), resultsFilter: $('resultsFilter'), resultsFilterBtn: $('resultsFilterBtn'), resultsSearch: $('resultsSearch'), resultsResetBtn: $('resultsResetBtn'), resultsBody: $('resultsBody'), resultsPageInfo: $('resultsPageInfo'), resultsPagination: $('resultsPagination'), certificatesSummaryGrid: $('certificatesSummaryGrid'), certificatesFilter: $('certificatesFilter'), certificatesSearch: $('certificatesSearch'), certificatesResetBtn: $('certificatesResetBtn'), certificatesGrid: $('certificatesGrid'), leaderboardModeToggle: $('leaderboardModeToggle'), leaderboardModeButtons: $$('[data-leaderboard-mode]', $('leaderboardModeToggle')), leaderboardSearch: $('leaderboardSearch'), leaderboardSort: $('leaderboardSort'), leaderboardRefresh: $('leaderboardRefresh'), leaderboardSummaryGrid: $('leaderboardSummaryGrid'), leaderboardExamFilter: $('leaderboardExamFilter'), yourRankCard: $('yourRankCard'), podiumGrid: $('podiumGrid'), leaderboardBody: $('leaderboardBody'), analyticsCards: $('analyticsCards'), analyticsLineChart: $('analyticsLineChart'), analyticsBarChart: $('analyticsBarChart'), analyticsDonutChart: $('analyticsDonutChart'), analyticsTrendFilter: $('analyticsTrendFilter'), analyticsPassFilter: $('analyticsPassFilter'), analyticsMixFilter: $('analyticsMixFilter'), editProfileBtn: $('editProfileBtn'), profileForm: $('profileForm'), profilePhotoPreview: $('profilePhotoPreview'), profilePhotoName: $('profilePhotoName'), profileEditorModal: $('profileEditorModal'), profileEditorClose: $('profileEditorClose'), profileEditorForm: $('profileEditorForm'), profileEditorCancel: $('profileEditorCancel'), profileEditorSave: $('profileEditorSave'), profileEditorPhotoInput: $('profileEditorPhotoInput'), profileEditorPhotoUploadBtn: $('profileEditorPhotoUploadBtn'), profileEditorPhotoRemoveBtn: $('profileEditorPhotoRemoveBtn'), profileEditorPhotoPreview: $('profileEditorPhotoPreview'), profileEditorPhotoCircle: $('profileEditorPhotoCircle'), profileEditorPhotoName: $('profileEditorPhotoName'), detailModal: $('detailModal'), detailModalKicker: $('detailModalKicker'), detailModalTitle: $('detailModalTitle'), detailModalBody: $('detailModalBody'), detailModalFoot: $('detailModalFoot'), detailModalClose: $('detailModalCloseBtn'), detailModalTitleIcon: $('detailModalTitleIcon'), examVerificationModal: $('examVerificationModal'), examVerificationClose: $('examVerificationClose'), examVerificationTitle: $('examVerificationTitle'), examVerificationSubtitle: $('examVerificationSubtitle'), examVerificationBody: $('examVerificationBody'), examVerificationFoot: $('examVerificationFoot'), examStepper: $('examStepper'), examSecurityIndicators: $('examSecurityIndicators'), toastStack: $('toastStack'), liveClock: $('liveClock') }); }
   function hydrateIcons(root = document) {
     $$('[data-icon]', root).forEach((node) => {
       const name = node.dataset.icon;
@@ -1316,8 +1341,8 @@
       if (icon) node.innerHTML = icon;
     });
   }
-  function toast(t, m, tone='info') { const n = document.createElement('div'); n.className = `toast ${tone}`; n.innerHTML = `<strong>${t}</strong><span>${m}</span>`; el.toastStack.appendChild(n); setTimeout(() => { n.style.opacity = '0'; n.style.transform = 'translateY(8px)'; setTimeout(() => n.remove(), 220); }, 3200); }
-  function modal({ kicker='Student Detail', title='', titleIcon='', body='', foot='' }) {
+  function toast(t, m, tone = 'info') { const n = document.createElement('div'); n.className = `toast ${tone}`; n.innerHTML = `<strong>${t}</strong><span>${m}</span>`; el.toastStack.appendChild(n); setTimeout(() => { n.style.opacity = '0'; n.style.transform = 'translateY(8px)'; setTimeout(() => n.remove(), 220); }, 3200); }
+  function modal({ kicker = 'Student Detail', title = '', titleIcon = '', body = '', foot = '' }) {
     if (el.detailModalTitleIcon) {
       el.detailModalTitleIcon.innerHTML = titleIcon || '';
       el.detailModalTitleIcon.style.display = titleIcon ? 'grid' : 'none';
@@ -1414,12 +1439,12 @@
 
   async function startVerificationCamera() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          width: { ideal: 640 }, 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 640 },
           height: { ideal: 480 },
           facingMode: 'user'
-        } 
+        }
       });
       activeVerificationStream = stream;
       const video = document.getElementById('verificationVideo');
@@ -1471,8 +1496,8 @@
 
   async function startAccessCamera() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' } 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
       });
       activeAccessStream = stream;
       const video = document.getElementById('accessVideo');
@@ -1658,7 +1683,7 @@
     }
     accessWizardStep = 1;
     accessImageData = '';
-    
+
     modal({
       kicker: 'EXAM READY',
       title: `${exam.examCode} – ${exam.title}`,
@@ -1711,8 +1736,8 @@
       el.examVerificationSubtitle.textContent = mode === 'register'
         ? `Secure registration verification for ${exam.subject} opens at ${formatExamDateTime(exam)}.`
         : isPhase2
-        ? `Phase 2 registration with enhanced verification for ${exam.subject} starts at ${formatExamDateTime(exam)}.`
-        : `Secure verification for ${exam.subject} starts at ${formatExamDateTime(exam)}.`;
+          ? `Phase 2 registration with enhanced verification for ${exam.subject} starts at ${formatExamDateTime(exam)}.`
+          : `Secure verification for ${exam.subject} starts at ${formatExamDateTime(exam)}.`;
     }
     el.examVerificationModal.classList.remove('hidden');
     el.examVerificationModal.setAttribute('aria-hidden', 'false');
@@ -2382,25 +2407,25 @@
 
     el.sidebarName.textContent = profileName;
     el.sidebarRole.textContent = `${profileDept} Learner`;
-    
+
     // Top nav name & role
     el.topName.textContent = profileName;
     const tr = $('topRole');
     if (tr) tr.textContent = `${profileDept} Learner`;
-    
+
     // Dropdown profile details
     const dn = $('dropdownName');
     if (dn) dn.textContent = profileName;
     const de = $('dropdownEmail');
     if (de) de.textContent = profileEmail;
-    
+
     const photoSrc = (st.profile.profilePhoto && st.profile.profilePhoto.trim())
       ? st.profile.profilePhoto
       : avatar(st.profile.fullName);
-      
+
     el.sidebarAvatar.src = photoSrc;
     el.topAvatar.src = photoSrc;
-    
+
     const da = $('dropdownAvatar');
     if (da) da.src = photoSrc;
 
@@ -2425,7 +2450,7 @@
     setProfileText('studentDetailGender', st.profile.gender);
     $('profileStatusChip')?.classList.toggle('is-pending', !profileCompleted);
     $('studentProfileComplete')?.classList.toggle('is-pending', !profileCompleted);
-    
+
     fillProfileForm(el.profileForm);
     fillProfileForm(el.profileEditorForm);
     syncProfilePhotoPreview();
@@ -2457,7 +2482,55 @@
       renderAnalyticsCharts();
     }
   }
-  function renderCards() { const c = [['Total Exams',st.data.dash.totalExams,'dashboard','blue'],['Attempted Exams',st.data.dash.attemptedCount,'exams','purple'],['Average Score',pct(st.data.dash.averageScore),'analytics','green'],['Certificates Earned',st.data.dash.certificatesEarned,'certificates','amber']]; el.dashStatsGrid.innerHTML = c.map(([t,v,i,tn]) => `<article class="stat-card stat-${tn}"><div class="stat-icon">${svg(i)}</div><div class="stat-copy"><span class="stat-label">${t}</span><strong class="stat-value">${v}</strong><small class="stat-hint">Enterprise UI data</small></div></article>`).join(''); const a = st.data.analytics; el.analyticsCards.innerHTML = [['Attempted Exams',a.attemptedExams,'dashboard'],['Average Score',pct(a.averageScore),'analytics'],['Highest Score',a.highestScore,'star'],['Lowest Score',a.lowestScore,'results']].map(([t,v,i]) => `<article class="stat-card"><div class="stat-icon">${svg(i)}</div><div class="stat-copy"><span class="stat-label">${t}</span><strong class="stat-value">${v}</strong></div></article>`).join(''); }
+  function renderCards() {
+    const nameEl = $('dashWelcomeName');
+    if (nameEl && st.profile?.fullName) {
+      nameEl.textContent = st.profile.fullName.split(' ')[0];
+    }
+
+    const c = [
+      ['Total Exams',        st.data.dash.totalExams,           'dashboard',    'blue',   '↑ 20%'],
+      ['Attempted Exams',    st.data.dash.attemptedCount,       'exams',        'purple', '↑ 20%'],
+      ['Average Score',      pct(st.data.dash.averageScore),    'analytics',    'green',  '↑ 8.5%'],
+      ['Certificates Earned',st.data.dash.certificatesEarned,  'certificates', 'amber',  '↑ 100%']
+    ];
+
+    el.dashStatsGrid.innerHTML = c.map(([t, v, i, tn, trend]) => {
+      const isUp = trend.startsWith('↑');
+      const trendClass = isUp ? 'up' : 'down';
+      return `
+        <article class="stat-card stat-${tn}">
+          <div class="stat-icon">${svg(i)}</div>
+          <div class="stat-copy">
+            <span class="stat-label">${t}</span>
+            <strong class="stat-value">${v}</strong>
+            <small class="stat-hint">
+              All time
+              <span class="stat-trend-delta ${trendClass}">${trend}</span>
+            </small>
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    const a = st.data.analytics;
+    if (el.analyticsCards) {
+      el.analyticsCards.innerHTML = [
+        ['Attempted Exams', a.attemptedExams, 'dashboard'],
+        ['Average Score', pct(a.averageScore), 'analytics'],
+        ['Highest Score', a.highestScore, 'star'],
+        ['Lowest Score', a.lowestScore, 'results']
+      ].map(([t, v, i]) => `
+        <article class="stat-card">
+          <div class="stat-icon">${svg(i)}</div>
+          <div class="stat-copy">
+            <span class="stat-label">${t}</span>
+            <strong class="stat-value">${v}</strong>
+          </div>
+        </article>
+      `).join('');
+    }
+  }
   function getAnalyticsRows() {
     const rows = Array.isArray(st.data.results) ? st.data.results : [];
     if (rows.length) return rows;
@@ -2608,7 +2681,63 @@
         </div>
       </article>`).join('');
   }
-  function renderDashboardTable() { const q = st.q.trim().toLowerCase(); const rows = st.data.dash.attempts.filter(r => !q || [r.examCode,r.badge,r.status].some(v => String(v).toLowerCase().includes(q))); el.recentAttemptsBody.innerHTML = rows.length ? rows.map(r => `<tr class="clickable-row" data-detail="attempt" data-code="${r.examCode}"><td><strong>${r.examCode}</strong></td><td>${r.obtainedMarks}</td><td>${r.totalMarks}</td><td>${pct(r.percentage)}</td><td><span class="badge ${badge[r.badge] || 'neutral'}">${r.badge}</span></td></tr>`).join('') : `<tr><td colspan="5" class="empty-state">No recent attempts found.</td></tr>`; }
+  function renderDashboardTable() {
+    const q = st.q.trim().toLowerCase();
+    const rows = st.data.dash.attempts.filter(r =>
+      !q || [r.examCode, r.badge, r.status].some(v => String(v).toLowerCase().includes(q))
+    );
+
+    const displayRows = rows.slice(0, 5);
+
+    el.recentAttemptsBody.innerHTML = displayRows.length ? displayRows.map(r => {
+      const badgeClass = String(r.badge).toLowerCase();
+      let displayDate = 'Recent';
+      if (r.date && r.date !== 'Recent') {
+        const d = new Date(r.date);
+        if (!Number.isNaN(d.getTime())) {
+          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const day = d.getDate();
+          const month = months[d.getMonth()];
+          const year = d.getFullYear();
+          let hours = d.getHours();
+          const minutes = String(d.getMinutes()).padStart(2, '0');
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+          hours = hours % 12;
+          hours = hours ? hours : 12;
+          displayDate = `${day} ${month} ${year} ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+        }
+      }
+      return `
+        <tr class="clickable-row" data-detail="attempt" data-code="${r.examCode}">
+          <td><strong>${r.examCode}</strong></td>
+          <td>${r.obtainedMarks}</td>
+          <td>${r.totalMarks}</td>
+          <td>${pct(r.percentage)}</td>
+          <td><span class="dash-badge ${badgeClass}">${r.badge}</span></td>
+          <td>
+            <div class="dash-date-cell">
+              ${svg('calendar')}
+              <span>${displayDate}</span>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('') : `
+      <tr>
+        <td colspan="6" class="empty-state">No recent attempts found.</td>
+      </tr>
+    `;
+
+    const viewAllBtn = $('dashViewAllAttemptsBtn');
+    if (viewAllBtn) {
+      viewAllBtn.onclick = () => {
+        const resultsLink = document.querySelector('.side-nav button[data-section="results"]');
+        if (resultsLink) {
+          resultsLink.click();
+        }
+      };
+    }
+  }
   function examEmptyState(title, description) {
     return `
       <div class="exam-empty-state">
@@ -2675,10 +2804,10 @@
               <div class="badges-left">
                 <span class="exam-status-chip ${topStatusTone}">${svg(state.completed ? 'lock' : state.live ? 'clock' : 'shield')} <span>${topStatus}</span></span>
                 ${verificationBadge ? (
-                  verificationCompleted 
-                  ? `<span class="exam-verify-badge is-ok">${svg('shield')} Verified</span>`
-                  : `<span class="exam-verify-badge is-pending">${svg('shield')} Verify ID</span>`
-                ) : ''}
+        verificationCompleted
+          ? `<span class="exam-verify-badge is-ok">${svg('shield')} Verified</span>`
+          : `<span class="exam-verify-badge is-pending">${svg('shield')} Verify ID</span>`
+      ) : ''}
               </div>
               ${myExamMenu}
             </div>
@@ -2871,33 +3000,7 @@
       pageButton('›', Math.min(totalPages, page + 1), `nav-btn ${page === totalPages ? 'disabled' : ''}`)
     ].join('');
   }
-  function renderResultsPagination(totalRows) {
-    const pageSize = Math.max(1, Number(st.results.pageSize || 10));
-    const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
-    st.results.page = clamp(Number(st.results.page || 1), 1, totalPages);
-    const page = st.results.page;
-    const start = totalRows ? ((page - 1) * pageSize) + 1 : 0;
-    const end = totalRows ? Math.min(page * pageSize, totalRows) : 0;
-    if (el.resultsPageInfo) {
-      el.resultsPageInfo.textContent = `Showing ${start} to ${end} of ${totalRows} results`;
-    }
-    if (!el.resultsPagination) return;
-    if (totalPages <= 1) {
-      el.resultsPagination.innerHTML = '';
-      return;
-    }
-    const pages = buildPaginationWindow(totalPages, page);
-    const pageButton = (label, targetPage, extraClass = '') => `
-      <button type="button" class="results-page-btn ${extraClass}" data-results-page="${targetPage}" ${targetPage === page ? 'aria-current="page"' : ''}>${label}</button>
-    `;
-    el.resultsPagination.innerHTML = [
-      pageButton('&lsaquo;', Math.max(1, page - 1), `nav-btn ${page === 1 ? 'disabled' : ''}`),
-      ...pages.map((item) => (typeof item === 'number'
-        ? pageButton(String(item), item, item === page ? 'active' : '')
-        : '<span class="results-page-ellipsis">&hellip;</span>')),
-      pageButton('&rsaquo;', Math.min(totalPages, page + 1), `nav-btn ${page === totalPages ? 'disabled' : ''}`)
-    ].join('');
-  }
+
   function resultsFilterValue(row) {
     const f = el.resultsFilter.value;
     if (f === 'all') return true;
@@ -2924,24 +3027,27 @@
     st.results.page = clamp(Number(st.results.page || 1), 1, totalPages);
     const startIndex = (st.results.page - 1) * pageSize;
     const output = rows.slice(startIndex, startIndex + pageSize);
-    el.resultsBody.innerHTML = output.length ? output.map((r) => `
-      <tr class="clickable-row result-row" data-detail="result" data-code="${r.id ?? r.attemptId ?? r.examCode}">
+    el.resultsBody.innerHTML = output.length ? output.map((r) => {
+      const isPass = r.passed || String(r.resultStatus || '').toUpperCase() === 'PASS';
+      return `
+      <tr class="result-row" data-detail="result" data-code="${r.id ?? r.attemptId ?? r.examCode}">
         <td><strong>${r.examCode}</strong></td>
         <td>${r.score}</td>
         <td>${pct(r.percentage)}</td>
-        <td><span class="result-badge ${r.passed ? 'pass' : 'fail'}">${r.resultStatus}</span></td>
+        <td><span class="result-badge ${isPass ? 'pass' : 'fail'}">${isPass ? 'PASS' : 'FAIL'}</span></td>
         <td>${r.correctAnswers}</td>
         <td>${r.wrongAnswers}</td>
         <td>${r.unansweredQuestions}</td>
         <td>${formatDuration(r.timeTakenSeconds)}</td>
         <td>${formatDate(r.submittedAt)}</td>
         <td>
-          <button class="btn ghost small result-action" type="button" data-action="result-view" data-code="${r.id ?? r.attemptId ?? r.examCode}">
+          <button class="result-action" type="button" data-action="result-view" data-code="${r.id ?? r.attemptId ?? r.examCode}">
             <span>View Details</span>
-            ${svg('chevron')}
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron"><path d="m1 1 4 4 4-4"/></svg>
           </button>
         </td>
-      </tr>`).join('') : `<tr class="empty-row"><td colspan="10" class="empty-state"><strong>No results match the selected filters.</strong><span>Try clearing the search or choose a different status.</span></td></tr>`;
+      </tr>`;
+    }).join('') : `<tr class="empty-row"><td colspan="10" class="empty-state"><strong>No results match the selected filters.</strong><span>Try clearing the search or choose a different status.</span></td></tr>`;
     renderResultsPagination(rows.length);
   }
   const gradeOrder = { 'A+': 5, A: 4, 'B+': 3, B: 2, 'C+': 1, C: 0 };
@@ -2962,10 +3068,10 @@
     const highest = rows.reduce((acc, c) => (gradeOrder[c.grade] > gradeOrder[acc.grade] ? c : acc), rows[0] || { grade: 'C' });
     const verifiedCount = rows.filter((c) => !c.revoked).length;
     const cards = [
-      { label:'Total Certificates', value:rows.length, icon:'certificates', tone:'blue', hint:'Issued certificate records', valueClass:'' },
-      { label:'Highest Grade', value:highest?.grade || '-', icon:'star', tone:'purple', hint:latest ? latest.examTitle : 'No certificates yet', valueClass:'' },
-      { label:'Latest Certificate', value:latest ? latest.certificateId : '-', icon:'dashboard', tone:'green', hint:latest ? formatDate(latest.issuedAt) : 'Awaiting issue', valueClass:'summary-value-code' },
-      { label:'Verified Certificates', value:verifiedCount, icon:'results', tone:'amber', hint:'Currently active certificates', valueClass:'' }
+      { label: 'Total Certificates', value: rows.length, icon: 'certificates', tone: 'blue', hint: 'Issued certificate records', valueClass: '' },
+      { label: 'Highest Grade', value: highest?.grade || '-', icon: 'star', tone: 'purple', hint: latest ? latest.examTitle : 'No certificates yet', valueClass: '' },
+      { label: 'Latest Certificate', value: latest ? latest.certificateId : '-', icon: 'dashboard', tone: 'green', hint: latest ? formatDate(latest.issuedAt) : 'Awaiting issue', valueClass: 'summary-value-code' },
+      { label: 'Verified Certificates', value: verifiedCount, icon: 'results', tone: 'amber', hint: 'Currently active certificates', valueClass: '' }
     ];
     el.certificatesSummaryGrid.innerHTML = cards.map((card) => `
       <article class="summary-card summary-${card.tone}">
@@ -2994,45 +3100,116 @@
         if (f === 'recent') return true;
         return true;
       });
-    const PAGE_SIZE = 6;
+    const PAGE_SIZE = 8;
     if (!st._certPage) st._certPage = 1;
     const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
     if (st._certPage > totalPages) st._certPage = totalPages;
     const pageStart = (st._certPage - 1) * PAGE_SIZE;
     const output = allRows.slice(pageStart, pageStart + PAGE_SIZE);
-    const certIcon = (title) => {
-      const t = String(title || '').toLowerCase();
-      if (t.includes('python')) return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2C8.13 2 5 5.13 5 9v3h14V9c0-3.87-3.13-7-7-7z"/><path d="M5 12v3c0 3.87 3.13 7 7 7s7-3.13 7-7v-3"/><circle cx="9" cy="9.5" r="1"/><circle cx="15" cy="9.5" r="1"/></svg>`;
-      if (t.includes('java')) return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8.5 2s-1.5 3.5 2 5c3 1.5 5-1 5-1s-1 3.5-5 4-6 3-4 6"/><path d="M13.5 22s4-1 4-5c0-3-3.5-4-3.5-4"/></svg>`;
-      if (t.includes('web') || t.includes('html') || t.includes('css')) return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`;
-      if (t.includes('database') || t.includes('sql')) return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>`;
-      if (t.includes('ai') || t.includes('ml') || t.includes('studio')) return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="8" height="8" rx="2"/><rect x="14" y="2" width="8" height="8" rx="2"/><rect x="2" y="14" width="8" height="8" rx="2"/><path d="M14 18h8M18 14v8M10 6h4M6 10v4"/></svg>`;
-      return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v14H6z"/><path d="M10 17v4l2-1.5L14 21v-4"/><path d="M9 7h6M9 11h6"/></svg>`;
-    };
+    
     const certTopColor = (c) => {
       if (c.revoked) return '#ef4444';
       const grade = String(c.grade || '').toUpperCase();
-      if (grade === 'A+' || Number(c.score || 0) >= 90) return '#22c55e';
-      if (grade === 'A' || Number(c.score || 0) >= 80) return '#14b8a6';
-      if (grade === 'B+' || Number(c.score || 0) >= 70) return '#8b5cf6';
-      return '#3b82f6';
+      if (grade === 'A+' || Number(c.score || 0) >= 90) return '#10b981'; // Green
+      if (grade === 'A' || Number(c.score || 0) >= 80) return '#3b82f6'; // Blue
+      if (grade === 'B+' || Number(c.score || 0) >= 70) return '#8b5cf6'; // Purple
+      if (grade === 'B' || Number(c.score || 0) >= 60) return '#f97316'; // Orange
+      return '#eab308'; // Gold/Yellow
     };
-    const certIconBg = (c) => {
-      if (c.revoked) return '#fef2f2';
-      const grade = String(c.grade || '').toUpperCase();
-      if (grade === 'A+' || Number(c.score || 0) >= 90) return '#f0fdf4';
-      if (grade === 'A' || Number(c.score || 0) >= 80) return '#f0fdfa';
-      if (grade === 'B+' || Number(c.score || 0) >= 70) return '#f5f3ff';
-      return '#eff6ff';
-    };
+
     el.certificatesGrid.innerHTML = output.length ? output.map((c) => {
       const topColor = certTopColor(c);
-      const iconBg = certIconBg(c);
-      const verifiedHtml = !c.revoked
-        ? `<span class="cert-verified-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>VERIFIED</span>`
-        : `<span class="cert-revoked-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>REVOKED</span>`;
-      return `<article class="certificate-card" data-cert="${c.certificateId}" style="--cert-top:${topColor}"><div class="cert-card-top-bar" style="background:${topColor};"></div><div class="cert-card-body"><div class="cert-card-header"><div class="cert-icon-badge" style="background:${iconBg};color:${topColor};">${certIcon(c.examTitle)}</div><div class="cert-card-info"><div class="cert-card-title">${c.examTitle}</div><div class="cert-card-id">${c.certificateId}</div><div class="cert-card-date">${formatDate(c.issuedAt)}</div></div><div class="cert-grade-badge" style="background:${iconBg};color:${topColor};">${c.grade}</div></div><div class="cert-verified-row">${verifiedHtml}</div></div><div class="cert-card-divider"></div><div class="cert-card-actions"><button class="cert-action-btn" data-action="certificate-preview" data-code="${c.certificateId}" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button><button class="cert-action-btn cert-action-download" data-action="certificate-download" data-code="${c.certificateId}" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download</button></div></article>`;
-    }).join('') : `<article class="card empty-card certificate-empty"><h3>No certificates found</h3><p>Use a broader search or a different filter to reveal issued certificates.</p></article>`;
+      const isVerified = !c.revoked;
+      const verifiedHtml = isVerified 
+        ? `<span class="cert-status-badge verified">Verified</span>`
+        : `<span class="cert-status-badge revoked">Revoked</span>`;
+      const name = c.studentName || st.profile.fullName || 'Koram Yashwanth Reddy';
+      
+      return `
+      <article class="certificate-card new-style" data-cert="${c.certificateId}">
+        <div class="cert-card-preview-wrapper" style="--cert-theme: ${topColor};">
+           <div class="cert-preview-inner">
+              <div class="cert-border-outer">
+                 <div class="cert-border-inner">
+                    <div class="cert-header">
+                       <h4 class="cert-brand">SEM</h4>
+                       <div class="cert-subtitle">Certificate of Achievement</div>
+                    </div>
+                    <div class="cert-body">
+                       <p class="cert-text">This is to certify that</p>
+                       <h2 class="cert-name">${name}</h2>
+                       <p class="cert-text">has successfully completed the exam</p>
+                       <h3 class="cert-exam-title">${c.examTitle}</h3>
+                    </div>
+                    <div class="cert-footer">
+                       <div class="cert-signature">
+                          <div class="cert-sig-line">Signature</div>
+                       </div>
+                       <div class="cert-seal">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="${topColor}"><path d="M12 2L15 8l6 1-4 4 1 6-6-3-6 3 1-6-4-4 6-1z"/></svg>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        <div class="cert-card-details">
+           ${verifiedHtml}
+           <h3 class="cert-detail-title">${c.examTitle}</h3>
+           <div class="cert-detail-id">${c.certificateId}</div>
+           
+           <div class="cert-meta-row">
+             <div class="cert-meta-date">
+               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+               Issued: ${formatDate(c.issuedAt)}
+             </div>
+             <div class="cert-meta-grade">
+               <span>Grade</span>
+               <strong>${c.grade}</strong>
+             </div>
+           </div>
+
+           <div class="cert-card-actions">
+              <button class="cert-action-btn" data-action="certificate-preview" data-code="${c.certificateId}" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Preview
+              </button>
+              <button class="cert-action-btn cert-action-download" data-action="certificate-download" data-code="${c.certificateId}" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download
+              </button>
+              <button class="cert-action-btn" data-action="certificate-verify" data-code="${c.certificateId}" type="button">
+                Verify
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </button>
+           </div>
+        </div>
+      </article>`;
+    }).join('') : `
+      <div class="cert-empty-state">
+        <div class="cert-empty-sparkle cert-empty-sparkle-1">✦</div>
+        <div class="cert-empty-sparkle cert-empty-sparkle-2">✦</div>
+        <div class="cert-empty-sparkle cert-empty-sparkle-3">✦</div>
+        <div class="cert-empty-illustration">
+          <svg width="90" height="90" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="18" y="12" width="84" height="72" rx="8" fill="#f0f0fa" stroke="#c7c9f7" stroke-width="2"/>
+            <rect x="28" y="28" width="64" height="6" rx="3" fill="#d4d5f5"/>
+            <rect x="28" y="42" width="48" height="4" rx="2" fill="#e8e8fc"/>
+            <rect x="28" y="54" width="36" height="4" rx="2" fill="#e8e8fc"/>
+            <path d="M42 84v22l18-9 18 9V84" fill="#f0f0fa" stroke="#c7c9f7" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="60" cy="78" r="12" fill="#fff" stroke="#c7c9f7" stroke-width="2"/>
+            <polyline points="55 78 59 82 66 74" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+        <h3 class="cert-empty-title">No certificates found</h3>
+        <p class="cert-empty-desc">Use a broader search or a different filter to reveal issued certificates.</p>
+        <button class="cert-clear-btn" type="button" onclick="document.getElementById('certificatesSearch').value='';document.getElementById('certificatesFilter').value='all';document.getElementById('certificatesSearch').dispatchEvent(new Event('input'))">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7v5l-4 2v-7z"/></svg>
+          Clear Filters
+        </button>
+      </div>
+    `;
     const countEl = $('certCountLabel');
     if (countEl) countEl.textContent = `Showing ${allRows.length} of ${(st.data.certs || []).length} certificates`;
     const prevBtn = $('certPrevBtn');
@@ -3593,7 +3770,7 @@
     const existing = (st.data.notifications || []).filter((entry) => String(entry.id) !== String(item.id));
     persistNotifications([item, ...existing].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
     renderNotifications();
-    refreshNotificationCount().catch(() => {});
+    refreshNotificationCount().catch(() => { });
     if (item.title) {
       toast(item.title, item.message || 'New notification received.', item.severity === 'success' ? 'success' : item.severity === 'danger' ? 'warn' : 'info');
     }
@@ -3675,7 +3852,7 @@
     const now = new Date();
     const soon = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const allItems = st.data.exams.map((exam) => ({ exam, state: examRuntimeState(exam) }));
-    
+
     // Stats Calculations
     const todayCount = allItems.filter(({ state }) => state.startAt.toDateString() === now.toDateString()).length;
     const liveCount = allItems.filter(({ state }) => state.live).length;
@@ -3831,7 +4008,7 @@
   function updateStatusIndicators() {
     const status = st.data.proctoring || {};
     if (!el.proctoringStatusGrid || !el.proctoringSummaryPanel) return;
-    
+
     // Status items: Camera, Microphone, Fullscreen, Face Detection
     const items = [
       ['Camera', status.cameraEnabled ?? true, 'camera', 'Live video feed detected', 'No camera feed detected'],
@@ -3977,8 +4154,8 @@
   function renderHelpSupport() {
     if (el.faqAccordion) {
       const query = (el.faqSearch?.value || '').toLowerCase().trim();
-      const filtered = st.data.supportFaq.filter(item => 
-        (item.question || '').toLowerCase().includes(query) || 
+      const filtered = st.data.supportFaq.filter(item =>
+        (item.question || '').toLowerCase().includes(query) ||
         (item.answer || '').toLowerCase().includes(query)
       );
 
@@ -4009,101 +4186,107 @@
     $$('.support-panel', document).forEach((panel) => panel.classList.toggle('active', panel.dataset.supportPanel === tab));
   }
   function certificatePreviewMarkup(c) {
-    const score = fmtScore(c.score);
     const issued = formatDate(c.issuedAt);
+    const gradeDisplay = `${c.grade || 'A'} (${fmtScore(c.score)}%)`;
     return `
-      <div class="certificate-preview-artwork">
-        <!-- Corner brackets -->
-        <div class="corner-bracket top-left"></div>
-        <div class="corner-bracket top-right"></div>
-        <div class="corner-bracket bottom-left"></div>
-        <div class="corner-bracket bottom-right"></div>
-        
-        <!-- Dot grids -->
-        <div class="dot-grid left-grid"></div>
-        <div class="dot-grid right-grid"></div>
-        
-        <!-- Background waves SVG -->
-        <div class="wave-background">
-          <svg viewBox="0 0 200 400" preserveAspectRatio="none">
-            <path d="M120 0 C 150 100, 80 200, 160 300 T 120 400" fill="none" stroke="rgba(59, 48, 219, 0.04)" stroke-width="1.5"></path>
-            <path d="M140 0 C 170 100, 100 200, 180 300 T 140 400" fill="none" stroke="rgba(59, 48, 219, 0.04)" stroke-width="1.5"></path>
-            <path d="M160 0 C 190 100, 120 200, 200 300 T 160 400" fill="none" stroke="rgba(59, 48, 219, 0.04)" stroke-width="1.5"></path>
+      <div class="cert-preview-doc">
+
+        <!-- Bottom-left navy corner decoration -->
+        <div class="cert-corner-decor">
+          <svg viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg" width="260" height="260">
+            <defs>
+              <linearGradient id="navyGrad" x1="0" y1="260" x2="260" y2="0">
+                <stop offset="0%" stop-color="#1a1a4e"/>
+                <stop offset="100%" stop-color="#3b3db5"/>
+              </linearGradient>
+            </defs>
+            <path d="M0 260 L0 80 Q0 10 60 10 L180 0 Q220 0 240 30 L260 80 Q260 180 180 230 Z" fill="url(#navyGrad)" opacity="0.92"/>
+            <!-- wave lines -->
+            <path d="M20 200 Q80 160 140 190 T260 160" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="none"/>
+            <path d="M10 230 Q70 190 130 215 T260 195" stroke="rgba(255,255,255,0.08)" stroke-width="1.5" fill="none"/>
+            <path d="M0 250 Q50 220 110 240 T240 225" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" fill="none"/>
           </svg>
         </div>
 
-        <div class="certificate-preview-topbar">
-          <div class="certificate-brand-lockup">
-            <div class="certificate-brand-logo">
-              <div class="logo-shield">
-                <span class="star">★</span>
-                <span class="dot"></span>
-              </div>
+        <!-- TOP BAR: Logo left, Cert ID right -->
+        <div class="cert-topbar">
+          <div class="cert-brand">
+            <div class="cert-brand-icon">
+              <svg width="28" height="28" viewBox="0 0 48 48" fill="none" stroke="#3b3db5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M24 4 L44 14 V24 C44 35 34 43 24 46 C14 43 4 35 4 24 V14 Z"/>
+                <path d="M17 25 L22 30 L31 20"/>
+              </svg>
             </div>
-            <div class="brand-text">
-              <strong class="brand-name">SEM</strong>
-              <span class="brand-title">SMART EXAM MONITOR</span>
-              <span class="brand-motto">Examine. Evaluate. Excel.</span>
+            <div>
+              <div class="cert-brand-name">SEM</div>
+              <div class="cert-brand-sub">SMART EXAM MONITOR</div>
             </div>
           </div>
-          <div class="certificate-badge-pill">
-            <div class="badge-icon">★</div>
-            <div class="badge-copy">
-              <strong>EXAM COMPLETED</strong>
-              <span>Successfully Certified</span>
+          <div class="cert-id-block">
+            <div class="cert-id-label">CERTIFICATE ID</div>
+            <div class="cert-id-value">${escapeHtml(c.certificateId)}</div>
+          </div>
+        </div>
+
+        <!-- DIVIDER -->
+        <div class="cert-top-divider"></div>
+
+        <!-- MAIN TITLE -->
+        <div class="cert-title-block">
+          <div class="cert-heading">C E R T I F I C A T E</div>
+          <div class="cert-subheading">
+            <span class="cert-subheading-line"></span>
+            <span class="cert-subheading-text">OF EXAM COMPLETION</span>
+            <span class="cert-subheading-line"></span>
+          </div>
+        </div>
+
+        <!-- RECIPIENT -->
+        <div class="cert-body">
+          <p class="cert-certify-text">THIS IS TO CERTIFY THAT</p>
+          <h2 class="cert-student-name">${escapeHtml(c.studentName || 'Student Name')}</h2>
+          <div class="cert-name-underline"></div>
+
+          <p class="cert-completed-text">has successfully completed the examination</p>
+          <p class="cert-subject-title">${escapeHtml(c.examTitle || c.examCode || 'Online Examination')}</p>
+
+          <div class="cert-meta-row">
+            <div class="cert-meta-item">
+              <div class="cert-meta-label">CONDUCTED ON</div>
+              <div class="cert-meta-value">${escapeHtml(issued)}</div>
+            </div>
+            <div class="cert-meta-divider"></div>
+            <div class="cert-meta-item">
+              <div class="cert-meta-label">GRADE</div>
+              <div class="cert-meta-value">${escapeHtml(gradeDisplay)}</div>
             </div>
           </div>
         </div>
 
-        <div class="certificate-main-content">
-          <p class="certificate-preview-subtitle">This is to certify that</p>
-          <h2 class="certificate-preview-name">${escapeHtml(c.studentName || 'Student')}</h2>
-          
-          <div class="name-divider">
-            <span class="line"></span>
-            <span class="diamond">♦</span>
-            <span class="line"></span>
-          </div>
-
-          <div class="certificate-preview-title">
-            <span>Certificate of</span>
-            <strong>Excellence</strong>
-          </div>
-          
-          <p class="certificate-preview-bodycopy">
-            has successfully completed the examination in<br>
-            <strong class="subject-title">${escapeHtml(c.examTitle || c.examCode || 'Online Examination')}</strong><br>
-            with a score of <strong class="score-highlight">${score}/100</strong> on ${escapeHtml(issued)}
-          </p>
-
-          <div class="bottom-divider">
-            <span class="line"></span>
-            <span class="diamond">♦</span>
-            <span class="line"></span>
-          </div>
-        </div>
-
-        <div class="certificate-preview-footer">
-          <div class="certificate-footer-qr-col">
-            <div class="qr-box-wrapper">
-              <img src="/api/certificate/verify/${encodeURIComponent(c.certificateId)}/qr" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=verify:${c.certificateId}'" class="qr-image" alt="QR Code">
+        <!-- FOOTER: Seal + Signature -->
+        <div class="cert-footer">
+          <div class="cert-footer-seal">
+            <div class="cert-seal-icon">
+              <svg width="54" height="54" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M30 3 L36 10 L45 8 L45 17 L54 22 L50 30 L54 38 L45 43 L45 52 L36 50 L30 57 L24 50 L15 52 L15 43 L6 38 L10 30 L6 22 L15 17 L15 8 L24 10 Z" stroke="#3b3db5" stroke-width="1.8" fill="none"/>
+                <circle cx="30" cy="30" r="10" stroke="#3b3db5" stroke-width="1.5" fill="none"/>
+                <path d="M25 30 L29 34 L36 26" stroke="#3b3db5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
             </div>
-            <small class="scan-verify-text">SCAN TO VERIFY</small>
+            <div class="cert-seal-text">EXCELLENCE IN LEARNING</div>
           </div>
 
-          <div class="certificate-footer-signature-col">
-            <span class="signature-cursive">Exam Authority</span>
-            <div class="signature-line"></div>
-            <span class="sign-title">EXAM AUTHORITY</span>
-            <small class="sign-subtitle">SEM Platform - Examinations</small>
-          </div>
-
-          <div class="certificate-footer-id-col">
-            <span class="id-label">CERTIFICATE ID</span>
-            <strong class="id-value">${escapeHtml(c.certificateId)}</strong>
-            <span class="issue-date-label">Issued: ${escapeHtml(issued)}</span>
+          <div class="cert-footer-sig">
+            <div class="cert-sig-lines">
+              <svg width="110" height="42" viewBox="0 0 110 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 28 Q18 10 28 22 Q36 30 46 14 Q52 6 62 18 Q70 26 80 16 Q90 8 100 20" stroke="#1a1a4e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <line x1="8" y1="38" x2="102" y2="38" stroke="#1a1a4e" stroke-width="1.2" opacity="0.4"/>
+              </svg>
+            </div>
+            <div class="cert-sig-label">AUTHORIZED SIGNATURE</div>
           </div>
         </div>
+
       </div>`;
   }
   function validateSupportForm(form) {
@@ -4142,7 +4325,7 @@
     if (type === 'attempt') {
       const r = st.data.dash.attempts.find((x) => x.examCode === code);
       if (!r) return;
-      modal({ kicker:'Recent Attempt', title:r.examCode, body:`<div class="detail-grid"><div><span>Obtained Marks</span><strong>${r.obtainedMarks}</strong></div><div><span>Total Marks</span><strong>${r.totalMarks}</strong></div><div><span>Percentage</span><strong>${pct(r.percentage)}</strong></div><div><span>Badge</span><strong>${r.badge}</strong></div><div><span>Duration</span><strong>${r.duration}</strong></div><div><span>Status</span><strong>${r.status}</strong></div></div>`, foot:'<button class="btn ghost" data-close-modal type="button">Close</button>' });
+      modal({ kicker: 'Recent Attempt', title: r.examCode, body: `<div class="detail-grid"><div><span>Obtained Marks</span><strong>${r.obtainedMarks}</strong></div><div><span>Total Marks</span><strong>${r.totalMarks}</strong></div><div><span>Percentage</span><strong>${pct(r.percentage)}</strong></div><div><span>Badge</span><strong>${r.badge}</strong></div><div><span>Duration</span><strong>${r.duration}</strong></div><div><span>Status</span><strong>${r.status}</strong></div></div>`, foot: '<button class="btn ghost" data-close-modal type="button">Close</button>' });
       return;
     }
     if (type === 'result') {
@@ -4736,14 +4919,14 @@
   function goLogout() { toast('Logging out', 'Returning to login gateway.', 'info'); setTimeout(() => { location.href = 'login.html'; }, 180); }
   function updateClock() {
     const d = new Date();
-    el.liveClock.textContent = d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+    el.liveClock.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
   function wire() {
     el.toggle.addEventListener('click', toggleSidebar);
     document.getElementById('mobile-sidebar-toggle')?.addEventListener('click', toggleSidebar);
     el.logout.addEventListener('click', goLogout);
     el.profileLogout.addEventListener('click', goLogout);
-    
+
     const dpl = $('ddProfileLink');
     if (dpl) {
       dpl.addEventListener('click', () => {
@@ -4752,7 +4935,7 @@
         setSection('profile');
       });
     }
-    
+
     const dsl = $('ddSettingsLink');
     if (dsl) {
       dsl.addEventListener('click', () => {
@@ -5034,7 +5217,7 @@
     window.addEventListener('resize', () => { if (isMobile()) el.sidebar.classList.remove('collapsed'); renderAnalyticsCharts(); renderExamCatalog(); renderMyExams(); renderNotifications(); renderSchedule(); renderProctoringStatus(); if (st.sec === 'leaderboard') renderLeaderboard(); updateSidebarToggle(); });
     themeQuery.addEventListener?.('change', () => { if (st.theme === 'system') applyTheme('system'); });
   }
-  function updateTopPlaceholder() { const map = { dashboard:'Search exams, results, certificates...', exams:'Search exam catalog...', 'my-exams':'Search registered exams...', results:'Search results by exam code...', certificates:'Search certificates...', leaderboard:'Search student name...', analytics:'Search metrics...', profile:'Search profile fields...', settings:'Search settings...', notifications:'Search notifications...', schedule:'Search schedules...', proctoring:'Search proctoring status...', 'help-support':'Search support topics...' }; el.topSearch.placeholder = map[st.sec] || map.dashboard; el.topSearch.value = st.q; }
+  function updateTopPlaceholder() { const map = { dashboard: 'Search exams, results, certificates...', exams: 'Search exam catalog...', 'my-exams': 'Search registered exams...', results: 'Search results by exam code...', certificates: 'Search certificates...', leaderboard: 'Search student name...', analytics: 'Search metrics...', profile: 'Search profile fields...', settings: 'Search settings...', notifications: 'Search notifications...', schedule: 'Search schedules...', proctoring: 'Search proctoring status...', 'help-support': 'Search support topics...' }; el.topSearch.placeholder = map[st.sec] || map.dashboard; el.topSearch.value = st.q; }
   async function init() {
     bind();
     hydrateIcons();
@@ -5075,4 +5258,3 @@
   document.addEventListener('DOMContentLoaded', () => { init().catch((error) => console.error('Student UI init failed:', error)); });
   window.studentUI = { renderCards, renderChart: renderAnalyticsCharts, renderTable: renderAllTables, renderLeaderboard };
 })();
-

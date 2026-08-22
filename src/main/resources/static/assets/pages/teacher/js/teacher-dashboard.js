@@ -2128,7 +2128,7 @@ ensureAuthGuard();
     validateCreateForm();
     document.getElementById("mxCancel").addEventListener("click", closeModal);
     document.getElementById("mxDraft").addEventListener("click", async () => { await submitExamFromModal("Draft", exam?.id || null); });
-    document.getElementById("mxPublish").addEventListener("click", async () => { await submitExamFromModal(isEdit ? "Published" : "Draft", exam?.id || null); });
+    document.getElementById("mxPublish").addEventListener("click", async () => { await submitExamFromModal("Published", exam?.id || null); });
   }
 
 
@@ -2219,6 +2219,33 @@ ensureAuthGuard();
       shuffleQuestions: payload.shuffleQuestions,
       shuffleOptions: payload.shuffleOptions
     };
+    const applyPublishedState = (target, publishedData = {}) => {
+      if (!target) return target;
+      Object.assign(target, {
+        ...publishedData,
+        id: publishedData.id != null ? String(publishedData.id) : target.id,
+        examCode: publishedData.examCode || target.examCode,
+        status: "Published",
+        active: publishedData.active != null ? Boolean(publishedData.active) : true,
+        questionsUploaded: publishedData.questionsUploaded != null ? Boolean(publishedData.questionsUploaded) : true,
+        duration: publishedData.durationMinutes ?? target.duration,
+        easyCount: publishedData.easyQuestionCount ?? target.easyCount,
+        mediumCount: publishedData.mediumQuestionCount ?? target.mediumCount,
+        hardCount: publishedData.difficultQuestionCount ?? target.hardCount
+      });
+      return target;
+    };
+    const publishPersistedExam = async (target) => {
+      if (!target?.examCode) {
+        throw new Error("Unable to publish exam because the exam code is missing");
+      }
+      if (!target.questionsUploaded) {
+        throw new Error("Upload questions before publishing exam");
+      }
+      const published = await api.publishExam(target.examCode);
+      const publishedData = published?.data || published?.exam || published || {};
+      return applyPublishedState(target, publishedData);
+    };
     setExamModalSubmitting(true);
     try {
       await withLoading(async () => {
@@ -2278,7 +2305,12 @@ ensureAuthGuard();
             }
           }
 
-          toast("Exam updated.");
+          if (status === "Published") {
+            await publishPersistedExam(exam);
+            toast("Exam published.");
+          } else {
+            toast("Exam updated.");
+          }
         } else {
           const apiCreated = await api.createExam(requestPayload);
           const createdData = apiCreated?.data || apiCreated?.exam || apiCreated || {};
@@ -2324,8 +2356,13 @@ ensureAuthGuard();
             }
           }
 
-          if (status === "Published" && !persistedExam.questionsUploaded) {
-            toast("Exam created as draft. Upload questions before publish.", "error");
+          if (status === "Published") {
+            if (!persistedExam.questionsUploaded) {
+              toast("Exam created as draft. Upload questions before publish.", "error");
+            } else {
+              await publishPersistedExam(persistedExam);
+              toast("Exam created and published.");
+            }
           } else {
             toast("Exam created.");
           }
@@ -2559,7 +2596,7 @@ ensureAuthGuard();
       return null;
     });
     const backendQuestions = Array.isArray(remoteResponse?.data) ? remoteResponse.data : [];
-    const rawHeaders = ["examCode", "questionType", "difficulty", "questionText", "optionA", "optionB", "optionC", "optionD", "optionE", "optionF", "correctAnswer", "marks", "topic"];
+    const rawHeaders = ["examCode", "questionType", "difficulty", "questionText", "optionA", "optionB", "optionC", "optionD", "correctAnswer", "marks", "topic"];
     const rawRows = backendQuestions.length
       ? backendQuestions.map((q, index) => ({
         rowLabel: `Row ${index + 2}`,
@@ -2617,7 +2654,7 @@ ensureAuthGuard();
       return "📝";
     };
     const optionLabels = ["A", "B", "C", "D", "E", "F"];
-    const optionKeys  = ["optionA","optionB","optionC","optionD","optionE","optionF"];
+    const optionKeys  = ["optionA","optionB","optionC","optionD"];
 
     const accordionItems = rows.map((q, index) => {
       const qText   = normalizeDisplayText(q.questionText || q.text || "");

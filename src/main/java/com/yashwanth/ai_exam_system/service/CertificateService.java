@@ -811,7 +811,7 @@ public class CertificateService {
     private void addText(PdfContentByte canvas, String text, float x, float y, float size,
                          int family, int style, java.awt.Color color, int align) {
         try {
-            BaseFont bf = BaseFont.createFont(resolveFontName(family, style), BaseFont.WINANSI, BaseFont.EMBEDDED);
+            BaseFont bf = BaseFont.createFont(resolveFontName(family, style), BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
             canvas.saveState();
             canvas.beginText();
             canvas.setColorFill(color);
@@ -826,7 +826,7 @@ public class CertificateService {
 
     private float measureTextWidth(String text, float size, int family, int style) {
         try {
-            BaseFont bf = BaseFont.createFont(resolveFontName(family, style), BaseFont.WINANSI, BaseFont.EMBEDDED);
+            BaseFont bf = BaseFont.createFont(resolveFontName(family, style), BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
             return bf.getWidthPoint(text, size);
         } catch (Exception e) {
             return text.length() * size * 0.5f;
@@ -863,5 +863,185 @@ public class CertificateService {
         ClassPathResource file = new ClassPathResource(path);
         InputStream stream = file.getInputStream();
         return Image.getInstance(stream.readAllBytes());
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean issueCertificateForPassedResult(ExamResult result, String baseUrl) {
+        return issueOrLinkCertificateForPassedResult(result, baseUrl) != null;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Certificate issueOrLinkCertificateForPassedResult(ExamResult result, String baseUrl) {
+        if (!isPassedResult(result)) {
+            return null;
+        }
+
+        String examCode = result.getExamCode();
+        Long studentId = result.getStudentId();
+        if (studentId == null || !StringUtils.hasText(examCode)) {
+            return null;
+        }
+
+        if (StringUtils.hasText(result.getCertificateId())) {
+            Certificate existing = certificateRepository.findByCertificateIdAndRevokedFalse(result.getCertificateId()).orElse(null);
+            if (existing != null) {
+                refreshIssuedCertificate(existing, result, baseUrl);
+                return existing;
+            }
+            result.setCertificateId(null);
+        }
+
+        Certificate existingForExam = certificateRepository
+                .findFirstByStudentIdAndExamCodeAndRevokedFalseOrderByIssuedAtDesc(studentId, examCode)
+                .orElse(null);
+        if (existingForExam != null) {
+            refreshIssuedCertificate(existingForExam, result, baseUrl);
+            result.setCertificateId(existingForExam.getCertificateId());
+            examResultRepository.saveAndFlush(result);
+            return existingForExam;
+        }
+
+        StudentProfile profile = resolveCertificateProfile(studentId);
+
+        String examTitle = resolveExamTitle(examCode);
+        double certificateScore = resolveCertificateScore(result);
+
+        String certificateId = "CERT-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        Certificate cert = new Certificate();
+        cert.setCertificateId(certificateId);
+        cert.setStudentId(studentId);
+        cert.setExamCode(examCode);
+        cert.setScore(certificateScore);
+        cert.setIssuedAt(java.time.LocalDateTime.now());
+        cert.setRevoked(false);
+        cert.setTemplateVersion(Integer.valueOf(CERTIFICATE_TEMPLATE_VERSION));
+        
+        String resolvedBaseUrl = StringUtils.hasText(baseUrl) ? baseUrl : fallbackBaseUrl;
+        
+        populateCertificate(cert, profile, examCode, examTitle, certificateScore, resolvedBaseUrl);
+
+        cert = certificateRepository.saveAndFlush(cert);
+
+        result.setCertificateId(cert.getCertificateId());
+        examResultRepository.saveAndFlush(result);
+
+        try {
+            byte[] qrImage = qrCodeService.generateQRCode(cert.getQrCodeData());
+            byte[] pdf = generatePremiumPdf(cert, qrImage);
+            cert.setPdfData(pdf);
+            cert = certificateRepository.saveAndFlush(cert);
+        } catch (Exception e) {
+            System.err.println("Certificate PDF generation deferred: " + e.getMessage());
+        }
+        return cert;
+    }
+
+    public List<Certificate> repairAndListStudentCertificates(Long studentId) {
+        List<ExamResult> passedResults = examResultRepository.findByStudentIdOrderBySubmittedAtAsc(studentId)
+                .stream()
+                .filter(this::isPassedResult)
+                .filter(this::needsCertificateRepair)
+                .toList();
+        for (ExamResult result : passedResults) {
+            issueCertificateForPassedResult(result, "");
+        }
+        return certificateRepository.findByStudentIdAndRevokedFalse(studentId);
+    }
+
+    private boolean needsCertificateRepair(ExamResult result) {
+        if (result == null || result.getStudentId() == null || !StringUtils.hasText(result.getExamCode())) {
+            return false;
+        }
+        if (!certificateRepository.existsByStudentIdAndExamCodeAndRevokedFalse(
+                result.getStudentId(),
+                result.getExamCode())) {
+            return true;
+        }
+        if (!StringUtils.hasText(result.getCertificateId())) {
+            return true;
+        }
+        return certificateRepository
+                .findByCertificateIdAndRevokedFalse(result.getCertificateId())
+                .isEmpty();
+    }
+
+    private void refreshIssuedCertificate(Certificate certificate, ExamResult result, String baseUrl) {
+        if (certificate == null || result == null) {
+            return;
+        }
+
+        String resolvedBaseUrl = StringUtils.hasText(baseUrl) ? baseUrl : fallbackBaseUrl;
+        double certificateScore = resolveCertificateScore(result);
+        String examTitle = StringUtils.hasText(certificate.getExamTitle())
+                ? certificate.getExamTitle()
+                : resolveExamTitle(result.getExamCode());
+
+        boolean changed = false;
+        if (Math.abs(certificate.getScore() - certificateScore) >= 0.0001d) {
+            certificate.setScore(certificateScore);
+            certificate.setGrade(calculateGrade(certificateScore));
+            changed = true;
+        }
+        if (!StringUtils.hasText(certificate.getExamTitle())) {
+            certificate.setExamTitle(examTitle);
+            changed = true;
+        }
+        if (!StringUtils.hasText(certificate.getQrCodeData())) {
+            certificate.setQrCodeData(buildVerifyUrl(certificate.getCertificateId(), resolvedBaseUrl));
+            changed = true;
+        }
+        if (changed) {
+            certificateRepository.saveAndFlush(certificate);
+        }
+
+        if (certificate.getPdfData() == null || certificate.getPdfData().length == 0) {
+            try {
+                generateAndStoreCertificatePdf(certificate, true, resolvedBaseUrl);
+            } catch (RuntimeException pdfError) {
+                System.err.println("Certificate PDF generation deferred for certificateId="
+                        + certificate.getCertificateId() + ": " + pdfError.getMessage());
+            }
+        }
+    }
+
+    private boolean isPassedResult(ExamResult result) {
+        if (result == null) {
+            return false;
+        }
+        return Boolean.TRUE.equals(result.getPassed())
+                || "PASS".equalsIgnoreCase(result.getResultStatus())
+                || result.getPercentage() >= 40d;
+    }
+
+    private double resolveCertificateScore(ExamResult result) {
+        if (result == null) {
+            return 0d;
+        }
+        double percentage = result.getPercentage();
+        if (percentage > 0d) {
+            return percentage;
+        }
+        return result.getScore() > 0d ? result.getScore() : 0d;
+    }
+
+    private String resolveExamTitle(String examCode) {
+        String title = "Exam " + (StringUtils.hasText(examCode) ? examCode : "");
+        try {
+            if (jdbcTemplate != null && StringUtils.hasText(examCode)) {
+                java.util.List<String> titles = jdbcTemplate.queryForList(
+                        "SELECT title FROM exams WHERE exam_code = ?",
+                        String.class,
+                        examCode);
+                if (!titles.isEmpty() && StringUtils.hasText(titles.get(0))) {
+                    title = titles.get(0);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to fetch exam title: " + e.getMessage());
+        }
+        return title;
     }
 }

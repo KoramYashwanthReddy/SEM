@@ -14,6 +14,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.yashwanth.ai_exam_system.dto.ExamSuggestionResponse;
 import com.yashwanth.ai_exam_system.dto.LeaderboardDTO;
@@ -41,6 +43,8 @@ import com.yashwanth.ai_exam_system.repository.UserRepository;
 
 @Service
 public class StudentDashboardService {
+
+    private static final Logger logger = LoggerFactory.getLogger(StudentDashboardService.class);
 
     private final ExamAttemptRepository attemptRepository;
     private final ExamRepository examRepository;
@@ -77,9 +81,77 @@ public class StudentDashboardService {
         return getDashboard(student.getId());
     }
 
-    public StudentDashboardResponse getDashboard(Long studentId) {
+    public Long resolveStudentId(String identifier) {
+        return getVerifiedStudentByIdentifier(identifier).getId();
+    }
 
-        List<ExamAttempt> attempts = attemptRepository.findByStudentId(studentId);
+    public Map<String, Object> getStudentCertificatesPayload(Long studentId) {
+        if (studentId == null) {
+            return Map.of(
+                    "certificates", List.of(),
+                    "certificateCount", 0,
+                    "results", List.of());
+        }
+
+        List<Certificate> certificates = repairAndListCertificates(studentId);
+        List<Map<String, Object>> resultRows = examResultRepository.findByStudentIdOrderBySubmittedAtAsc(studentId)
+                .stream()
+                .map(this::toResultRow)
+                .toList();
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("certificates", certificates.stream().map(this::toCertificateRow).toList());
+        data.put("certificateCount", certificates.size());
+        data.put("results", resultRows);
+        return data;
+    }
+
+    public Map<String, Object> getStudentQuickStats(Long studentId) {
+        List<ExamAttempt> attempts = loadStudentAttempts(studentId);
+        double averageScore = calculateAverageScore(attempts);
+        int attemptedCount = attempts.size();
+        int certificatesEarned = studentId == null ? 0 : (int) certificateRepository.countByStudentIdAndRevokedFalse(studentId);
+
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("averageScore", averageScore);
+        stats.put("attempted", attemptedCount);
+        stats.put("rank", 0);
+        stats.put("certificates", certificatesEarned);
+        return stats;
+    }
+
+    public Map<String, Object> getStudentAlerts(Long studentId) {
+        List<ExamAttempt> attempts = loadStudentAttempts(studentId);
+        long cheatingAlerts = attempts.stream()
+                .filter(attempt -> Boolean.TRUE.equals(attempt.getCheatingFlag()))
+                .count();
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("cheatingAlerts", cheatingAlerts);
+        return data;
+    }
+
+    public Map<String, Object> getStudentPerformance(Long studentId) {
+        List<ExamAttempt> attempts = loadStudentAttempts(studentId);
+        List<Double> trend = attempts.stream()
+                .map(this::resolveAttemptPercentage)
+                .toList();
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("trend", trend);
+        return data;
+    }
+
+    public Map<String, Object> getStudentWeakTopics(Long studentId) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("weakTopics", detectWeakTopics(studentId));
+        return data;
+    }
+
+    public StudentDashboardResponse getDashboard(Long studentId) {
+        List<Certificate> repairedCertificates = repairAndListCertificates(studentId);
+
+        List<ExamAttempt> attempts = loadStudentAttempts(studentId);
         List<Exam> activeExams = examRepository.findAllActiveOrderByCreatedAtDesc()
                 .stream()
                 .filter(Exam::isPublished)
@@ -172,7 +244,7 @@ public class StudentDashboardService {
         response.setNotAttemptedCount(notAttempted.size());
 
         response.setAverageScore(avg);
-        response.setCertificatesEarned(certificates);
+        response.setCertificatesEarned(repairedCertificates.size());
 
         response.setLeaderboardRank(0);
 
@@ -187,18 +259,14 @@ public class StudentDashboardService {
 
     public Map<String, Object> getStudentUiBootstrap(String identifier) {
         User student = getVerifiedStudentByIdentifier(identifier);
-        ensurePassedResultCertificates(student.getId());
-        StudentDashboardResponse dashboard = getDashboard(student.getId());
+        List<Certificate> repairedCertificates = repairAndListCertificates(student.getId());
+        List<ExamAttempt> attempts = loadStudentAttempts(student.getId());
+        List<Exam> activeExams = examRepository.findAllActiveOrderByCreatedAtDesc()
+                .stream()
+                .filter(Exam::isPublished)
+                .toList();
         StudentProfile profile = studentProfileRepository.findByUserId(student.getId()).orElse(null);
-
-        List<ExamAttempt> attempts = attemptRepository.findByStudentId(student.getId());
-        attempts.sort(Comparator.comparing(
-                (ExamAttempt attempt) -> attempt.getEndTime() != null
-                        ? attempt.getEndTime()
-                        : attempt.getStartTime() != null
-                                ? attempt.getStartTime()
-                                : attempt.getCreatedAt(),
-                Comparator.nullsLast(Comparator.naturalOrder())).reversed());
+        StudentDashboardResponse dashboard = buildDashboard(student.getId(), attempts, activeExams, repairedCertificates);
 
         Map<String, ExamAttempt> activeAttemptByExamCode = attempts.stream()
                 .filter(attempt -> attempt.getExamCode() != null)
@@ -224,9 +292,7 @@ public class StudentDashboardService {
                 .map(ExamRegistration::getExamCode)
                 .filter(code -> code != null && !code.isBlank())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        List<Map<String, Object>> examCards = examRepository.findAllActiveOrderByCreatedAtDesc()
-                .stream()
-                .filter(Exam::isPublished)
+        List<Map<String, Object>> examCards = activeExams.stream()
                 .map(exam -> toExamCard(
                         exam,
                         activeAttemptByExamCode.get(exam.getExamCode()),
@@ -247,8 +313,18 @@ public class StudentDashboardService {
                 .map(this::toResultRow)
                 .toList();
 
-        List<Certificate> certificates = certificateRepository.findByStudentId(student.getId());
-        List<LeaderboardDTO> leaderboardGlobal = leaderboardService.getGlobalLeaderboard();
+        List<Map<String, Object>> certificates = repairedCertificates
+                .stream()
+                .map(this::toCertificateRow)
+                .toList();
+        List<LeaderboardDTO> leaderboardGlobal;
+        try {
+            leaderboardGlobal = leaderboardService.getGlobalLeaderboard();
+        } catch (Exception ex) {
+            logger.warn("Global leaderboard skipped during student bootstrap for studentId={}: {}",
+                    student.getId(), ex.getMessage());
+            leaderboardGlobal = List.of();
+        }
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("studentId", student.getId());
@@ -259,54 +335,163 @@ public class StudentDashboardService {
         response.put("attempts", attemptRows);
         response.put("results", resultRows);
         response.put("certificates", certificates);
+        response.put("certificateCount", certificates.size());
         response.put("leaderboardGlobal", leaderboardGlobal);
         response.put("registeredExamCodes", registeredExamCodes);
         return response;
     }
 
     private void ensurePassedResultCertificates(Long studentId) {
-        if (studentId == null) {
-            return;
-        }
-
-        List<ExamResult> passedResults = examResultRepository.findByStudentIdOrderBySubmittedAtAsc(studentId)
-                .stream()
-                .filter(this::isCertificateEligibleResult)
-                .toList();
-
-        for (ExamResult result : passedResults) {
-            String examCode = result.getExamCode() == null ? "" : result.getExamCode().trim();
-            if (examCode.isBlank() || certificateRepository.existsByStudentIdAndExamCode(studentId, examCode)) {
-                continue;
-            }
-
-            String examTitle = examRepository.findByExamCode(examCode)
-                    .map(Exam::getTitle)
-                    .orElse(examCode);
-            double certificateScore = result.getPercentage() > 0d ? result.getPercentage() : result.getScore();
-            try {
-                certificateService.ensureCertificateIssued(
-                        studentId,
-                        examCode,
-                        examTitle,
-                        certificateScore,
-                        "");
-            } catch (Exception certError) {
-                System.err.println("Certificate backfill failed for studentId="
-                        + studentId + ", examCode=" + examCode + ": " + certError.getMessage());
-            }
-        }
+        repairAndListCertificates(studentId);
     }
 
-    private boolean isCertificateEligibleResult(ExamResult result) {
-        if (result == null) {
-            return false;
+    private StudentDashboardResponse buildDashboard(
+            Long studentId,
+            List<ExamAttempt> attempts,
+            List<Exam> activeExams,
+            List<Certificate> repairedCertificates) {
+        List<ExamAttempt> sortedAttempts = new ArrayList<>(attempts == null ? List.of() : attempts);
+        sortedAttempts.sort(Comparator.comparing(
+                (ExamAttempt attempt) -> attempt.getEndTime() != null
+                        ? attempt.getEndTime()
+                        : attempt.getStartTime() != null
+                                ? attempt.getStartTime()
+                                : attempt.getCreatedAt(),
+                Comparator.nullsLast(Comparator.naturalOrder())).reversed());
+
+        List<StudentExamSummary> attempted = new ArrayList<>();
+        List<Double> scores = new ArrayList<>();
+        List<Double> trend = new ArrayList<>();
+        Set<String> attemptedCodes = new HashSet<>();
+
+        int cheatingAlerts = 0;
+        LocalDateTime lastAttempt = null;
+
+        for (ExamAttempt attempt : sortedAttempts) {
+            int obtained = attempt.getObtainedMarks() == null ? 0 : attempt.getObtainedMarks();
+            int total = attempt.getTotalMarks() == null ? 0 : attempt.getTotalMarks();
+            double percentage = resolveAttemptPercentage(attempt);
+
+            if (attempt.getExamCode() != null) {
+                attemptedCodes.add(attempt.getExamCode());
+            }
+
+            scores.add(percentage);
+            trend.add(percentage);
+
+            if (Boolean.TRUE.equals(attempt.getCheatingFlag())) {
+                cheatingAlerts++;
+            }
+
+            LocalDateTime attemptTime = attempt.getEndTime() != null ? attempt.getEndTime() : attempt.getStartTime();
+            if (lastAttempt == null ||
+                    (attemptTime != null && attemptTime.isAfter(lastAttempt))) {
+                lastAttempt = attemptTime;
+            }
+
+            StudentExamSummary summary = new StudentExamSummary(
+                    attempt.getExamCode(),
+                    obtained,
+                    total,
+                    percentage,
+                    calculateBadge(percentage));
+            summary.setAttemptId(attempt.getId());
+            attempted.add(summary);
         }
-        if (Boolean.TRUE.equals(result.getPassed())) {
-            return true;
+
+        List<Exam> visibleExams = activeExams == null ? List.of() : activeExams;
+        List<String> notAttempted = visibleExams.stream()
+                .map(Exam::getExamCode)
+                .filter(code -> code != null && !attemptedCodes.contains(code))
+                .toList();
+
+        StudentDashboardResponse response = new StudentDashboardResponse();
+        response.setAttempted(attempted);
+        response.setNotAttempted(new ArrayList<>(notAttempted));
+        response.setAnalytics(buildAnalytics(scores));
+        response.setSuggestions(generateSuggestions(response.getAnalytics()));
+        response.setTotalExams(visibleExams.size());
+        response.setAttemptedCount(attempted.size());
+        response.setNotAttemptedCount(notAttempted.size());
+        response.setAverageScore(calculateAverageScore(sortedAttempts));
+        response.setCertificatesEarned(repairedCertificates == null ? 0 : repairedCertificates.size());
+        response.setLeaderboardRank(0);
+        response.setCheatingAlerts(cheatingAlerts);
+        response.setWeakTopics(detectWeakTopics(studentId));
+        response.setPerformanceTrend(trend);
+        response.setLastAttemptTime(lastAttempt);
+        response.setLatestAttemptId(sortedAttempts.isEmpty() ? null : sortedAttempts.get(0).getId());
+        return response;
+    }
+
+    private StudentExamAnalyticsResponse buildAnalytics(List<Double> scores) {
+        StudentExamAnalyticsResponse analytics = new StudentExamAnalyticsResponse();
+        analytics.setAttemptedExams(scores.size());
+        analytics.setAverageScore(scores.stream().mapToDouble(Double::doubleValue).average().orElse(0));
+        analytics.setHighestScore(scores.stream().mapToDouble(Double::doubleValue).max().orElse(0));
+        analytics.setLowestScore(scores.stream().mapToDouble(Double::doubleValue).min().orElse(0));
+        long passCount = scores.stream().filter(score -> score >= 40).count();
+        analytics.setPassRate(scores.isEmpty() ? 0 : (passCount * 100.0) / scores.size());
+        return analytics;
+    }
+
+    private double calculateAverageScore(List<ExamAttempt> attempts) {
+        if (attempts == null || attempts.isEmpty()) {
+            return 0;
         }
-        String status = result.getResultStatus() == null ? "" : result.getResultStatus().trim();
-        return "PASS".equalsIgnoreCase(status) || result.getPercentage() >= 40d;
+        return attempts.stream()
+                .mapToDouble(this::resolveAttemptPercentage)
+                .average()
+                .orElse(0);
+    }
+
+    private List<ExamAttempt> loadStudentAttempts(Long studentId) {
+        if (studentId == null) {
+            return List.of();
+        }
+        List<ExamAttempt> attempts = new ArrayList<>(attemptRepository.findByStudentId(studentId));
+        attempts.sort(Comparator.comparing(
+                (ExamAttempt attempt) -> attempt.getEndTime() != null
+                        ? attempt.getEndTime()
+                        : attempt.getStartTime() != null
+                                ? attempt.getStartTime()
+                                : attempt.getCreatedAt(),
+                Comparator.nullsLast(Comparator.naturalOrder())).reversed());
+        return attempts;
+    }
+
+    private double resolveAttemptPercentage(ExamAttempt attempt) {
+        if (attempt == null) {
+            return 0;
+        }
+        if (attempt.getPercentage() != null && attempt.getPercentage() > 0) {
+            return attempt.getPercentage();
+        }
+        int obtained = attempt.getObtainedMarks() == null ? 0 : attempt.getObtainedMarks();
+        int total = attempt.getTotalMarks() == null ? 0 : attempt.getTotalMarks();
+        if (total > 0) {
+            return (obtained * 100.0) / total;
+        }
+        if (obtained > 0) {
+            return Math.min(100.0, obtained);
+        }
+        return 0;
+    }
+
+    private List<Certificate> repairAndListCertificates(Long studentId) {
+        if (studentId == null) {
+            return List.of();
+        }
+        try {
+            List<Certificate> certificates = certificateService.repairAndListStudentCertificates(studentId);
+            logger.info("Student certificate repair/list completed for studentId={} count={}",
+                    studentId, certificates.size());
+            return certificates;
+        } catch (Exception ex) {
+            logger.warn("Certificate backfill skipped during student dashboard load for studentId={}: {}",
+                    studentId, ex.getMessage());
+            return certificateRepository.findByStudentIdAndRevokedFalse(studentId);
+        }
     }
 
     private String calculateBadge(double percentage) {
@@ -579,6 +764,7 @@ public class StudentDashboardService {
         map.put("percentage", result.getPercentage());
         map.put("resultStatus", result.getResultStatus());
         map.put("passed", result.getPassed());
+        map.put("certificateId", result.getCertificateId());
         map.put("easyCorrect", result.getEasyCorrect());
         map.put("mediumCorrect", result.getMediumCorrect());
         map.put("difficultCorrect", result.getDifficultCorrect());
@@ -589,6 +775,30 @@ public class StudentDashboardService {
         map.put("submittedAt", result.getSubmittedAt());
         map.put("evaluatedAt", result.getEvaluatedAt());
         map.put("grade", result.getGrade());
+        return map;
+    }
+
+    private Map<String, Object> toCertificateRow(Certificate certificate) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", certificate.getId());
+        map.put("certificateId", certificate.getCertificateId());
+        map.put("studentId", certificate.getStudentId());
+        map.put("studentName", certificate.getStudentName());
+        map.put("collegeName", certificate.getCollegeName());
+        map.put("department", certificate.getDepartment());
+        map.put("rollNumber", certificate.getRollNumber());
+        map.put("section", certificate.getSection());
+        map.put("profilePhoto", certificate.getProfilePhoto());
+        map.put("examCode", certificate.getExamCode());
+        map.put("examTitle", certificate.getExamTitle());
+        map.put("score", certificate.getScore());
+        map.put("grade", certificate.getGrade());
+        map.put("qrCodeData", certificate.getQrCodeData());
+        map.put("issuedAt", certificate.getIssuedAt());
+        map.put("certificateUrl", certificate.getCertificateUrl());
+        map.put("revoked", certificate.isRevoked());
+        map.put("createdAt", certificate.getCreatedAt());
+        map.put("updatedAt", certificate.getUpdatedAt());
         return map;
     }
 

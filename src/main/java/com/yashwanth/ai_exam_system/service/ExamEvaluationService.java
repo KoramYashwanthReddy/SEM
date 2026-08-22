@@ -82,7 +82,8 @@ public class ExamEvaluationService {
             String correctAnswer = question.getCorrectAnswer();
             String studentAnswerValue = studentAnswer.getAnswer();
 
-            int questionMarks = question.getMarks() == null ? 0 : question.getMarks();
+            int questionMarks = question.getMarks() != null ? question.getMarks() :
+                    (exam.getMarksPerQuestion() != null ? exam.getMarksPerQuestion().intValue() : 0);
             totalMarks += questionMarks;
 
             DifficultyLevel level = question.getDifficultyLevel();
@@ -136,7 +137,8 @@ public class ExamEvaluationService {
 
         double percentage = totalMarks == 0 ? 0 : (obtainedMarks * 100.0) / totalMarks;
 
-        boolean passed = percentage >= 40;
+        int passingThreshold = (exam.getPassingMarks() != null && exam.getPassingMarks() > 0) ? exam.getPassingMarks() : 40;
+        boolean passed = percentage >= passingThreshold;
 
         ExamResult result = resultRepository.findByAttemptId(attemptId)
                 .orElseGet(() -> {
@@ -180,19 +182,15 @@ public class ExamEvaluationService {
         long timeTakenSeconds = resolveTimeTakenSeconds(attemptId, now);
         result.setTimeTakenSeconds(timeTakenSeconds);
 
-        result = resultRepository.save(result);
+        result = resultRepository.saveAndFlush(result);
 
         if (passed) {
-            double certificateScore = percentage > 0d ? percentage : obtainedMarks;
             try {
-                certificateService.ensureCertificateIssued(
-                        studentId,
-                        examCode,
-                        exam.getTitle(),
-                        certificateScore,
-                        "");
-            } catch (Exception ignored) {
-                // Certificate creation is best-effort. The exam result must still be saved.
+                certificateService.issueCertificateForPassedResult(result, "");
+            } catch (Exception certificateError) {
+                System.err.println("Certificate issuance failed for attemptId="
+                        + attemptId + ", studentId=" + studentId
+                        + ": " + certificateError.getMessage());
             }
         }
 

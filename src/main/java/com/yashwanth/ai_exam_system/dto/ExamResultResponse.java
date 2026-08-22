@@ -12,6 +12,7 @@ public class ExamResultResponse {
     private String result;
     private String resultStatus;
     private Boolean passed;
+    private String certificateId;
 
     // question stats
     private Integer totalQuestions;
@@ -64,6 +65,9 @@ public class ExamResultResponse {
 
     public Boolean getPassed() { return passed; }
     public void setPassed(Boolean passed) { this.passed = passed; }
+
+    public String getCertificateId() { return certificateId; }
+    public void setCertificateId(String certificateId) { this.certificateId = certificateId; }
 
     public Integer getTotalQuestions() { return totalQuestions; }
     public void setTotalQuestions(Integer totalQuestions) { this.totalQuestions = totalQuestions; }

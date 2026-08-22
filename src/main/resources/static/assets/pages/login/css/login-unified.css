@@ -352,15 +352,18 @@
 .password-toggle-sso {
   position: absolute;
   right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 0;
+  height: 48px; /* matches input height (14px top padding + 14px bottom padding + ~20px line-height) */
+  display: flex;
+  align-items: center;
   background: none;
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 0.75rem;
   font-weight: 600;
-  padding: 4px;
+  padding: 0 4px;
+  line-height: 1;
 }
 
 .password-toggle-sso:hover {

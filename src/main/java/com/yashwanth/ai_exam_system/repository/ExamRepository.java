@@ -73,8 +73,12 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     List<Exam> findTop10ByStatusOrderByCreatedAtDesc(String status);
 
     // ================= ADMIN =================
-
-    @Query("SELECT e FROM Exam e WHERE e.active = true ORDER BY e.createdAt DESC")
+ 
+    @Query("SELECT e FROM Exam e WHERE e.active = true OR e.active IS NULL ORDER BY e.createdAt DESC")
     List<Exam> findAllActiveOrderByCreatedAtDesc();
 
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query(value = "UPDATE exams SET active = true WHERE active IS NULL", nativeQuery = true)
+    int backfillActiveExams();
 }

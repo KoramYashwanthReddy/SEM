@@ -14,6 +14,7 @@ const UnifiedLogin = (() => {
   const errorMessage = document.getElementById('sso-error-message');
   
   const REMEMBER_KEY = 'remember.sso.identifier';
+  const AUTH_KEYS = ['token', 'accessToken', 'jwt', 'authToken', 'access_token'];
   const API_BASE = /^https?:/i.test(window.location.origin)
     ? window.location.origin
     : "http://localhost:8080";
@@ -167,13 +168,14 @@ const UnifiedLogin = (() => {
     const primary = remember ? localStorage : sessionStorage;
     const secondary = remember ? sessionStorage : localStorage;
 
-    ['token', 'accessToken', 'role', 'user', 'teacher'].forEach((key) => {
+    [...AUTH_KEYS, 'role', 'user', 'teacher'].forEach((key) => {
       secondary.removeItem(key);
       primary.removeItem(key);
     });
 
     primary.setItem('token', token);
     primary.setItem('accessToken', token);
+    primary.setItem('jwt', token);
     primary.setItem('role', role);
     primary.setItem('user', JSON.stringify(user));
     if (teacher) {

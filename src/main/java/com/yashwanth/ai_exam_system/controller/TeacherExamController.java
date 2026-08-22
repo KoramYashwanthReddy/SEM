@@ -570,6 +570,9 @@ public class TeacherExamController {
         if (stringValue(question.getCorrectAnswer()).isBlank()) {
             throw new IllegalArgumentException(context + ": MCQ correct answer is required");
         }
+        if (!matchesAnyOption(question, question.getCorrectAnswer())) {
+            throw new IllegalArgumentException(context + ": MCQ correct answer must match one of the provided options");
+        }
     }
 
     private int nonBlankCount(String... values) {
@@ -580,6 +583,38 @@ public class TeacherExamController {
             }
         }
         return count;
+    }
+
+    private boolean matchesAnyOption(Question question, String correctAnswer) {
+        String normalizedCorrect = normalizeForMatch(correctAnswer);
+        if (normalizedCorrect.isBlank()) {
+            return false;
+        }
+        List<String> options = java.util.Arrays.asList(
+                question.getOptionA(),
+                question.getOptionB(),
+                question.getOptionC(),
+                question.getOptionD(),
+                question.getOptionE(),
+                question.getOptionF()
+        );
+        boolean matchesText = options.stream()
+                .filter(option -> !stringValue(option).isBlank())
+                .anyMatch(option -> normalizeForMatch(option).equals(normalizedCorrect));
+        if (matchesText) {
+            return true;
+        }
+
+        String optionValue = "";
+        switch (normalizedCorrect) {
+            case "a", "optiona": optionValue = question.getOptionA(); break;
+            case "b", "optionb": optionValue = question.getOptionB(); break;
+            case "c", "optionc": optionValue = question.getOptionC(); break;
+            case "d", "optiond": optionValue = question.getOptionD(); break;
+            case "e", "optione": optionValue = question.getOptionE(); break;
+            case "f", "optionf": optionValue = question.getOptionF(); break;
+        }
+        return !stringValue(optionValue).isBlank();
     }
 
     @SuppressWarnings("unchecked")

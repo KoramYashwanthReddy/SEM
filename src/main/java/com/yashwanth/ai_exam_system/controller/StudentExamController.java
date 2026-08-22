@@ -401,7 +401,8 @@ public class StudentExamController {
 
         int totalMarks = questionSelectionService.selectQuestionsForExam(exam, authenticatedStudentId, attempt.getId())
                 .stream()
-                .mapToInt(question -> question.getMarks() == null ? 0 : question.getMarks())
+                .mapToInt(question -> question.getMarks() != null ? question.getMarks() :
+                        (exam.getMarksPerQuestion() != null ? exam.getMarksPerQuestion().intValue() : 0))
                 .sum();
 
         Long timeTakenSeconds = attempt.getStartTime() != null
@@ -420,18 +421,10 @@ public class StudentExamController {
         examAttemptRepository.save(attempt);
         User student = userRepository.findById(authenticatedStudentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+        boolean certificateIssued = false;
         if (Boolean.TRUE.equals(result.getPassed())) {
-            double certificateScore = result.getPercentage();
-            if (certificateScore <= 0) {
-                certificateScore = result.getScore();
-            }
             try {
-                certificateService.ensureCertificateIssued(
-                        authenticatedStudentId,
-                        attempt.getExamCode(),
-                        exam.getTitle(),
-                        certificateScore,
-                        "");
+                certificateIssued = certificateService.issueCertificateForPassedResult(result, "");
             } catch (Exception certError) {
                 System.err.println("Certificate generation failed for attemptId="
                         + attemptId + ", studentId=" + authenticatedStudentId
@@ -453,6 +446,8 @@ public class StudentExamController {
         response.put("percentage", result.getPercentage());
         response.put("resultStatus", result.getResultStatus());
         response.put("passed", result.getPassed());
+        response.put("certificateIssued", certificateIssued);
+        response.put("certificateId", result.getCertificateId());
         response.put("timeTakenSeconds", timeTakenSeconds);
         response.put("submittedAt", result.getSubmittedAt());
         response.put("evaluatedAt", result.getEvaluatedAt());
@@ -484,13 +479,13 @@ public class StudentExamController {
         QuestionResponse response = new QuestionResponse();
         response.setId(q.getId());
         response.setQuestionText(q.getQuestionText());
-        List<String> options = orderedOptionsForStudent(q, exam, studentId, attemptId);
+        List<String> options = visibleOptionsForStudent(q, exam, studentId, attemptId);
+        response.setOptionE(null);
+        response.setOptionF(null);
         response.setOptionA(optionAt(options, 0));
         response.setOptionB(optionAt(options, 1));
         response.setOptionC(optionAt(options, 2));
         response.setOptionD(optionAt(options, 3));
-        response.setOptionE(optionAt(options, 4));
-        response.setOptionF(optionAt(options, 5));
         response.setQuestionType(q.getQuestionType() != null ? q.getQuestionType().name() : null);
         response.setMarks(q.getMarks());
         response.setDifficulty(q.getDifficulty());
@@ -502,7 +497,7 @@ public class StudentExamController {
         return response;
     }
 
-    private List<String> orderedOptionsForStudent(Question question, Exam exam, Long studentId, Long attemptId) {
+    private List<String> visibleOptionsForStudent(Question question, Exam exam, Long studentId, Long attemptId) {
         List<String> options = new ArrayList<>();
         addOption(options, question.getOptionA());
         addOption(options, question.getOptionB());
@@ -510,15 +505,46 @@ public class StudentExamController {
         addOption(options, question.getOptionD());
         addOption(options, question.getOptionE());
         addOption(options, question.getOptionF());
-        if (options.size() <= 1) {
+        if (options.size() <= 4) {
+            if (options.size() > 1 && shouldShuffleOptions(exam, question)) {
+                Collections.shuffle(options, new Random(seedFor(exam.getExamCode(), studentId, attemptId, question.getId(), "OPTIONS")));
+            }
             return options;
         }
-        boolean shouldShuffle = Boolean.TRUE.equals(exam.getShuffleOptions())
-                && !Boolean.FALSE.equals(question.getShuffleOptions());
-        if (shouldShuffle) {
-            Collections.shuffle(options, new Random(seedFor(exam.getExamCode(), studentId, attemptId, question.getId(), "OPTIONS")));
+
+        boolean shouldShuffle = shouldShuffleOptions(exam, question) || options.size() > 4;
+
+        String correctAnswer = question.getCorrectAnswer() == null ? "" : question.getCorrectAnswer().trim();
+        List<String> working = new ArrayList<>(options);
+        List<String> visible = new ArrayList<>();
+
+        if (!correctAnswer.isBlank()) {
+            String matchedCorrect = working.stream()
+                    .filter(option -> option != null && option.trim().equalsIgnoreCase(correctAnswer))
+                    .findFirst()
+                    .orElse(null);
+            if (matchedCorrect != null) {
+                visible.add(matchedCorrect);
+                working.removeIf(option -> option != null && option.trim().equalsIgnoreCase(matchedCorrect));
+                Collections.shuffle(working, new Random(seedFor(exam.getExamCode(), studentId, attemptId, question.getId(), "DISTRACTORS")));
+                for (String distractor : working) {
+                    if (visible.size() >= 4) {
+                        break;
+                    }
+                    visible.add(distractor);
+                }
+                Collections.shuffle(visible, new Random(seedFor(exam.getExamCode(), studentId, attemptId, question.getId(), "VISIBLE")));
+                return visible;
+            }
         }
-        return options;
+
+        Collections.shuffle(working, new Random(seedFor(exam.getExamCode(), studentId, attemptId, question.getId(), "OPTIONS")));
+        return new ArrayList<>(working.subList(0, 4));
+    }
+
+    private boolean shouldShuffleOptions(Exam exam, Question question) {
+        return Boolean.TRUE.equals(exam.getShuffleOptions())
+                || Boolean.TRUE.equals(question.getShuffleOptions());
     }
 
     private void addOption(List<String> options, String value) {

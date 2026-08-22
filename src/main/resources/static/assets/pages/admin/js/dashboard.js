@@ -5040,7 +5040,7 @@ window.renderLBSection = function () {
                     </span>
                 </td>
                 <td class="aud-td" style="text-align:center">
-                    <button class="aud-detail-btn" title="View Details" onclick="auditViewDetails('${l.id}')">
+                    <button type="button" class="aud-detail-btn" title="View Details" onclick="auditViewDetails('${l.id}')">
                         <i class="fa-regular fa-eye"></i>
                     </button>
                 </td>
@@ -5176,9 +5176,63 @@ window.renderLBSection = function () {
     };
 
     window.auditViewDetails = function (id) {
-        const log = window.allAuditLogs.find(l => l.id === id);
-        if (!log) { window.showToast('Log entry not found', 'info'); return; }
-        window.showToast(`[${log.severity || 'LOW'}] ${log.title || log.message || 'Audit Entry'} — ${log.time || ''}`, 'info');
+        const log = window.allAuditLogs.find(l => String(l.id) === String(id));
+        if (!log) {
+            window.showToast('Log entry not found', 'info');
+            return;
+        }
+
+        const severityValue = String(log.severity || log.risk || 'LOW').toUpperCase();
+        const sevClass = severityValue === 'HIGH' || severityValue === 'CRITICAL' ? 'aud-sev-high'
+            : severityValue === 'MEDIUM' ? 'aud-sev-med'
+            : 'aud-sev-low';
+        const sevLabel = severityValue === 'CRITICAL' ? 'Critical'
+            : severityValue === 'HIGH' ? 'High'
+            : severityValue === 'MEDIUM' ? 'Medium'
+            : 'Low';
+
+        const rawStatus = String(log.status || 'SUCCESS').toUpperCase();
+        const isSuccess = ['SUCCESS', 'READ', 'INFO'].includes(rawStatus);
+        const isFailed = ['FAILED', 'ERROR', 'CANCELLED'].includes(rawStatus);
+        const isFlagged = rawStatus === 'FLAGGED';
+        const statusLabel = isFailed ? 'Failed' : isFlagged ? 'Flagged' : 'Success';
+        const statusClass = isFailed ? 'aud-status-failed' : isFlagged ? 'aud-status-flagged' : 'aud-status-success';
+
+        const setText = (elId, value, fallback = '—') => {
+            const el = document.getElementById(elId);
+            if (el) el.textContent = value ? String(value) : fallback;
+        };
+
+        setText('audit-detail-title', log.title || log.event || log.actionType || 'Audit Entry', 'Audit Entry');
+        setText('audit-detail-message', log.message || log.description || log.details || 'No additional details were supplied for this event.');
+        setText('audit-detail-time', log.time || log.timestamp || log.createdAt || log.date || '—');
+        setText('audit-detail-action', log.actionType || log.action || log.event || '—');
+        setText('audit-detail-user', log.user || log.actor || log.admin || log.email || 'System Admin');
+        setText('audit-detail-ip', log.ip || log.ipAddress || '—');
+        setText('audit-detail-id', log.id || '—');
+        setText('audit-detail-target', log.module || log.target || log.entity || log.subject || log.resource || '—');
+        setText('audit-detail-raw', JSON.stringify(log, null, 2));
+
+        const severityEl = document.getElementById('audit-detail-severity');
+        if (severityEl) {
+            severityEl.className = `aud-severity ${sevClass}`;
+            severityEl.textContent = sevLabel;
+        }
+
+        const statusEl = document.getElementById('audit-detail-status');
+        if (statusEl) {
+            statusEl.className = `aud-status ${statusClass}`;
+            statusEl.innerHTML = `<span class="aud-status-dot"></span> ${statusLabel}`;
+        }
+
+        const moduleEl = document.getElementById('audit-detail-module');
+        if (moduleEl) {
+            moduleEl.textContent = log.module || log.section || 'Module';
+        }
+
+        if (typeof window.openModal === 'function') {
+            window.openModal('auditDetailModal');
+        }
     };
 
     /* ─── REPORTS ─── */
@@ -5496,10 +5550,14 @@ window.renderLBSection = function () {
         </div>`;
     };
 
-    const openReportDetailByIndex = (index) => {
+    window.openReportDetailByIndex = function (index) {
         const items = getReportHistoryRows();
-        const item = items[index];
-        if (!item) return;
+        const safeIndex = Number(index);
+        const item = Number.isInteger(safeIndex) ? items[safeIndex] : null;
+        if (!item) {
+            window.showToast?.('Report details are not available for this row.', 'warning');
+            return;
+        }
         window.openReportDetail(item);
     };
 
@@ -5803,13 +5861,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-window.logoutAdmin = function () {
+window.logoutAdmin = function (event) {
+    if (event?.preventDefault) event.preventDefault();
     localStorage.removeItem('token');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('jwt');
     localStorage.removeItem('role');
     localStorage.removeItem('user');
-    window.location.href = 'role-selection.html';
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('accessToken');
+    sessionStorage.removeItem('jwt');
+    sessionStorage.removeItem('role');
+    sessionStorage.removeItem('user');
+    window.location.replace('/pages/login.html');
+    return false;
 };
 
 window.updateNotifBadges = () => {

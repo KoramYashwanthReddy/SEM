@@ -1659,6 +1659,405 @@
     }
   }
 
+  const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+  })[ch]);
+
+  function toDateTimeLocalValue(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value).slice(0, 16);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  function extractExamCode(response, fallback = "") {
+    const candidates = [
+      response?.examCode,
+      response?.id,
+      response?.data?.examCode,
+      response?.data?.id,
+      response?.exam?.examCode,
+      response?.exam?.id,
+      fallback
+    ];
+    return txt(candidates.find((item) => txt(item).trim()), "").trim();
+  }
+
+  function buildAdminWizardQuestions(parsed, selectedExamCode) {
+    const imported = (parsed.rows || []).map((row, idx) => {
+      const optionValues = [
+        txt(rowValue(row, ["Option A", "A", "opt_a"]) || ""),
+        txt(rowValue(row, ["Option B", "B", "opt_b"]) || ""),
+        txt(rowValue(row, ["Option C", "C", "opt_c"]) || ""),
+        txt(rowValue(row, ["Option D", "D", "opt_d"]) || ""),
+        txt(rowValue(row, ["Option E", "E", "opt_e"]) || ""),
+        txt(rowValue(row, ["Option F", "F", "opt_f"]) || "")
+      ].filter((value) => value && value.trim() !== "");
+      return {
+        examCode: txt(rowValue(row, ["Exam Code", "ExamCode", "exam_code", "Code"]) || selectedExamCode),
+        questionText: txt(rowValue(row, ["Question", "Question Text", "question_text", "Q", "Prompt"]) || `Question ${idx + 1}`),
+        questionType: normalizeUploadQuestionType(rowValue(row, ["Question Type", "Type", "question_type"])),
+        marks: num(rowValue(row, ["Marks", "Mark", "Score"]), 1),
+        difficulty: txt(rowValue(row, ["Difficulty", "Level"]) || "Easy"),
+        topic: txt(rowValue(row, ["Topic", "Section", "Subject"]) || "general"),
+        optionA: optionValues[0] || "",
+        optionB: optionValues[1] || "",
+        optionC: optionValues[2] || "",
+        optionD: optionValues[3] || "",
+        optionE: "",
+        optionF: "",
+        sampleInput: txt(rowValue(row, ["Sample Input", "Input"]) || ""),
+        sampleOutput: txt(rowValue(row, ["Sample Output", "Output"]) || ""),
+        correctAnswer: txt(rowValue(row, ["Correct Answer", "Answer", "Correct"]) || ""),
+        shuffleOptions: true,
+        displayOrder: idx + 1,
+        shuffleGroup: ""
+      };
+    }).filter((q) => q.questionText && q.questionText.trim() !== "");
+    const fileExamCodes = [...new Set(imported.map((q) => txt(q.examCode).trim()).filter(Boolean))];
+    if (fileExamCodes.length && (fileExamCodes.length > 1 || fileExamCodes[0] !== selectedExamCode)) {
+      throw new Error(`Exam code mismatch. Selected ${selectedExamCode}, but the file contains ${fileExamCodes.join(", ")}.`);
+    }
+    if (!imported.length) {
+      throw new Error("No valid questions were found in the file. Check the question text and columns.");
+    }
+    return imported;
+  }
+
+  function ensureAdminExamWizardHost() {
+    let host = document.getElementById("adminExamWizardHost");
+    if (!host) {
+      host = document.createElement("div");
+      host.id = "adminExamWizardHost";
+      host.className = "admin-exam-wizard-host";
+      document.body.appendChild(host);
+    }
+    return host;
+  }
+
+  function closeAdminExamWizard() {
+    const host = document.getElementById("adminExamWizardHost");
+    if (host) {
+      host.classList.remove("show");
+      host.innerHTML = "";
+    }
+  }
+
+  function openAdminExamWizard(examInput = null) {
+    const exam = examInput ? normalizeExamRecord(examInput.raw || examInput) : {};
+    const editing = Boolean(exam.examCode || exam.id);
+    const host = ensureAdminExamWizardHost();
+    const title = escapeHtml(exam.title || "");
+    const subject = escapeHtml(exam.subject || "");
+    const description = escapeHtml(exam.description || "");
+    const duration = Number(exam.durationMinutes || exam.duration || 90);
+    const totalMarks = Number(exam.totalMarks || 0);
+    const passingMarks = Number(exam.passingMarks || 0);
+    const marksPerQuestion = Number(exam.marksPerQuestion || 1);
+    const negativeMarks = Number(exam.negativeMarks || 0);
+    const maxAttempts = Number(exam.maxAttempts || 1);
+    const easy = Number(exam.easyQuestionCount || 0);
+    const medium = Number(exam.mediumQuestionCount || 0);
+    const hard = Number(exam.difficultQuestionCount || exam.hardQuestionCount || 0);
+    const startTime = toDateTimeLocalValue(exam.startTime || exam.raw?.startTime);
+    const endTime = toDateTimeLocalValue(exam.endTime || exam.raw?.endTime);
+    host.innerHTML = `
+      <div class="admin-exam-wizard-backdrop" data-admin-wizard-close="true"></div>
+      <section class="admin-exam-wizard" role="dialog" aria-modal="true" aria-labelledby="adminExamWizardTitle">
+        <aside class="aew-side">
+          <div class="aew-side-count"><span id="aewSideStep">1</span> / 4</div>
+          <div class="aew-side-icon" id="aewSideIcon"><i class="fa-solid fa-clipboard-list"></i></div>
+          <h2 id="aewSideTitle">Basic Info</h2>
+          <p id="aewSideDesc">Give your exam a clear title, subject and description so students know exactly what to expect.</p>
+          <ul id="aewTips">
+            <li>Use a descriptive title like CS101 Mid-Term 2025.</li>
+            <li>Set a realistic duration. Most exams are 60 to 120 min.</li>
+            <li>Write a brief summary of topics covered.</li>
+          </ul>
+          <div class="aew-dots"><span class="active"></span><span></span><span></span><span></span></div>
+        </aside>
+        <div class="aew-panel">
+          <button type="button" class="aew-close" data-admin-wizard-close="true" aria-label="Close">&times;</button>
+          <header class="aew-header">
+            <h2 id="adminExamWizardTitle">${editing ? "Update Exam" : "Create New Exam"}</h2>
+            <p>Fill in all four stages, then create a draft.</p>
+          </header>
+          <div class="aew-progress" aria-label="Exam creation stages">
+            <button type="button" class="aew-step active" data-step="0"><span>1</span><b>BASIC</b></button>
+            <i></i>
+            <button type="button" class="aew-step" data-step="1"><span>2</span><b>MARKS</b></button>
+            <i></i>
+            <button type="button" class="aew-step" data-step="2"><span>3</span><b>SCHEDULE</b></button>
+            <i></i>
+            <button type="button" class="aew-step" data-step="3"><span>4</span><b>QUESTIONS</b></button>
+          </div>
+          <form id="adminExamWizardForm" novalidate>
+            <input type="hidden" id="aew-code" value="${escapeHtml(exam.examCode || exam.id || "")}">
+            <div class="aew-pane active" data-pane="0">
+              <label>Exam Title<input id="aew-title" type="text" value="${title}" placeholder="e.g. CS101 - Mid-Term 2025"></label>
+              <div class="aew-grid-2">
+                <label>Subject<input id="aew-subject" type="text" value="${subject}" placeholder="e.g. Computer Science"></label>
+                <label>Duration (min)<input id="aew-duration" type="number" min="1" value="${duration}"></label>
+              </div>
+              <label>Description<textarea id="aew-description" placeholder="Brief description of topics, rules and instructions...">${description}</textarea></label>
+            </div>
+            <div class="aew-pane" data-pane="1">
+              <div class="aew-grid-2">
+                <label>Total Marks<input id="aew-total" type="number" min="1" value="${totalMarks || ""}"></label>
+                <label>Passing Marks<input id="aew-pass" type="number" min="0" value="${passingMarks || ""}"></label>
+                <label>Marks Per Question<input id="aew-per-question" type="number" min="0.1" step="0.1" value="${marksPerQuestion}"></label>
+                <label>Negative Marks<input id="aew-negative" type="number" min="0" step="0.1" value="${negativeMarks}"></label>
+                <label>Max Attempts<input id="aew-attempts" type="number" min="1" value="${maxAttempts}"></label>
+              </div>
+              <div class="aew-difficulty">
+                <label>Easy<input id="aew-easy" type="number" min="0" value="${easy}"></label>
+                <label>Medium<input id="aew-medium" type="number" min="0" value="${medium}"></label>
+                <label>Hard<input id="aew-hard" type="number" min="0" value="${hard}"></label>
+              </div>
+            </div>
+            <div class="aew-pane" data-pane="2">
+              <div class="aew-grid-2">
+                <label>Start Time<input id="aew-start" type="datetime-local" value="${startTime}"></label>
+                <label>End Time<input id="aew-end" type="datetime-local" value="${endTime}"></label>
+              </div>
+              <div class="aew-toggles">
+                <label><span>Shuffle Questions</span><input id="aew-shuffle-q" type="checkbox" ${exam.shuffleQuestions === false ? "" : "checked"}></label>
+                <label><span>Shuffle Options</span><input id="aew-shuffle-o" type="checkbox" ${exam.shuffleOptions === false ? "" : "checked"}></label>
+              </div>
+            </div>
+            <div class="aew-pane" data-pane="3">
+              <div class="aew-upload">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <strong>Upload question file</strong>
+                <p>CSV/XLSX files are supported. Only four answer options are stored for MCQ display, and option shuffle is enabled by default.</p>
+                <input id="aew-question-file" type="file" accept=".csv,.xlsx,.xls">
+              </div>
+            </div>
+          </form>
+          <footer class="aew-footer">
+            <button type="button" class="aew-btn ghost" id="aewPrev" disabled>&larr; Previous</button>
+            <button type="button" class="aew-btn ghost" id="aewNext">Next &rarr;</button>
+            <span class="aew-spacer"></span>
+            <button type="button" class="aew-btn soft" id="aewSaveDraft">Save Draft</button>
+            <button type="button" class="aew-btn primary" id="aewCreateDraft">${editing ? "Update Draft" : "Create Draft"}</button>
+          </footer>
+        </div>
+      </section>`;
+    host.classList.add("show");
+
+    const meta = [
+      {
+        icon: "fa-solid fa-clipboard-list",
+        title: "Basic Info",
+        desc: "Give your exam a clear title, subject and description so students know exactly what to expect.",
+        tips: ["Use a descriptive title like CS101 Mid-Term 2025.", "Set a realistic duration. Most exams are 60 to 120 min.", "Write a brief summary of topics covered."]
+      },
+      {
+        icon: "fa-solid fa-bullseye",
+        title: "Marks",
+        desc: "Define scoring rules, pass marks, attempts, negative marking and difficulty distribution.",
+        tips: ["Passing marks cannot exceed total marks.", "Difficulty counts should match your question upload.", "Keep marks per question consistent with total marks."]
+      },
+      {
+        icon: "fa-solid fa-calendar-days",
+        title: "Schedule",
+        desc: "Set the start and end window, then decide whether questions and options should shuffle.",
+        tips: ["End time must be after start time.", "Keep the window longer than the exam duration.", "Shuffling reduces repeated student answer order."]
+      },
+      {
+        icon: "fa-solid fa-book-open",
+        title: "Questions",
+        desc: "Attach the question bank for this exam. You can save a draft first and upload questions later.",
+        tips: ["Use columns Question, Option A-D, Correct Answer, Marks and Difficulty.", "Extra options are ignored so students see four choices.", "Publish is allowed only after questions are uploaded."]
+      }
+    ];
+    let current = 0;
+    const panes = [...host.querySelectorAll(".aew-pane")];
+    const steps = [...host.querySelectorAll(".aew-step")];
+    const dots = [...host.querySelectorAll(".aew-dots span")];
+    const sideStep = host.querySelector("#aewSideStep");
+    const sideIcon = host.querySelector("#aewSideIcon");
+    const sideTitle = host.querySelector("#aewSideTitle");
+    const sideDesc = host.querySelector("#aewSideDesc");
+    const tips = host.querySelector("#aewTips");
+    const prev = host.querySelector("#aewPrev");
+    const next = host.querySelector("#aewNext");
+
+    const value = (id) => host.querySelector(`#${id}`)?.value?.trim() || "";
+    const numberValue = (id) => {
+      const parsed = Number(value(id));
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+    const checkedValue = (id) => Boolean(host.querySelector(`#${id}`)?.checked);
+
+    const renderStep = () => {
+      panes.forEach((pane, idx) => pane.classList.toggle("active", idx === current));
+      steps.forEach((step, idx) => step.classList.toggle("active", idx === current));
+      dots.forEach((dot, idx) => dot.classList.toggle("active", idx === current));
+      const data = meta[current];
+      if (sideStep) sideStep.textContent = String(current + 1);
+      if (sideIcon) sideIcon.innerHTML = `<i class="${data.icon}"></i>`;
+      if (sideTitle) sideTitle.textContent = data.title;
+      if (sideDesc) sideDesc.textContent = data.desc;
+      if (tips) tips.innerHTML = data.tips.map((tip) => `<li>${escapeHtml(tip)}</li>`).join("");
+      if (prev) prev.disabled = current === 0;
+      if (next) next.style.display = current === panes.length - 1 ? "none" : "inline-flex";
+    };
+
+    const validateStep = (step = current) => {
+      const fail = (message) => {
+        window.showToast?.(message, "error");
+        return false;
+      };
+      if (step === 0) {
+        if (!value("aew-title") || !value("aew-subject") || numberValue("aew-duration") <= 0) {
+          return fail("Fill exam title, subject and duration before continuing.");
+        }
+      }
+      if (step === 1) {
+        const total = numberValue("aew-total");
+        const pass = numberValue("aew-pass");
+        const perQuestion = numberValue("aew-per-question");
+        const negative = numberValue("aew-negative");
+        const planned = numberValue("aew-easy") + numberValue("aew-medium") + numberValue("aew-hard");
+        if (total <= 0 || perQuestion <= 0 || numberValue("aew-attempts") <= 0) return fail("Total marks, marks per question and attempts must be greater than zero.");
+        if (pass > total) return fail("Passing marks cannot exceed total marks.");
+        if (negative < 0 || negative > perQuestion) return fail("Negative marks cannot exceed marks per question.");
+        if (planned > 0 && planned * perQuestion > total) return fail("Difficulty distribution exceeds total marks.");
+      }
+      if (step === 2) {
+        const start = new Date(value("aew-start"));
+        const end = new Date(value("aew-end"));
+        if (!value("aew-start") || !value("aew-end") || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+          return fail("Choose a valid start and end time.");
+        }
+      }
+      return true;
+    };
+
+    const buildPayload = () => ({
+      title: value("aew-title"),
+      description: value("aew-description"),
+      subject: value("aew-subject"),
+      durationMinutes: numberValue("aew-duration"),
+      startTime: value("aew-start") ? `${value("aew-start")}:00` : null,
+      endTime: value("aew-end") ? `${value("aew-end")}:00` : null,
+      totalMarks: numberValue("aew-total"),
+      passingMarks: numberValue("aew-pass"),
+      marksPerQuestion: numberValue("aew-per-question"),
+      negativeMarks: numberValue("aew-negative"),
+      maxAttempts: numberValue("aew-attempts"),
+      easyQuestionCount: numberValue("aew-easy"),
+      mediumQuestionCount: numberValue("aew-medium"),
+      difficultQuestionCount: numberValue("aew-hard"),
+      shuffleQuestions: checkedValue("aew-shuffle-q"),
+      shuffleOptions: checkedValue("aew-shuffle-o")
+    });
+
+    const submitWizard = async (mode, button) => {
+      for (let i = 0; i < 3; i += 1) {
+        if (!validateStep(i)) {
+          current = i;
+          renderStep();
+          return;
+        }
+      }
+      const original = button.textContent;
+      button.disabled = true;
+      button.textContent = mode === "publish" ? "Creating..." : "Saving...";
+      try {
+        const existingCode = value("aew-code");
+        const payload = buildPayload();
+        const response = existingCode
+          ? await api(`/api/admin/exams/${encodeURIComponent(existingCode)}`, { method: "PUT", body: payload })
+          : await api("/api/admin/exams", { method: "POST", body: payload });
+        let examCode = extractExamCode(response, existingCode);
+        if (!examCode) {
+          await loadAll();
+          const match = live.exams.find((item) => norm(item.title) === norm(payload.title) && norm(item.subject) === norm(payload.subject));
+          examCode = txt(match?.examCode || match?.id).trim();
+        }
+        const file = host.querySelector("#aew-question-file")?.files?.[0] || null;
+        let uploadedCount = 0;
+        if (file) {
+          if (!examCode) throw new Error("Exam was saved, but the exam code could not be resolved for question upload.");
+          button.textContent = "Uploading questions...";
+          const parsed = await parseQuestionFile(file);
+          const questions = buildAdminWizardQuestions(parsed, examCode);
+          const uploadResult = await api(`/api/admin/questions/exam/${encodeURIComponent(examCode)}/bulk`, {
+            method: "POST",
+            body: JSON.stringify(questions)
+          });
+          const savedQuestions = arr(uploadResult?.data?.questions || uploadResult?.questions || questions);
+          uploadedCount = savedQuestions.length || questions.length;
+        }
+        if (mode === "publish") {
+          if (!file && !live.byExam.get(examCode)?.questionsUploaded) {
+            window.showToast?.("Draft saved. Upload questions before publishing.", "success");
+          } else if (examCode) {
+            button.textContent = "Publishing...";
+            await api(`/api/admin/exams/${encodeURIComponent(examCode)}/publish`, { method: "POST" });
+            window.showToast?.(`Exam published successfully${uploadedCount ? ` with ${uploadedCount} questions` : ""}.`, "success");
+          }
+        } else {
+          window.showToast?.(`Exam draft saved${uploadedCount ? ` with ${uploadedCount} questions` : ""}.`, "success");
+        }
+        await loadAll();
+        closeAdminExamWizard();
+      } catch (error) {
+        console.error(error);
+        window.showToast?.(error.message || "Failed to save exam", "error");
+      } finally {
+        button.disabled = false;
+        button.textContent = original;
+      }
+    };
+
+    host.querySelectorAll("[data-admin-wizard-close]").forEach((el) => el.addEventListener("click", closeAdminExamWizard));
+    steps.forEach((step) => step.addEventListener("click", () => {
+      const target = Number(step.dataset.step || 0);
+      if (target <= current || validateStep(current)) {
+        current = target;
+        renderStep();
+      }
+    }));
+    prev?.addEventListener("click", () => {
+      current = Math.max(0, current - 1);
+      renderStep();
+    });
+    next?.addEventListener("click", () => {
+      if (!validateStep(current)) return;
+      current = Math.min(panes.length - 1, current + 1);
+      renderStep();
+    });
+    host.querySelector("#aewSaveDraft")?.addEventListener("click", (event) => submitWizard("draft", event.currentTarget));
+    host.querySelector("#aewCreateDraft")?.addEventListener("click", (event) => submitWizard("draft", event.currentTarget));
+    renderStep();
+  }
+
+  function installAdminExamWizard() {
+    const originalOpenModal = window.openModal;
+    window.openAdminExamWizard = openAdminExamWizard;
+    window.closeAdminExamWizard = closeAdminExamWizard;
+    window.openModal = function patchedAdminOpenModal(id, ...args) {
+      if (id === "createExamModal" || id === "editExamModal") {
+        openAdminExamWizard();
+        return;
+      }
+      return typeof originalOpenModal === "function" ? originalOpenModal.call(this, id, ...args) : undefined;
+    };
+    window.openEditExam = function openEditExamWizard(examCode) {
+      const exactCode = resolveExactExamCode(examCode);
+      const exam = exactCode ? live.byExam.get(exactCode) : null;
+      openAdminExamWizard(exam || { examCode });
+    };
+  }
+
   function revokeCert(id) {
     window.examToDeleteId = null;
     window.teacherToDeleteId = null;
@@ -1897,5 +2296,5 @@
   window.revokeCert = revokeCert;
   window.openCertView = openCertView;
 
-  initTeacherCreateEnhancements();
+  installAdminExamWizard();
 })();
