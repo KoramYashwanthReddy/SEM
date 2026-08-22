@@ -185,7 +185,7 @@ public class CertificateController {
 
         Certificate cert = certificateRepository
                 .findByCertificateId(certificateId)
-                .orElseThrow(() -> new RuntimeException("Certificate not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Certificate not found"));
         User currentUser = getCurrentUser(auth);
 
         if (currentUser.getRole() == Role.TEACHER && !canTeacherAccessCertificate(currentUser, cert)) {
@@ -199,6 +199,32 @@ public class CertificateController {
                 "revoked", true,
                 "certificateId", certificateId,
                 "message", "Certificate revoked successfully"));
+    }
+
+    // ================= ADMIN REACTIVATE =================
+
+    @PostMapping("/reactivate/{certificateId}")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    public ResponseEntity<Map<String, Object>> reactivateCertificate(
+            @PathVariable String certificateId,
+            Authentication auth) {
+
+        Certificate cert = certificateRepository
+                .findByCertificateId(certificateId)
+                .orElseThrow(() -> new ResourceNotFoundException("Certificate not found"));
+        User currentUser = getCurrentUser(auth);
+
+        if (currentUser.getRole() == Role.TEACHER && !canTeacherAccessCertificate(currentUser, cert)) {
+            throw new ForbiddenException("Teachers can only reactivate certificates for their own exams");
+        }
+
+        cert.setRevoked(false);
+        certificateRepository.save(cert);
+
+        return ResponseEntity.ok(Map.of(
+                "revoked", false,
+                "certificateId", certificateId,
+                "message", "Certificate reactivated successfully"));
     }
 
     // ================= ADMIN ALL CERTIFICATES =================
