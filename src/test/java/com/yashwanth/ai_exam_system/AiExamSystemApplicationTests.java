@@ -1,6 +1,8 @@
 package com.yashwanth.ai_exam_system;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -11,13 +13,17 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.yashwanth.ai_exam_system.dto.CreateTeacherRequest;
+import com.yashwanth.ai_exam_system.entity.Certificate;
 import com.yashwanth.ai_exam_system.entity.Role;
 import com.yashwanth.ai_exam_system.entity.User;
+import com.yashwanth.ai_exam_system.repository.CertificateRepository;
 import com.yashwanth.ai_exam_system.repository.UserRepository;
+import com.yashwanth.ai_exam_system.security.JwtService;
 import com.yashwanth.ai_exam_system.service.AdminService;
 
 @SpringBootTest
@@ -32,7 +38,13 @@ class AiExamSystemApplicationTests {
     private UserRepository userRepository;
 
     @Autowired
+    private CertificateRepository certificateRepository;
+
+    @Autowired
     private AdminService adminService;
+
+    @Autowired
+    private JwtService jwtService;
 
     @Test
     void contextLoads() {
@@ -142,6 +154,58 @@ class AiExamSystemApplicationTests {
         assertThat(teacher.getPhone()).isEqualTo("7396339051");
         assertThat(teacher.getEmployeeId()).isEqualTo("TCH-MULTI-1001");
         assertThat(teacher.getProfileImage()).startsWith("data:image/png;base64,");
+    }
+
+    @Test
+    void studentAnalyticsRejectsMismatchedStudentId() throws Exception {
+        User student = userRepository.findByEmailIgnoreCase("student@ai-exam.local").orElseThrow();
+        String token = jwtService.generateAccessToken(student.getEmail(), "STUDENT");
+
+        Long otherStudentId = student.getId() + 999;
+
+        mockMvc.perform(get("/api/analytics/me/" + otherStudentId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void certificateReactivationWorks() throws Exception {
+        User admin = userRepository.findByEmailIgnoreCase("admin@ai-exam.local").orElseThrow();
+        String token = jwtService.generateAccessToken(admin.getEmail(), "ADMIN");
+
+        Certificate cert = new Certificate();
+        cert.setCertificateId("CERT-TEST-REACTIVATE");
+        cert.setStudentId(100L);
+        cert.setExamCode("EXAM-100");
+        cert.setExamTitle("Test Exam");
+        cert.setScore(90.0);
+        cert.setRevoked(true);
+        certificateRepository.save(cert);
+
+        mockMvc.perform(post("/api/certificate/reactivate/CERT-TEST-REACTIVATE")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.revoked").value(false));
+
+        Certificate updated = certificateRepository.findByCertificateId("CERT-TEST-REACTIVATE").orElseThrow();
+        assertThat(updated.isRevoked()).isFalse();
+    }
+
+    @Test
+    void questionUploadReturnsBadRequestForInvalidFile() throws Exception {
+        User teacher = userRepository.findByEmailIgnoreCase("teacher@ai-exam.local").orElseThrow();
+        String token = jwtService.generateAccessToken(teacher.getEmail(), "TEACHER");
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "invalid.txt",
+                MediaType.TEXT_PLAIN_VALUE,
+                "invalid content".getBytes());
+
+        mockMvc.perform(multipart("/api/questions/upload")
+                        .file(file)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest());
     }
 }
 

@@ -140,9 +140,11 @@ public class ExcelQuestionUploadService {
 
             examRepository.save(exam);
             logger.info("Successfully uploaded {} questions for exam code: {}", questions.size(), examCode);
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Error during Excel upload: {}", e.getMessage(), e);
-            throw e;
+            throw new IllegalArgumentException("Invalid Excel file: " + e.getMessage(), e);
         }
     }
 

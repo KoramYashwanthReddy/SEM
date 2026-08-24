@@ -1,10 +1,15 @@
 package com.yashwanth.ai_exam_system.controller;
 
 import com.yashwanth.ai_exam_system.dto.AnalyticsResponse;
+import com.yashwanth.ai_exam_system.entity.User;
+import com.yashwanth.ai_exam_system.exception.ForbiddenException;
+import com.yashwanth.ai_exam_system.exception.ResourceNotFoundException;
+import com.yashwanth.ai_exam_system.repository.UserRepository;
 import com.yashwanth.ai_exam_system.service.AnalyticsService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -14,9 +19,11 @@ import java.util.Map;
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
+    private final UserRepository userRepository;
 
-    public AnalyticsController(AnalyticsService analyticsService) {
+    public AnalyticsController(AnalyticsService analyticsService, UserRepository userRepository) {
         this.analyticsService = analyticsService;
+        this.userRepository = userRepository;
     }
 
     // ================= ADMIN / TEACHER =================
@@ -53,8 +60,10 @@ public class AnalyticsController {
     @GetMapping("/me/{studentId}")
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<AnalyticsResponse> getMyAnalytics(
-            @PathVariable Long studentId) {
+            @PathVariable Long studentId,
+            Authentication auth) {
 
+        validateStudentOwnership(studentId, auth);
         return ResponseEntity.ok(
                 analyticsService.getStudentAnalytics(studentId));
     }
@@ -62,8 +71,10 @@ public class AnalyticsController {
     @GetMapping("/me/{studentId}/trend")
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<Map<String, Object>> getMyTrend(
-            @PathVariable Long studentId) {
+            @PathVariable Long studentId,
+            Authentication auth) {
 
+        validateStudentOwnership(studentId, auth);
         return ResponseEntity.ok(
                 analyticsService.getPerformanceTrend(studentId));
     }
@@ -71,10 +82,23 @@ public class AnalyticsController {
     @GetMapping("/me/{studentId}/history")
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<Map<String, Object>> getMyHistory(
-            @PathVariable Long studentId) {
+            @PathVariable Long studentId,
+            Authentication auth) {
 
+        validateStudentOwnership(studentId, auth);
         return ResponseEntity.ok(
                 analyticsService.getStudentHistory(studentId));
+    }
+
+    private void validateStudentOwnership(Long studentId, Authentication auth) {
+        if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
+            throw new ForbiddenException("Authentication required");
+        }
+        User user = userRepository.findByEmailIgnoreCase(auth.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated student not found"));
+        if (!studentId.equals(user.getId())) {
+            throw new ForbiddenException("You can only view your own analytics");
+        }
     }
 
     // ================= LEADERBOARD =================
