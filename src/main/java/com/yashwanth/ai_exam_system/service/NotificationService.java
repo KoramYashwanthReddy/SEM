@@ -1,11 +1,15 @@
 package com.yashwanth.ai_exam_system.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class NotificationService {
+
+    private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
 
     private final AdminNotificationService adminNotificationService;
     private final TeacherNotificationService teacherNotificationService;
@@ -39,7 +43,7 @@ public class NotificationService {
                 null
         );
 
-        System.out.println("ADMIN ALERT: " + message);
+        logger.info("ADMIN ALERT: {}", message);
     }
 
     // ================= STUDENT WARNING =================
@@ -65,7 +69,7 @@ public class NotificationService {
                 targetUrl
         );
 
-        System.out.println("STUDENT ALERT: " + title + " | " + message);
+        logger.info("STUDENT ALERT: {} | {}", title, message);
     }
 
     private String stringValue(Object value) {
@@ -96,7 +100,7 @@ public class NotificationService {
                 null
         );
 
-        System.out.println("EXAM CANCELLED: " + message);
+        logger.info("EXAM CANCELLED: {}", message);
     }
 
     // ================= TEACHER ALERT =================
@@ -125,6 +129,6 @@ public class NotificationService {
                 null
         );
 
-        System.out.println("TEACHER ALERT: " + message);
+        logger.info("TEACHER ALERT: {}", message);
     }
 }
