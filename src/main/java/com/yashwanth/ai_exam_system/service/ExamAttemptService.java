@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +38,8 @@ import com.yashwanth.ai_exam_system.repository.StudentAnswerRepository;
 @Service
 @Transactional
 public class ExamAttemptService {
+
+    private static final Logger log = LoggerFactory.getLogger(ExamAttemptService.class);
 
     private final ExamAttemptRepository attemptRepository;
     private final StudentAnswerRepository answerRepository;
@@ -270,8 +274,9 @@ public class ExamAttemptService {
         if (Boolean.TRUE.equals(result.getPassed())) {
             try {
                 certificateService.issueCertificateForPassedResult(result, "");
-            } catch (Exception ignored) {
+            } catch (Exception e) {
                 // Certificate issuance is best-effort here; the UI will still load the result.
+                log.warn("Failed to issue certificate for passed attemptId {}: {}", attemptId, e.getMessage());
             }
         }
 
