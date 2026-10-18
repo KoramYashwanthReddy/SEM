@@ -1,3 +1,5 @@
+@import './responsive.css';
+
 /* Unified MNC-Level Split Login Page Styles */
 :root {
   --primary-accent: #6366f1;
