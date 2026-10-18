@@ -79,15 +79,67 @@
 
 /* Landscape Mobile Fix */
 @media (max-height: 600px) and (orientation: landscape) {
+  .topbar {
+    padding: 10px 20px;
+  }
+
   .center {
-    padding: 10vh 20px;
+    padding: 15px 20px;
   }
   
-  .badges {
+  .badges,
+  .bg-text,
+  .bg-orb {
     display: none;
   }
   
   .card {
-    padding: 24px 40px;
+    padding: 20px 24px;
+  }
+
+  .card-header {
+    margin-bottom: 16px;
+  }
+
+  .card-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .input-group {
+    margin-bottom: 12px;
+  }
+
+  .form-options {
+    margin-bottom: 16px;
+  }
+
+  .card-footer {
+    margin-top: 16px;
+  }
+
+  .showcase-panel {
+    padding: 16px 20px;
+  }
+
+  .showcase-info,
+  .platform-metrics-widget,
+  .showcase-footer {
+    display: none;
+  }
+
+  .form-panel {
+    padding: 16px 20px;
+  }
+
+  .form-container {
+    gap: 12px;
+  }
+
+  .field-sso {
+    margin-bottom: 12px;
+  }
+
+  .form-actions-sso {
+    margin-bottom: 12px;
   }
 }
