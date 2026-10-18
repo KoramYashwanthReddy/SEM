@@ -15,10 +15,15 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.yashwanth.ai_exam_system.dto.CreateTeacherRequest;
+import com.yashwanth.ai_exam_system.entity.ExamAttempt;
 import com.yashwanth.ai_exam_system.entity.Role;
 import com.yashwanth.ai_exam_system.entity.User;
+import com.yashwanth.ai_exam_system.enums.AttemptStatus;
+import com.yashwanth.ai_exam_system.repository.ExamAttemptRepository;
 import com.yashwanth.ai_exam_system.repository.UserRepository;
 import com.yashwanth.ai_exam_system.service.AdminService;
+
+import java.util.List;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -33,6 +38,9 @@ class AiExamSystemApplicationTests {
 
     @Autowired
     private AdminService adminService;
+
+    @Autowired
+    private ExamAttemptRepository examAttemptRepository;
 
     @Test
     void contextLoads() {
@@ -142,6 +150,45 @@ class AiExamSystemApplicationTests {
         assertThat(teacher.getPhone()).isEqualTo("7396339051");
         assertThat(teacher.getEmployeeId()).isEqualTo("TCH-MULTI-1001");
         assertThat(teacher.getProfileImage()).startsWith("data:image/png;base64,");
+    }
+
+    @Test
+    void findByExamCodeInReturnsMatchingAttempts() {
+        ExamAttempt attempt1 = new ExamAttempt();
+        attempt1.setExamCode("EXAM-CODE-101");
+        attempt1.setStudentId(1L);
+        attempt1.setStatus(AttemptStatus.COMPLETED);
+        examAttemptRepository.save(attempt1);
+
+        ExamAttempt attempt2 = new ExamAttempt();
+        attempt2.setExamCode("EXAM-CODE-102");
+        attempt2.setStudentId(2L);
+        attempt2.setStatus(AttemptStatus.STARTED);
+        examAttemptRepository.save(attempt2);
+
+        List<ExamAttempt> results = examAttemptRepository.findByExamCodeIn(List.of("EXAM-CODE-101"));
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getExamCode()).isEqualTo("EXAM-CODE-101");
+    }
+
+    @Test
+    void findByExamCodeInHandlesMultipleCodesAndEmptyList() {
+        ExamAttempt attempt1 = new ExamAttempt();
+        attempt1.setExamCode("EXAM-CODE-201");
+        attempt1.setStudentId(1L);
+        examAttemptRepository.save(attempt1);
+
+        ExamAttempt attempt2 = new ExamAttempt();
+        attempt2.setExamCode("EXAM-CODE-202");
+        attempt2.setStudentId(2L);
+        examAttemptRepository.save(attempt2);
+
+        List<ExamAttempt> results = examAttemptRepository.findByExamCodeIn(List.of("EXAM-CODE-201", "EXAM-CODE-202"));
+        assertThat(results).hasSize(2);
+
+        List<ExamAttempt> emptyResults = examAttemptRepository.findByExamCodeIn(List.of());
+        assertThat(emptyResults).isEmpty();
     }
 }
 

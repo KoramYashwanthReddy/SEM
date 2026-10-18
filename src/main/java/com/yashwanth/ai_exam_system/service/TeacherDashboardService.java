@@ -49,8 +49,9 @@ public class TeacherDashboardService {
         List<String> examCodes =
                 exams.stream().map(Exam::getExamCode).toList();
 
-        List<ExamAttempt> attempts =
-                attemptRepository.findByExamCodeIn(examCodes);
+        List<ExamAttempt> attempts = examCodes.isEmpty()
+                ? Collections.emptyList()
+                : attemptRepository.findByExamCodeIn(examCodes);
 
         TeacherDashboardResponse response =
                 new TeacherDashboardResponse();
