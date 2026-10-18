@@ -1,11 +1,15 @@
 package com.yashwanth.ai_exam_system.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.FileInputStream;
 
 @Service
 public class AudioAnalysisService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AudioAnalysisService.class);
 
     public String analyzeAudio(String filePath) {
         try (FileInputStream fis = new FileInputStream(filePath)) {
@@ -22,7 +26,7 @@ public class AudioAnalysisService {
             return "NORMAL";
 
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Error analyzing audio file {}: {}", filePath, e.getMessage(), e);
             return "ERROR";
         }
     }
