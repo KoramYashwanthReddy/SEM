@@ -20246,7 +20246,7 @@ body.student-page .nav-link:hover:not(.active) {
 [data-theme="dark"] body.student-page .nav-link.active::before { background: #818cf8 !important; }
 
 /* ================================================================
-   FINAL POLISH � Fix all remaining visual issues
+   FINAL POLISH - Fix all remaining visual issues
    ================================================================ */
 
 /* ---- FIX: Table cell text color (no blue links in table) ---- */
@@ -20257,6 +20257,13 @@ body.student-page .nav-link:hover:not(.active) {
 }
 #dashboard .dash-table td strong { color: #111827 !important; font-weight: 500 !important; }
 #dashboard .dash-table td a { color: #374151 !important; text-decoration: none !important; }
+[data-theme="dark"] #dashboard .dash-table td,
+[data-theme="dark"] #dashboard .dash-table td * {
+  color: #d1d5db !important;
+  text-decoration: none !important;
+}
+[data-theme="dark"] #dashboard .dash-table td strong { color: #f9fafb !important; }
+[data-theme="dark"] #dashboard .dash-table td a { color: #d1d5db !important; text-decoration: none !important; }
 #dashboard .dash-table .dash-badge { color: inherit !important; }
 #dashboard .dash-badge.gold { color: #b45309 !important; }
 #dashboard .dash-badge.silver { color: #4b5563 !important; }
