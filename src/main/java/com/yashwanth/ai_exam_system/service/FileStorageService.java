@@ -27,9 +27,9 @@ public class FileStorageService {
 
     private void createDirectories() {
         try {
-            Files.createDirectories(Paths.get(properties.getSnapshotPath()));
-            Files.createDirectories(Paths.get(properties.getAudioPath()));
-            Files.createDirectories(Paths.get(properties.getLogPath()));
+            Files.createDirectories(Paths.get(properties.getSnapshotPath()).toAbsolutePath().normalize());
+            Files.createDirectories(Paths.get(properties.getAudioPath()).toAbsolutePath().normalize());
+            Files.createDirectories(Paths.get(properties.getLogPath()).toAbsolutePath().normalize());
         } catch (IOException e) {
             throw new RuntimeException("Could not create storage directories", e);
         }
@@ -50,26 +50,54 @@ public class FileStorageService {
     // 📄 Save Log
     public String saveLog(String data) throws IOException {
         String fileName = UUID.randomUUID() + ".txt";
-        Path path = Paths.get(properties.getLogPath(), fileName);
+        Path targetDir = Paths.get(properties.getLogPath()).toAbsolutePath().normalize();
+        Path path = targetDir.resolve(fileName).normalize();
+
+        if (!path.startsWith(targetDir)) {
+            throw new SecurityException("Cannot store log file outside target directory");
+        }
 
         try (FileOutputStream fos = new FileOutputStream(path.toFile())) {
             fos.write(data.getBytes());
         }
 
-        return path.toAbsolutePath().toString();
+        return path.toString();
     }
 
     // 🔁 Common File Save Logic
     private String saveFile(MultipartFile file, String dirPath) throws IOException {
 
         String originalName = file.getOriginalFilename();
-        String safeName = UUID.randomUUID() + "_" + (originalName != null ? originalName : "file");
+        String safeName = UUID.randomUUID() + "_" + cleanFilename(originalName);
 
-        Path path = Paths.get(dirPath, safeName);
+        Path targetDir = Paths.get(dirPath).toAbsolutePath().normalize();
+        Path targetPath = targetDir.resolve(safeName).normalize();
 
-        Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+        if (!targetPath.startsWith(targetDir)) {
+            throw new SecurityException("Cannot store file outside target directory: " + originalName);
+        }
 
-        return path.toAbsolutePath().toString();
+        Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+        return targetPath.toString();
+    }
+
+    private String cleanFilename(String originalName) {
+        if (originalName == null || originalName.isBlank()) {
+            return "file";
+        }
+        String name = originalName.trim();
+        int lastUnixPos = name.lastIndexOf('/');
+        int lastWindowsPos = name.lastIndexOf('\\');
+        int index = Math.max(lastUnixPos, lastWindowsPos);
+        if (index != -1) {
+            name = name.substring(index + 1);
+        }
+        if (name.isBlank() || "..".equals(name) || ".".equals(name)) {
+            return "file";
+        }
+        name = name.replaceAll("[/\\\\]", "_");
+        return name;
     }
 
     // 🔒 Basic Validation
