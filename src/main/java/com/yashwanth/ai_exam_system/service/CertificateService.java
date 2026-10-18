@@ -13,6 +13,8 @@ import com.yashwanth.ai_exam_system.repository.CertificateRepository;
 import com.yashwanth.ai_exam_system.repository.ExamResultRepository;
 import com.yashwanth.ai_exam_system.repository.StudentProfileRepository;
 import com.yashwanth.ai_exam_system.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.StringUtils;
@@ -30,6 +32,8 @@ import java.util.UUID;
 
 @Service
 public class CertificateService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CertificateService.class);
 
     private static final int CERTIFICATE_TEMPLATE_VERSION = 4;
 
@@ -139,8 +143,8 @@ public class CertificateService {
             if (failOnPdfError) {
                 throw pdfError;
             }
-            System.err.println("Certificate PDF generation deferred for certificateId="
-                    + cert.getCertificateId() + ": " + pdfError.getMessage());
+            logger.error("Certificate PDF generation deferred for certificateId={}: {}",
+                    cert.getCertificateId(), pdfError.getMessage(), pdfError);
         }
 
         if (freshIssue) {
@@ -305,7 +309,7 @@ public class CertificateService {
                     pdf
             );
         } catch (Exception e) {
-            System.err.println("Email failed: " + e.getMessage());
+            logger.error("Email failed: {}", e.getMessage(), e);
         }
     }
 
@@ -661,7 +665,7 @@ public class CertificateService {
                     qr.setAbsolutePosition(qrBX + qrPad, qrBY + qrPad);
                     cb.addImage(qr);   // â† correct method: directly to content stream
                 } catch (Exception ex) {
-                    System.err.println("QR image render failed: " + ex.getMessage());
+                    logger.error("QR image render failed: {}", ex.getMessage(), ex);
                 }
             }
 
@@ -934,7 +938,7 @@ public class CertificateService {
             cert.setPdfData(pdf);
             cert = certificateRepository.saveAndFlush(cert);
         } catch (Exception e) {
-            System.err.println("Certificate PDF generation deferred: " + e.getMessage());
+            logger.error("Certificate PDF generation deferred: {}", e.getMessage(), e);
         }
         return cert;
     }
@@ -1001,8 +1005,8 @@ public class CertificateService {
             try {
                 generateAndStoreCertificatePdf(certificate, true, resolvedBaseUrl);
             } catch (RuntimeException pdfError) {
-                System.err.println("Certificate PDF generation deferred for certificateId="
-                        + certificate.getCertificateId() + ": " + pdfError.getMessage());
+                logger.error("Certificate PDF generation deferred for certificateId={}: {}",
+                        certificate.getCertificateId(), pdfError.getMessage(), pdfError);
             }
         }
     }
@@ -1040,7 +1044,7 @@ public class CertificateService {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Failed to fetch exam title: " + e.getMessage());
+            logger.error("Failed to fetch exam title: {}", e.getMessage(), e);
         }
         return title;
     }
