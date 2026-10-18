@@ -10,9 +10,13 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class LeaderboardService {
@@ -47,6 +51,21 @@ public class LeaderboardService {
         List<ExamResult> uniqueResults = new ArrayList<>(bestByStudent.values());
         uniqueResults.sort(resultComparator());
 
+        Set<Long> studentIds = uniqueResults.stream()
+                .map(ExamResult::getStudentId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, String> studentNameMap = new HashMap<>();
+        if (!studentIds.isEmpty()) {
+            List<User> users = userRepository.findAllById(studentIds);
+            for (User user : users) {
+                if (user != null && user.getId() != null) {
+                    studentNameMap.put(user.getId(), resolveStudentName(user));
+                }
+            }
+        }
+
         List<LeaderboardDTO> leaderboard = new ArrayList<>(uniqueResults.size());
         int rank = 1;
         for (ExamResult result : uniqueResults) {
@@ -55,7 +74,12 @@ public class LeaderboardService {
             dto.setScore((int) result.getScore());
             dto.setPercentage(roundToOneDecimal(result.getPercentage()));
             dto.setRank(rank++);
-            dto.setStudentName(resolveStudentName(result.getStudentId()));
+
+            String studentName = studentNameMap.get(result.getStudentId());
+            if (studentName == null) {
+                studentName = formatFallbackStudentName(result.getStudentId());
+            }
+            dto.setStudentName(studentName);
             leaderboard.add(dto);
         }
 
@@ -79,13 +103,17 @@ public class LeaderboardService {
         return Math.round(value * 10.0) / 10.0;
     }
 
-    private String resolveStudentName(Long studentId) {
+    private String resolveStudentName(User user) {
+        if (user != null && user.getName() != null && !user.getName().isBlank()) {
+            return user.getName();
+        }
+        return formatFallbackStudentName(user != null ? user.getId() : null);
+    }
+
+    private String formatFallbackStudentName(Long studentId) {
         if (studentId == null) {
             return "Student";
         }
-        return userRepository.findById(studentId)
-                .map(User::getName)
-                .filter(name -> name != null && !name.isBlank())
-                .orElse("Student " + studentId);
+        return "Student " + studentId;
     }
 }
