@@ -519,14 +519,30 @@ public class ExamService {
         throw new BadRequestException("Invalid date-time format. Use yyyy-MM-dd'T'HH:mm or ISO timestamp");
     }
 
+    private static final char[] HEX_CHARS = "0123456789ABCDEF".toCharArray();
+
     private String generateExamCode() {
         for (int attempt = 0; attempt < 10; attempt++) {
-            String code = "EXAM-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
-            if (examRepository.findByExamCode(code).isEmpty()) {
+            String code = buildExamCode();
+            if (!examRepository.existsByExamCode(code)) {
                 return code;
             }
         }
         throw new ConflictException("Unable to generate a unique exam code");
+    }
+
+    private String buildExamCode() {
+        long msb = UUID.randomUUID().getMostSignificantBits();
+        char[] buf = new char[17];
+        buf[0] = 'E';
+        buf[1] = 'X';
+        buf[2] = 'A';
+        buf[3] = 'M';
+        buf[4] = '-';
+        for (int i = 0; i < 12; i++) {
+            buf[5 + i] = HEX_CHARS[(int) ((msb >>> (60 - i * 4)) & 0x0F)];
+        }
+        return new String(buf);
     }
 
     private void safeNotifyEmail(Runnable action, String label) {

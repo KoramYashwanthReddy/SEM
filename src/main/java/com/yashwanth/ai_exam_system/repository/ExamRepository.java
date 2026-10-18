@@ -15,6 +15,8 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
 
     Optional<Exam> findByExamCode(String examCode);
 
+    boolean existsByExamCode(String examCode);
+
     List<Exam> findByCreatedBy(String createdBy);
 
     // ================= STATUS =================
