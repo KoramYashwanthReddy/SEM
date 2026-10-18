@@ -36,29 +36,29 @@ public class GlobalExceptionHandler {
     // ================= STATIC RESOURCE FIX =================
 
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<Object> handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
+    public ResponseEntity<?> handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
         if (request.getRequestURI().endsWith(".ico")) {
             return ResponseEntity.notFound().build();
         }
         if (ErrorPageSupport.prefersHtml(request)) {
-            return (ResponseEntity) ErrorPageSupport.render(HttpStatus.NOT_FOUND, "static/error/404.html");
+            return ErrorPageSupport.render(HttpStatus.NOT_FOUND, "static/error/404.html");
         }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("NOT_FOUND", "Resource not found"));
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("Resource not found", "NOT_FOUND"));
     }
 
     // ================= BASE EXCEPTION =================
 
     @ExceptionHandler(BaseException.class)
-    public ResponseEntity<ApiResponse<Object>> handleBaseException(
+    public ResponseEntity<?> handleBaseException(
             BaseException ex,
             HttpServletRequest request) {
 
         HttpStatus status = resolveStatus(ex);
         if (status == HttpStatus.UNAUTHORIZED && ErrorPageSupport.prefersHtml(request)) {
-            return (ResponseEntity) ErrorPageSupport.render(HttpStatus.UNAUTHORIZED, "static/error/401.html");
+            return ErrorPageSupport.render(HttpStatus.UNAUTHORIZED, "static/error/401.html");
         }
         if (status == HttpStatus.NOT_FOUND && ErrorPageSupport.prefersHtml(request)) {
-            return (ResponseEntity) ErrorPageSupport.render(HttpStatus.NOT_FOUND, "static/error/404.html");
+            return ErrorPageSupport.render(HttpStatus.NOT_FOUND, "static/error/404.html");
         }
 
         log.error("[BASE_EXCEPTION] code={}, message={}, path={}",
@@ -131,7 +131,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ApiResponse<Object>> handleBadCredentials(
+    public ResponseEntity<?> handleBadCredentials(
             BadCredentialsException ex,
             HttpServletRequest request) {
 
@@ -140,7 +140,7 @@ public class GlobalExceptionHandler {
                 safe(ex.getMessage()));
 
         if (ErrorPageSupport.prefersHtml(request)) {
-            return (ResponseEntity) ErrorPageSupport.render(HttpStatus.UNAUTHORIZED, "static/error/401.html");
+            return ErrorPageSupport.render(HttpStatus.UNAUTHORIZED, "static/error/401.html");
         }
 
         return buildErrorResponse(
@@ -294,7 +294,7 @@ public class GlobalExceptionHandler {
     // ================= RUNTIME =================
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Object> handleRuntimeException(
+    public ResponseEntity<?> handleRuntimeException(
             RuntimeException ex,
             HttpServletRequest request) {
 
@@ -307,7 +307,7 @@ public class GlobalExceptionHandler {
              return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
 
-        return (ResponseEntity) buildErrorResponse(
+        return buildErrorResponse(
                 "RUNTIME_ERROR",
                 (ex.getMessage() == null || ex.getMessage().isBlank())
                         ? "Request failed"
@@ -321,7 +321,7 @@ public class GlobalExceptionHandler {
     // ================= GENERIC =================
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Object> handleGenericException(
+    public ResponseEntity<?> handleGenericException(
             Exception ex,
             HttpServletRequest request) {
 
@@ -334,7 +334,7 @@ public class GlobalExceptionHandler {
              return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
 
-        return (ResponseEntity) buildErrorResponse(
+        return buildErrorResponse(
                 "INTERNAL_SERVER_ERROR",
                 "Something went wrong",
                 ex.getMessage(),
