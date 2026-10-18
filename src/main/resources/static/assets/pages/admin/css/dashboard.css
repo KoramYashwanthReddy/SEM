@@ -6317,10 +6317,13 @@ body.admin-page #dashboard-section {
 /* Fix unusual autofill background strip inside search input */
 .top-nav .search-wrap input:-webkit-autofill,
 .top-nav .search-wrap input:-webkit-autofill:hover,
-.top-nav .search-wrap input:-webkit-autofill:focus {
+.top-nav .search-wrap input:-webkit-autofill:focus,
+.top-nav .search-wrap input:-webkit-autofill:active {
   -webkit-text-fill-color: var(--text-primary) !important;
   transition: background-color 9999s ease-out 0s !important;
   -webkit-box-shadow: 0 0 0 1000px var(--nav-bg) inset !important;
+  box-shadow: 0 0 0 1000px var(--nav-bg) inset !important;
+  caret-color: var(--text-primary) !important;
 }
 
 @media (max-width: 1024px) {
