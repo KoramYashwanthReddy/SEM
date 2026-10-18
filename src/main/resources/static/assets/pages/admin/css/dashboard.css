@@ -6376,20 +6376,43 @@ body.admin-page #dashboard-section {
 }
 
 /* PM Events Modal Table Fix */
+#pmEventsTable {
+  min-width: 100% !important;
+}
+
 #pmEventsTable th,
 #pmEventsTable td {
+  padding: 10px 12px;
   white-space: nowrap;
   vertical-align: middle;
 }
 
+#pmEventsTable th:nth-child(1),
+#pmEventsTable td:nth-child(1) {
+  width: 26%;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+#pmEventsTable th:nth-child(2),
+#pmEventsTable td:nth-child(2) {
+  width: 12%;
+}
+
+#pmEventsTable th:nth-child(3),
+#pmEventsTable td:nth-child(3) {
+  width: 7%;
+}
+
 #pmEventsTable th:nth-child(4),
 #pmEventsTable td.pm-event-detail {
-  width: 38%;
+  width: 28%;
 }
 
 #pmEventsTable td.pm-event-detail {
   white-space: normal !important;
   word-break: break-word;
+  overflow-wrap: break-word;
   line-height: 1.35;
   color: var(--text-secondary);
   font-size: 12px;
@@ -6397,13 +6420,19 @@ body.admin-page #dashboard-section {
 
 #pmEventsTable th:nth-child(5),
 #pmEventsTable td.pm-event-time {
-  width: 110px;
+  width: 17%;
 }
 
 #pmEventsTable td.pm-event-time {
   font-size: 11px;
   color: var(--text-tertiary);
   text-align: left;
+}
+
+#pmEventsTable th:nth-child(6),
+#pmEventsTable td:nth-child(6) {
+  width: 10%;
+  text-align: right;
 }
 
 .upload-dropzone-icon {
