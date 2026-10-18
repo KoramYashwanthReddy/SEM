@@ -47,6 +47,14 @@ public class ExamEvaluationService {
     public ExamResult evaluateExam(Long attemptId, Long studentId, String examCode) {
 
         List<StudentAnswer> answers = answerRepository.findByAttemptId(attemptId);
+        java.util.Map<Long, StudentAnswer> answerMap = new java.util.HashMap<>();
+        if (answers != null) {
+            for (StudentAnswer sa : answers) {
+                if (sa.getQuestionId() != null) {
+                    answerMap.put(sa.getQuestionId(), sa);
+                }
+            }
+        }
 
         int correct = 0;
         int wrong = 0;
@@ -65,19 +73,18 @@ public class ExamEvaluationService {
         List<Question> questions = questionSelectionService.selectQuestionsForExam(exam, studentId, attemptId);
 
         for (Question question : questions) {
-            StudentAnswer studentAnswer = answerRepository
-                    .findByAttemptIdAndQuestionId(attemptId, question.getId())
-                    .orElseGet(() -> {
-                        StudentAnswer sa = new StudentAnswer();
-                        sa.setAttemptId(attemptId);
-                        sa.setQuestionId(question.getId());
-                        sa.setStatus("NOT_ANSWERED");
-                        sa.setAnswer("");
-                        sa.setVisited(false);
-                        sa.setIsCorrect(false);
-                        sa.setMarksObtained(0);
-                        return sa;
-                    });
+            StudentAnswer studentAnswer = answerMap.get(question.getId());
+            if (studentAnswer == null) {
+                studentAnswer = new StudentAnswer();
+                studentAnswer.setAttemptId(attemptId);
+                studentAnswer.setQuestionId(question.getId());
+                studentAnswer.setStatus("NOT_ANSWERED");
+                studentAnswer.setAnswer("");
+                studentAnswer.setVisited(false);
+                studentAnswer.setIsCorrect(false);
+                studentAnswer.setMarksObtained(0);
+                answerMap.put(question.getId(), studentAnswer);
+            }
 
             String correctAnswer = question.getCorrectAnswer();
             String studentAnswerValue = studentAnswer.getAnswer();
