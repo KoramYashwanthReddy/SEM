@@ -1,7 +1,9 @@
 package com.yashwanth.ai_exam_system;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -142,6 +144,31 @@ class AiExamSystemApplicationTests {
         assertThat(teacher.getPhone()).isEqualTo("7396339051");
         assertThat(teacher.getEmployeeId()).isEqualTo("TCH-MULTI-1001");
         assertThat(teacher.getProfileImage()).startsWith("data:image/png;base64,");
+    }
+
+    @Test
+    void missingFaviconIcoReturns404EmptyBody() throws Exception {
+        mockMvc.perform(get("/missing.ico"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string(""));
+    }
+
+    @Test
+    void missingStaticResourcePrefersHtmlReturns404HtmlPage() throws Exception {
+        mockMvc.perform(get("/nonexistent-page.html")
+                        .accept(MediaType.TEXT_HTML))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML));
+    }
+
+    @Test
+    void missingStaticResourcePrefersJsonReturns404JsonResponse() throws Exception {
+        mockMvc.perform(get("/nonexistent-resource.png")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value("ERROR"))
+                .andExpect(jsonPath("$.message").value("Resource not found"))
+                .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"));
     }
 }
 
