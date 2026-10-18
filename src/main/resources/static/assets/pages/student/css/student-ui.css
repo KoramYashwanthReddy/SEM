@@ -15464,7 +15464,7 @@ body.student-page .theme-toggle-btn.active:hover {
 
 /* Tab Button Contrast Fix (for blank "All Registered" pill) */
 .tab-group .tab-btn {
-  color: var(--text-secondary);
+  color: var(--text-primary);
   padding: 6px 14px;
   border-radius: 20px;
   font-weight: 600;
